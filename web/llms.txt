@@ -10,8 +10,8 @@ Adeorq no da acceso a ningún modelo ni revende suscripciones: funciona con la c
 que el usuario ya tiene en cada cliente. Está hecho con Tauri (Rust) y React, así que
 es una aplicación nativa, no un navegador empaquetado.
 
-También se usa desde el móvil o desde cualquier navegador, estés donde estés: el
-conserje, las sesiones y cada terminal, con adjuntos y avisos. Va por Tailscale, una
+También se usa desde el móvil o desde cualquier navegador, estés donde estés: Adeo,
+las sesiones y cada terminal, con adjuntos y avisos. Va por Tailscale, una
 red privada entre los aparatos del usuario, así que desde internet no se ve y no pasa
 por ningún servidor de Adeorq. Lo que se ve es el propio PC, que tiene que estar
 encendido con Adeorq abierto.

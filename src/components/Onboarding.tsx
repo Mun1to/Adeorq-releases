@@ -18,7 +18,10 @@ import { PROVIDERS, providerOf } from "../lib/providers";
 import { THEMES, useT, type Lang, type ThemeId } from "../lib/i18n";
 import ProviderMark from "./ProviderMark";
 import { alternarParte, leerApagadas, PARTES, type Parte } from "../lib/partes";
+import { claudeConectar, claudeConexiones, type CuentaDeClaude } from "../lib/claudeConexion";
 import { ChevronIcon } from "./Icons";
+import Espera, { Ocupado } from "./Espera";
+import { EstadoDeCuenta } from "./AjustesClaudeConexion";
 
 interface Props {
   lang: Lang;
@@ -31,17 +34,21 @@ interface Props {
   onPartes: (a: Parte[]) => void;
 }
 
-type Paso = 0 | 1 | 2 | 3 | 4 | 5;
-const ULTIMO: Paso = 5;
+/** «conectar» solo sale si Claude Code está instalado: no se le ofrece a quien no lo usa. */
+type Paso = "nombre" | "carpeta" | "agentes" | "conectar" | "partes" | "aspecto" | "listo";
 
 export default function Onboarding({ lang, theme, onLang, onTheme, onDone, onPartes }: Props) {
   const { t } = useT();
-  const [paso, setPaso] = useState<Paso>(0);
+  const [paso, setPaso] = useState<Paso>("nombre");
   const [perfil, setPerfil] = useState<Perfil>(() => leerPerfil());
   /** Cuántos proyectos hay en la carpeta elegida. null = aún sin mirar. */
   const [cuantos, setCuantos] = useState<number | null>(null);
   const [errorRaiz, setErrorRaiz] = useState<string | null>(null);
   const [instalados, setInstalados] = useState<string[]>([]);
+  /** La cuenta de siempre de Claude Code, para el paso de conectarlo. null = aún sin mirar. */
+  const [claude, setClaude] = useState<CuentaDeClaude | null>(null);
+  const [escribiendo, setEscribiendo] = useState(false);
+  const [errorClaude, setErrorClaude] = useState<string | null>(null);
   const [apagadas, setApagadas] = useState<Parte[]>(leerApagadas);
   /** Por qué no se pudo quitar la última de terminales. */
   const [porqueParte, setPorqueParte] = useState<string | null>(null);
@@ -80,6 +87,23 @@ export default function Onboarding({ lang, theme, onLang, onTheme, onDone, onPar
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Se mira al llegar al paso, no al abrir: leer cómo está su archivo no tiene prisa.
+  useEffect(() => {
+    if (paso !== "conectar") return;
+    claudeConexiones()
+      .then((p) => setClaude(p.cuentas.find((c) => c.id === "principal") ?? null))
+      .catch((e) => setErrorClaude(String(e)));
+  }, [paso]);
+
+  const conectarClaude = () => {
+    setEscribiendo(true);
+    setErrorClaude(null);
+    claudeConectar("principal")
+      .then((r) => setClaude(r.plan.cuentas.find((c) => c.id === "principal") ?? null))
+      .catch((e) => setErrorClaude(String(e)))
+      .finally(() => setEscribiendo(false));
+  };
 
   async function contar(dir: string) {
     try {
@@ -140,11 +164,17 @@ export default function Onboarding({ lang, theme, onLang, onTheme, onDone, onPar
 
   const nombre = perfil.nombre.trim();
 
-  // El paso 0 no se puede pasar sin nombre: es lo único que se le pide de
+  const orden = useMemo<Paso[]>(
+    () => ["nombre", "carpeta", "agentes", ...(instalados.includes("claude") ? (["conectar"] as Paso[]) : []), "partes", "aspecto", "listo"],
+    [instalados],
+  );
+  const lugar = orden.indexOf(paso);
+
+  // El primer paso no se puede pasar sin nombre: es lo único que se le pide de
   // verdad, y sin él el panel seguiría saludando a otro.
   const puedeSeguir = useMemo(() => {
-    if (paso === 0) return nombre.length > 0;
-    if (paso === 1) return perfil.sinRaiz || (!!perfil.raiz && !errorRaiz);
+    if (paso === "nombre") return nombre.length > 0;
+    if (paso === "carpeta") return perfil.sinRaiz || (!!perfil.raiz && !errorRaiz);
     return true;
   }, [paso, nombre, perfil.raiz, perfil.sinRaiz, errorRaiz]);
 
@@ -153,27 +183,29 @@ export default function Onboarding({ lang, theme, onLang, onTheme, onDone, onPar
       <div className="onb">
         <header className="onb-head">
           <h2 className="onb-tit">
-            {paso === 0
+            {paso === "nombre"
               ? t("Bienvenido a Adeorq")
-              : paso === 1
+              : paso === "carpeta"
                 ? t("Dónde viven tus proyectos")
-                : paso === 2
+                : paso === "agentes"
                   ? t("Tus agentes")
-                  : paso === 3
-                    ? t("¿Qué quieres usar?")
-                    : paso === 4
-                      ? t("El aspecto")
-                      : t("Listo")}
+                  : paso === "conectar"
+                    ? t("Conectar tu Claude Code")
+                    : paso === "partes"
+                      ? t("¿Qué quieres usar?")
+                      : paso === "aspecto"
+                        ? t("El aspecto")
+                        : t("Listo")}
           </h2>
           <div className="onb-pips">
-            {([0, 1, 2, 3, 4, 5] as Paso[]).map((n) => (
-              <span key={n} className="onb-pip" data-on={n <= paso} />
+            {orden.map((n, i) => (
+              <span key={n} className="onb-pip" data-on={i <= lugar} />
             ))}
           </div>
         </header>
 
         <div className="onb-cuerpo">
-          {paso === 0 && (
+          {paso === "nombre" && (
             <>
               <p className="onb-txt">
                 {t(
@@ -189,7 +221,7 @@ export default function Onboarding({ lang, theme, onLang, onTheme, onDone, onPar
                   placeholder={t("Tu nombre")}
                   onChange={(e) => cambiar({ nombre: e.currentTarget.value })}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && nombre) setPaso(1);
+                    if (e.key === "Enter" && nombre) setPaso("carpeta");
                   }}
                 />
               </label>
@@ -205,7 +237,7 @@ export default function Onboarding({ lang, theme, onLang, onTheme, onDone, onPar
             </>
           )}
 
-          {paso === 1 && (
+          {paso === "carpeta" && (
             <>
               <p className="onb-txt">
                 {t(
@@ -250,11 +282,11 @@ export default function Onboarding({ lang, theme, onLang, onTheme, onDone, onPar
             </>
           )}
 
-          {paso === 2 && (
+          {paso === "agentes" && (
             <>
               <p className="onb-txt">
                 {t(
-                  "Estos son los que he encontrado instalados en tu ordenador. Marca los que uses: el Asistente no te mandará a uno que no usas.",
+                  "Estos son los que he encontrado instalados en tu ordenador. Marca los que uses: Adeo no te mandará a uno que no usas.",
                 )}
               </p>
               <div className="onb-clis">
@@ -293,7 +325,51 @@ export default function Onboarding({ lang, theme, onLang, onTheme, onDone, onPar
             </>
           )}
 
-          {paso === 3 && (
+          {paso === "conectar" && (
+            <>
+              <p className="onb-txt">
+                {t("Para que tu Claude Code tenga las herramientas de Adeorq (")}
+                <b>{t("abrir terminales, leer las tuyas y mirar tu cuota")}</b>
+                {t(") hay que apuntarlas una vez en su configuración.")}
+              </p>
+              {claude ? (
+                <>
+                  <div className="onb-ruta" data-claude="">
+                    <code title={claude.archivo}>{claude.archivo}</code>
+                    {claude.estado === "libre" && (
+                      <button className="np-btn" disabled={escribiendo} onClick={() => conectarClaude()}>
+                        <Ocupado activo={escribiendo} mientras={t("Escribiendo…")}>
+                          {t("Conectar")}
+                        </Ocupado>
+                      </button>
+                    )}
+                  </div>
+                  {claude.estado === "conectado" && (
+                    <p className="onb-bien">{claude.detalle ? t("Conectado, pero apunta a {ruta}.", { ruta: claude.detalle }) : t("Conectado.")}</p>
+                  )}
+                  {(claude.estado === "ajena" || claude.estado === "noentendido") && (
+                    <p className="onb-mal">
+                      <EstadoDeCuenta c={claude} />
+                    </p>
+                  )}
+                </>
+              ) : (
+                !errorClaude && <Espera activo>{t("Mirando tu configuración…")}</Espera>
+              )}
+              {errorClaude && <p className="onb-mal">{t(errorClaude)}</p>}
+              <p className="onb-txt onb-flojo">
+                {t("Se añade una entrada «adeorq» a ese archivo; lo demás no se toca y queda una copia al lado. Si no quieres, pulsa Seguir y no se escribe nada.")}
+              </p>
+              <p className="onb-txt onb-flojo">
+                <b>{t("En una terminal de Adeorq")}</b>
+                {t(" las tiene todas. ")}
+                <b>{t("En otra consola")}</b>
+                {t(" solo ve la lista de terminales y el uso, y abre terminales nuevas, hasta que lo subas en Ajustes.")}
+              </p>
+            </>
+          )}
+
+          {paso === "partes" && (
             <>
               <p className="onb-txt">
                 {t(
@@ -313,7 +389,7 @@ export default function Onboarding({ lang, theme, onLang, onTheme, onDone, onPar
             </>
           )}
 
-          {paso === 4 && (
+          {paso === "aspecto" && (
             <>
               <p className="onb-txt">
                 {t("Elige el color de la casa. Se cambia cuando quieras en Ajustes.")}
@@ -335,7 +411,7 @@ export default function Onboarding({ lang, theme, onLang, onTheme, onDone, onPar
             </>
           )}
 
-          {paso === ULTIMO && (
+          {paso === "listo" && (
             <>
               <p className="onb-txt">
                 {t("Todo listo, {n}.", { n: nombre })}{" "}
@@ -382,17 +458,17 @@ export default function Onboarding({ lang, theme, onLang, onTheme, onDone, onPar
             {t("Saltar")}
           </button>
           <div className="onb-nav">
-            {paso > 0 && (
-              <button className="mini volver" onClick={() => setPaso((p) => (p - 1) as Paso)}>
+            {lugar > 0 && (
+              <button className="mini volver" onClick={() => setPaso(orden[lugar - 1])}>
                 <ChevronIcon size={13} izq />
                 {t("Atrás")}
               </button>
             )}
-            {paso < ULTIMO ? (
+            {lugar < orden.length - 1 ? (
               <button
                 className="np-btn"
                 disabled={!puedeSeguir}
-                onClick={() => setPaso((p) => (p + 1) as Paso)}
+                onClick={() => setPaso(orden[lugar + 1])}
               >
                 {t("Seguir")}
               </button>

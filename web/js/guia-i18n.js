@@ -177,13 +177,13 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.panel.p1': '<b>New project</b>, at the foot of the list. Adeorq leaves the folder ready with ' +
                      '<code>AGENTS.md</code> (your rules for the agents), <code>docs/METAS.md</code> and git ' +
                      'initialised, so the first session starts with context instead of from scratch.',
-    'guia.panel.h3b': 'The Foreman',
+    'guia.panel.h3b': 'Adeo',
     'guia.panel.p2': 'The orb in the top bar opens it (<b>Ctrl+Shift+A</b>). You ask it for the board in plain ' +
                      'language ("open the sessions for the Orquio panel", "one agent on the frontend and ' +
                      'another on the backend") and it proposes the plan: which sessions to open, with which ' +
                      'program and with which brief. <b>It runs nothing without your approval.</b>',
     'guia.panel.h3c': 'Mission',
-    'guia.panel.p3': 'From the Foreman, deploy a team. You describe what you want, pick a project and roles ' +
+    'guia.panel.p3': 'From Adeo, deploy a team. You describe what you want, pick a project and roles ' +
                      '(Frontend, Backend, Security, Design) and one agent opens per role, each with its brief, ' +
                      'its share of the files and coordinated with the others through a shared file in the ' +
                      'project. Each one proposes its plan and waits for your approval before touching anything.',
@@ -191,8 +191,8 @@ window.ADEORQ_I18N_EXTRA = {
     /* ----------------------------------- CHAT ---------------------------- */
     'guia.chat.h': 'The Chat',
     'guia.chat.p': 'A tab, in beta, for working by talking instead of moving between terminals. It has two parts.',
-    'guia.chat.l1': '<b>On top, the concierge.</b> "Talk to the concierge" opens a chat with Adeo: you say what you ' +
-                    'want, he splits it into jobs and opens one session for each. The sessions show as tabs above ' +
+    'guia.chat.l1': '<b>On top, Adeo.</b> "Talk to Adeo" opens a chat with it: you say what you ' +
+                    'want, it splits it into jobs and opens one session for each. The sessions show as tabs above ' +
                     'the thread (green dot: working; amber: asking you; orange: finished) and one click takes you ' +
                     'into them. Each one leaves a card with its program, its model, what it was asked to do and, ' +
                     'if the router picked it, why.',
@@ -201,14 +201,14 @@ window.ADEORQ_I18N_EXTRA = {
                     'you type underneath goes down to the same terminal. The box has pills for the model ' +
                     '("Automatic" lets the router pick it), for the effort, and a ring showing the context.',
     'guia.chat.p2': 'Worth knowing:',
-    'guia.chat.l3': 'The concierge only opens sessions in real folders of your projects, only types into the ' +
+    'guia.chat.l3': 'Adeo only opens sessions in real folders of your projects, only types into the ' +
                     'terminals it opened itself, and opens four at most per message.',
-    'guia.chat.l4': 'Each message to the concierge is a short call made with your subscription (Claude, or the ' +
+    'guia.chat.l4': 'Each message to Adeo is a short call made with your subscription (Claude, or the ' +
                     'program you pick in its pills), not with an API key. The sessions it opens spend their own ' +
                     'quota. <b>Improve</b> rewrites your message without adding anything, and <b>Stop</b> cuts it ' +
                     'off while it thinks.',
     'guia.chat.l5': 'Turning off the "Chat" part in Settings also removes the box from the Dashboard. It does not ' +
-                    'turn off the concierge on your phone, which has its own switch (<a href="#movil">On your ' +
+                    'turn off Adeo on your phone, which has its own switch (<a href="#movil">On your ' +
                     'phone</a>).',
 
     /* -------------------------------- DECISIONES ------------------------- */
@@ -404,28 +404,40 @@ window.ADEORQ_I18N_EXTRA = {
                       'closes the ones that same program opened. It does not type into anyone else’s.',
     'guia.fuera.e3': 'All',
     'guia.fuera.e3d': 'Also types into any terminal, closes it and can compact it.',
-    'guia.fuera.conecta': '<b>How you connect your Claude Code to these tools.</b> Adeorq does not touch your ' +
-                          'Claude Code’s settings: you give it the door yourself, once, with ' +
-                          '<code>claude mcp add adeorq --scope user -- "&lt;path to adeorq.exe&gt;" --mcp</code> ' +
-                          '(the path is the folder where you installed Adeorq). Adeorq has to be open: with it ' +
-                          'open, <code>claude mcp list</code> should say “Connected”. From then on, a Claude Code ' +
-                          'you open in an Adeorq terminal has the tools at that terminal’s tier, and one in ' +
-                          'another console has them as an outside program (below).',
+    'guia.fuera.conecta': '<b>How you connect your Claude Code to these tools.</b> With a button: the welcome has ' +
+                          'a step, <b>Connect your Claude Code</b>, and the same is in <b>Settings › Terminals › ' +
+                          'Connect your Claude Code</b>, with a row for every Claude account Adeorq knows. Each row ' +
+                          'says which file is touched (that account’s <code>.claude.json</code>) and ' +
+                          '<b>Connect</b> adds an entry called <code>adeorq</code> to it that launches Adeorq’s ' +
+                          'link. The rest of that file stays as it was, a copy of what it was stays next to it, ' +
+                          'and <b>Disconnect</b> removes that entry and leaves the file as it was. If the file ' +
+                          'cannot be understood, or there is already an <code>adeorq</code> entry that is not ' +
+                          'Adeorq’s, it is not touched and you are told. With Adeorq open, <code>claude mcp ' +
+                          'list</code> should say “Connected”, and the Claude terminals you already have open pick ' +
+                          'it up when you restart them. If you prefer to do it by hand, the usual command still ' +
+                          'works: <code>claude mcp add adeorq --scope user -- "&lt;path to adeorq.exe&gt;" --mcp</code>. ' +
+                          'From then on, a Claude Code you open in an Adeorq terminal has the tools at that ' +
+                          'terminal’s tier, and one in another console has them as an outside program (below).',
     'guia.fuera.p2': '<b>Every terminal is born with its own password</b>, and the tier comes from the terminal ' +
                      'the program connects from, not from the name it claims: a program that introduces itself ' +
                      'as “claude” from outside does not inherit Claude Code’s tier. By default, <b>Claude Code ' +
                      'has “All”</b> and the other programs have “Open and look”.',
     'guia.fuera.p3': '<b>Outside Adeorq</b> is everything that arrives <b>without</b> the password of an Adeorq ' +
                      'terminal: a Claude Code open in another console, any program that talks to the port. By ' +
-                     'default it can only <b>open terminals and look</b>. Those terminals start in the mode you ' +
-                     'have in Settings, and if it asks to open one <b>with a job</b>, a window appears with the ' +
-                     'text, who is asking and in which folder: <b>No</b> or <b>Open</b>; if nobody answers, it ' +
-                     'does not open. For it to do more, raise it yourself in ' +
-                     '<b>Settings → Terminals → What each client may do through the MCP</b>, on its row; it ' +
-                     'applies to any outside program, and on <b>All</b> it no longer asks, so raise it with care (<b>Back to factory</b> puts it ' +
-                     'back). Each row shows the program, its version, how many times it connected and when it ' +
-                     'last did. The Foreman and the concierge come in through a line of their own and do not ' +
-                     'count as clients.',
+                     'default it is on <b>See the list and open</b>: it sees which terminals there are (without ' +
+                     'their command, which carries the whole job), the usage and your projects, opens terminals, ' +
+                     'and only reads and closes the ones it opened. It does not read yours, the memory or the ' +
+                     'agenda until you raise it yourself in <b>Settings → Terminals → What each client may do ' +
+                     'through the MCP</b>, on its row: <b>Read and open</b> also reads all of that, and <b>All</b> ' +
+                     'also types into any terminal and closes it. It applies to any outside program (<b>Back to ' +
+                     'factory</b> puts it back). If you had already changed it, it stays as you left it; whoever ' +
+                     'had it on <b>Look only</b> still sees it there, and it is not offered again once changed. ' +
+                     'What it opens starts in the mode you have in Settings, and if it asks to open a terminal ' +
+                     '<b>with a job</b>, a window appears with the text, who is asking and in which folder: ' +
+                     '<b>No</b> or <b>Open</b>; if nobody answers, it does not open. On “All” it no longer asks, ' +
+                     'so raise it with care. Each row shows the program, its version, how many times it connected ' +
+                     'and when it last did. Adeo comes in through a line of its own and ' +
+                     'does not count as a client.',
     'guia.fuera.p4': 'A program on a low tier that asks for something it is not allowed gets a refusal that says ' +
                      'which tier it has and where that is changed.',
     'guia.fuera.lim': '<b>Limits:</b> an agent opens at most six live terminals at once and twelve per hour; a ' +
@@ -459,19 +471,19 @@ window.ADEORQ_I18N_EXTRA = {
 
     /* ---------------------------------- MOVIL ---------------------------- */
     'guia.movil.h': 'On your phone',
-    'guia.movil.p1': 'Adeorq comes with you. From your phone, a tablet or another computer you talk to the ' +
-                     'concierge, see how each terminal is doing and type into it, answer what your agents ask ' +
+    'guia.movil.p1': 'Adeorq comes with you. From your phone, a tablet or another computer you talk to ' +
+                     'Adeo, see how each terminal is doing and type into it, answer what your agents ask ' +
                      'you, attach photos and files, and get a notification when an agent finishes or asks you ' +
                      'something. What you see is your PC, not a copy in the cloud: it has to be on, with Adeorq open.',
     'guia.movil.h3a': 'Set it up once',
     'guia.movil.p2': 'Install <a href="https://tailscale.com/download" rel="noopener">Tailscale</a> on the PC ' +
                      'and on your phone, and sign in with the same account on both. It is a private network ' +
                      'between your devices, free for personal use.',
-    'guia.movil.p3': 'In Adeorq, open <b>Settings → Mobile</b> and turn on the switch next to <b>The concierge on your ' +
+    'guia.movil.p3': 'In Adeorq, open <b>Settings → Mobile</b> and turn on the switch next to <b>Adeo on your ' +
                      'phone</b>. Three rows appear, <b>This PC</b>, <b>Tailscale</b> and <b>Your phone</b>, each with ' +
                      'its dot: the one that fails tells you what to do.',
-    'guia.movil.p4': 'If the Tailscale row says the concierge is not on your network yet, press <b>Bring the ' +
-                     'concierge to Tailscale</b>; it stays set even after a restart. The first time, Tailscale may ' +
+    'guia.movil.p4': 'If the Tailscale row says Adeo is not on your network yet, press <b>Bring ' +
+                     'Adeo to Tailscale</b>; it stays set even after a restart. The first time, Tailscale may ' +
                      'ask you to enable HTTPS on your account: if <b>Open the Tailscale link</b> appears, press it, ' +
                      'enable it and press again.',
     'guia.movil.p5': 'Below it you get a QR code with your address, something like ' +
@@ -481,13 +493,13 @@ window.ADEORQ_I18N_EXTRA = {
                      'and press <b>Pair</b>. Each browser is paired only once.',
     'guia.movil.h3d': 'What the phone shows',
     'guia.movil.l6': '<b>The menu.</b> Like in the Claude app: the button at the top left, or a swipe from the ' +
-                     'left edge, opens a drawer with <b>Concierge</b>, <b>Terminals</b>, <b>Decisions</b>, ' +
+                     'left edge, opens a drawer with <b>Adeo</b>, <b>Terminals</b>, <b>Decisions</b>, ' +
                      '<b>Scheduled</b> and <b>Usage</b>. Below them, what is recent (terminals and conversations), ' +
                      'whether your PC is connected and <b>New task</b>; at the very bottom, <b>Settings</b>.',
     'guia.movil.l7': '<b>Home.</b> Adeo greets you and tells you at a glance how your PC is doing. Below, ' +
                      '<b>Waiting for you</b>: pending decisions and the terminals asking you something. Then ' +
                      '<b>Running</b>, only what is working right now, with a thread of blue light around it, and ' +
-                     'your conversations with the concierge. At the bottom, the box to hand it a task. When a ' +
+                     'your conversations with Adeo. At the bottom, the box to hand it a task. When a ' +
                      'decision is waiting for you, its number shows in a badge on the menu button.',
     'guia.movil.l8': '<b>Terminals.</b> The ones open on your PC, by how they are doing: <b>Asking you</b>, ' +
                      '<b>Working</b>, <b>Finished</b> and <b>Idle</b>. In each one you read what is going on and ' +
@@ -552,7 +564,7 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.emision.p': 'Made for recording or sharing your screen without giving your keys away. Turn it on with ' +
                       '<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd> (or with its icon-only button in the top ' +
                       'bar) and it has four parts:',
-    'guia.emision.l1': '<b>Covered, not blurred.</b> The foot of the sidebar, the Foreman’s summary, account names ' +
+    'guia.emision.l1': '<b>Covered, not blurred.</b> The foot of the sidebar, Adeo’s summary, account names ' +
                        'and the Agenda’s texts are covered with a solid bar. <b>The titles of your sessions and ' +
                        'the goals for today are left uncovered, on purpose</b>: they are the thread of what you ' +
                        'are doing, and without them the stream makes no sense.',
@@ -637,6 +649,9 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.sis.l4': 'The panel browser is a simple version in a frame, not the real Chromium.',
     'guia.sis.l5': 'The terminals do not run in a separate process by default.',
     'guia.sis.l6': 'The Video tab on the usage card is switched off.',
+    'guia.sis.l7': 'The AppImage needs FUSE to open. If it says “Cannot mount AppImage, please check your FUSE setup”, ' +
+      'install <code>fuse3</code> (<code>sudo apt install fuse3</code>, <code>sudo dnf install fuse3</code>) or open it ' +
+      'with <code>--appimage-extract-and-run</code>.',
     'guia.sis.h3m': 'Mac',
     'guia.sis.pm': 'There is a <code>.dmg</code> installer for Apple Silicon (macOS 12 or later) among the ' +
                    'published versions. It has been built and launched on an automated Mac, but <b>it has not yet ' +
@@ -656,8 +671,8 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.atajos.h': 'Shortcuts',
     'guia.atajos.th1': 'Shortcut',
     'guia.atajos.th2': 'What it does',
-    'guia.atajos.a1': 'Call the Foreman',
-    'guia.atajos.a2': 'Call the Foreman and dictate to it',
+    'guia.atajos.a1': 'Call Adeo',
+    'guia.atajos.a2': 'Call Adeo and dictate to it',
     'guia.atajos.a3': 'Streaming mode',
     'guia.atajos.a4': 'Cover the whole screen',
     'guia.atajos.a5': 'Peek under streaming mode',
@@ -737,7 +752,7 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.dudas.r3a': '<b>To check for updates</b>: it asks GitHub at startup, every six hours and when you come ' +
                       'back to the window.',
     'guia.dudas.r3b': '<b>OpenRouter</b>, only if you save your key: checking the key and the balance, listing ' +
-                      'models, talking to one and generating the Foreman’s voice.',
+                      'models, talking to one and generating Adeo’s voice.',
     'guia.dudas.r3c': '<b>The compass</b> in the Agenda (dates and ideas), only if you sign in to it with a ' +
                       'munito.dev account.',
     'guia.dudas.r3d': '<b>Phone notifications</b>, if you turn them on: they travel encrypted through your ' +
@@ -749,7 +764,7 @@ window.ADEORQ_I18N_EXTRA = {
                               'it read reaches it, and from it, its provider.',
     'guia.dudas.r3e': '<b>The phone</b> goes through Tailscale, its private network, not through Adeorq servers.',
     'guia.dudas.r3f': '<b>What you open yourself</b>: the panel browser and the web windows on the canvas load ' +
-                      'whatever page you give them, and the agents (Claude Code, Codex…) and the concierge reach ' +
+                      'whatever page you give them, and the agents (Claude Code, Codex…) and Adeo reach ' +
                       'the internet through each one’s own program, not through Adeorq.',
     'guia.dudas.r3g': 'Ollama, Discord, local voice and the phone and MCP servers stay inside your machine.',
     'guia.dudas.q4': 'Can I use two accounts of the same program?',
@@ -768,9 +783,9 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.dudas.r7': 'It is switched off in <b>Settings → Appearance → Parts of Adeorq</b>, or removed from the ' +
                      'header in <b>The header</b>. Ctrl+K takes you there anyway.',
     'guia.dudas.q8': 'A terminal of mine will not let another program type into it',
-    'guia.dudas.r8': 'That is the MCP tier: by default, whatever comes from outside Adeorq only opens terminals ' +
-                     'and looks. It is explained in <a href="#programa-de-fuera">What an outside program can ' +
-                     'do</a>.',
+    'guia.dudas.r8': 'That is the MCP tier: by default, whatever comes from outside Adeorq only sees the list of ' +
+                     'terminals and the usage, and opens terminals. It is explained in ' +
+                     '<a href="#programa-de-fuera">What an outside program can do</a>.',
     'guia.cierre': 'Is something missing from this guide, or does something not work the way it is described ' +
                    'here? Say so and it gets fixed.',
     'guia.cierre.cta': 'Report a problem',

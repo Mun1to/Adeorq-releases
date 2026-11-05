@@ -455,7 +455,7 @@
         iniciado, para que la primera sesión empiece con contexto en vez de en blanco.
       </p>
 
-      <h3 data-i18n="guia.panel.h3b">El Capataz</h3>
+      <h3 data-i18n="guia.panel.h3b">Adeo</h3>
       <p data-i18n-html="guia.panel.p2">
         Lo abre el orbe de la barra de arriba (<b>Ctrl+Mayús+A</b>). Le pides el tablero en
         castellano («abre las sesiones del panel de Orquio», «un agente al frontend y otro al
@@ -465,7 +465,7 @@
 
       <h3 data-i18n="guia.panel.h3c">Misión</h3>
       <p data-i18n="guia.panel.p3">
-        Desde el Capataz, despliega un equipo. Describes qué quieres, eliges proyecto y roles
+        Desde Adeo, despliega un equipo. Describes qué quieres, eliges proyecto y roles
         (Frontend, Backend, Seguridad, Diseño) y se abre un agente por rol, cada uno con su
         cometido, su reparto de archivos y coordinados entre ellos por un fichero común del
         proyecto. Cada uno te propone su plan y espera tu aprobación antes de tocar nada.
@@ -480,8 +480,8 @@
       </p>
       <ul class="doc-lista">
         <li data-i18n-html="guia.chat.l1">
-          <b>Arriba, el conserje.</b> «Hablar con el conserje» abre un chat con Adeo: le dices lo
-          que quieres, él lo parte en trabajos y abre una sesión por cada uno. Las sesiones salen
+          <b>Arriba, Adeo.</b> «Hablar con Adeo» abre un chat con él: le dices lo
+          que quieres, y lo parte en trabajos y abre una sesión por cada uno. Las sesiones salen
           como pestañas encima del hilo (punto verde: trabajando; ámbar: te pregunta; naranja:
           terminó) y un clic entra en ellas. Cada una deja una tarjeta con su programa, su modelo,
           qué se le encargó y, si lo eligió el router, por qué.
@@ -497,18 +497,18 @@
       <p data-i18n="guia.chat.p2">Lo que conviene saber:</p>
       <ul class="doc-lista">
         <li data-i18n="guia.chat.l3">
-          El conserje solo abre sesiones en carpetas reales de tus proyectos, solo escribe en las
+          Adeo solo abre sesiones en carpetas reales de tus proyectos, solo escribe en las
           terminales que abrió él y como mucho abre cuatro por mensaje.
         </li>
         <li data-i18n-html="guia.chat.l4">
-          Cada mensaje al conserje es una llamada corta con tu suscripción (Claude, o el programa
+          Cada mensaje a Adeo es una llamada corta con tu suscripción (Claude, o el programa
           que elijas en sus pastillas), no con una clave de API. Las sesiones que abre gastan su
           propia cuota. <b>Mejorar</b> reescribe tu mensaje sin añadir nada, y <b>Parar</b> lo
           corta mientras piensa.
         </li>
         <li data-i18n-html="guia.chat.l5">
-          Apagar la parte «Chat» en Ajustes también quita la caja del Panel. No apaga el conserje
-          del móvil, que tiene su propio interruptor (<a href="#movil">En el móvil</a>).
+          Apagar la parte «Chat» en Ajustes también quita la caja del Panel. No apaga a Adeo
+          en el móvil, que tiene su propio interruptor (<a href="#movil">En el móvil</a>).
         </li>
       </ul>
     </section>
@@ -894,11 +894,19 @@
       </div>
 
       <p data-i18n-html="guia.fuera.conecta">
-        <b>Cómo conectas tu Claude Code a estas herramientas.</b> Adeorq no toca la
-        configuración de tu Claude Code: se la das tú, una vez, con
-        <code>claude mcp add adeorq --scope user -- "&lt;ruta de adeorq.exe&gt;" --mcp</code>
-        (la ruta es la de la carpeta donde instalaste Adeorq). Hace falta que Adeorq esté
-        abierta: con ella abierta, <code>claude mcp list</code> tiene que decir «Connected».
+        <b>Cómo conectas tu Claude Code a estas herramientas.</b> Con un botón: la
+        bienvenida tiene un paso, <b>Conectar tu Claude Code</b>, y lo mismo está en
+        <b>Ajustes › Terminales › Conectar tu Claude Code</b>, con una fila por cada cuenta
+        de Claude que conoce Adeorq. Cada fila dice qué archivo se toca (el
+        <code>.claude.json</code> de esa cuenta) y <b>Conectar</b> le añade una entrada
+        llamada <code>adeorq</code> que lanza el enlace de Adeorq. Lo demás de ese archivo
+        queda como estaba, al lado queda una copia con lo de antes, y <b>Desconectar</b>
+        quita esa entrada y lo deja como estaba. Si el archivo no se entiende, o ya hay una
+        entrada <code>adeorq</code> que no es la de Adeorq, no se toca y lo dice. Con Adeorq
+        abierta, <code>claude mcp list</code> tiene que decir «Connected», y las terminales
+        de Claude que ya tengas abiertas lo cogen al reiniciarlas. Si prefieres hacerlo a
+        mano, vale el comando de siempre:
+        <code>claude mcp add adeorq --scope user -- "&lt;ruta de adeorq.exe&gt;" --mcp</code>.
         Desde entonces, un Claude Code que abras en una terminal de Adeorq tiene las
         herramientas con el escalón de esa terminal, y uno de otra consola las tiene como
         programa de fuera (más abajo).
@@ -912,16 +920,20 @@
       <p data-i18n-html="guia.fuera.p3">
         <b>Fuera de Adeorq</b> es todo lo que llega <b>sin</b> la contraseña de una terminal de
         Adeorq: un Claude Code abierto en otra consola, cualquier programa que hable con el
-        puerto. De fábrica solo puede <b>abrir terminales y mirar</b>. Esas terminales nacen en
-        el modo que tengas en Ajustes, y si pide abrir una <b>con un encargo</b> sale una ventana
-        con el texto, quién lo pide y en qué carpeta: <b>No</b> o <b>Abrir</b>; si nadie contesta,
-        no se abre. Para que haga más, súbelo
-        tú en <b>Ajustes → Terminales → Qué puede hacer cada cliente por el MCP</b>, en su fila;
-        vale para cualquier programa de fuera, y en «Todo» ya no pregunta, así que súbelo con
-        cuidado (<b>Como de
-        fábrica</b> lo devuelve). Cada fila dice el programa, su versión, cuántas veces se
-        conectó y cuándo fue la última. El Capataz y el conserje entran por una línea propia y no
-        cuentan como clientes.
+        puerto. De fábrica está en <b>Ver la lista y abrir</b>: ve qué terminales hay (sin su
+        comando, que lleva el encargo entero), el uso y tus proyectos, abre terminales, y solo
+        lee y cierra las que abrió él. No lee las tuyas, ni la memoria, ni la agenda, hasta que
+        lo subas tú en <b>Ajustes → Terminales → Qué puede hacer cada cliente por el MCP</b>, en
+        su fila: <b>Leer y abrir</b> además lee todo eso, y <b>Todo</b> además escribe en
+        cualquier terminal y la cierra. Vale para cualquier programa de fuera (<b>Como de
+        fábrica</b> lo devuelve). Si ya la tenías cambiada, se queda como la dejaste; quien la
+        tenía en <b>Solo mirar</b> la sigue viendo ahí, y no se vuelve a ofrecer en cuanto la
+        cambia. Lo que abre nace en el modo que tengas en Ajustes, y si pide abrir una terminal
+        <b>con un encargo</b> sale una ventana con el texto, quién lo pide y en qué carpeta:
+        <b>No</b> o <b>Abrir</b>; si nadie contesta, no se abre. En «Todo» ya no pregunta, así
+        que súbelo con cuidado. Cada fila dice el programa, su versión, cuántas veces se conectó
+        y cuándo fue la última. Adeo entra por una línea propia y no cuenta
+        como cliente.
       </p>
       <p data-i18n="guia.fuera.p4">
         Un programa con un escalón bajo que pida algo que no le toca recibe un rechazo que le
@@ -984,8 +996,8 @@
     <section id="movil">
       <h2 data-i18n="guia.movil.h">En el móvil<a class="doc-ancla" href="#movil" aria-label="Enlace a esta sección">#</a></h2>
       <p data-i18n-html="guia.movil.p1">
-        Adeorq se viene contigo. Desde el móvil, una tablet u otro ordenador hablas con el
-        conserje, ves cómo va cada terminal y le escribes, contestas lo que te preguntan tus
+        Adeorq se viene contigo. Desde el móvil, una tablet u otro ordenador hablas con
+        Adeo, ves cómo va cada terminal y le escribes, contestas lo que te preguntan tus
         agentes, adjuntas fotos y archivos, y te llega un aviso cuando un agente termina o te
         pregunta. Lo que ves es tu PC, no una copia en la nube: tiene que estar encendido y con
         Adeorq abierto.
@@ -999,13 +1011,13 @@
           aparatos, gratis para uso personal.
         </li>
         <li data-i18n-html="guia.movil.p3">
-          En Adeorq, abre <b>Ajustes → Móvil</b> y enciende el interruptor junto a <b>El conserje
-          en el móvil</b>. Salen tres filas, <b>Este PC</b>, <b>Tailscale</b> y <b>Tu móvil</b>,
+          En Adeorq, abre <b>Ajustes → Móvil</b> y enciende el interruptor junto a <b>Adeo en el
+          móvil</b>. Salen tres filas, <b>Este PC</b>, <b>Tailscale</b> y <b>Tu móvil</b>,
           cada una con su punto: la que falla te dice qué hacer.
         </li>
         <li data-i18n-html="guia.movil.p4">
-          Si la fila de Tailscale dice que falta llevar el conserje a tu red, pulsa <b>Llevar el
-          conserje a Tailscale</b>; se queda puesto aunque reinicies. La primera vez Tailscale
+          Si la fila de Tailscale dice que falta llevar a Adeo a tu red, pulsa <b>Llevar a Adeo
+          a Tailscale</b>; se queda puesto aunque reinicies. La primera vez Tailscale
           puede pedirte activar HTTPS en tu cuenta: si sale <b>Abrir el enlace de Tailscale</b>,
           púlsalo, actívalo y vuelve a pulsar.
         </li>
@@ -1025,7 +1037,7 @@
       <ul class="doc-lista">
         <li data-i18n-html="guia.movil.l6">
           <b>El menú.</b> Como en la app de Claude: el botón de arriba a la izquierda, o deslizar
-          el dedo desde el borde izquierdo, abre un cajón con <b>Conserje</b>,
+          el dedo desde el borde izquierdo, abre un cajón con <b>Adeo</b>,
           <b>Terminales</b>, <b>Decisiones</b>, <b>Programados</b> y <b>Uso</b>. Debajo, lo
           reciente (terminales y conversaciones), si tu PC está conectado y <b>Nuevo
           encargo</b>; abajo del todo, <b>Ajustes</b>.
@@ -1034,7 +1046,7 @@
           <b>El inicio.</b> Adeo te recibe y te dice de un vistazo cómo va tu PC. Debajo, <b>Te
           esperan</b>: las decisiones pendientes y las terminales que te preguntan. Luego <b>En
           marcha</b>, solo lo que trabaja ahora mismo, con un hilo de luz azul alrededor, y tus
-          conversaciones con el conserje. Abajo, la caja para encargarle algo. Si una decisión
+          conversaciones con Adeo. Abajo, la caja para encargarle algo. Si una decisión
           te espera, su número sale en un globito sobre el botón del menú.
         </li>
         <li data-i18n-html="guia.movil.l8">
@@ -1145,7 +1157,7 @@
       </p>
       <ul class="doc-lista">
         <li data-i18n-html="guia.emision.l1">
-          <b>Tapado, no desenfoque.</b> El pie de la barra lateral, el resumen del Capataz, los
+          <b>Tapado, no desenfoque.</b> El pie de la barra lateral, el resumen de Adeo, los
           nombres de cuentas y los textos de la Agenda se cubren con una barra sólida. <b>Los
           títulos de tus sesiones y los objetivos del día no se tapan, a propósito</b>: son el
           hilo de lo que estás haciendo, y sin ellos el directo no se entiende.
@@ -1288,6 +1300,11 @@
         </li>
         <li data-i18n="guia.sis.l5">Las terminales no van de fábrica en un proceso aparte.</li>
         <li data-i18n="guia.sis.l6">La pestaña Vídeo de la tarjeta de uso está apagada.</li>
+        <li data-i18n-html="guia.sis.l7">
+          El AppImage necesita FUSE para abrirse. Si dice «Cannot mount AppImage, please check
+          your FUSE setup», instala <code>fuse3</code> (<code>sudo apt install fuse3</code>,
+          <code>sudo dnf install fuse3</code>) o ábrelo con <code>--appimage-extract-and-run</code>.
+        </li>
       </ul>
 
       <h3 data-i18n="guia.sis.h3m">Mac</h3>
@@ -1339,8 +1356,8 @@
             <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>→</kbd></td><td data-i18n="guia.atajos.a10">Partir la terminal activa a la derecha</td></tr>
             <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>↓</kbd></td><td data-i18n="guia.atajos.a11">Partir la terminal activa hacia abajo</td></tr>
             <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>F</kbd></td><td data-i18n="guia.atajos.a12">Maximizar o restaurar la terminal activa</td></tr>
-            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>A</kbd></td><td data-i18n="guia.atajos.a1">Llamar al Capataz</td></tr>
-            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>M</kbd></td><td data-i18n="guia.atajos.a2">Llamar al Capataz y dictarle</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>A</kbd></td><td data-i18n="guia.atajos.a1">Llamar a Adeo</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>M</kbd></td><td data-i18n="guia.atajos.a2">Llamar a Adeo y dictarle</td></tr>
             <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>E</kbd></td><td data-i18n="guia.atajos.a3">Modo emisión</td></tr>
             <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>P</kbd></td><td data-i18n="guia.atajos.a4">Tapar la pantalla entera</td></tr>
             <tr><td><kbd>Alt</kbd> <span data-i18n="guia.atajos.mantener">(mantener)</span></td><td data-i18n="guia.atajos.a5">Mirar debajo del modo emisión</td></tr>
@@ -1438,7 +1455,7 @@
             </li>
             <li data-i18n-html="guia.dudas.r3b">
               <b>OpenRouter</b>, solo si guardas tu clave: comprobar la clave y el saldo, listar
-              modelos, hablar con uno y generar la voz del Capataz.
+              modelos, hablar con uno y generar la voz de Adeo.
             </li>
             <li data-i18n-html="guia.dudas.r3c">
               <b>La brújula</b> de la Agenda (fechas e ideas), solo si entras en ella con una
@@ -1462,7 +1479,7 @@
             </li>
             <li data-i18n-html="guia.dudas.r3f">
               <b>Lo que abres tú</b>: el navegador del panel y las ventanas web del lienzo cargan
-              la página que pongas, y los agentes (Claude Code, Codex…) y el conserje salen a
+              la página que pongas, y los agentes (Claude Code, Codex…) y Adeo salen a
               internet por el programa de cada uno, no por Adeorq.
             </li>
           </ul>
@@ -1520,8 +1537,8 @@
         <summary data-i18n="guia.dudas.q8">Una terminal mía no deja que otro programa escriba en ella</summary>
         <div class="doc-pregunta__cuerpo">
           <p data-i18n-html="guia.dudas.r8">
-            Es el escalón del MCP: de fábrica, lo que llega de fuera de Adeorq solo abre
-            terminales y mira. Está contado en
+            Es el escalón del MCP: de fábrica, lo que llega de fuera de Adeorq solo ve la lista de
+            terminales y el uso, y abre terminales. Está contado en
             <a href="#programa-de-fuera">Lo que puede hacer un programa de fuera</a>.
           </p>
         </div>

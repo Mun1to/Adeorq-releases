@@ -165,7 +165,7 @@ export default {
     'has on your machine: it neither asks for a key nor creates another account.',
   'trabajo.p3.tit': 'Hand over the job',
   'trabajo.p3.p':
-    'Type it or dictate it. If it is big, the Foreman splits it by files and shares it among up to ' +
+    'Type it or dictate it. If it is big, Adeo splits it by files and shares it among up to ' +
     'six terminals, each with its own part.',
   'trabajo.cierre':
     'When one finishes, its pane lights up. The crew board tells you who is working, who is done ' +
@@ -180,7 +180,7 @@ export default {
   'movil.tit': 'Your cockpit, in your pocket too',
   'movil.entrada':
     'From your phone, a tablet or another computer, wherever you are: see who is asking and who is ' +
-    'working, answer any terminal and hand the concierge new work.',
+    'working, answer any terminal and hand Adeo new work.',
   'movil.p1.tit': 'Install Tailscale',
   'movil.p1.p':
     'On the PC and on your phone, with the same account. It is a private network between your ' +
@@ -201,10 +201,10 @@ export default {
   'movil.foto1.alt':
     'The phone home screen: Adeo greets you, on top what is waiting for you (a decision and two ' +
     'terminals asking you something), below it the one working right now with its blue light, and ' +
-    'the box to write to the concierge.',
+    'the box to write to Adeo.',
   'movil.foto2.src': '/assets/screens/en/phone-concierge.png',
   'movil.foto2.alt':
-    'The concierge on the phone: you ask for two jobs and it opens a session for each one, with the ' +
+    'Adeo on the phone: you ask for two jobs and it opens a session for each one, with the ' +
     'model the router picked.',
 
   /* ── Tu cuenta ─────────────────────────────────────────────────────────── */
@@ -275,7 +275,7 @@ export default {
   'faq.q6': 'Can I use it from my phone?',
   'faq.r6':
     'Yes, from any browser and wherever you are, with Tailscale: a private network between your ' +
-    'devices, free for personal use. You talk to the concierge, read your sessions, type into your ' +
+    'devices, free for personal use. You talk to Adeo, read your sessions, type into your ' +
     'terminals, attach photos and get notifications. The PC has to be on with Adeorq open, because ' +
     'what you see on the phone is your PC.',
   'faq.q7': 'How big is it and how much does it use?',

@@ -24,7 +24,7 @@
 15. [Comandos](#15-comandos)
 16. [Ajustes](#16-ajustes)
 17. [Lo que puede hacer un programa de fuera](#17-lo-que-puede-hacer-un-programa-de-fuera)
-18. [El Capataz y el Reparto](#18-el-capataz-y-el-reparto)
+18. [Adeo y el Reparto](#18-adeo-y-el-reparto)
 19. [En el móvil](#19-en-el-móvil)
 20. [Modo emisión](#20-modo-emisión)
 21. [Actualizar sin perder las terminales](#21-actualizar-sin-perder-las-terminales)
@@ -59,7 +59,7 @@ paralelo, cada una en su carpeta, y ver cuál ha terminado sin abrirlas una a un
 el proyecto tiene cambios sin guardar en git y te los enseña. Archivar nunca
 borra nada y se deshace.
 
-**5. Reparte el trabajo y mira tu cuota.** El Capataz te monta el tablero a partir de
+**5. Reparte el trabajo y mira tu cuota.** Adeo te monta el tablero a partir de
 una frase, y elige el modelo y la cuenta según lo que te queda de cada
 suscripción. Tú das el OK.
 
@@ -109,7 +109,7 @@ al instante y las terminales se dibujan con la tarjeta gráfica.
   <text x="550" y="206" font-size="11" fill="currentColor" fill-opacity="0.55">4</text>
 </svg>
 
-1. **La barra de la app**: Adeo, las siete pestañas, tus objetivos, el Pulso, la música, el modo emisión y el orbe del Capataz.
+1. **La barra de la app**: Adeo, las siete pestañas, tus objetivos, el Pulso, la música, el modo emisión y el orbe de Adeo.
 2. **Workspaces**: tus proyectos y, dentro, sus sesiones.
 3. **Las terminales**: cada recuadro es un agente o una consola trabajando.
 4. **La franja de la derecha**: tu uso, tus skills, los archivos del proyecto y un navegador.
@@ -131,7 +131,8 @@ un clic: lo que pasa con tus terminales abiertas está en el
 
 ### La primera vez que se abre
 
-Sale una bienvenida de seis pantallas, y puedes **Saltar** cuando quieras:
+Sale una bienvenida de seis pantallas (siete si tienes Claude Code instalado), y puedes
+**Saltar** cuando quieras:
 
 1. **Bienvenido a Adeorq**: cómo te llamas (para el saludo) y el idioma.
 2. **Dónde viven tus proyectos**: la carpeta que se lee para saber qué proyectos
@@ -139,10 +140,13 @@ Sale una bienvenida de seis pantallas, y puedes **Saltar** cuando quieras:
    no los tienes en una sola carpeta, **No los tengo en una sola carpeta**.
 3. **Tus agentes**: marcas los programas que usas, de los que encuentre instalados,
    y puedes **Recoger las sesiones que ya tienes**.
-4. **¿Qué quieres usar?**: las partes de Adeorq que quieres encendidas (Cabina,
+4. **Conectar tu Claude Code** (solo si lo tienes instalado): un botón que lo conecta a
+   las herramientas de Adeorq y el archivo que se toca a la vista. **Seguir** se lo salta
+   sin escribir nada. Está contado en el [punto 17](#17-lo-que-puede-hacer-un-programa-de-fuera).
+5. **¿Qué quieres usar?**: las partes de Adeorq que quieres encendidas (Cabina,
    Lienzo, Memoria y Chat). Se explica en el [punto 16](#16-ajustes).
-5. **El aspecto**: el tema, que se aplica mientras lo eliges.
-6. **Listo**: un resumen. **Entrar directamente** o **Enséñame las funciones**, que
+6. **El aspecto**: el tema, que se aplica mientras lo eliges.
+7. **Listo**: un resumen. **Entrar directamente** o **Enséñame las funciones**, que
    lanza un recorrido señalando cada parte de la ventana.
 
 Todo se repite cuando quieras en **Ajustes › Ayuda**. Tu nombre y la carpeta de
@@ -169,7 +173,7 @@ De izquierda a derecha:
 | **El Pulso** | Una píldora con tres cifras: lo que gasta Adeorq con sus agentes en CPU, en memoria (RAM) y cuántos agentes hay vivos (AG). Se pone ámbar cuando Adeorq usa un cuarto o más de la CPU o de la memoria del equipo, y roja cuando el equipo entero va al 90 % o Adeorq por sí solo pasa del 50 % de CPU. Un clic abre **Lo que gasta Adeorq**, con el detalle. Mide el árbol entero de procesos, no solo la ventana. |
 | **La tira de música** | Solo aparece si algo suena en el PC: título, artista, anterior, pausa y siguiente. El volumen se queda en el mezclador del sistema. En Linux y Mac no está. |
 | **Emisión** | El escudo para retransmitir, solo con icono. Ctrl+Mayús+E lo enciende. Detalle en el [punto 20](#20-modo-emisión). |
-| **El orbe** | Llama al Capataz (en algunos textos de la app, «el Asistente»). Ctrl+Mayús+A abre y cierra; Ctrl+Mayús+M lo abre ya escuchándote. Más en el [punto 18](#18-el-capataz-y-el-reparto). |
+| **El orbe** | Llama a Adeo. Ctrl+Mayús+A abre y cierra; Ctrl+Mayús+M lo abre ya escuchándote. Más en el [punto 18](#18-adeo-y-el-reparto). |
 | **Tres iconos más** | Solo en la Cabina y con más de una terminal: **Minimizar todas** (siguen vivas en la tira de abajo y pasa a **Traer todas**), **Disposición** (una rejilla de hasta 4 por 4, o «una grande y el resto al lado») y **Cerrar todas**, que pregunta antes porque mata a sus agentes y te dice cuáles están trabajando. |
 
 La **actualización** ya no es una barra de arriba: es una tarjeta al final de la
@@ -189,7 +193,7 @@ modelo y el proyecto. Está explicada campo por campo en el
 - **Cabina**: donde se trabaja. Proyectos a la izquierda, terminales en el centro,
   una franja de herramientas a la derecha.
 - **Chat** (beta): las mismas conversaciones de la Cabina, leídas como un chat, y
-  arriba un conserje que abre sesiones por ti.
+  arriba Adeo, que abre sesiones por ti.
 - **Decisiones**: lo que tus agentes te preguntan con opciones, para contestar en
   el momento.
 - **Lienzo**: un tablero libre donde las terminales se mueven, se conectan con
@@ -391,8 +395,8 @@ que dice git. Las ediciones de un subagente no salen.
 
 El Chat (en beta) tiene dos partes:
 
-- **Arriba, el conserje.** «Hablar con el conserje» abre un chat con Adeo: le dices lo
-  que quieres, él lo parte en trabajos y abre una sesión por cada uno. Las sesiones
+- **Arriba, Adeo.** «Hablar con Adeo» abre un chat con él: le dices lo
+  que quieres, y lo parte en trabajos y abre una sesión por cada uno. Las sesiones
   salen como pestañas encima del hilo (punto verde: trabajando; ámbar: te pregunta;
   naranja: terminó) y un clic entra en ellas. Cada sesión que abre deja una
   tarjeta con su programa, su modelo, qué se le encargó y, si lo eligió el router,
@@ -405,15 +409,15 @@ El Chat (en beta) tiene dos partes:
 
 Lo que conviene saber:
 
-- El conserje solo abre sesiones en carpetas reales de tus proyectos, solo escribe en
+- Adeo solo abre sesiones en carpetas reales de tus proyectos, solo escribe en
   las terminales que abrió él y como mucho abre cuatro por mensaje.
-- Cada mensaje al conserje es una llamada corta con tu suscripción (Claude, o el
+- Cada mensaje a Adeo es una llamada corta con tu suscripción (Claude, o el
   programa que elijas en sus pastillas), no con una clave de API. Las sesiones que
-  abre gastan su propia cuota. Al conserje le puedes pulsar **Mejorar** para que
+  abre gastan su propia cuota. A Adeo le puedes pulsar **Mejorar** para que
   reescriba tu mensaje sin añadir nada, y **Parar** mientras piensa.
 - El router lee reglas que escribas en tus notas de la memoria de la casa, con la
   forma `router: palabras -> modelo / esfuerzo / cliente` ([punto 14](#14-memoria)).
-- Apagar la parte «Chat» también quita la caja del Panel. No apaga el conserje del
+- Apagar la parte «Chat» también quita la caja del Panel. No apaga a Adeo en el
   móvil, que tiene su propio interruptor ([punto 19](#19-en-el-móvil)).
 
 ---
@@ -479,7 +483,7 @@ Qué es cada una de las de tu trabajo:
 - **Nota** (Alt+N): un post-it con casillas que por dentro es un archivo `.md` de
   verdad, así que un agente puede marcar la casilla cuando termina. Su botón de
   lanzar la manda a una terminal abierta, abre una sesión nueva en el proyecto que
-  elijas o, si quedan dos tareas o más, se las pasa al Capataz para que las reparta.
+  elijas o, si quedan dos tareas o más, se las pasa a Adeo para que las reparta.
   Una nota vacía te ofrece las **fichas** del proyecto: cada `.md` que guardes en
   `docs/fichas` es una receta de pasos que repites, y al elegirla la nota nace con
   esos pasos como casillas. Cualquier nota se puede **Guardar como ficha**.
@@ -820,7 +824,7 @@ al 60 % que se renueva en cinco, y al revés si la principal se renueva mañana.
   resultado en la cabecera de la terminal. Si el agente pide una cuenta concreta,
   nace en esa o falla diciéndolo: nunca en otra en silencio. Un encargo programado
   sin cuenta no elige: va a la predeterminada.
-- El mismo criterio elige cuenta en los planes del Capataz y del Reparto, y se
+- El mismo criterio elige cuenta en los planes de Adeo y del Reparto, y se
   explica en su «por qué».
 - Hay un tope: seis terminales abiertas por agentes a la vez y doce por hora.
 
@@ -915,7 +919,7 @@ enseña las bóvedas de Obsidian que ya conoce, o te deja señalar otra carpeta.
 - **Cerebro**: el mapa de qué enlaza con qué, en 3D, con dos formas, **Esfera** (por
   proyectos) y **Galaxia**. El modo rendimiento, que se enciende solo con cuatro
   terminales, lo deja quieto y lo dice.
-- **Esquema**: eliges un proyecto y **Leer el proyecto**. El Capataz (un Claude) lee el
+- **Esquema**: eliges un proyecto y **Leer el proyecto**. Adeo (un Claude) lee el
   código y dibuja de qué está hecho; tarda unos minutos, gasta cuota, se guarda y se
   enseña como mapa o mapa mental.
 
@@ -1013,7 +1017,7 @@ salen sus nombres para saltar a una.
   *Nunca*. Nunca avisa del panel que estás mirando.
 - **Tu cerebro por defecto**: *Que decida Adeorq*, o fijar haiku, sonnet u opus para todo.
   La cuota manda, y una tarea de juicio no se abarata nunca.
-- **Cuando el cerebro no cuadra**: el Capataz avisa si el modelo de la terminal que
+- **Cuando el cerebro no cuadra**: Adeo avisa si el modelo de la terminal que
   tienes delante es mucho más caro o más flojo de lo que pide la tarea. *Solo diferencias
   gordas* (de fábrica), *Cualquier diferencia* o *Nunca*.
 - **El vigía de las cuadrillas**: con una cuadrilla abierta, mira cada minuto quién
@@ -1103,13 +1107,19 @@ Son dieciocho herramientas, repartidas en tres escalones con nombres sencillos:
   las de otros.
 - **Todo**: además escribe en cualquier terminal, la cierra y puede compactarla.
 
-**Cómo conectas tu Claude Code a estas herramientas.** Adeorq no toca la configuración de
-tu Claude Code: se la das tú, una vez, con
-`claude mcp add adeorq --scope user -- "<ruta de adeorq.exe>" --mcp` (la ruta es la de la
-carpeta donde instalaste Adeorq). Hace falta que Adeorq esté abierta: con ella abierta,
-`claude mcp list` tiene que decir «Connected». Desde entonces, un Claude Code que abras en
-una terminal de Adeorq tiene las herramientas con el escalón de esa terminal, y uno de otra
-consola las tiene como programa de fuera (más abajo).
+**Cómo conectas tu Claude Code a estas herramientas.** Con un botón: la bienvenida tiene
+un paso, **Conectar tu Claude Code**, y lo mismo está en **Ajustes › Terminales › Conectar
+tu Claude Code**, con una fila por cada cuenta de Claude que conoce Adeorq. Cada fila dice
+qué archivo se toca (el `.claude.json` de esa cuenta) y **Conectar** le añade una entrada
+llamada `adeorq` que lanza el enlace de Adeorq. Lo demás de ese archivo queda como estaba,
+al lado queda una copia con lo de antes, y **Desconectar** quita esa entrada y lo deja como
+estaba. Si el archivo no se entiende, o ya hay una entrada `adeorq` que no es la de Adeorq,
+no se toca y lo dice. Con Adeorq abierta, `claude mcp list` tiene que decir «Connected», y
+las terminales de Claude que ya tengas abiertas lo cogen al reiniciarlas. Si prefieres
+hacerlo a mano, vale el comando de siempre:
+`claude mcp add adeorq --scope user -- "<ruta de adeorq.exe>" --mcp`. Desde entonces, un
+Claude Code que abras en una terminal de Adeorq tiene las herramientas con el escalón de
+esa terminal, y uno de otra consola las tiene como programa de fuera (más abajo).
 
 **Cada terminal nace con su propia contraseña**, y el escalón sale de la terminal desde
 donde se conecta el programa, no del nombre que dice tener. Un programa que
@@ -1118,15 +1128,25 @@ se presenta como «claude» desde fuera no hereda el escalón de Claude Code. De
 
 **Fuera de Adeorq** es todo lo que llega **sin** la contraseña de una terminal de Adeorq:
 un Claude Code abierto en otra consola, cualquier programa que hable con el puerto.
-De fábrica solo puede **abrir terminales y mirar**. Esas terminales nacen en el modo que
-tengas en Ajustes, y si pide abrir una **con un encargo** sale una ventana con el texto,
-quién lo pide y en qué carpeta: **No** o **Abrir**; si nadie contesta, no se abre. Para
-que haga más, súbelo tú en
-**Ajustes › Terminales › Qué puede hacer cada cliente por el MCP**, en su fila (vale
-para cualquier programa de fuera, y en «Todo» ya no pregunta, así que súbelo con
-cuidado). Cada fila dice el
-programa, su versión, cuántas veces se conectó y cuándo fue la última. El Capataz y el
-conserje entran por una línea propia y no cuentan como clientes.
+Su fila tiene sus propios pasos:
+
+- **Ver la lista y abrir**, de fábrica: ve qué terminales hay (sin su comando, que lleva
+  el encargo entero), el uso y tus proyectos, abre terminales, y solo lee y cierra **las
+  que abrió él**. No lee las tuyas, ni la memoria, ni la agenda.
+- **Leer y abrir**: además lee tus terminales, la memoria y la agenda.
+- **Todo**: además escribe en cualquier terminal y la cierra.
+
+Así que un Claude Code abierto fuera de Adeorq no puede leer tus terminales hasta que
+lo subas, en **Ajustes › Terminales › Qué puede hacer cada cliente por el MCP**, en su
+fila, y vale para cualquier programa de fuera (**Como de fábrica** lo devuelve). Si ya
+la tenías cambiada, se queda como la dejaste; quien la tenía en **Solo mirar** la sigue
+viendo ahí, y no se vuelve a ofrecer en cuanto la cambia. Lo que abre nace en el modo
+que tengas en Ajustes, y si pide abrir una terminal **con un encargo** sale una ventana
+con el texto, quién lo pide y en qué carpeta: **No** o **Abrir**; si nadie contesta, no
+se abre. En **Todo** ya no pregunta, así que súbelo con cuidado.
+
+Cada fila dice el programa, su versión, cuántas veces se conectó y cuándo fue la última.
+Adeo entra por una línea propia y no cuenta como cliente.
 
 Un agente con escalón bajo que pida algo que no le toca recibe un rechazo que le dice
 qué escalón tiene y dónde se cambia.
@@ -1167,13 +1187,13 @@ confías: a ese no se le da la clave.
 
 ---
 
-## 18. El Capataz y el Reparto
+## 18. Adeo y el Reparto
 
-El Capataz es tu agente orquestador. Le escribes lo que quieres y te propone un plan;
+Adeo es tu agente orquestador. Le escribes lo que quieres y te propone un plan;
 **nada se ejecuta sin tu OK**. Se abre con el orbe de la barra de arriba, con
 **Ctrl+Mayús+A**, y desde cualquier pestaña. **Ctrl+Mayús+M** lo abre ya escuchándote, y
-con la voz de OpenRouter puede contestarte en alto. En la ventana y en algunos textos
-de la app se llama «el Asistente».
+con la voz de OpenRouter puede contestarte en alto. Es el mismo Adeo que abre
+sesiones desde el Chat y desde el móvil.
 
 **Cuánto puede tocar.** Tiene los mismos tres escalones del
 [punto 17](#17-lo-que-puede-hacer-un-programa-de-fuera): *Mirar* (solo lee), *Plan* (abre
@@ -1184,9 +1204,10 @@ terminal). Se elige en la propia ventana.
 
 - **Planear**: te propone qué sesiones abrir, con qué programa, qué cerebro y qué
   encargo. En la lista ves con qué cerebro abre cada cosa y, antes del botón, lo que
-  pesa el plan entero («Abre 6 agentes · 2 opus + 4 sonnet · ×22»). No es una factura
-  (con suscripción no hay factura): es la única cifra comparable que existe, con
-  haiku como 1.
+  pesa el plan entero y a qué cuentas van («Abre 6 agentes · 2 opus + 4 sonnet · 4 en
+  2da MAIN, 2 en Principal · pesa como 22 haikus»; lo de las cuentas solo sale si alguna
+  no es la principal). No es una factura (con suscripción no hay factura): es la única
+  cifra comparable que existe, con haiku como 1.
 - **Preguntar**: solo mira Adeorq y te contesta, sin abrir nada.
 - **Escribir el encargo**: le sueltas en una frase lo que quieres y te devuelve el
   encargo bien escrito, para quién y por qué ese. Hay tres botones: ponerlo en la
@@ -1195,7 +1216,7 @@ terminal). Se elige en la propia ventana.
 - **Automático**: en vez de enseñarte la ficha, ajusta el cerebro y deja el encargo
   escrito en la terminal de delante. No lo envía: «sin pantalla intermedia» no
   quiere decir «sin tu dedo».
-- **Voz**: que el Capataz diga sus respuestas en alto.
+- **Voz**: que Adeo diga sus respuestas en alto.
 
 **Cómo elige el cerebro.** Pasa por el mismo router que el resto de Adeorq y mira tu
 cuota de verdad, cuenta por cuenta:
@@ -1214,7 +1235,7 @@ cuota de verdad, cuenta por cuenta:
 
 ### El Reparto: varias tareas de golpe
 
-No tiene botón propio: es el mismo Capataz. Una frase se planea ahí mismo; **varias
+No tiene botón propio: es el mismo Adeo. Una frase se planea ahí mismo; **varias
 líneas son varias tareas**, y el botón cambia solo a **Repartir las N tareas**
 (hasta ocho por tanda) y te lleva a una pantalla con el texto puesto. Puedes pegar tus
 tareas, una por línea, o marcar los **objetivos de hoy** y las **ideas que tus agentes
@@ -1239,8 +1260,8 @@ mismo archivo van más lento que uno detrás de otro.
 
 ## 19. En el móvil
 
-Adeorq se viene contigo. Desde el móvil, una tablet u otro ordenador hablas con el
-conserje, ves cómo va cada terminal y le escribes, contestas lo que te preguntan tus
+Adeorq se viene contigo. Desde el móvil, una tablet u otro ordenador hablas con
+Adeo, ves cómo va cada terminal y le escribes, contestas lo que te preguntan tus
 agentes y abres sesiones del PC. La página la **sirve tu propio PC**, y el tráfico
 va por **Tailscale**, su red privada: no pasa por ningún servidor de Adeorq. Solo
 entran aparatos que hayas emparejado. El PC tiene que estar encendido con Adeorq
@@ -1248,9 +1269,9 @@ abierto (mientras sirve, le pide al sistema no dormirse).
 
 **Emparejar un móvil.** En **Ajustes › Móvil**:
 
-1. Enciende **Conserje en el móvil**. Salen tres filas con un punto verde o rojo —
+1. Enciende **Adeo en el móvil**. Salen tres filas con un punto verde o rojo —
    *Este PC*, *Tailscale* y *Tu móvil* — y el arreglo en la que falle.
-2. Si falta, **Llevar el conserje a Tailscale** (y *Abrir el enlace de Tailscale* si
+2. Si falta, **Llevar a Adeo a Tailscale** (y *Abrir el enlace de Tailscale* si
    pide activar HTTPS).
 3. Aparece una dirección `https://….ts.net:8443` con su QR y **Copiar**.
 4. **Emparejar un móvil** da un código de seis cifras que vale diez minutos. En el móvil
@@ -1259,11 +1280,11 @@ abierto (mientras sirve, le pide al sistema no dormirse).
 Los aparatos emparejados salen en la misma pantalla con «visto hace…», si tienen
 avisos, **Probar aviso** y **Quitar**.
 
-**Qué hay en el móvil.** Un cajón con **Conserje**, **Terminales**, **Decisiones**,
+**Qué hay en el móvil.** Un cajón con **Adeo**, **Terminales**, **Decisiones**,
 **Programados**, **Uso** y, abajo, **Ajustes**, más **Nuevo encargo**.
 
 - **El inicio**: Adeo con el estado del PC, **Te esperan** (decisiones y terminales que
-  preguntan), **En marcha**, tus conversaciones con el conserje y la caja para
+  preguntan), **En marcha**, tus conversaciones con Adeo y la caja para
   escribirle.
 - **Terminales**: agrupadas en *Te preguntan*, *Trabajando*, *Terminaron* y *En
   reposo*. De cada una ves **Chat** (lo hablado, con **Copiar** en los bloques de
@@ -1293,7 +1314,7 @@ emparejado (en el disco solo queda su huella) y se rechaza cualquier origen ajen
 
 Pensado para que puedas retransmitir sin regalar tus claves. Tiene cuatro piezas:
 
-1. **Tapado, no desenfoque**: el pie de la barra lateral, el resumen del Capataz, los
+1. **Tapado, no desenfoque**: el pie de la barra lateral, el resumen de Adeo, los
    nombres de cuentas y los textos de la Agenda se cubren con una barra sólida. El
    desenfoque suave se puede deshacer desde una grabación, por eso no se usa. **Los
    títulos de tus sesiones y los objetivos del día no se tapan**: son el hilo de lo que
@@ -1388,6 +1409,9 @@ compositor. Las diferencias que verás:
 - El navegador del panel es una versión sencilla en un marco, no el Chromium de verdad.
 - Las terminales no van de fábrica en un proceso aparte.
 - La pestaña Vídeo de la tarjeta de uso está apagada.
+- El AppImage necesita FUSE para abrirse. Si dice «Cannot mount AppImage, please check your
+  FUSE setup», instala `fuse3` (`sudo apt install fuse3`, `sudo dnf install fuse3`) o ábrelo
+  con `--appimage-extract-and-run`.
 
 **Mac.** Hay un instalador `.dmg` para Apple Silicon (macOS 12 o más) entre las
 versiones publicadas. Está construido y arrancado en un Mac automático, pero
@@ -1435,14 +1459,14 @@ Adeorq no usa los menús del navegador: son suyos, en tu idioma y con los atajos
 | Ctrl+Mayús+→ | Partir la terminal activa a la derecha |
 | Ctrl+Mayús+↓ (o D) | Partirla abajo |
 | Ctrl+Mayús+F | Maximizar o restaurar la terminal activa |
-| Ctrl+Mayús+A | Llamar o cerrar al Capataz |
-| Ctrl+Mayús+M | Llamar al Capataz y dictarle |
+| Ctrl+Mayús+A | Llamar o cerrar a Adeo |
+| Ctrl+Mayús+M | Llamar a Adeo y dictarle |
 | Ctrl+Mayús+E | Modo emisión |
 | Ctrl+Mayús+P | La cortina: tapa la ventana entera |
 | Alt (mantenido) | Mirar lo que tapa el modo emisión |
 | Ctrl+Z | Reabrir la última terminal cerrada (fuera de una terminal y de un cuadro de texto) |
 | Ctrl+Alt+Mayús+0 | Apagar todos los mods |
-| Esc | Cerrar lo que esté abierto encima (paleta, Pulso, Capataz, avisos) |
+| Esc | Cerrar lo que esté abierto encima (paleta, Pulso, Adeo, avisos) |
 
 Estos **no se pueden cambiar**; los del lienzo, sí.
 
@@ -1529,7 +1553,7 @@ donde diga `XDG_DATA_HOME`) y `~/Library/Application Support/Adeorq` en Mac.
 | Notas del Lienzo | `notas`, en Markdown |
 | El Lienzo | `lienzo.json` |
 | Encargos programados | `programados.json` |
-| Decisiones y conversaciones del conserje | `decisiones`, `conserje` y `chats` |
+| Decisiones y conversaciones con Adeo | `decisiones`, `conserje` y `chats` |
 | Ideas y pasos que proponen los agentes | `bandeja.md` |
 | Rastro de fallos | `rastro.log` |
 | Resúmenes de las terminales que cerró un agente | `rastros` |
@@ -1548,7 +1572,7 @@ Adeorq no lleva telemetría ni analíticas. Sale de tu equipo, y solo en estos c
 - **Para buscar actualizaciones**: pregunta a GitHub al arrancar, cada seis horas y al
   volver a la ventana.
 - **OpenRouter**, solo si guardas tu clave: comprobar la clave y el saldo, listar
-  modelos, hablar con uno y generar la voz del Capataz.
+  modelos, hablar con uno y generar la voz de Adeo.
 - **La brújula** de la Agenda, solo si entras con tu cuenta.
 - **Los avisos al móvil**, cifrados, por el servicio de avisos de tu navegador.
 - **Los avisos a un bot**, solo si los enciendes en **Ajustes › Bots**: el webhook de tu Grok
@@ -1559,7 +1583,7 @@ Adeorq no lleva telemetría ni analíticas. Sale de tu equipo, y solo en estos c
 - **El móvil** va por Tailscale; Adeorq ejecuta `tailscale` en tu equipo.
 - **El navegador del panel y las ventanas de localhost del lienzo** cargan la página que
   abras tú.
-- **Los agentes** (Claude Code, Codex…) y el conserje salen a internet por el programa de
+- **Los agentes** (Claude Code, Codex…) y Adeo salen a internet por el programa de
   cada uno, no por Adeorq.
 
 Ollama, Discord, la voz local y los servidores del móvil y del MCP se quedan dentro de tu
@@ -1594,8 +1618,9 @@ equipo.
 - **Cuadrilla**: varias terminales abiertas de un mismo reparto.
 - **Enjambre**: varias sesiones ya abiertas juntadas en una pieza del Lienzo con un solo
   chat.
-- **Conserje**: el chat de Adeo que abre sesiones por ti, en el Chat y en el móvil.
-- **Capataz**: el agente orquestador del orbe.
+- **Adeo**: la mascota y quien orquesta: el orbe que llamas con Ctrl+Mayús+A, el chat que
+  abre sesiones por ti (en el Chat y en el móvil) y quien reparte el trabajo. En las notas de
+  versiones antiguas aparece como el Capataz, el Asistente o el conserje.
 
 ---
 

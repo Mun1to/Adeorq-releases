@@ -13,6 +13,21 @@ dmg="${3:-}"
 fallos=0
 mal() { echo "::error title=Firma de macOS::$1"; fallos=$((fallos + 1)); }
 
+# `stapler validate` asks Apple, so a dropped connection reads «Error 68» even with
+# the ticket in place: the 0.9.241 release went red with its ticket inside. It only
+# counts as missing when it keeps failing.
+sello_valido() {
+  local intento
+  for intento in 1 2 3 4 5; do
+    xcrun stapler validate "$1" && return 0
+    if [ "$intento" != 5 ]; then
+      echo "stapler validate failed (try $intento of 5), retrying in 20 s" >&2
+      sleep 20
+    fi
+  done
+  return 1
+}
+
 # Every tool's output is captured first and searched afterwards: `tool | grep -q`
 # under pipefail fails at random when grep stops reading early.
 firma=$(codesign -dvvv "$app" 2>&1)
@@ -45,12 +60,12 @@ if [ "$modo" = notarizado ]; then
   echo "$gatekeeper"
   grep -q 'source=Notarized Developer ID' <<<"$gatekeeper" || mal "Gatekeeper does not see the app as notarized"
   # Tauri ignores stapler's exit code, so a failed staple would go unnoticed.
-  xcrun stapler validate "$app" || mal "the notarization ticket is not stapled to the app"
+  sello_valido "$app" || mal "the notarization ticket is not stapled to the app"
   if [ -n "$dmg" ]; then
     gatekeeper=$(spctl --assess --type open --context context:primary-signature --verbose=4 "$dmg" 2>&1 || true)
     echo "$gatekeeper"
     grep -q 'source=Notarized Developer ID' <<<"$gatekeeper" || mal "Gatekeeper does not see the DMG as notarized"
-    xcrun stapler validate "$dmg" || mal "the notarization ticket is not stapled to the DMG"
+    sello_valido "$dmg" || mal "the notarization ticket is not stapled to the DMG"
   fi
 fi
 

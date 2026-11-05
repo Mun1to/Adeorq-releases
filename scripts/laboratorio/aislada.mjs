@@ -20,7 +20,7 @@
 //   cargo build --manifest-path src-tauri/Cargo.toml   (deja C:\ct\debug\adeorq.exe)
 //   pnpm dev                                            (el binario de desarrollo carga de ahí)
 import { spawn, spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -127,8 +127,14 @@ async function ventana(depurar) {
  * su ruta. Si la app no se engancha al proceso, `abrirAislada` falla: de lo
  * contrario seguiría con las terminales dentro y daría un verde que no es.
  * `motor()` dice el pid del proceso y las terminales que cuelgan de él.
+ *
+ * Con `motorDeAntes` (la ruta de un `adeorq.exe` de otra versión, y `aparte`), ese
+ * binario se copia a la carpeta de la pasada y se lanza solo como proceso de
+ * terminales (`--terminales`, sin ventana) antes de abrir la app: es lo que encuentra
+ * quien actualiza con terminales abiertas. Una release no se abre como app aquí:
+ * comparte identificador con la instalada.
  */
-export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(), exe = EXE, raiz, sembrar, guarda = "", entorno = {}, aparte = process.env.LAB_TERMINALES_APARTE === "1", fueraConTodo = true }) {
+export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(), exe = EXE, raiz, sembrar, guarda = "", entorno = {}, aparte = process.env.LAB_TERMINALES_APARTE === "1", fueraConTodo = true, motorDeAntes = null }) {
   const base = join(tmpdir(), `adeorq-${nombre}-${process.pid}`);
   const demo = join(base, "proyectos", "demo");
   const proyectos = raiz ?? join(base, "proyectos");
@@ -170,8 +176,22 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
     hijo.unref();
     return hijo.pid;
   };
-  let app = lanzar();
   const usados = new Set([exe.toLowerCase()]);
+  if (motorDeAntes) {
+    if (!aparte) throw new Error("`motorDeAntes` solo tiene sentido con las terminales aparte");
+    mkdirSync(join(base, "motor-de-antes"), { recursive: true });
+    const copia = join(base, "motor-de-antes", "adeorq.exe");
+    copyFileSync(motorDeAntes, copia);
+    usados.add(copia.toLowerCase());
+    const hijo = spawn(copia, ["--terminales"], { cwd: demo, detached: true, stdio: "ignore", env });
+    hijo.unref();
+    const señas = join(base, "datos", "Adeorq", "terminales", `${canal}.json`);
+    if (!(await hasta(() => existsSync(señas), 15_000, 200))) {
+      spawnSync("taskkill", ["/PID", String(hijo.pid), "/T", "/F"], { stdio: "ignore" });
+      throw new Error("el motor de antes no apuntó sus señas");
+    }
+  }
+  let app = lanzar();
   let v;
   const puentes = [];
 

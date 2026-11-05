@@ -30,7 +30,7 @@ async (page) => {
     await page.locator('[data-tab="cabina"]').waitFor({ state: "attached", timeout: 20000 });
     await page.evaluate(() => document.querySelector('[data-tab="ajustes"]').click());
     // El doble arranca con el conserje del móvil apagado: se enciende.
-    const interruptor = page.locator(".panel-card", { hasText: "El conserje en el móvil" }).locator('input[type="checkbox"]').first();
+    const interruptor = page.locator(".panel-card", { hasText: "Adeo en el móvil" }).locator('input[type="checkbox"]').first();
     await interruptor.waitFor({ state: "attached", timeout: 10000 });
     if (!(await interruptor.isChecked())) await interruptor.evaluate((e) => e.click());
     await page.waitForTimeout(900);

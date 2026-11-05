@@ -1081,7 +1081,7 @@ fn clave_de_casa() -> Option<&'static str> {
                 Err(e) => {
                     // Sin contraseña nadie es de casa: el lado prudente.
                     crate::anotar(&format!(
-                        "MCP: sin aleatoriedad del sistema ({e}): el Capataz y el conserje entran como un cliente más."
+                        "MCP: sin aleatoriedad del sistema ({e}): Adeo entra como un cliente más."
                     ));
                     None
                 }
@@ -1323,10 +1323,18 @@ pub(crate) fn avisar_lista_cambiada(bot: &str) {
 }
 
 /// De qué programa es una conexión: un bot por su clave, y lo demás por su terminal.
-fn programa_de(app: &tauri::AppHandle, bot: Option<&crate::bots_conexion::Identidad>, mi_panel: Option<u32>, creido: Option<PanelCreido>, cliente: Option<&str>) -> String {
+/// `en_terminal`: no presentó contraseña, pero cuelga de una (`quien_conecta.rs`).
+fn programa_de(app: &tauri::AppHandle, bot: Option<&crate::bots_conexion::Identidad>, mi_panel: Option<u32>, creido: Option<PanelCreido>, cliente: Option<&str>, en_terminal: bool) -> String {
     match bot {
         Some(b) => b.programa(),
-        None => programa_de_la_conexion(app, mi_panel, creido, cliente),
+        None => {
+            let programa = programa_de_la_conexion(app, mi_panel, creido, cliente);
+            if en_terminal && programa == crate::mcp_clientes::FUERA {
+                crate::mcp_clientes::SIN_CLAVE_EN_TERMINAL.to_string()
+            } else {
+                programa
+            }
+        }
     }
 }
 
@@ -1336,7 +1344,7 @@ fn programa_de(app: &tauri::AppHandle, bot: Option<&crate::bots_conexion::Identi
 fn instrucciones_de_bot(nombre: &str, nivel: crate::mcp_clientes::Nivel) -> String {
     use crate::mcp_clientes::Nivel;
     let que = match nivel {
-        Nivel::Mirar => "You can see the list of terminals and the usage, not what is inside them.".to_string(),
+        Nivel::Lista | Nivel::Mirar => "You can see the list of terminals and the usage, not what is inside them.".to_string(),
         Nivel::Plan => "You can also see the projects and open terminals. A brief waits for the person's click (up to 2 minutes); a refusal comes back as an error, do not retry it. You only read and close the terminals you opened.".to_string(),
         Nivel::Auto => format!("You can open terminals without asking, type into any of them and read all of them. At most {MAX_VIVOS} opened this way are alive at once, and {MAX_POR_HORA} per hour."),
     };
@@ -1386,6 +1394,11 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
     // Cómo se creyó esa terminal (`panel_creible`): `None` si no se presentó
     // ninguna, o si la que dijo no era creíble. Lo usa el escalón.
     let mut panel_creido: Option<PanelCreido> = None;
+    // Si esta conexión, sin contraseña que valga, cuelga de una terminal: se mira con
+    // `quien_conecta` hasta que sale que sí (la terminal puede no estar aún en la lista)
+    // y se deja de mirar si presentó una contraseña mala.
+    let mut en_terminal = false;
+    let mut se_mira_su_proceso = true;
     let mut conoce_numeros = false;
     // Qué terminales abrió esta conexión: ver `es_suya`.
     static CONEXIONES: AtomicU64 = AtomicU64::new(0);
@@ -1443,6 +1456,7 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                     let ficha = crate::pty::ficha(&app, n);
                     panel_creible(ficha.as_ref().map(|f| f.clave.as_ref()), v["clave"].as_str())
                 });
+                se_mira_su_proceso = quien_conecta::se_mira_por_su_proceso(creido, v["clave"].is_string());
                 (mi_panel, panel_creido) = match creido {
                     PanelCreido::No => (None, None),
                     c => (id, Some(c)),
@@ -1506,13 +1520,23 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
             continue;
         }
 
+        if !en_terminal
+            && se_mira_su_proceso
+            && !de_casa
+            && bot.is_none()
+            && mi_panel.is_none()
+            && matches!(method, "initialize" | "tools/list" | "tools/call")
+        {
+            en_terminal = quien_conecta::cuelga_de_una_terminal(&app, puntas);
+        }
+
         let res = match method {
             "initialize" => {
                 let ci = &req["params"]["clientInfo"];
                 if let Some(n) = ci["name"].as_str().map(str::trim).filter(|n| !n.is_empty()) {
                     cliente = Some(n.to_string());
                 }
-                let programa = programa_de(&app, bot.as_ref(), mi_panel, panel_creido, cliente.as_deref());
+                let programa = programa_de(&app, bot.as_ref(), mi_panel, panel_creido, cliente.as_deref(), en_terminal);
                 let version = ci["version"].as_str().unwrap_or("");
                 if !de_casa {
                     crate::mcp_clientes::apuntar_visto(&programa, version);
@@ -1532,7 +1556,7 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                 }
             }
             "tools/list" => {
-                let programa = programa_de(&app, bot.as_ref(), mi_panel, panel_creido, cliente.as_deref());
+                let programa = programa_de(&app, bot.as_ref(), mi_panel, panel_creido, cliente.as_deref(), en_terminal);
                 json!({
                     "jsonrpc": "2.0",
                     "id": id,
@@ -1544,7 +1568,7 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                 let args = req["params"]["arguments"].clone();
                 // El escalón de su programa (decisiones D1 y B1): lo que no le
                 // toca no se ejecuta, y se le dice por qué. Lo de casa no pasa por aquí.
-                let programa = programa_de(&app, bot.as_ref(), mi_panel, panel_creido, cliente.as_deref());
+                let programa = programa_de(&app, bot.as_ref(), mi_panel, panel_creido, cliente.as_deref(), en_terminal);
                 // Qué dice ser, si es de fuera de Adeorq: abrir una terminal va distinto (`pedir_abrir.rs`).
                 let de_fuera = es_de_fuera(&programa, de_casa, panel_creido).then(|| DeFuera {
                     nombre: bot.as_ref().map_or_else(|| cliente.as_deref().unwrap_or_default(), |b| b.etiqueta()),
@@ -1682,6 +1706,11 @@ fn instrucciones(visibles: &[Value]) -> Option<String> {
     t.push_str(&format!(
         "- Each terminal spends real quota of an account. Leave `account` out of open_pane: Adeorq sends it to the account that would waste the most quota if left idle (the one closest to renewing with the most left) and the reply says which. get_usage shows every account and where the next one goes. At most {MAX_VIVOS} opened this way are alive at once, and {MAX_POR_HORA} per hour."
     ));
+    // Sin la agenda es el escalón de lo de fuera, que no lee más que lo suyo: mejor
+    // saberlo de entrada que probar herramientas ajenas una a una.
+    if !ve("get_agenda") {
+        t.push_str("\n- This client is outside Adeorq, so it only sees the list of terminals and the usage, and it reads and closes only the terminals it opened. The person can raise that in Adeorq, Settings > Terminals.");
+    }
     Some(t)
 }
 
@@ -1803,7 +1832,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                             },
                             {
                                 "name": "leer_turno",
-                                "description": "For the Adeorq concierge: brings back one old turn of its own conversation, whole. The concierge only sees an index line of old turns; use this when a line is not enough.",
+                                "description": "For Adeo, the chat of Adeorq: brings back one old turn of its own conversation, whole. Adeo only sees an index line of old turns; use this when a line is not enough.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {
@@ -2057,9 +2086,21 @@ fn programa_de_la_conexion(app: &tauri::AppHandle, mi_panel: Option<u32>, creido
 /// Si esta conexión es de fuera de Adeorq a efectos de abrir una terminal
 /// (`pedir_abrir.rs`). Ni un puente de casa, ni una terminal de antes de las
 /// contraseñas: esa sigue como hasta ahora hasta que se cierre, se llame como se
-/// llame el cliente, porque la abrió alguien dentro de Adeorq.
+/// llame el cliente, porque la abrió alguien dentro de Adeorq. Lo que cuelga de una
+/// terminal sin presentar contraseña sí, como hasta ahora: abrir no cambia por eso.
 fn es_de_fuera(programa: &str, de_casa: bool, creido: Option<PanelCreido>) -> bool {
-    !de_casa && (programa == crate::mcp_clientes::FUERA || crate::mcp_clientes::es_bot(programa)) && creido != Some(PanelCreido::DeAntes)
+    use crate::mcp_clientes::{es_bot, FUERA, SIN_CLAVE_EN_TERMINAL};
+    !de_casa && (programa == FUERA || programa == SIN_CLAVE_EN_TERMINAL || es_bot(programa)) && creido != Some(PanelCreido::DeAntes)
+}
+
+/// De qué terminal cuelga la que se abre. Lo de fuera de fábrica no dibuja flechas: la
+/// de `open_pane` llevaría la respuesta de una terminal ajena a la que acaba de abrir.
+fn flecha_al_abrir(args: &Value, de_fuera: Option<DeFuera>) -> Value {
+    if de_fuera.is_some_and(|d| d.bot.is_none() && d.nivel == crate::mcp_clientes::Nivel::Lista) {
+        Value::Null
+    } else {
+        args["from"].clone()
+    }
 }
 
 /// Quién llama desde fuera de Adeorq y con qué escalón. Lo de dentro va sin esto.
@@ -2077,6 +2118,12 @@ impl DeFuera<'_> {
     /// persona, ni por una flecha `auto` ni por la respuesta de una decisión.
     fn sin_manos(self) -> bool {
         self.nivel != crate::mcp_clientes::Nivel::Auto
+    }
+
+    /// Si su lista va sin comandos: el de una terminal lleva su encargo entero. Un bot
+    /// que no manda, y lo de fuera de fábrica.
+    fn lista_sin_comandos(self) -> bool {
+        (self.bot.is_some() && self.sin_manos()) || self.nivel == crate::mcp_clientes::Nivel::Lista
     }
 }
 
@@ -2133,7 +2180,7 @@ fn ajena_para_su_escalon(
     if de_casa {
         return None;
     }
-    let nombre = programa;
+    let nombre = if programa == crate::mcp_clientes::SIN_CLAVE_EN_TERMINAL { "este cliente" } else { programa };
     let nivel = crate::mcp_clientes::nivel_de(&crate::mcp_clientes::leer(), programa);
     if !crate::mcp_clientes::solo_lo_suyo_programa(programa, nivel, herramienta) {
         return None;
@@ -2148,6 +2195,14 @@ fn ajena_para_su_escalon(
         return ajena_para_un_bot(bot, panel, madre.as_ref());
     }
     let mi_sesion = mi_panel.and_then(|p| sesion_del_panel(app, p));
+    if nivel == crate::mcp_clientes::Nivel::Lista {
+        return (!es_suya(madre.as_ref(), mi_panel, mi_sesion.as_deref(), conexion)).then(|| {
+            format!(
+                "Desde fuera de una terminal de Adeorq solo se leen y se cierran las terminales que abrió quien llama, y la {panel} no es una de ellas. {}",
+                crate::mcp_clientes::LISTA_SE_SUBE
+            )
+        });
+    }
     cierre_ajeno(nombre, panel, madre.as_ref(), mi_panel, mi_sesion.as_deref(), conexion)
 }
 
@@ -2236,9 +2291,9 @@ fn carpeta_de_agenda(nombre: &str, proyectos: &[crate::pty::Project]) -> Option<
         .map(|p| p.path.clone())
 }
 
-/// Una terminal, tal como la ve un bot que no manda: de qué es y cómo va, sin su
-/// comando ni el porqué de su estado.
-fn linea_para_un_bot(f: &crate::pty::Ficha, etiqueta: Option<(String, String, String, String, String)>, madre: Option<&Madre>, bot: &str) -> String {
+/// Una terminal, tal como la ve quien no manda (un bot, lo de fuera de fábrica): de qué
+/// es y cómo va, sin su comando ni el porqué de su estado.
+fn linea_sin_comando(f: &crate::pty::Ficha, etiqueta: Option<(String, String, String, String, String)>, suya: bool) -> String {
     let (nombre, modelo, estado, _, _) = etiqueta.unwrap_or_default();
     let mut l = format!("ID: {}", f.id);
     if !nombre.is_empty() {
@@ -2253,7 +2308,7 @@ fn linea_para_un_bot(f: &crate::pty::Ficha, etiqueta: Option<(String, String, St
     if !estado.is_empty() {
         l.push_str(&format!(", Estado: {estado}"));
     }
-    if madre.and_then(|m| m.bot.as_deref()) == Some(bot) {
+    if suya {
         l.push_str(", Abierta por: ti");
     }
     l.push_str(&format!(", CWD: {}\n", f.cwd));
@@ -2316,11 +2371,16 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                 "Arranque de Adeorq: {} (los IDs vuelven a empezar en 1 en cada arranque: si apuntaste uno de otro arranque, no vale).\n",
                 crate::conserje::arranque()
             );
-            // Un bot que no manda ve la lista, no lo que hay dentro: el comando de una
-            // terminal lleva su encargo entero, y lo que lee se va a su proveedor.
-            if let Some(bot) = de_fuera.filter(|d| d.sin_manos()).and_then(|d| d.bot) {
+            // Quien no manda ve la lista, no lo que hay dentro: el comando de una terminal
+            // lleva su encargo entero, y lo que lee un bot se va a su proveedor.
+            if let Some(d) = de_fuera.filter(|d| d.lista_sin_comandos()) {
                 for f in &fichas {
-                    text.push_str(&linea_para_un_bot(f, etiqueta_de(f.id), delegadas.get(&f.id), bot));
+                    let madre = delegadas.get(&f.id);
+                    let suya = match d.bot {
+                        Some(bot) => madre.and_then(|m| m.bot.as_deref()) == Some(bot),
+                        None => es_suya(madre, quien, mi_sesion.as_deref(), conexion),
+                    };
+                    text.push_str(&linea_sin_comando(f, etiqueta_de(f.id), suya));
                 }
                 if fichas.is_empty() {
                     text.push_str("No active panes.");
@@ -2608,7 +2668,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                     c.turnos.len()
                 ));
             };
-            let quien = if t.rol == "tu" { "Munir" } else { "tú (conserje)" };
+            let quien = if t.rol == "tu" { "Munir" } else { "tú (Adeo)" };
             Ok(json!({ "content": [{ "type": "text", "text": format!("#{} {quien}:\n{}", t.n, t.texto) }] }))
         }
         "leer_memoria" => {
@@ -2740,7 +2800,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                     "elegir": account.is_empty(),
                     "model": modelo,
                     "name": args["name"].as_str().unwrap_or_default(),
-                    "from": args["from"],
+                    "from": flecha_al_abrir(&args, de_fuera),
                     // Su panel, para que la cabecera de la nueva diga «de: su nombre».
                     "quien": quien,
                     "conSuModo": como != Apertura::ComoSiempre,
@@ -3305,6 +3365,27 @@ mod tests {
         assert!(!auto.sin_manos());
     }
 
+    /// Qué lista ve cada uno, y que lo de fuera de fábrica no dibuje una flecha al abrir.
+    /// Lo guardado en la fila de fuera y los bots siguen con lo que tenían.
+    #[test]
+    fn la_lista_y_la_flecha_de_lo_de_fuera() {
+        use crate::mcp_clientes::Nivel;
+        let fuera = |nivel| DeFuera { nombre: "x", nivel, bot: None };
+        let bot = |nivel| DeFuera { nombre: "Hermes", nivel, bot: Some("hermes") };
+        assert!(fuera(Nivel::Lista).lista_sin_comandos());
+        for n in [Nivel::Mirar, Nivel::Plan, Nivel::Auto] {
+            assert!(!fuera(n).lista_sin_comandos(), "lo guardado sigue viendo los comandos: {n:?}");
+        }
+        assert!(bot(Nivel::Mirar).lista_sin_comandos() && bot(Nivel::Plan).lista_sin_comandos());
+        assert!(!bot(Nivel::Auto).lista_sin_comandos());
+
+        let args = json!({ "from": 4 });
+        assert_eq!(flecha_al_abrir(&args, Some(fuera(Nivel::Lista))), Value::Null);
+        assert_eq!(flecha_al_abrir(&args, Some(fuera(Nivel::Plan))), json!(4));
+        assert_eq!(flecha_al_abrir(&args, Some(bot(Nivel::Plan))), json!(4));
+        assert_eq!(flecha_al_abrir(&args, None), json!(4), "lo de dentro de Adeorq");
+    }
+
     #[test]
     fn lo_que_se_le_dice_a_un_bot_no_le_manda_repartir() {
         for n in [crate::mcp_clientes::Nivel::Mirar, crate::mcp_clientes::Nivel::Plan, crate::mcp_clientes::Nivel::Auto] {
@@ -3430,6 +3511,8 @@ mod tests {
         assert!(!es_de_fuera(fuera, false, Some(PanelCreido::DeAntes)), "una terminal de antes, se llame como se llame");
         assert!(!es_de_fuera("claude", false, Some(PanelCreido::Suyo)), "una terminal con su contraseña");
         assert!(!es_de_fuera("codex", false, Some(PanelCreido::DeAntes)));
+        // Abrir no cambia para lo que cuelga de una terminal sin contraseña.
+        assert!(es_de_fuera(crate::mcp_clientes::SIN_CLAVE_EN_TERMINAL, false, None));
     }
 
     /// La contraseña va al proceso que se lanza y a ninguno más: la app no la
@@ -3561,6 +3644,16 @@ mod tests {
         assert!(plan.contains("close the ones it opened") && plan.contains("close_pane and its rastro"), "{plan}");
         assert!(!plan.contains("cannot type into or close"), "{plan}");
         assert!(plan.chars().count() <= 2048, "{} caracteres", plan.chars().count());
+        assert!(!plan.contains("outside Adeorq"), "{plan}");
+
+        // Lo de fuera de fábrica sabe de entrada hasta dónde llega y quién lo sube.
+        let visibles: Vec<Value> = lista_de_herramientas()
+            .into_iter()
+            .filter(|h| h["name"].as_str().is_some_and(|n| crate::mcp_clientes::la_ve_programa(crate::mcp_clientes::FUERA, Nivel::Lista, n)))
+            .collect();
+        let fuera = instrucciones(&visibles).expect("lo de fuera puede abrir");
+        assert!(fuera.contains("outside Adeorq") && fuera.contains("Settings > Terminals") && !fuera.contains("send_command"), "{fuera}");
+        assert!(fuera.chars().count() <= 2048, "{} caracteres", fuera.chars().count());
 
         // Sin open_pane no hay nada que repartir.
         assert_eq!(instrucciones(&de_escalon(Nivel::Mirar)), None);

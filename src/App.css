@@ -128,3 +128,6 @@
 
 /* Ajustes › Bots: avisar a Grok Bot, Hermes u OpenClaw. */
 @import "./estilos/37-bots.css";
+
+/* Conectar tu Claude Code: la fila de cada cuenta, en Ajustes y en la bienvenida. */
+@import "./estilos/38-claude-conexion.css";

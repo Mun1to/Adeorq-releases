@@ -42,8 +42,8 @@
       en: ['The pulse', 'How much memory Adeorq and its agents use, and how many agents are alive. It measures the whole process tree, not just the window. Click it for the breakdown.']
     },
     capataz: {
-      es: ['Llamar al Capataz', 'Le pides el tablero en castellano y propone el plan: qué sesiones abrir, con qué programa y con qué encargo. No ejecuta nada sin tu visto bueno. Atajo: Ctrl+Mayús+A.'],
-      en: ['Call the Foreman', 'Ask it for the board in plain language and it proposes the plan: which sessions to open, with which program and which brief. It runs nothing without your approval. Shortcut: Ctrl+Shift+A.']
+      es: ['Llamar a Adeo', 'Le pides el tablero en castellano y propone el plan: qué sesiones abrir, con qué programa y con qué encargo. No ejecuta nada sin tu visto bueno. Atajo: Ctrl+Mayús+A.'],
+      en: ['Call Adeo', 'Ask it for the board in plain language and it proposes the plan: which sessions to open, with which program and which brief. It runs nothing without your approval. Shortcut: Ctrl+Shift+A.']
     },
     layout: {
       es: ['Repartir lo que tienes abierto', 'Nueve plantillas para colocar las terminales: una sola, dos o tres columnas, grande a un lado, cuadrícula de 2x2, 2x3 o la pared de nueve.'],

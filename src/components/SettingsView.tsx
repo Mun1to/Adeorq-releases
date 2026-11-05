@@ -34,7 +34,7 @@ import {
 import type { PermissionMode } from "../lib/lanzar";
 import type { NotifyMode } from "../lib/notify";
 import { ADEORQ_APP_ID, type DiscordConfig } from "../lib/discord";
-import { autostartGet, autostartSet, guidePath, ollamaModels, terminalesPorActualizar } from "../lib/pty";
+import { autostartGet, autostartSet, guidePath, ollamaModels, terminalesPorActualizar, type Account } from "../lib/pty";
 import { AjusteAlCerrar } from "./AlCerrar";
 import { TarjetaTerm, TemasImportados } from "./TemasDeFuera";
 import { guardarModoAviso, modoAviso, type ModoAviso } from "../lib/router";
@@ -66,6 +66,7 @@ import AtajosEditor from "./AtajosEditor";
 import AjustesMovil from "./AjustesMovil";
 import AjustesBots from "./AjustesBots";
 import AjustesBotsConexion from "./AjustesBotsConexion";
+import AjustesClaudeConexion from "./AjustesClaudeConexion";
 import AjustesMcp from "./AjustesMcp";
 import AjustesClavesAgente from "./AjustesClavesAgente";
 import AjustesMods from "./AjustesMods";
@@ -137,6 +138,8 @@ interface Props {
   onCabecera: (c: Cabecera) => void;
   /** Las partes que se apagan enteras (`lib/partes.ts`). */
   partes: { apagadas: Parte[]; cambiar: (a: Parte[]) => void; vivas: TerminalesPorVista };
+  /** Las cuentas extra de Claude Code, para ponerles su nombre al conectarlas. */
+  cuentas: Account[];
   onFondo: (ruta: string) => Promise<void>;
   onFondoOpacidad: (n: number) => void;
   onFondoDesenfoque: (n: number) => void;
@@ -377,6 +380,7 @@ export default function SettingsView({
   cabecera,
   onCabecera,
   partes,
+  cuentas,
   onFondo,
   onFondoOpacidad,
   onFondoDesenfoque,
@@ -1337,6 +1341,7 @@ export default function SettingsView({
                 </div>
                 <p className="card-hint">{t(PERMISSION_MODE_HINT[permissionMode])}</p>
               </section>
+              <AjustesClaudeConexion cuentas={cuentas} />
               <AjustesMcp />
               <AjustesClavesAgente />
             </>
@@ -1415,7 +1420,7 @@ export default function SettingsView({
                 <h2>{t("Cuando el cerebro no cuadra")}</h2>
                 <p className="card-hint">
                   {t(
-                    "Al preparar un encargo, el Asistente mira con qué modelo está la terminal que tienes delante. Si es mucho más caro de lo que la tarea necesita (o mucho más flojo), te lo dice.",
+                    "Al preparar un encargo, Adeo mira con qué modelo está la terminal que tienes delante. Si es mucho más caro de lo que la tarea necesita (o mucho más flojo), te lo dice.",
                   )}
                 </p>
                 <div className="chip-row">

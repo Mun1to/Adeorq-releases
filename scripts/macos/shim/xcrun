@@ -21,7 +21,12 @@ if [ "${1:-}" = stapler ] && [ "${2:-}" = staple ]; then
   for ((intento = 1; intento <= intentos; intento++)); do
     # Un testigo en el log: así se ve que Tauri pasó por aquí y a la vuelta que acertó.
     echo "xcrun de reintentos: stapler staple, try $intento of $intentos" >&2
+    # Tauri se traga lo que escribe este programa: lo único que dice que pasó por
+    # aquí es este archivo, que «Comprobar la firma» enseña.
+    testigo="${RUNNER_TEMP:-/tmp}/xcrun-testigo.log"
+    echo "$(date -u +%H:%M:%S) ${*: -1}: try $intento of $intentos" >>"$testigo" 2>/dev/null || true
     if "$real" "$@"; then
+      echo "$(date -u +%H:%M:%S) ${*: -1}: stapled" >>"$testigo" 2>/dev/null || true
       exit 0
     fi
     [ "$intento" = "$intentos" ] && break

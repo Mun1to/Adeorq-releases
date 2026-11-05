@@ -601,7 +601,7 @@ function Lienzo({ mapa, ruta, trabajando, cuando, error, onLeer, onParar }: Prop
         <div className="mapa-vacio">
           <p>{t("De este proyecto todavía no hay mapa.")}</p>
           <p className="mapa-vacio-sub">
-            {t("El Capataz lee su código y dibuja de qué está hecho y qué pasa cuando haces algo. Tarda unos minutos, y luego se queda guardado.")}
+            {t("Adeo lee el código del proyecto y dibuja de qué está hecho y qué pasa cuando haces algo. Tarda unos minutos, y luego se queda guardado.")}
           </p>
         </div>
       )}

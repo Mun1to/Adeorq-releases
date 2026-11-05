@@ -30,3 +30,22 @@ export function conUnaAbierta(mundo: CuentaViva[], cuenta: Account | undefined):
 export function esLaPrincipal(cuenta: Account | undefined): boolean {
   return !cuenta || cuenta.id.startsWith("main:");
 }
+
+/**
+ * Cuántas terminales de un plan van a cada cuenta, en el orden en que salen,
+ * para el resumen de debajo de la tarjeta. Las que no llevan cuenta (una
+ * terminal pelada, otro CLI) no cuentan. Vacío cuando todas nacen en la
+ * principal: es donde nacería todo de todos modos, y «3 en Principal» no le dice
+ * nada a quien tiene una sola cuenta.
+ */
+export function repartoDelPlan(cuentas: Array<Account | undefined>): Array<{ cuenta: Account; n: number }> {
+  const por = new Map<string, { cuenta: Account; n: number }>();
+  for (const c of cuentas) {
+    if (!c) continue;
+    const ya = por.get(c.id);
+    if (ya) ya.n++;
+    else por.set(c.id, { cuenta: c, n: 1 });
+  }
+  const lista = [...por.values()];
+  return lista.some((e) => !esLaPrincipal(e.cuenta)) ? lista : [];
+}

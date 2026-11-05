@@ -571,7 +571,7 @@ export default function Sidebar({
     if (!e?.encargo) return "";
     const cabecera = e.objetivo
       ? `\n\n⚑ ${e.objetivo}${e.rol ? ` · ${e.rol}` : ""}`
-      : "\n\n⚑ Encargo del Capataz";
+      : "\n\n⚑ Encargo de Adeo";
     // Cortado, que un cometido puede ser un párrafo entero y un globo de ayuda
     // de veinte líneas tapa justo la lista que estás intentando leer.
     const texto = e.encargo.length > 220 ? `${e.encargo.slice(0, 220)}…` : e.encargo;

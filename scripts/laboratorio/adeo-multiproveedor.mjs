@@ -97,7 +97,7 @@ try {
   ok("la caja del Chat lleva el halo del acento", (sombra.match(/rgb/g) ?? []).length >= 3, sombra.slice(0, 120));
   await a.foto(null, "1-chat-reposo.png");
 
-  ok("se abre el menú del cerebro", await pulsar(".cj-pastilla", "Conserje:"));
+  ok("se abre el menú del cerebro", await pulsar(".cj-pastilla", "Adeo:"));
   await dormir(500);
   const progs = await v.js(`[...document.querySelectorAll(".cj-prog")].map((b) => b.textContent.trim())`);
   ok("arriba los programas", progs.includes("Codex") && progs.includes("Gemini"), progs.join(", "));
@@ -113,8 +113,8 @@ try {
   await a.foto(null, "3-menu-cerebro-codex.png");
   await pulsar(".cj-escalon", "Normal");
   await dormir(500);
-  const pastilla = await v.js(`[...document.querySelectorAll(".cj-pastilla")].map((b) => b.textContent.trim()).find((t) => t.startsWith("Conserje:"))`);
-  ok("la pastilla dice programa y escalón", pastilla === "Conserje: Codex · Normal", pastilla);
+  const pastilla = await v.js(`[...document.querySelectorAll(".cj-pastilla")].map((b) => b.textContent.trim()).find((t) => t.startsWith("Adeo:"))`);
+  ok("la pastilla dice programa y escalón", pastilla === "Adeo: Codex · Normal", pastilla);
 
   ok("se abre el menú de Sesiones", await pulsar(".cj-pastilla", "Sesiones:"));
   await dormir(500);

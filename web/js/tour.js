@@ -56,11 +56,11 @@
            'for a moment without switching it off.']
     },
     capataz: {
-      es: ['El Capataz',
+      es: ['Adeo',
            'Le pides el tablero en castellano («un agente al frontend y otro al backend») y propone ' +
            'el plan: qué sesiones abrir, con qué programa y con qué encargo. No ejecuta nada sin tu ' +
            'visto bueno, y esa es toda la gracia.'],
-      en: ['The Foreman',
+      en: ['Adeo',
            'You ask it for the board in plain language ("one agent on the frontend, another on the ' +
            'backend") and it proposes the plan: which sessions to open, with which program and with ' +
            'which brief. It runs nothing without your approval, and that is the whole point.']

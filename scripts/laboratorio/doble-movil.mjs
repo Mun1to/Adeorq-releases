@@ -509,7 +509,7 @@ http
       // El service worker de los avisos, en corto: lo de verdad está en `movil.rs`.
       if (url.pathname === "/sw.js") {
         res.writeHead(200, { "Content-Type": "application/javascript; charset=utf-8" });
-        return res.end(`self.addEventListener("push", (e) => { const d = e.data ? e.data.json() : {}; e.waitUntil(self.registration.showNotification(d.titulo || "Conserje", { body: d.cuerpo || "" })); });`);
+        return res.end(`self.addEventListener("push", (e) => { const d = e.data ? e.data.json() : {}; e.waitUntil(self.registration.showNotification(d.titulo || "Adeo", { body: d.cuerpo || "" })); });`);
       }
       // Los bancos de esta carpeta, para lanzarlos sin volcarlos enteros en la
       // conversación de quien prueba: se piden aquí y se evalúan, en vez de

@@ -621,8 +621,8 @@ impl Conversacion {
         match t.rol.as_str() {
             "tu" => "Munir".to_string(),
             "sesion" => format!("La sesión «{}»", t.de),
-            _ if !entero => if self.enjambre { "Adeo" } else { "conserje" }.to_string(),
-            _ => if self.enjambre { "Tú (Adeo)" } else { "Tú (conserje)" }.to_string(),
+            _ if !entero => "Adeo".to_string(),
+            _ => "Tú (Adeo)".to_string(),
         }
     }
 
@@ -918,7 +918,7 @@ pub fn filtrar(
                     fuera.push(if conv.enjambre {
                         format!("el panel {panel} no es de este enjambre, así que no se le escribe")
                     } else {
-                        format!("el panel {panel} no lo abrió el conserje, así que no se le escribe")
+                        format!("el panel {panel} no lo abrió Adeo, así que no se le escribe")
                     });
                     continue;
                 }
@@ -951,8 +951,8 @@ pub fn descarte_en_ingles(s: &str) -> String {
     if let Some(p) = entre("el panel ", " no es de este enjambre, así que no se le escribe") {
         return format!("panel {p} is not in this swarm, so nothing was written to it");
     }
-    if let Some(p) = entre("el panel ", " no lo abrió el conserje, así que no se le escribe") {
-        return format!("panel {p} was not opened by the concierge, so nothing was written to it");
+    if let Some(p) = entre("el panel ", " no lo abrió Adeo, así que no se le escribe") {
+        return format!("panel {p} was not opened by Adeo, so nothing was written to it");
     }
     if let Some(x) = entre("un enjambre no abre sesiones (se añaden desde el lienzo): «", "» no se ha abierto") {
         return format!("a swarm does not open sessions (they are added from the canvas): “{x}” was not opened");
@@ -1045,7 +1045,7 @@ CÓMO TERMINAS CADA RESPUESTA
 RESUMEN: a quién le has mandado qué, en una frase."#;
 
 /// Cómo tiene que comportarse el conserje. En español y a Munir, como el Capataz.
-pub const SISTEMA: &str = r#"Eres el CONSERJE de Adeorq: el chat principal desde el que Munir dirige sus sesiones de trabajo. Él te habla (muchas veces dictando por voz, así que interpreta la intención); tú entiendes qué quiere, lo partes en trabajos y abres una sesión de trabajo para cada uno. Tú NO haces el trabajo: lo encargas, lo sigues y le cuentas.
+pub const SISTEMA: &str = r#"Eres ADEO, el chat principal de Adeorq desde el que Munir dirige sus sesiones de trabajo. Él te habla (muchas veces dictando por voz, así que interpreta la intención); tú entiendes qué quiere, lo partes en trabajos y abres una sesión de trabajo para cada uno. Tú NO haces el trabajo: lo encargas, lo sigues y le cuentas.
 
 CÓMO CONTESTAS
 - En español, de tú, directo y corto. Nada de «he usado la herramienta X».
@@ -1244,7 +1244,7 @@ pub fn conserje_olvidar(id: String) -> Result<(), String> {
 #[tauri::command(async)]
 pub fn conserje_cerebro(id: String, cerebro: String) -> Result<(), String> {
     if !CEREBROS.contains(&cerebro.as_str()) {
-        return Err(format!("«{cerebro}» no es un modelo con el que pueda pensar el conserje"));
+        return Err(format!("«{cerebro}» no es un modelo con el que pueda pensar Adeo"));
     }
     cambiar(&id, |c| c.cerebro = cerebro)
 }
@@ -1264,7 +1264,7 @@ pub fn conserje_fijo(id: String, modelo: String) -> Result<(), String> {
 #[tauri::command(async)]
 pub fn conserje_pensador(id: String, pensador: String) -> Result<(), String> {
     if pensador_de(&pensador).is_none() {
-        return Err(format!("«{pensador}» no es un programa con el que pueda pensar el conserje"));
+        return Err(format!("«{pensador}» no es un programa con el que pueda pensar Adeo"));
     }
     // El de fábrica se guarda vacío, como el resto de lo «de siempre».
     cambiar(&id, |c| c.pensador = if pensador == PENSADORES[0].id { String::new() } else { pensador })
@@ -1357,7 +1357,7 @@ impl Pensando {
     fn empezar(id: &str) -> Result<(Self, std::sync::Arc<std::sync::atomic::AtomicBool>), String> {
         let mut en_curso = EN_CURSO.lock().unwrap_or_else(|e| e.into_inner());
         if en_curso.iter().any(|(i, _)| i == id) {
-            return Err("el conserje todavía está con lo anterior en esta conversación".into());
+            return Err("Adeo todavía está con lo anterior en esta conversación".into());
         }
         let parar = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         en_curso.push((id.to_string(), parar.clone()));
@@ -1560,7 +1560,7 @@ fn correr(
             Ok(None) if inicio.elapsed() > TIEMPO_CONSERJE => {
                 let _ = child.kill();
                 let _ = child.wait();
-                return Err("el conserje se quedó pensando demasiado (3 min); reintenta".into());
+                return Err("Adeo se quedó pensando demasiado (3 min); reintenta".into());
             }
             Ok(None) => std::thread::sleep(std::time::Duration::from_millis(150)),
             Err(e) => return Err(e.to_string()),
@@ -1876,7 +1876,7 @@ fn correr_otro(
             Ok(Some(_)) => break,
             Ok(None) if inicio.elapsed() > TIEMPO_CONSERJE => {
                 matar_rama(&mut hijo);
-                return Err("el conserje se quedó pensando demasiado (3 min); reintenta".into());
+                return Err("Adeo se quedó pensando demasiado (3 min); reintenta".into());
             }
             Ok(None) => std::thread::sleep(std::time::Duration::from_millis(150)),
             Err(e) => return Err(e.to_string()),
@@ -2040,7 +2040,7 @@ mod tests {
         let ctx = c.contexto(&sin_estados);
         assert!(ctx.contains("ÍNDICE"));
         assert!(ctx.contains("#1 Munir: pregunta número 1"), "el turno 1 tiene que estar en el índice");
-        assert!(ctx.contains("#2 conserje: contesté la 2"));
+        assert!(ctx.contains("#2 Adeo: contesté la 2"));
         // Los cuatro últimos, enteros y con su número.
         for n in 37..=40 {
             assert!(ctx.contains(&format!("#{n} ")), "falta el turno {n}");

@@ -377,7 +377,27 @@ pub(crate) fn retocar_con_copia(fichero: &Path, crear: bool, cambio: impl Fn(&st
         use std::os::unix::fs::PermissionsExt;
         let _ = std::fs::set_permissions(fichero, std::fs::Permissions::from_mode(0o600));
     }
+    if let Some(c) = &copia {
+        quitar_las_copias_de_antes(fichero, c);
+    }
     Ok(copia)
+}
+
+/// Deja solo `queda` de las copias que `retocar_con_copia` hizo de `fichero`. Cada
+/// clic dejaba otra entera al lado, sin límite, y la de un `.claude.json` es la
+/// configuración de la cuenta repetida; la de antes del último cambio basta para
+/// volver atrás. Solo se borra lo que lleva el nombre exacto de una copia nuestra de
+/// ESE archivo (`<nombre>.antes-de-adeorq-<cifras>`), y lo que no se pueda, se queda.
+fn quitar_las_copias_de_antes(fichero: &Path, queda: &Path) {
+    let (Some(dir), Some(nombre)) = (fichero.parent(), fichero.file_name()) else { return };
+    let prefijo = format!("{}.antes-de-adeorq-", nombre.to_string_lossy());
+    for e in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+        let n = e.file_name().to_string_lossy().to_string();
+        let es_copia = n.strip_prefix(&prefijo).is_some_and(|r| !r.is_empty() && r.bytes().all(|b| b.is_ascii_digit()));
+        if es_copia && e.path() != queda && e.file_type().is_ok_and(|t| t.is_file()) {
+            let _ = std::fs::remove_file(e.path());
+        }
+    }
 }
 
 /// Deja a Codex pasarle su terminal al enlace del MCP. Al arrancar la app, en
@@ -674,6 +694,37 @@ mod tests {
         assert!(retocar_con_copia(&nuevo, false, |_| Ok("x".into())).is_err(), "sin permiso para crear, un error");
         assert_eq!(retocar_con_copia(&nuevo, true, |t| Ok(format!("{t}x"))).unwrap(), None);
         assert_eq!(std::fs::read_to_string(&nuevo).unwrap(), "x");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// Cada clic dejaba una copia entera más al lado, sin límite, y en el `.claude.json`
+    /// eso es la configuración de la cuenta repetida. Queda la de antes del último cambio,
+    /// y lo que no es una copia nuestra de ESE archivo no se toca.
+    #[test]
+    fn retocar_con_copia_deja_una_sola_copia_por_archivo() {
+        let (dir, f) = con_un_fichero("una-copia", "v0\n");
+        let ajenos = ["config.toml.antes-de-adeorq-333.bak", "otro.toml.antes-de-adeorq-444", "config.toml.antes-de-adeorq-", "config.toml.antes-de-adeorq-12a"];
+        for (n, viejo) in ["config.toml.antes-de-adeorq-111", "config.toml.antes-de-adeorq-222"].iter().chain(ajenos.iter()).enumerate() {
+            std::fs::write(dir.join(viejo), format!("viejo {n}\n")).unwrap();
+        }
+        let mut ultima = None;
+        for v in 1..=3 {
+            ultima = retocar_con_copia(&f, false, |_| Ok(format!("v{v}\n"))).unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(3));
+        }
+        let ultima = ultima.expect("había original");
+        let nuestras: Vec<String> = std::fs::read_dir(&dir)
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().to_string())
+            .filter(|n| n.strip_prefix("config.toml.antes-de-adeorq-").is_some_and(|r| !r.is_empty() && r.bytes().all(|b| b.is_ascii_digit())))
+            .collect();
+        assert_eq!(nuestras, [ultima.file_name().unwrap().to_string_lossy().to_string()], "solo la del último cambio");
+        assert_eq!(std::fs::read_to_string(&ultima).unwrap(), "v2\n", "lo de antes del último cambio");
+        assert_eq!(std::fs::read_to_string(&f).unwrap(), "v3\n");
+        for a in ajenos {
+            assert!(dir.join(a).is_file(), "{a} no es una copia nuestra de ese archivo");
+        }
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

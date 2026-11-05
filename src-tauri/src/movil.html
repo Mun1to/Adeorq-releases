@@ -1111,9 +1111,9 @@ const EN = {
   "No se ha podido emparejar.": "Could not pair.",
   // La portada
   "tu PC": "your PC",
-  "Dile al conserje qué hay que hacer": "Tell the concierge what to do",
-  "Mensaje nuevo al conserje": "New message to the concierge",
-  "Enviar al conserje": "Send to the concierge",
+  "Dile a Adeo qué hay que hacer": "Tell Adeo what to do",
+  "Mensaje nuevo a Adeo": "New message to Adeo",
+  "Enviar a Adeo": "Send to Adeo",
   "Decisiones": "Decisions",
   "Conversaciones": "Conversations",
   "En marcha": "Running",
@@ -1169,10 +1169,10 @@ const EN = {
   "Conversación nueva": "New conversation",
   "1 sesión": "1 session",
   "{n} sesiones": "{n} sessions",
-  "Todavía no has hablado con el conserje. Escríbele en la caja de abajo.":
-    "You have not talked to the concierge yet. Write to it in the box below.",
-  "Todavía no has hablado con el conserje. Empieza con «Nuevo encargo», en el menú.":
-    "You have not talked to the concierge yet. Start with “New job”, in the menu.",
+  "Todavía no has hablado con Adeo. Escríbele en la caja de abajo.":
+    "You have not talked to Adeo yet. Write in the box below.",
+  "Todavía no has hablado con Adeo. Empieza con «Nuevo encargo», en el menú.":
+    "You have not talked to Adeo yet. Start with “New job”, in the menu.",
   // Ajustes del móvil
   "Ajustes": "Settings",
   "cómo se ve y qué te avisa este móvil": "how this phone looks and what it tells you",
@@ -1219,7 +1219,7 @@ const EN = {
   "Subir «{s}»": "Move “{s}” up",
   "Bajar «{s}»": "Move “{s}” down",
   "Que salga «{s}»": "Show “{s}”",
-  "La caja para escribirle al conserje": "The box to write to the concierge",
+  "La caja para escribirle a Adeo": "The box to write to Adeo",
   "abajo del todo": "at the very bottom",
   "Avisos": "Notifications",
   "Este navegador no recibe avisos. En iPhone, añade Adeorq a la pantalla de inicio y ábrela desde ahí.":
@@ -1239,12 +1239,12 @@ const EN = {
   "Toca otra vez para olvidarlo: tendrás que emparejarlo de nuevo": "Tap again to forget it: you will have to pair it again",
   "No he podido abrir esa foto.": "I could not open that photo.",
   "Esa foto no cabe en este móvil: prueba con otra.": "That photo does not fit on this phone: try another one.",
-  // El conserje
-  "Conserje": "Concierge",
+  // Adeo (el chat; en el código sigue siendo el conserje)
+  "Adeo": "Adeo",
   "Mejorado: lo mismo que dijiste, ordenado. Si no te gusta, Deshacer.":
     "Improved: the same thing you said, in order. If you do not like it, Undo.",
   "Dile qué hay que hacer": "Tell it what needs doing",
-  "Mensaje al conserje": "Message to the concierge",
+  "Mensaje a Adeo": "Message to Adeo",
   "Mejorar": "Improve",
   "Mejorando…": "Improving…",
   "Deshacer": "Undo",
@@ -1398,8 +1398,8 @@ const EN = {
   "1 paso": "1 step",
   "{n} pasos": "{n} steps",
   "y {n} antes": "and {n} before",
-  "Volver al conserje": "Back to the concierge",
-  "Solo para leer. Si quieres decirle algo, díselo al conserje.": "Read only. If you want to tell it something, tell the concierge.",
+  "Volver a Adeo": "Back to Adeo",
+  "Solo para leer. Si quieres decirle algo, díselo a Adeo.": "Read only. If you want to tell it something, tell Adeo.",
   "Esta sesión todavía no ha escrito nada. En cuanto empiece, aparece aquí.":
     "This session has not written anything yet. It shows up here as soon as it starts.",
   "Todavía no hay nada que leer.": "Nothing to read yet.",
@@ -1439,7 +1439,7 @@ const DEL_PC = {
   "Tu PC no tiene foto de fondo.": "Your PC has no background photo.",
   "El fondo de tu PC es un vídeo: en el móvil no se pone.": "Your PC's background is a video: it is not used on the phone.",
   "Esta dirección no es de este PC.": "This address is not this PC's.",
-  "Esa página no es la del conserje.": "That page is not the concierge's.",
+  "Esa página no es la de Adeo.": "That page is not Adeo's.",
   "No hay ningún emparejamiento abierto: pídelo en Ajustes > Móvil.": "No pairing is open: ask for one in Settings > Mobile.",
   "El código ha caducado: pide otro en Ajustes > Móvil.": "The code has expired: ask for another one in Settings > Mobile.",
   "Demasiados intentos: pide otro código en Ajustes > Móvil.": "Too many attempts: ask for another code in Settings > Mobile.",
@@ -1473,7 +1473,7 @@ const DEL_PC = {
   // La ventana (src/lib/movil.ts)
   "Esa terminal ya no está.": "That terminal is gone.",
   "Falta la conversación.": "The conversation is missing.",
-  "El conserje todavía está con lo anterior.": "The concierge is still busy with the previous message.",
+  "Adeo todavía está con lo anterior.": "Adeo is still busy with the previous message.",
   // decisiones.rs
   "Esa decisión está descartada: al agente ya se le dijo que no esperase respuesta.":
     "That decision was discarded: the agent was already told not to wait for an answer.",
@@ -2731,7 +2731,7 @@ function pintarCajon() {
   cajon.innerHTML = `
     <div class="marca">${ICONO.logo}<b>Adeorq</b></div>
     <div class="menu">
-      <button class="fila" data-ir="lista" aria-current="${aqui("lista") || aqui("hilo")}">${ICONO.chat}<b>${tr("Conserje")}</b></button>
+      <button class="fila" data-ir="lista" aria-current="${aqui("lista") || aqui("hilo")}">${ICONO.chat}<b>${tr("Adeo")}</b></button>
       <button class="fila" data-ir="terminales" aria-current="${aqui("terminales")}">${ICONO.terminal}<b>${tr("Terminales")}</b>${terminales.length ? `<span>${terminales.length}</span>` : ""}</button>
       <button class="fila" data-ir="decisiones" aria-current="${aqui("decisiones") || aqui("decision")}">${ICONO.decision}<b>${tr("Decisiones")}</b>${esperan ? `<span class="cuenta-dec">${esperan}</span>` : ""}</button>
       <button class="fila" data-ir="programados" aria-current="${aqui("programados")}">${ICONO.reloj}<b>${tr("Programados")}</b></button>
@@ -2983,8 +2983,8 @@ async function pintarLista() {
       </main>
       <footer class="caja"${a.caja ? "" : " hidden"}>
         <div class="fila-caja decir" id="nueva">
-          <textarea id="decir" rows="1" placeholder="${tr("Dile al conserje qué hay que hacer")}" aria-label="${tr("Mensaje nuevo al conserje")}"></textarea>
-          <div class="mandos"><span class="hueco"></span><button class="enviar" id="decir-enviar" aria-label="${tr("Enviar al conserje")}" disabled>${ICONO.subir}</button></div>
+          <textarea id="decir" rows="1" placeholder="${tr("Dile a Adeo qué hay que hacer")}" aria-label="${tr("Mensaje nuevo a Adeo")}"></textarea>
+          <div class="mandos"><span class="hueco"></span><button class="enviar" id="decir-enviar" aria-label="${tr("Enviar a Adeo")}" disabled>${ICONO.subir}</button></div>
         </div>
       </footer>
     </div>`;
@@ -3078,7 +3078,7 @@ async function pintarLista() {
     if (!filas) return;
     filas.innerHTML = lista.length
       ? lista.map((f) => `<button class="fila" data-id="${esc(f.id)}"><b>${esc(f.titulo || tr("Conversación nueva"))}</b><span>${esc(hace(f.cuando))}${f.trabajos ? ` · ${f.trabajos === 1 ? tr("1 sesión") : tr("{n} sesiones", { n: f.trabajos })}` : ""}</span></button>`).join("")
-      : `<p class="vacio">${a.caja ? tr("Todavía no has hablado con el conserje. Escríbele en la caja de abajo.") : tr("Todavía no has hablado con el conserje. Empieza con «Nuevo encargo», en el menú.")}</p>`;
+      : `<p class="vacio">${a.caja ? tr("Todavía no has hablado con Adeo. Escríbele en la caja de abajo.") : tr("Todavía no has hablado con Adeo. Empieza con «Nuevo encargo», en el menú.")}</p>`;
     filas.querySelectorAll(".fila").forEach((b) => b.addEventListener("click", () => ir({ vista: "hilo", id: b.dataset.id })));
   };
   try { await cargar(); } catch (err) {
@@ -3100,14 +3100,14 @@ function pintarHiloEntero() {
     <div class="vista">
       <header class="barra">
         ${botonCajon()}
-        <h1 id="titulo">${tr("Conserje")}<small id="sub">${tr("cargando…")}</small></h1>
+        <h1 id="titulo">${tr("Adeo")}<small id="sub">${tr("cargando…")}</small></h1>
       </header>
       <main class="cuerpo" id="hilo"></main>
       <footer class="caja" id="caja">
         <p class="aviso-mejora" id="aviso-mejora" hidden>${tr("Mejorado: lo mismo que dijiste, ordenado. Si no te gusta, Deshacer.")}</p>
         <div class="adjuntos" hidden></div>
         <div class="fila-caja">
-          <textarea id="texto" rows="1" placeholder="${tr("Dile qué hay que hacer")}" aria-label="${tr("Mensaje al conserje")}"></textarea>
+          <textarea id="texto" rows="1" placeholder="${tr("Dile qué hay que hacer")}" aria-label="${tr("Mensaje a Adeo")}"></textarea>
           <div class="elegir elegir-adeo" id="elegir-adeo" hidden></div>
           <div class="mandos">
           ${CLIP}
@@ -3186,7 +3186,7 @@ function pintarHilo() {
     const vivas = conv.trabajos.filter((w) => !w.soltado && (e.vivo?.estados || {})[claveDe(w)] && (e.vivo.estados[claveDe(w)] !== "cerrada")).length;
     // Solo cuántas van: el router ya lo dice la pastilla de abajo, y con las
     // dos cosas el subtítulo se cortaba a 390 px (Munir, 2026-10-21).
-    titulo.innerHTML = `${esc(conv.titulo || tr("Conserje"))}<small>${vivas === 0 ? tr("nada en marcha") : vivas === 1 ? tr("1 sesión en marcha") : tr("{n} sesiones en marcha", { n: vivas })}</small>`;
+    titulo.innerHTML = `${esc(conv.titulo || tr("Adeo"))}<small>${vivas === 0 ? tr("nada en marcha") : vivas === 1 ? tr("1 sesión en marcha") : tr("{n} sesiones en marcha", { n: vivas })}</small>`;
   }
   const abajo = hilo.scrollHeight - hilo.scrollTop - hilo.clientHeight < 60;
   let html = "";
@@ -3917,7 +3917,7 @@ function pintarAjustes() {
           <button type="button" class="mover" data-mover="${s}" data-paso="1" data-foco="bajar-${s}" aria-label="${tr("Bajar «{s}»", { s: SECCIONES[s] })}"${i === a.inicio.length - 1 ? " disabled" : ""}>${ICONO.bajar}</button>
           ${interruptor(`data-seccion="${s}" data-foco="ver-${s}" aria-label="${tr("Que salga «{s}»", { s: SECCIONES[s] })}"`, !a.ocultas.includes(s))}
         </div>`).join("")}
-        <label class="fila-ajuste"><span>${tr("La caja para escribirle al conserje")}<small>${tr("abajo del todo")}</small></span>${interruptor('data-ajuste="caja" data-foco="caja"', a.caja)}</label>
+        <label class="fila-ajuste"><span>${tr("La caja para escribirle a Adeo")}<small>${tr("abajo del todo")}</small></span>${interruptor('data-ajuste="caja" data-foco="caja"', a.caja)}</label>
       </div>
 
       <h2 class="seccion"><span>${tr("Avisos")}</span></h2>
@@ -5242,11 +5242,11 @@ function pintarSesion() {
   app.innerHTML = `
     <div class="vista">
       <header class="barra">
-        <button class="atras" id="atras" aria-label="${tr("Volver al conserje")}">${ICONO.atras}</button>
+        <button class="atras" id="atras" aria-label="${tr("Volver a Adeo")}">${ICONO.atras}</button>
         <h1>${esc(hoja(w.carpeta))}<small>${esc(nombreDe(w))} · ${esc(w.encargo)}</small></h1>
       </header>
       <main class="cuerpo" id="sesion"></main>
-      <p class="solo-lectura">${tr("Solo para leer. Si quieres decirle algo, díselo al conserje.")}</p>
+      <p class="solo-lectura">${tr("Solo para leer. Si quieres decirle algo, díselo a Adeo.")}</p>
     </div>`;
   document.getElementById("atras").addEventListener("click", () => ir({ vista: "hilo", id: e.volver.id }, true));
   const cuerpo = document.getElementById("sesion");

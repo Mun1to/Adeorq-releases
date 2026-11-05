@@ -1,0 +1,62 @@
+/* ── Conectar tu Claude Code (`AjustesClaudeConexion.tsx` y el paso de la bienvenida) ──
+   Una fila por cuenta: su nombre, el archivo que se toca y cómo está. Es la fila de
+   `.mcp-cliente`; aquí solo lo que esa no trae: que una ruta larga se parta en vez de
+   salirse de la tarjeta, y el rojo de lo que no se puede tocar. */
+
+/* El botón a la altura del nombre, no del medio de la fila: con dos cuentas en dos
+   columnas, una ruta que se parte en dos renglones lo bajaba y no quedaban iguales. */
+.claude-cuenta {
+  align-items: flex-start;
+}
+
+.claude-cuenta-quien {
+  flex: 1;
+  gap: 2px;
+}
+
+/* En la bienvenida la ruta se lee entera, aunque se parta: es lo que se toca. */
+.onb-ruta[data-claude] {
+  align-items: flex-start;
+}
+
+.onb-ruta[data-claude] code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  overflow: visible;
+}
+
+.claude-cuenta-quien > span {
+  overflow-wrap: anywhere;
+}
+
+.claude-ruta {
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 12.5px;
+  user-select: text;
+}
+
+.mcp-cliente-quien .claude-estado,
+.claude-estado {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.mcp-cliente-quien .claude-estado[data-malo],
+.claude-estado[data-malo] {
+  color: var(--mal);
+}
+
+.claude-nota {
+  display: block;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.claude-cuenta button {
+  flex: none;
+}

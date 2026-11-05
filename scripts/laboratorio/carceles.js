@@ -37,7 +37,7 @@ async (page) => {
     const APROBADAS = [
       { selector: ".mini:not(.icono)", conTexto: true, fecha: "2026-10-17", para: "A · un botón con texto, la tecla de la casa: en agosto se decidió que lleve superficie, porque sobre la foto no parecía un botón" },
       { selector: ".np-btn.ghost", conTexto: true, fecha: "2026-10-17", para: "A · el botón secundario con texto, al lado del principal" },
-      { selector: ".cj-nueva, .chat-nueva", conTexto: true, fecha: "2026-10-17", para: "A · «Hablar con el conserje» y «Nueva conversación», en el chat" },
+      { selector: ".cj-nueva, .chat-nueva", conTexto: true, fecha: "2026-10-17", para: "A · «Hablar con Adeo» y «Nueva conversación», en el chat" },
       { selector: ".atajos-tecla, kbd", fecha: "2026-10-17", para: "B · un atajo dibujado como tecla (Ajustes › Atajos, la paleta, «Deshacer Ctrl+Z»)" },
       { selector: ".ag-cal-celda", fecha: "2026-10-17", para: "C · un día del calendario de la Agenda" },
       { selector: ".canvas-map", fecha: "2026-10-17", para: "G · el minimapa del lienzo: suelto sigue siendo un rectángulo gris, la sombra del propio mapa" },

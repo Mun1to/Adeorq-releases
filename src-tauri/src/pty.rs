@@ -149,6 +149,51 @@ fn entorno_al_nacer(con_programa: bool, env: Option<HashMap<String, String>>) ->
     Some(env)
 }
 
+/// Qué hacer con el entorno de una terminal que nace dentro de un AppImage. El
+/// arrancador del AppImage (`AppRun`) pone `LD_LIBRARY_PATH`, `PYTHONHOME`,
+/// `PERLLIB`, `GTK_PATH`, `XDG_DATA_DIRS`... apuntando a SU carpeta, y todo eso lo
+/// hereda lo que se teclee en la terminal: el `grep` del sistema cargaba el
+/// `libpcre2` empaquetado («no version information available») y `python` buscaba
+/// su biblioteca estándar dentro del AppImage. Por cada variable con rutas bajo
+/// `appdir` devuelve su valor sin ellas, o `None` si no queda nada (y así se quita).
+/// Los trozos vacíos de una lista también se van: en `LD_LIBRARY_PATH` uno vacío
+/// significa «la carpeta de trabajo».
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn cambios_por_el_appimage<'a>(vars: impl IntoIterator<Item = (&'a str, &'a str)>, appdir: &str) -> Vec<(String, Option<String>)> {
+    let appdir = appdir.trim_end_matches('/');
+    if appdir.is_empty() {
+        return Vec::new();
+    }
+    let dentro = |trozo: &str| trozo == appdir || trozo.strip_prefix(appdir).is_some_and(|resto| resto.starts_with('/'));
+    let mut cambios = Vec::new();
+    for (clave, valor) in vars {
+        if !valor.split(':').any(dentro) {
+            continue;
+        }
+        let quedan: Vec<&str> = valor.split(':').filter(|t| !t.is_empty() && !dentro(t)).collect();
+        cambios.push((clave.to_string(), if quedan.is_empty() { None } else { Some(quedan.join(":")) }));
+    }
+    cambios
+}
+
+/// Aplica `cambios_por_el_appimage` a una terminal. Solo dentro de un AppImage
+/// (`APPIMAGE` y `APPDIR` los pone su arrancador); fuera, no toca nada. La app
+/// sigue con su entorno: esto solo limpia el del hijo.
+#[cfg(target_os = "linux")]
+fn quitar_el_entorno_del_appimage(cmd: &mut CommandBuilder) {
+    if std::env::var_os("APPIMAGE").filter(|a| !a.is_empty()).is_none() {
+        return;
+    }
+    let Ok(appdir) = std::env::var("APPDIR") else { return };
+    let vars: Vec<(String, String)> = cmd.iter_full_env_as_str().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+    for (clave, nuevo) in cambios_por_el_appimage(vars.iter().map(|(k, v)| (k.as_str(), v.as_str())), &appdir) {
+        match nuevo {
+            Some(v) => cmd.env(&clave, v),
+            None => cmd.env_remove(&clave),
+        }
+    }
+}
+
 /// La contraseña de una terminal: con ella, su puente demuestra al MCP que
 /// habla desde ESA terminal (decisión B1 de Munir, 2026-11-03). Nueva en cada
 /// terminal, 32 bytes del sistema en hex, y vale mientras la terminal viva: con
@@ -715,6 +760,10 @@ pub fn abrir(mapa: &Mapa, alta: Alta, salida: std::sync::Arc<dyn Salida>) -> Res
         }
     };
     cmd.cwd(&cwd);
+    // Antes de tocar el PATH de abajo: lo que el AppImage dejó puesto para su app no es
+    // para lo que se teclee aquí (ver `cambios_por_el_appimage`).
+    #[cfg(target_os = "linux")]
+    quitar_el_entorno_del_appimage(&mut cmd);
     // If Adeorq itself was launched from inside a Claude Code session (dev
     // builds, tests), the CLI's child-session marker leaks into our PTYs and
     // silently disables transcript saving for every claude run in a pane.
@@ -771,6 +820,9 @@ pub fn abrir(mapa: &Mapa, alta: Alta, salida: std::sync::Arc<dyn Salida>) -> Res
         if let Some(carpeta) = exe.parent().map(|p| p.to_string_lossy().to_string()) {
             let sep = if cfg!(windows) { ';' } else { ':' };
             let actual = std::env::var("PATH").unwrap_or_default();
+            // En Linux, el PATH que ya limpió `quitar_el_entorno_del_appimage`.
+            #[cfg(target_os = "linux")]
+            let actual = cmd.get_env("PATH").and_then(|v| v.to_str()).map(String::from).unwrap_or(actual);
             if !actual.split(sep).any(|t| t == carpeta) {
                 cmd.env("PATH", format!("{carpeta}{sep}{actual}"));
             }
@@ -3562,5 +3614,56 @@ mod motor {
             matar_rama(ping);
         }
         assert!(murio, "el hijo con consola propia sobrevivió a la X");
+    }
+}
+
+/// Lo que el AppImage de la 0.9.241 dejó en el entorno de una terminal (medido en un
+/// Fedora 44, 2026-11-04): sin limpiar, el `grep` del sistema cargaba el libpcre2 de dentro.
+#[cfg(test)]
+mod entorno_del_appimage {
+    use super::cambios_por_el_appimage;
+
+    const APPDIR: &str = "/tmp/.mount_AdeorqAbC123";
+
+    fn cambio(c: &[(String, Option<String>)], clave: &str) -> Option<Option<String>> {
+        c.iter().find(|(k, _)| k == clave).map(|(_, v)| v.clone())
+    }
+
+    #[test]
+    fn las_rutas_del_appimage_salen_y_las_del_usuario_se_quedan() {
+        let ld = format!("{APPDIR}/usr/lib/:{APPDIR}/usr/lib/x86_64-linux-gnu/:");
+        let path = format!("{APPDIR}/usr/bin:{APPDIR}/usr/bin/:{APPDIR}/usr/sbin/:/usr/local/bin:/usr/bin:/bin");
+        let datos = format!("{APPDIR}/usr/share/:/usr/share:/home/yo/.local/share");
+        let vars = [
+            ("LD_LIBRARY_PATH", ld.as_str()),
+            ("PATH", path.as_str()),
+            ("XDG_DATA_DIRS", datos.as_str()),
+            ("PYTHONHOME", "/tmp/.mount_AdeorqAbC123/usr/"),
+            ("APPDIR", APPDIR),
+            ("HOME", "/home/yo"),
+            ("EDITOR", "vim"),
+        ];
+        let c = cambios_por_el_appimage(vars, APPDIR);
+        assert_eq!(cambio(&c, "LD_LIBRARY_PATH"), Some(None), "solo había rutas del AppImage: se quita entera");
+        assert_eq!(cambio(&c, "PYTHONHOME"), Some(None));
+        assert_eq!(cambio(&c, "APPDIR"), Some(None));
+        assert_eq!(cambio(&c, "PATH"), Some(Some("/usr/local/bin:/usr/bin:/bin".to_string())));
+        assert_eq!(cambio(&c, "XDG_DATA_DIRS"), Some(Some("/usr/share:/home/yo/.local/share".to_string())));
+        assert_eq!(cambio(&c, "HOME"), None, "lo que no apunta al AppImage no se toca");
+        assert_eq!(cambio(&c, "EDITOR"), None);
+    }
+
+    #[test]
+    fn una_carpeta_que_solo_empieza_igual_no_es_del_appimage() {
+        // `.mount_AdeorqAbC1234` no es `.mount_AdeorqAbC123`.
+        let otra = format!("{APPDIR}4/lib:/usr/lib");
+        let c = cambios_por_el_appimage([("LD_LIBRARY_PATH", otra.as_str())], APPDIR);
+        assert!(c.is_empty(), "{c:?}");
+    }
+
+    #[test]
+    fn sin_carpeta_del_appimage_no_se_toca_nada() {
+        assert!(cambios_por_el_appimage([("PATH", "/usr/bin:/bin")], "").is_empty());
+        assert!(cambios_por_el_appimage([("PATH", "/usr/bin:/bin")], "/").is_empty());
     }
 }

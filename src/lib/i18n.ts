@@ -89,13 +89,12 @@ const EN: Record<string, string> = {
   Ajustes: "Settings",
   Emisión: "Streaming",
   "En emisión": "Streaming on",
-  Capataz: "Foreman",
-  // El Asistente: el mismo Capataz, con el nombre que Munir prefiere ver
-  // (2026-07-29). El de dentro sigue llamándose Capataz en el código y en los
-  // docs, que es donde ese nombre significa algo; esto es lo que se lee.
-  Asistente: "Assistant",
-  "Llamar al Asistente (Ctrl+Mayús+A · Ctrl+Mayús+M para dictarle)":
-    "Call the Assistant (Ctrl+Shift+A · Ctrl+Shift+M to dictate)",
+  // Adeo: la bola, la ventana del plan y el Chat son la misma pieza y se llaman
+  // igual (Munir, 2026-11-04). Dentro sigue siendo el Capataz (`foreman.rs`) y el
+  // conserje (`conserje.rs`); esto es lo que se lee. Se escribe igual en inglés.
+  Adeo: "Adeo",
+  "Llamar a Adeo (Ctrl+Mayús+A · Ctrl+Mayús+M para dictarle)":
+    "Call Adeo (Ctrl+Shift+A · Ctrl+Shift+M to dictate)",
 
   // Dashboard
   "Tu taller, a vista de pájaro.": "Your workshop, from above.",
@@ -673,8 +672,8 @@ const EN: Record<string, string> = {
   "Pensando el plan…": "Thinking the plan…",
   Descartar: "Discard",
   Cerrar: "Close",
-  "El Capataz no propuso acciones para ese pedido.":
-    "The Foreman proposed no actions for that request.",
+  "Adeo no propuso acciones para ese pedido.":
+    "Adeo proposed no actions for that request.",
 
   // Qué hace cada uno de los dos oficios del Asistente. Los botones se llaman
   // «Planear» y «Escribir el encargo», que dicen QUÉ hacen pero no en qué se
@@ -1036,8 +1035,8 @@ const EN: Record<string, string> = {
   "Arrastra las piezas donde quieras. Pulsa una para ver con quién habla y qué se piden.":
     "Drag the pieces wherever you like. Click one to see who it talks to and what they ask each other.",
   "Pulsa el fondo para verlo todo otra vez.": "Click the background to see everything again.",
-  "El Capataz lee su código y dibuja de qué está hecho y qué pasa cuando haces algo. Tarda unos minutos, y luego se queda guardado.":
-    "The Foreman reads its code and draws what it is made of and what happens when you do something. It takes a few minutes, and then it is kept.",
+  "Adeo lee el código del proyecto y dibuja de qué está hecho y qué pasa cuando haces algo. Tarda unos minutos, y luego se queda guardado.":
+    "Adeo reads the project's code and draws what it is made of and what happens when you do something. It takes a few minutes, and then it is kept.",
   "Elige arriba un proyecto o una carpeta y te digo cómo funciona por dentro.":
     "Pick a project or a folder above and I will tell you how it works inside.",
   "Leer el proyecto": "Read the project",
@@ -1048,8 +1047,8 @@ const EN: Record<string, string> = {
   "Pulsa otra vez para verlo todo.": "Click again to see everything.",
   "Vuelve a leer el código del proyecto. Tarda unos minutos.":
     "Reads the project's code again. Takes a few minutes.",
-  "el Capataz no devolvió un mapa que se pueda leer":
-    "the Foreman did not return a readable map",
+  "Adeo no devolvió un mapa que se pueda leer":
+    "Adeo did not return a readable map",
   // Las capas, de `lib/mapa.ts`.
   "Lo que tocas": "What you touch",
   "ventanas y pantallas": "windows and screens",
@@ -1128,6 +1127,10 @@ const EN: Record<string, string> = {
   "Seguir en otra cuenta": "Continue on another account",
   "con acta": "with a handover",
   "Abre {n} agentes": "Opens {n} agents",
+  "Abre 1 agente": "Opens 1 agent",
+  "{n} en {c}": "{n} on {c}",
+  "pesa como 1 haiku": "weighs as much as 1 haiku",
+  "pesa como {n} haikus": "weighs as much as {n} haikus",
   "Peso relativo, tomando haiku como 1": "Relative weight, with haiku as 1",
   "te queda un {p} % de semana": "you have {p}% of the week left",
   "Cuando el cerebro no cuadra": "When the brain does not fit",
@@ -1151,8 +1154,8 @@ const EN: Record<string, string> = {
     "With a crew open, it checks every minute who has finished, who has been waiting on you for a while, and whether anyone is touching someone else's files. When something is worth it, it leaves a line in the Agenda tray for you to accept or discard. It never types into a terminal and never opens or closes anything.",
   "Solo lo gordo": "Only the big stuff",
   "Todo lo que vea": "Everything it sees",
-  "Al preparar un encargo, el Asistente mira con qué modelo está la terminal que tienes delante. Si es mucho más caro de lo que la tarea necesita (o mucho más flojo), te lo dice.":
-    "When preparing a brief, the Assistant looks at which model the terminal in front of you is running. If it is far pricier than the task needs (or far weaker), it says so.",
+  "Al preparar un encargo, Adeo mira con qué modelo está la terminal que tienes delante. Si es mucho más caro de lo que la tarea necesita (o mucho más flojo), te lo dice.":
+    "When preparing a brief, Adeo looks at which model the terminal in front of you is running. If it is far pricier than the task needs (or far weaker), it says so.",
 
   // Qué se abre de un clic desde cada proyecto
   "Atajos en tus proyectos": "Shortcuts on your projects",
@@ -1709,23 +1712,22 @@ const EN: Record<string, string> = {
   "lo que has pegado": "what you have pasted",
   "Volver a mirar": "Look again",
   // El modelo con el que piensa el conserje (`Conserje.tsx`).
-  "Conserje: {m}": "Concierge: {m}",
-  "El modelo con el que piensa el conserje. El de las sesiones que abre lo elige el router.":
-    "The model the concierge thinks with. The router picks the one for the sessions it opens.",
+  "Adeo: {m}": "Adeo: {m}",
+  "El modelo con el que piensa Adeo. El de las sesiones que abre lo elige el router.":
+    "The model Adeo thinks with. The router picks the one for the sessions it opens.",
   "Rápido y barato; entiende peor un encargo enredado.": "Fast and cheap; reads a tangled request less well.",
   "El de siempre: entiende bien y no tarda.": "The usual one: understands well and is quick.",
   "Piensa más el reparto; tarda más y gasta más.": "Thinks the split through more; slower and costlier.",
   // Ajustes > Móvil (`AjustesMovil.tsx`).
   "Móvil": "Mobile",
-  "El conserje en el móvil": "The concierge on your phone",
-  "Habla con el conserje y con tus terminales desde el móvil, estés donde estés. Llega por Tailscale, una red privada entre tus aparatos: desde internet no se ve, y solo entran los móviles que emparejes aquí.":
-    "Talk to the concierge and to your terminals from your phone, wherever you are. It travels over Tailscale, a private network between your devices: it cannot be seen from the internet, and only the phones you pair here get in.",
-  "Conserje en el móvil": "Concierge on my phone",
+  "Adeo en el móvil": "Adeo on your phone",
+  "Habla con Adeo y con tus terminales desde el móvil, estés donde estés. Llega por Tailscale, una red privada entre tus aparatos: desde internet no se ve, y solo entran los móviles que emparejes aquí.":
+    "Talk to Adeo and to your terminals from your phone, wherever you are. It travels over Tailscale, a private network between your devices: it cannot be seen from the internet, and only the phones you pair here get in.",
   // Las tres filas del estado.
   "Este PC": "This PC",
   "El puerto {p} lo tiene otro programa (¿otra Adeorq abierta?)": "Port {p} is taken by another program (another Adeorq open?)",
   "Despierto mientras esté encendido": "Awake while this is on",
-  "Sirviendo el conserje": "Serving the concierge",
+  "Atendiendo al móvil": "Serving your phone",
   "La pantalla sí se apaga. Déjalo enchufado y con la tapa abierta: con batería se duerme a los pocos minutos.":
     "The screen still turns off. Leave it plugged in with the lid open: on battery it sleeps after a few minutes.",
   "Mirando Tailscale…": "Checking Tailscale…",
@@ -1735,12 +1737,12 @@ const EN: Record<string, string> = {
   "Descargar Tailscale": "Download Tailscale",
   "Instalado, pero sin sesión": "Installed, but signed out",
   "Ábrelo en este PC y entra con tu cuenta.": "Open it on this PC and sign in.",
-  "El conserje está en tu red": "The concierge is on your network",
-  "Falta llevar el conserje a tu red": "The concierge is not on your network yet",
+  "Adeo está en tu red": "Adeo is on your network",
+  "Falta llevar a Adeo a tu red": "Adeo is not on your network yet",
   "Solo hace falta una vez: se queda puesto aunque reinicies. La primera vez puede pedirte activar HTTPS en tu cuenta; si sale un enlace, ábrelo, actívalo y vuelve a pulsar.":
     "You only do it once: it stays set even after a restart. The first time it may ask you to enable HTTPS on your account; if a link shows up, open it, enable it and press again.",
   "Conectando…": "Connecting…",
-  "Llevar el conserje a Tailscale": "Bring the concierge to Tailscale",
+  "Llevar a Adeo a Tailscale": "Bring Adeo to Tailscale",
   "Abrir el enlace de Tailscale": "Open the Tailscale link",
   "Tu móvil": "Your phone",
   "Cuando Tailscale esté listo en este PC": "Once Tailscale is ready on this PC",
@@ -1760,8 +1762,8 @@ const EN: Record<string, string> = {
   "Emparejados": "Paired",
   "con avisos": "with notifications",
   "Probar aviso": "Test notification",
-  "En su mismo puerto de Tailscale hay otra cosa ({a}): comparte dirección con el conserje y podría leer la clave del móvil. Quítala de tailscale serve.":
-    "Something else is on the same Tailscale port ({a}): it shares the concierge's address and could read the phone's key. Remove it from tailscale serve.",
+  "En su mismo puerto de Tailscale hay otra cosa ({a}): comparte dirección con Adeo y podría leer la clave del móvil. Quítala de tailscale serve.":
+    "Something else is on the same Tailscale port ({a}): it shares Adeo's address and could read the phone's key. Remove it from tailscale serve.",
   "El puerto {p} de Tailscale ya lo usa otra cosa ({a}), y no la piso. Quítala con «tailscale serve --https={p} off» y vuelve a pulsar.":
     "Tailscale port {p} is already used by something else ({a}), and I won't overwrite it. Remove it with “tailscale serve --https={p} off” and press again.",
   "Tailscale no deja a tu usuario ponerlo. Ejecuta una vez «sudo tailscale set --operator=$USER» y vuelve a pulsar.":
@@ -1879,8 +1881,8 @@ const EN: Record<string, string> = {
   "Dividir el panel a la derecha": "Split the pane to the right",
   "Dividir el panel hacia abajo": "Split the pane downwards",
   "Maximizar o restaurar el panel": "Maximise or restore the pane",
-  "Llamar al Asistente": "Call the Assistant",
-  "Dictarle al Asistente": "Dictate to the Assistant",
+  "Llamar a Adeo": "Call Adeo",
+  "Dictarle a Adeo": "Dictate to Adeo",
   "Modo emisión: tapar rutas, claves y datos": "Streaming mode: hide paths, keys and personal data",
   "Tapar la pantalla entera": "Cover the whole screen",
   "Mayús": "Shift",
@@ -1962,8 +1964,8 @@ const EN: Record<string, string> = {
 
   // Los avisos flotantes de una terminal (setNote), que llegan a t() por
   // variable (t(note)): mismo motivo que arriba, a mano.
-  "El Modo Espejo se elige al ABRIR la terminal, no después: esta ya está corriendo dentro de tu carpeta. Ciérrala y ábrela en espejo, o pídeselo al Capataz.":
-    "Mirror Mode is chosen when you OPEN the terminal, not after: this one is already running inside your folder. Close it and reopen it in mirror, or ask the Foreman.",
+  "El Modo Espejo se elige al ABRIR la terminal, no después: esta ya está corriendo dentro de tu carpeta. Ciérrala y ábrela en espejo, o pídeselo a Adeo.":
+    "Mirror Mode is chosen when you OPEN the terminal, not after: this one is already running inside your folder. Close it and reopen it in mirror, or ask Adeo.",
   "Cambios descartados y rama en la sombra eliminada.":
     "Changes discarded and the shadow branch deleted.",
   "Ruta escrita en el prompt. Escribe al lado qué quieres que haga con ella.":
@@ -2064,10 +2066,10 @@ const EN: Record<string, string> = {
   ahora: "now",
   // La voz del Asistente.
   Voz: "Voice",
-  "El Asistente habla con la voz {voz} (Grok, con tu clave de OpenRouter). Clic para callarlo; clic derecho para cambiar de voz.":
-    "The Assistant speaks with the {voz} voice (Grok, via your OpenRouter key). Click to mute it; right-click to change the voice.",
-  "Que el Asistente diga sus respuestas en alto (Grok TTS por OpenRouter, con tu clave de Cuentas › OpenRouter).":
-    "Have the Assistant say its answers out loud (Grok TTS via OpenRouter, with your key from Accounts › OpenRouter).",
+  "Adeo habla con la voz {voz} (Grok, con tu clave de OpenRouter). Clic para callarlo; clic derecho para cambiar de voz.":
+    "Adeo speaks with the {voz} voice (Grok, via your OpenRouter key). Click to mute it; right-click to change the voice.",
+  "Que Adeo diga sus respuestas en alto (Grok TTS por OpenRouter, con tu clave de Cuentas › OpenRouter).":
+    "Have Adeo say its answers out loud (Grok TTS via OpenRouter, with your key from Accounts › OpenRouter).",
   "Nueva pestaña": "New tab",
   "Abrir otra pestaña": "Open another tab",
   "Abrirla en tu navegador de verdad": "Open it in your real browser",
@@ -2309,8 +2311,8 @@ const EN: Record<string, string> = {
   "Sin proyectos todavía. Puedes crear el primero desde el Panel, o elegir otra carpeta.":
     "No projects yet. You can create the first one from the Dashboard, or pick another folder.",
   "Tus agentes": "Your agents",
-  "Estos son los que he encontrado instalados en tu ordenador. Marca los que uses: el Asistente no te mandará a uno que no usas.":
-    "These are the ones I found installed on your computer. Tick the ones you use: the Assistant will not send you to one you do not.",
+  "Estos son los que he encontrado instalados en tu ordenador. Marca los que uses: Adeo no te mandará a uno que no usas.":
+    "These are the ones I found installed on your computer. Tick the ones you use: Adeo will not send you to one you do not.",
   instalado: "installed",
   "no está": "not here",
   "Recoger las sesiones que ya tienes": "Pick up the sessions you already have",
@@ -2327,7 +2329,7 @@ const EN: Record<string, string> = {
   "las terminales en mosaico": "your terminals as tiles",
   "las terminales en un tablero libre, con notas y flechas": "your terminals on a free board, with notes and arrows",
   "tus notas y lo que recuerdan tus agentes": "your notes and what your agents remember",
-  "tus sesiones como conversaciones, y el conserje": "your sessions as conversations, and the concierge",
+  "tus sesiones como conversaciones, y Adeo": "your sessions as conversations, and Adeo",
   "La Cabina y el Lienzo no se pueden apagar a la vez: sin ninguno no hay dónde abrir una terminal.":
     "The Cockpit and the Canvas cannot both be off: without either there is nowhere to open a terminal.",
   Partes: "Parts",
@@ -2380,7 +2382,6 @@ const EN: Record<string, string> = {
   "La Cabina: las terminales": "The Cockpit: the terminals",
   "Aquí trabajan los agentes, en terminales de verdad repartidas por la pantalla. Puedes abrir varias y verlas a la vez, que es la gracia de todo esto.":
     "This is where the agents work, in real terminals laid out across the screen. You can open several and watch them at once, which is the whole point.",
-  "El Asistente": "The Assistant",
   "Le sueltas una frase de lo que quieres y te escribe el encargo entero, elige con qué cliente y qué modelo sale más a cuenta, y te lo deja escrito en la terminal. También sabe repartir el trabajo entre varios agentes.":
     "Tell it in one line what you want and it writes the whole brief, picks which client and model is the best value, and leaves it typed in the terminal. It can also split the work across several agents.",
   "La Agenda": "The Agenda",
@@ -2529,9 +2530,8 @@ const EN: Record<string, string> = {
   "Que lo añada el agente": "Have the agent add it",
   "Sin marca de origen: se ve el cambio pero no se guarda":
     "No origin mark: the change shows but is not saved",
-  // El conserje del chat (`Conserje.tsx`).
-  "Conserje": "Concierge",
-  "Hablar con el conserje": "Talk to the concierge",
+  // Adeo en el chat (`Conserje.tsx`).
+  "Hablar con Adeo": "Talk to Adeo",
   "Conversación nueva": "New conversation",
   "1 sesión": "1 session",
   "nada en marcha": "nothing running",
@@ -2547,8 +2547,8 @@ const EN: Record<string, string> = {
   "Router: automático": "Router: automatic",
   "Router: apagado": "Router: off",
   "las sesiones van con {p}": "sessions open with {p}",
-  "Con qué piensa el conserje: el programa arriba y su escalón debajo. Las sesiones que abre van aparte.":
-    "What the concierge thinks with: the program on top and its tier below. The sessions it opens are set apart.",
+  "Con qué piensa Adeo: el programa arriba y su escalón debajo. Las sesiones que abre van aparte.":
+    "What Adeo thinks with: the program on top and its tier below. The sessions it opens are set apart.",
   "Rápido": "Fast",
   "A fondo": "Deep",
   "No está instalado en este equipo": "Not installed on this computer",
@@ -2570,7 +2570,7 @@ const EN: Record<string, string> = {
   "Reescribe lo que has puesto más claro, sin añadir nada": "Rewrites what you wrote more clearly, adding nothing",
   "Mejorado: lo mismo que dijiste, ordenado. Si no te gusta, Deshacer.":
     "Improved: the same thing you said, in order. If you do not like it, Undo.",
-  "Escribe o dicta. Enter lo manda al conserje.": "Type or dictate. Enter sends it to the concierge.",
+  "Escribe o dicta. Enter lo manda a Adeo.": "Type or dictate. Enter sends it to Adeo.",
   "Dime qué hay que hacer.": "Tell me what needs doing.",
   "Lo parto en trabajos y abro una sesión para cada uno, con el modelo que toque. Las verás arriba como pestañas; un clic y estás dentro.":
     "I split it into jobs and open a session for each one, with the right model. You will see them above as tabs; one click and you are in.",
@@ -2591,16 +2591,22 @@ const EN: Record<string, string> = {
   "Ver menos": "Show fewer",
   "Ver todas ({n})": "Show all ({n})",
   "Esta sesión se cerró sin llegar a escribir nada.": "This session closed before writing anything.",
-  "Puedes quitar su pestaña con la ✕, o pedirle al conserje que la abra otra vez.":
-    "You can remove its tab with the ✕, or ask the concierge to open it again.",
+  "Puedes quitar su pestaña con la ✕, o pedirle a Adeo que la abra otra vez.":
+    "You can remove its tab with the ✕, or ask Adeo to open it again.",
   // Ajustes > Terminales > lo que puede hacer cada programa por el MCP (decisiones D1 y B1).
   "Qué puede hacer cada cliente por el MCP": "What each client may do through the MCP",
   "Va por el programa que abriste en cada terminal de Adeorq: ": "It goes by the program you opened in each Adeorq terminal: ",
   "Claude Code puede escribir en las demás": "Claude Code can type into the others",
   "; los otros abren terminales y miran. ": "; the rest open terminals and look. ",
   "Lo que llega de fuera de Adeorq": "Whatever comes from outside Adeorq",
-  " (un Claude Code en otra consola, cualquier programa) solo abre y mira, hasta que lo subas aquí. El Capataz y el conserje no cuentan.":
-    " (a Claude Code in another console, any program) only opens and looks, until you raise it here. The Foreman and the concierge do not count.",
+  " (un Claude Code en otra consola, cualquier programa) solo ve la lista de terminales y el uso, y abre terminales: no lee las tuyas, la memoria ni la agenda hasta que lo subas aquí. Adeo no cuenta como de fuera.":
+    " (a Claude Code in another console, any program) only sees the list of terminals and the usage, and opens terminals: it does not read yours, the memory or the agenda until you raise it here. Adeo does not count as outside.",
+  "Ver la lista y abrir": "See the list and open",
+  "Ve la lista de terminales y el uso, y abre terminales. Solo lee y cierra las que abrió": "Sees the list of terminals and the usage, and opens terminals. It only reads and closes the ones it opened",
+  "Leer y abrir": "Read and open",
+  "Además lee tus terminales, la memoria y la agenda": "Also reads your terminals, the memory and the agenda",
+  "Lee tus terminales, la memoria y la agenda, y no abre nada": "Reads your terminals, the memory and the agenda, and opens nothing",
+  "Además escribe en cualquier terminal y la cierra, y abre sin preguntar": "Also types into any terminal and closes it, and opens without asking",
   "Fuera de Adeorq": "Outside Adeorq",
   "Solo mirar": "Look only",
   "Lee terminales y proyectos, y no cambia nada": "Reads terminals and projects, and changes nothing",
@@ -3183,14 +3189,14 @@ const EN: Record<string, string> = {
 
   // Los fallos de Rust en el chat del conserje (`lib/avisosDeRust.ts`).
   "id de conversación no válido": "invalid conversation id",
-  "«{x}» no es un modelo con el que pueda pensar el conserje": "“{x}” is not a model the concierge can think with",
+  "«{x}» no es un modelo con el que pueda pensar Adeo": "“{x}” is not a model Adeo can think with",
   "«{x}» no es un modelo que se pueda fijar": "“{x}” is not a model that can be pinned",
-  "«{x}» no es un programa con el que pueda pensar el conserje": "“{x}” is not a program the concierge can think with",
+  "«{x}» no es un programa con el que pueda pensar Adeo": "“{x}” is not a program Adeo can think with",
   "«{x}» no es un programa": "“{x}” is not a program",
   "esa conversación no es un enjambre": "that conversation is not a swarm",
-  "el conserje todavía está con lo anterior en esta conversación": "the concierge is still busy with the previous message in this conversation",
+  "Adeo todavía está con lo anterior en esta conversación": "Adeo is still busy with the previous message in this conversation",
   "no hay nada que mandar": "there is nothing to send",
-  "el conserje se quedó pensando demasiado (3 min); reintenta": "the concierge thought for too long (3 min); try again",
+  "Adeo se quedó pensando demasiado (3 min); reintenta": "Adeo thought for too long (3 min); try again",
   "claude devolvió error: {e}": "claude returned an error: {e}",
   "desconocido": "unknown",
   "claude no devolvió nada: {e}": "claude returned nothing: {e}",
@@ -3280,6 +3286,42 @@ const EN: Record<string, string> = {
   "{bot} quiere abrir una terminal": "{bot} wants to open a terminal",
   "Ábrela solo si se lo has pedido tú: lo que le llega por su chat también lo puede haber escrito otro.": "Open it only if you asked for it: what reaches its chat may have been written by someone else too.",
   "Leyendo tus bots…": "Reading your bots…",
+  // Conectar tu Claude Code (`AjustesClaudeConexion.tsx`, el paso de la bienvenida, `claude_conexion.rs`).
+  "Conectar tu Claude Code": "Connect your Claude Code",
+  "Conectado.": "Connected.",
+  "Conectado, pero apunta a {ruta}.": "Connected, but it points to {ruta}.",
+  "Sin conectar.": "Not connected.",
+  "Sin conectar. El archivo no existe todavía: se crea al conectar.": "Not connected. The file does not exist yet: it is created when you connect.",
+  "No entiendo este archivo ({motivo}). No lo toco.": "I do not understand this file ({motivo}). I am not touching it.",
+  "Hay una entrada llamada «adeorq» que no es la de Adeorq. No la toco.": "There is an entry called «adeorq» that is not Adeorq's. I am not touching it.",
+  "está vacío": "it is empty",
+  "no empieza por una llave o no se lee como lo escribe Claude Code": "it does not start with a brace or it does not read the way Claude Code writes it",
+  "tiene algo detrás del objeto": "it has something after the object",
+  "«mcpServers» no es una lista de servidores": "«mcpServers» is not a list of servers",
+  "«mcpServers» aparece dos veces": "«mcpServers» appears twice",
+  "no se lee como JSON": "it does not read as JSON",
+  "Con esto tu Claude Code puede ": "With this your Claude Code can ",
+  "abrir terminales, leer las tuyas y mirar tu cuota": "open terminals, read yours and look at your quota",
+  ". Se añade una entrada «adeorq» al archivo que ves en cada fila. Lo demás no se toca y queda una copia al lado.": ". An «adeorq» entry is added to the file you see on each row. The rest is not touched and a copy stays next to it.",
+  "En una terminal de Adeorq": "In an Adeorq terminal",
+  " las usa con el permiso de esa terminal. ": " it uses them with that terminal's permission. ",
+  "En otra consola": "In another console",
+  " solo ve la lista de terminales y el uso, y abre terminales nuevas, hasta que lo subas en «Qué puede hacer cada cliente por el MCP». Las terminales de Claude que ya tengas abiertas lo cogen al reiniciarlas.": " it only sees the list of terminals and your usage, and opens new terminals, until you raise it in «What each client can do through the MCP». Claude terminals that are already open pick it up when you restart them.",
+  "No encuentro Claude Code en este equipo.": "I cannot find Claude Code on this computer.",
+  "Claude Code lanzará {comando}": "Claude Code will run {comando}",
+  "Leyendo tus cuentas de Claude…": "Reading your Claude accounts…",
+  "Para que tu Claude Code tenga las herramientas de Adeorq (": "For your Claude Code to have Adeorq's tools (",
+  ") hay que apuntarlas una vez en su configuración.": ") they have to be written once into its configuration.",
+  "Mirando tu configuración…": "Looking at your configuration…",
+  "Se añade una entrada «adeorq» a ese archivo; lo demás no se toca y queda una copia al lado. Si no quieres, pulsa Seguir y no se escribe nada.": "An «adeorq» entry is added to that file; the rest is not touched and a copy stays next to it. If you would rather not, press Next and nothing is written.",
+  " las tiene todas. ": " it has all of them. ",
+  " solo ve la lista de terminales y el uso, y abre terminales nuevas, hasta que lo subas en Ajustes.": " it only sees the list of terminals and your usage, and opens new terminals, until you raise it in Settings.",
+  "Ya está conectado.": "It is already connected.",
+  "Ya hay en ese archivo una entrada llamada «adeorq» que no es la de Adeorq: no la he tocado.": "That file already has an entry called «adeorq» that is not Adeorq's: I have not touched it.",
+  "La entrada «adeorq» de ese archivo no es la de Adeorq: no la he tocado.": "The «adeorq» entry in that file is not Adeorq's: I have not touched it.",
+  "Ya estaba desconectado.": "It was already disconnected.",
+  "Claude Code acaba de reescribir su archivo y no se ha quedado. Vuelve a pulsar.": "Claude Code has just rewritten its file and the entry did not stay. Press again.",
+  "Claude Code está guardando su archivo justo ahora. Vuelve a pulsar.": "Claude Code is saving its file right now. Press again.",
   "Cuando una terminal termina o te espera, Adeorq avisa a tu bot. Manda solo el nombre de la terminal, su proyecto y qué pasa, nunca lo que hay en la pantalla.":
     "When a terminal finishes or is waiting for you, Adeorq notifies your bot. It sends only the terminal's name, its project and what happened, never what is on the screen.",
   "Un webhook de una rutina de tu Grok Bot.": "A webhook of one of your Grok Bot routines.",

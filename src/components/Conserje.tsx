@@ -172,7 +172,7 @@ export function ListaConserje({
     <section className="cj-lista">
       <button className="cj-nueva" onClick={onNueva}>
         <Mascota animo="quieta" alto={16} />
-        {t("Hablar con el conserje")}
+        {t("Hablar con Adeo")}
       </button>
       {lista.map((f) => (
         <button key={f.id} className="chat-fila" data-on={abierta === f.id} onClick={() => onAbrir(f.id)}>
@@ -256,7 +256,7 @@ export function PestanasConserje({
     <nav className="cj-pestanas" aria-label={t("Sesiones")}>
       <button className="cj-pestana" data-estado="conserje" data-on={viendo === null} onClick={() => onIr(null)}>
         <Mascota animo={animoDelChat(false, estados)} alto={16} />
-        {t("Conserje")}
+        {t("Adeo")}
       </button>
       <span className="cj-pestanas-raya" />
       <div
@@ -687,7 +687,7 @@ export function HiloConserje({
             y te llama si alguna te pregunta. */}
         <Mascota animo={animoDelChat(pensando, estados, { fallo: !!fallo, escribiendo: !!texto.trim() })} alto={28} envio={envios} />
         <span className="chat-cab-id">
-          <strong>{conv?.titulo || t("Conserje")}</strong>
+          <strong>{conv?.titulo || t("Adeo")}</strong>
           <em>
             {t(marcha.clave, { n: marcha.n })} ·{" "}
             {/* «el modelo» a secas, al lado de «Conserje: Claude Opus», se leía
@@ -776,7 +776,7 @@ export function HiloConserje({
               data-mejorado={antes !== null}
               value={texto}
               rows={2}
-              placeholder={t("Escribe o dicta. Enter lo manda al conserje.")}
+              placeholder={t("Escribe o dicta. Enter lo manda a Adeo.")}
               onChange={(e) => {
                 setTexto(e.currentTarget.value);
                 // En cuanto lo tocas es tuyo: ya no hay nada que deshacer.
@@ -819,11 +819,11 @@ export function HiloConserje({
             <div className="chat-modelo">
               <button
                 className="chat-pastilla cj-pastilla"
-                data-tip={t("Con qué piensa el conserje: el programa arriba y su escalón debajo. Las sesiones que abre van aparte.")}
+                data-tip={t("Con qué piensa Adeo: el programa arriba y su escalón debajo. Las sesiones que abre van aparte.")}
                 onClick={() => abrirMenu("cerebro")}
               >
                 <SparkIcon size={13} />
-                {t("Conserje: {m}", { m: `${marcaDe(pensador)} · ${t(escalonDe(cerebroDe(conv)))}` })}
+                {t("Adeo: {m}", { m: `${marcaDe(pensador)} · ${t(escalonDe(cerebroDe(conv)))}` })}
                 <ChevronIcon size={11} up={eligiendoCerebro} />
               </button>
               {eligiendoCerebro && (

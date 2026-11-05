@@ -23,9 +23,16 @@
 // terminal no lo sabe (`programa_de_nombre`).
 //
 // Lo que llega sin contraseña es «fuera de Adeorq» (`FUERA`), con su propio
-// escalón, «plan» de fábrica: un Claude Code abierto en otra consola, o
-// cualquier programa que hable con el puerto. Munir lo sube en Ajustes si
-// quiere, sabiendo que entonces vale para cualquier programa de fuera.
+// escalón, `Lista` de fábrica (decisión A1, 2026-11-04): un Claude Code abierto en
+// otra consola, o cualquier programa que hable con el puerto. Ve la lista de
+// terminales sin sus comandos y el uso, abre, y lee y cierra lo que abrió. Munir lo
+// sube en Ajustes si quiere, sabiendo que entonces vale para cualquier programa de
+// fuera. Lo que ya estaba guardado en esa fila sigue significando lo mismo.
+//
+// Lo que no presenta contraseña pero cuelga de una terminal (`SIN_CLAVE_EN_TERMINAL`,
+// reconocido por `mcp/quien_conecta.rs`: un CLI que limpia el entorno de sus
+// servidores MCP, el puente de otra versión) no es de fuera y no baja: sigue con lo
+// que ya tenía.
 //
 // Ajustes enseña una fila por programa que se ha conectado, más «fuera de
 // Adeorq» siempre. Lo que estaba guardado por nombre de cliente («claude-code»,
@@ -58,6 +65,10 @@ use std::sync::Mutex;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Nivel {
+    /// Solo para la fila de fuera de Adeorq: la lista de terminales y el uso, abrir,
+    /// y leer y cerrar lo suyo. No lee lo ajeno ni la memoria. Va la primera porque
+    /// `permite` no le da nada: lo que alcanza está en `alcance_limitado`.
+    Lista,
     /// Solo lee. Contesta preguntas y no cambia nada de nada.
     Mirar,
     /// Puede montar trabajo nuevo (abrir, enlazar); no toca lo que ya está en marcha.
@@ -69,6 +80,7 @@ pub enum Nivel {
 impl Nivel {
     pub fn nombre(self) -> &'static str {
         match self {
+            Nivel::Lista => "lista",
             Nivel::Mirar => "mirar",
             Nivel::Plan => "plan",
             Nivel::Auto => "auto",
@@ -80,6 +92,10 @@ pub const FABRICA: Nivel = Nivel::Plan;
 
 /// La fila de lo que llega sin la contraseña de una terminal de Adeorq.
 pub const FUERA: &str = "fuera";
+
+/// Lo que llega sin contraseña pero cuelga de una terminal de Adeorq
+/// (`mcp/quien_conecta.rs`). No tiene fila en Ajustes y se cuenta con lo de fuera.
+pub const SIN_CLAVE_EN_TERMINAL: &str = "sin-clave-en-terminal";
 
 /// Lo que va delante del nombre en la fila de un bot conectado (`bots_conexion.rs`).
 /// Esa fila solo se gana con la clave del bot: nunca con el nombre del `initialize`.
@@ -162,7 +178,7 @@ pub fn programa_de_nombre(nombre: &str) -> String {
 /// terminal de antes). Decir «bot:hermes» no lo hace Hermes: eso lo da su clave.
 pub fn programa_de_cliente(nombre: &str) -> String {
     let p = programa_de_nombre(nombre);
-    if es_bot(&p) {
+    if es_bot(&p) || p == SIN_CLAVE_EN_TERMINAL {
         "desconocido".to_string()
     } else {
         p
@@ -224,9 +240,9 @@ pub fn la_ve(nivel: Nivel, herramienta: &str) -> bool {
     permite(nivel, herramienta) || solo_lo_suyo(nivel, herramienta)
 }
 
-/// Hasta dónde llega un bot en una herramienta.
+/// Hasta dónde llega una tabla corta en una herramienta.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum AlcanceDeBot {
+enum Alcance {
     Entera,
     SoloLoSuyo,
     Nada,
@@ -236,8 +252,8 @@ enum AlcanceDeBot {
 /// lo que lee se va a su proveedor, y quien lo engañe lo lee también. La memoria, la
 /// agenda, las decisiones y los mods tampoco son «la lista de terminales y el uso», y
 /// una flecha pasa la respuesta de una terminal a otra.
-fn alcance_de_bot(nivel: Nivel, herramienta: &str) -> AlcanceDeBot {
-    use AlcanceDeBot::*;
+fn alcance_de_bot(nivel: Nivel, herramienta: &str) -> Alcance {
+    use Alcance::*;
     match (nivel, herramienta) {
         (Nivel::Auto, h) if permite(Nivel::Auto, h) => Entera,
         (_, "get_active_panes" | "get_usage") => Entera,
@@ -247,31 +263,43 @@ fn alcance_de_bot(nivel: Nivel, herramienta: &str) -> AlcanceDeBot {
     }
 }
 
-/// `la_ve` para un programa concreto: los bots tienen su propia tabla.
-pub fn la_ve_programa(programa: &str, nivel: Nivel, herramienta: &str) -> bool {
+/// La tabla corta que le toca, si no es la de los escalones de siempre. `Lista` alcanza
+/// justo lo que un bot en «plan»: la decisión A1 es la misma frase que la de los bots.
+fn alcance_limitado(programa: &str, nivel: Nivel, herramienta: &str) -> Option<Alcance> {
     if es_bot(programa) {
-        alcance_de_bot(nivel, herramienta) != AlcanceDeBot::Nada
+        Some(alcance_de_bot(nivel, herramienta))
+    } else if nivel == Nivel::Lista {
+        Some(alcance_de_bot(Nivel::Plan, herramienta))
     } else {
-        la_ve(nivel, herramienta)
+        None
+    }
+}
+
+/// `la_ve` para un programa concreto: los bots y `Lista` tienen su propia tabla.
+pub fn la_ve_programa(programa: &str, nivel: Nivel, herramienta: &str) -> bool {
+    match alcance_limitado(programa, nivel, herramienta) {
+        Some(a) => a != Alcance::Nada,
+        None => la_ve(nivel, herramienta),
     }
 }
 
 /// `solo_lo_suyo` para un programa concreto.
 pub fn solo_lo_suyo_programa(programa: &str, nivel: Nivel, herramienta: &str) -> bool {
-    if es_bot(programa) {
-        alcance_de_bot(nivel, herramienta) == AlcanceDeBot::SoloLoSuyo
-    } else {
-        solo_lo_suyo(nivel, herramienta)
+    match alcance_limitado(programa, nivel, herramienta) {
+        Some(a) => a == Alcance::SoloLoSuyo,
+        None => solo_lo_suyo(nivel, herramienta),
     }
 }
 
 /// El escalón de un programa que no está en la lista de Ajustes: Claude, auto;
-/// un bot, el de abajo; los demás y lo de fuera de Adeorq, plan.
+/// un bot, el de abajo; lo de fuera de Adeorq, la lista; los demás, plan.
 pub fn nivel_de_fabrica(programa: &str) -> Nivel {
     if programa == "claude" {
         Nivel::Auto
     } else if es_bot(programa) {
         Nivel::Mirar
+    } else if programa == FUERA {
+        Nivel::Lista
     } else {
         FABRICA
     }
@@ -279,6 +307,11 @@ pub fn nivel_de_fabrica(programa: &str) -> Nivel {
 
 /// El escalón de un programa (`programa_del_comando`, `programa_de_nombre` o `FUERA`).
 pub fn nivel_de(c: &Clientes, programa: &str) -> Nivel {
+    // Va con lo de fuera, salvo que esa fila haya bajado de fábrica: lo que cuelga de
+    // una terminal no pierde nada porque lo de fuera sí lo pierda.
+    if programa == SIN_CLAVE_EN_TERMINAL {
+        return c.niveles.get(FUERA).copied().unwrap_or(FABRICA);
+    }
     c.niveles.get(programa).copied().unwrap_or_else(|| nivel_de_fabrica(programa))
 }
 
@@ -305,24 +338,37 @@ fn mudar(c: Clientes) -> Clientes {
     Clientes { niveles, vistos }
 }
 
+const LISTA_ALCANZA: &str = "ve la lista de terminales y el uso, abre terminales, y solo lee y cierra las que abrió";
+
+/// Dónde se sube lo de fuera. Lo lee un agente, que se lo cuenta a quien usa Adeorq.
+pub const LISTA_SE_SUBE: &str = "Quien usa Adeorq lo sube en Ajustes > Terminales > «Qué puede hacer cada cliente por el MCP», en la fila «Fuera de Adeorq», con «Leer y abrir» o «Todo».";
+
 /// Lo que se le contesta a quien pide una herramienta que su escalón no tiene.
 /// Dice el escalón, qué sí puede y dónde se cambia: un «no» seco deja al agente
 /// reintentando lo mismo.
 pub fn mensaje_denegado(programa: &str, nivel: Nivel, herramienta: &str) -> String {
     if es_bot(programa) {
         let que = match nivel {
-            Nivel::Mirar => "ve la lista de terminales y el uso, y lee solo las terminales que abrió él",
+            Nivel::Lista | Nivel::Mirar => "ve la lista de terminales y el uso, y lee solo las terminales que abrió él",
             Nivel::Plan => "además ve los proyectos y abre terminales, y solo lee y cierra las que abrió él",
             Nivel::Auto => "puede hacerlo todo",
         };
         return format!("«{herramienta}» no está al alcance de este bot: {que}. Se cambia en Ajustes > Bots de Adeorq.");
     }
+    if nivel == Nivel::Lista {
+        return format!(
+            "«{herramienta}» no está al alcance de lo que se conecta desde fuera de una terminal de Adeorq: {LISTA_ALCANZA}. {LISTA_SE_SUBE}"
+        );
+    }
     let nombre = if programa == FUERA {
         "lo que se conecta desde fuera de una terminal de Adeorq".to_string()
+    } else if programa == SIN_CLAVE_EN_TERMINAL {
+        "lo que se conecta sin la contraseña de su terminal".to_string()
     } else {
         programa.to_string()
     };
     let que = match nivel {
+        Nivel::Lista => LISTA_ALCANZA,
         Nivel::Mirar => "solo puede mirar (proyectos, paneles, transcripts, memoria)",
         Nivel::Plan => "puede mirar, abrir o enlazar terminales y cerrar las que abrió él, pero no escribir en una que ya está trabajando, ni mandarle teclas, ni cerrar las de otros",
         Nivel::Auto => "puede hacerlo todo",
@@ -371,7 +417,8 @@ fn ahora() -> u64 {
 pub fn apuntar_visto(programa: &str, version: &str) -> Nivel {
     let _g = CERROJO.lock().unwrap_or_else(|e| e.into_inner());
     let mut c = leer();
-    let v = c.vistos.entry(programa.to_string()).or_default();
+    let fila = if programa == SIN_CLAVE_EN_TERMINAL { FUERA } else { programa };
+    let v = c.vistos.entry(fila.to_string()).or_default();
     v.version = version.to_string();
     v.ultima_vez = ahora();
     v.veces += 1;
@@ -432,6 +479,9 @@ pub fn mcp_clientes_poner(nombre: String, nivel: Option<Nivel>) -> Result<Vec<Cl
     if es_bot(&nombre) {
         return Err("Un bot se cambia en Ajustes > Bots.".into());
     }
+    if nombre == SIN_CLAVE_EN_TERMINAL {
+        return Err("Ese cliente no tiene fila propia.".into());
+    }
     poner(&nombre, nivel).map(|c| filas(&c))
 }
 
@@ -441,14 +491,19 @@ pub fn poner_de_bot(bot: &str, nivel: Option<Nivel>) -> Result<(), String> {
 }
 
 fn poner(programa: &str, nivel: Option<Nivel>) -> Result<Clientes, String> {
+    if nivel == Some(Nivel::Lista) && programa != FUERA {
+        return Err("Ese paso es solo de la fila «Fuera de Adeorq».".into());
+    }
     let _g = CERROJO.lock().unwrap_or_else(|e| e.into_inner());
     let mut c = leer();
     match nivel {
+        // Elegir `Lista` es volver a lo de fábrica, y así no se escribe en el archivo:
+        // una versión anterior que lo leyera con ese nombre lo perdería entero.
+        Some(Nivel::Lista) | None => {
+            c.niveles.remove(programa);
+        }
         Some(n) => {
             c.niveles.insert(programa.to_string(), n);
-        }
-        None => {
-            c.niveles.remove(programa);
         }
     }
     guardar(&c)?;
@@ -497,12 +552,12 @@ mod tests {
     }
 
     #[test]
-    fn plan_de_fabrica_salvo_claude_y_fuera_de_adeorq_en_plan() {
+    fn plan_de_fabrica_salvo_claude_y_fuera_de_adeorq() {
         let c = Clientes::default();
         assert_eq!(nivel_de(&c, "codex"), Nivel::Plan);
         assert_eq!(nivel_de(&c, "gemini"), Nivel::Plan);
         assert_eq!(nivel_de(&c, "claude"), Nivel::Auto);
-        assert_eq!(nivel_de(&c, FUERA), Nivel::Plan, "B1: fuera de Adeorq solo abre y mira");
+        assert_eq!(nivel_de(&c, FUERA), Nivel::Lista, "A1: lo de fuera solo ve la lista y el uso");
         // El nombre ya no decide: «claude-code-2» no es un programa.
         assert_eq!(nivel_de(&c, "claude-code-2"), Nivel::Plan);
         let mut bajado = Clientes::default();
@@ -572,7 +627,7 @@ mod tests {
         let nombres: Vec<&str> = f.iter().map(|x| x.nombre.as_str()).collect();
         assert_eq!(nombres, ["codex", "fuera", "gemini"]);
         assert!(f[0].fabrica);
-        assert_eq!(f[1].nivel, Nivel::Plan);
+        assert_eq!(f[1].nivel, Nivel::Lista);
         assert_eq!(f[1].veces, 0, "fuera sale aunque no haya llamado nadie");
         assert_eq!(f[2].nivel, Nivel::Auto);
         assert!(!f[2].fabrica);
@@ -584,6 +639,95 @@ mod tests {
         assert!(m.contains("«plan»") && m.contains("codex") && m.contains("Ajustes"), "{m}");
         let f = mensaje_denegado(FUERA, Nivel::Plan, "send_command");
         assert!(f.contains("fuera de una terminal de Adeorq"), "{f}");
+    }
+
+    /// Lo que dice A1, herramienta por herramienta. Lo que no se nombra aquí no le llega.
+    #[test]
+    fn lo_de_fuera_de_fabrica_solo_ve_la_lista_y_el_uso() {
+        let ve = |h: &str| la_ve_programa(FUERA, Nivel::Lista, h);
+        let suyo = |h: &str| solo_lo_suyo_programa(FUERA, Nivel::Lista, h);
+        for h in ["get_active_panes", "get_usage", "get_projects", "open_pane"] {
+            assert!(ve(h) && !suyo(h), "{h} entera");
+        }
+        for h in ["read_pane_screen", "read_pane_transcript", "close_pane"] {
+            assert!(ve(h) && suyo(h), "{h} solo de lo suyo");
+        }
+        for h in ["leer_memoria", "buscar_memoria", "leer_turno", "get_agenda", "get_decision", "ask_decision", "get_mods", "link_panes", "send_command", "send_keys", "compactar_terminal", "inventada"] {
+            assert!(!ve(h), "{h} no le llega");
+        }
+    }
+
+    /// Una herramienta nueva no le llega a lo de fuera hasta que alguien lo decida.
+    #[test]
+    fn de_fabrica_lo_de_fuera_solo_ve_lo_que_se_nombra() {
+        let mut vistas: Vec<String> = crate::mcp::lista_de_herramientas()
+            .iter()
+            .filter_map(|h| h["name"].as_str().map(str::to_string))
+            .filter(|n| la_ve_programa(FUERA, Nivel::Lista, n))
+            .collect();
+        vistas.sort_unstable();
+        assert_eq!(vistas, ["close_pane", "get_active_panes", "get_projects", "get_usage", "open_pane", "read_pane_screen", "read_pane_transcript"]);
+    }
+
+    /// `permite` no le da nada a `Lista`: sale todo de su tabla, y `Lista` queda por
+    /// debajo de los demás al comparar.
+    #[test]
+    fn lista_queda_por_debajo_de_mirar() {
+        assert!(Nivel::Lista < Nivel::Mirar);
+        assert!(!permite(Nivel::Lista, "get_active_panes"));
+        assert_eq!(serde_json::to_string(&Nivel::Lista).unwrap(), "\"lista\"");
+    }
+
+    /// Lo ya guardado sigue siendo lo de hoy, y de abajo no se sube a nadie.
+    #[test]
+    fn lo_guardado_en_la_fila_de_fuera_conserva_su_significado() {
+        let con = |n: Nivel| {
+            let mut c = Clientes::default();
+            c.niveles.insert(FUERA.into(), n);
+            c
+        };
+        for n in [Nivel::Mirar, Nivel::Plan, Nivel::Auto] {
+            assert_eq!(nivel_de(&con(n), FUERA), n);
+            assert_eq!(mudar(con(n)).niveles.get(FUERA), Some(&n), "pasa por la mudanza tal cual");
+        }
+        assert!(la_ve_programa(FUERA, Nivel::Mirar, "read_pane_screen") && !solo_lo_suyo_programa(FUERA, Nivel::Mirar, "read_pane_screen"));
+        assert!(la_ve_programa(FUERA, Nivel::Mirar, "leer_memoria") && !la_ve_programa(FUERA, Nivel::Mirar, "open_pane"));
+        assert!(la_ve_programa(FUERA, Nivel::Plan, "get_agenda") && !solo_lo_suyo_programa(FUERA, Nivel::Plan, "read_pane_transcript"));
+        assert!(la_ve_programa(FUERA, Nivel::Auto, "send_command"));
+    }
+
+    /// Lo que cuelga de una terminal sin presentar contraseña no baja con lo de fuera:
+    /// sigue en lo de siempre, y en lo que esa fila tuviera guardado.
+    #[test]
+    fn lo_que_cuelga_de_una_terminal_sigue_como_estaba() {
+        let p = SIN_CLAVE_EN_TERMINAL;
+        assert_eq!(nivel_de(&Clientes::default(), p), Nivel::Plan);
+        assert!(la_ve_programa(p, nivel_de(&Clientes::default(), p), "read_pane_screen"));
+        assert!(!solo_lo_suyo_programa(p, nivel_de(&Clientes::default(), p), "read_pane_screen"));
+        let mut c = Clientes::default();
+        c.niveles.insert(FUERA.into(), Nivel::Mirar);
+        assert_eq!(nivel_de(&c, p), Nivel::Mirar, "lo que había guardado");
+        c.niveles.insert(FUERA.into(), Nivel::Auto);
+        assert_eq!(nivel_de(&c, p), Nivel::Auto);
+        // Ni un nombre lo da, ni tiene fila propia.
+        assert_eq!(programa_de_cliente(p), "desconocido");
+        assert!(filas(&Clientes::default()).iter().all(|f| f.nombre != p));
+        assert!(mcp_clientes_poner(p.into(), Some(Nivel::Auto)).is_err());
+    }
+
+    /// `lista` solo vale en su fila: ni en un programa, ni en un bot.
+    #[test]
+    fn lista_solo_se_pone_en_la_fila_de_fuera() {
+        assert!(mcp_clientes_poner("codex".into(), Some(Nivel::Lista)).is_err());
+        assert!(mcp_clientes_poner("claude".into(), Some(Nivel::Lista)).is_err());
+        assert!(poner_de_bot("hermes", Some(Nivel::Lista)).is_err());
+    }
+
+    #[test]
+    fn el_mensaje_de_fuera_dice_que_si_puede_y_donde_se_sube() {
+        let m = mensaje_denegado(FUERA, Nivel::Lista, "leer_memoria");
+        assert!(m.contains("leer_memoria") && m.contains("lista de terminales") && m.contains("abre terminales"), "{m}");
+        assert!(m.contains("Ajustes > Terminales") && m.contains("«Fuera de Adeorq»") && m.contains("«Leer y abrir»"), "{m}");
     }
 
     /// Lo que dice el encargo de cada escalón de un bot, herramienta por herramienta.

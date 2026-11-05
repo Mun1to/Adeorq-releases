@@ -116,6 +116,12 @@ try {
   for (const f of filas ?? []) console.log(`      · ${f}`);
   const donde = (filas ?? []).map((f) => /en (2da MAIN|3ra)\b/.exec(f)?.[1] ?? "?");
   dice(donde.join(", ") === "2da MAIN, 3ra, 2da MAIN", `cada una dice en qué cuenta nace, repartidas como manda la regla (${donde.join(", ")})`);
+  // El resumen de debajo (bandeja de Munir): decía cuántos agentes y cuánto
+  // pesan, pero no a qué cuentas van, y el «×11» no se entendía solo.
+  const total = await v.js(`(document.querySelector(".foreman-box .plan-total")?.innerText ?? "").replace(/\\s+/g, " ").trim()`);
+  console.log(`      · ${total}`);
+  dice(/2 en 2da MAIN, 1 en 3ra/.test(total ?? ""), "el resumen dice a qué cuentas van las terminales y cuántas a cada una", total);
+  dice(/pesa como \d+ haikus?/.test(total ?? "") && !/×\d/.test(total ?? ""), "el peso se lee con palabras («pesa como N haikus»), no como un «×N» suelto", total);
   const r = await v.js(`JSON.stringify(document.querySelector(".foreman-box").getBoundingClientRect())`).then((x) => JSON.parse(x));
   const foto = await a.foto({ x: Math.max(0, r.x), y: Math.max(0, r.y), width: Math.min(1400, r.width), height: Math.min(900, r.height) }, "capataz-cuentas.png");
   console.log(`      foto: ${foto}`);

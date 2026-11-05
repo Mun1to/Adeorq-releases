@@ -102,7 +102,7 @@ self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 self.addEventListener("push", (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch { d = { cuerpo: e.data ? e.data.text() : "" }; }
-  e.waitUntil(self.registration.showNotification(d.titulo || "Conserje", {
+  e.waitUntil(self.registration.showNotification(d.titulo || "Adeo", {
     body: d.cuerpo || "",
     icon: "/icono.svg",
     badge: "/icono.svg",
@@ -869,7 +869,7 @@ pub fn atender(
     }
     if let Some(o) = p.cabeceras.get("origin") {
         if !origen_valido(o, host) {
-            return Respuesta::error(403, "Esa página no es la del conserje.");
+            return Respuesta::error(403, "Esa página no es la de Adeo.");
         }
     }
 
@@ -1698,7 +1698,7 @@ fn arrancar(app: &tauri::AppHandle) {
         }
         let Some(escucha) = escucha else {
             crate::anotar(&format!(
-                "Móvil: el {PUERTO} ya lo sirve otro programa (¿otro Adeorq abierto?), así que el conserje no está en el móvil."
+                "Móvil: el {PUERTO} ya lo sirve otro programa (¿otro Adeorq abierto?), así que Adeo no está en el móvil."
             ));
             m.sirviendo.store(false, Ordering::SeqCst);
             return;
@@ -1806,7 +1806,7 @@ fn no_dormir(si: bool) -> bool {
     #[cfg(not(target_os = "macos"))]
     let mut orden = {
         let mut c = Command::new("systemd-inhibit");
-        c.args(["--what=sleep", "--who=Adeorq", "--why=Sirve el conserje al móvil", "--mode=block", "tail"])
+        c.args(["--what=sleep", "--who=Adeorq", "--why=Sirve a Adeo en el móvil", "--mode=block", "tail"])
             .arg(format!("--pid={}", std::process::id()))
             .args(["-f", "/dev/null"]);
         c
@@ -1940,7 +1940,7 @@ pub fn movil_idioma(state: tauri::State<'_, Movil>, idioma: String) {
 pub fn movil_emparejar(state: tauri::State<'_, Movil>) -> Result<CodigoVisible, String> {
     let mut g = state.guardia.lock().unwrap();
     if !g.ajustes.encendido {
-        return Err("Enciende primero el conserje en el móvil.".into());
+        return Err("Enciende primero «Adeo en el móvil».".into());
     }
     let valor = g.nuevo_codigo(Instant::now())?;
     Ok(CodigoVisible { valor, quedan: VIDA_CODIGO.as_secs() })

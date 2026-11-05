@@ -6,6 +6,7 @@ import {
   foremanPrompt,
   listProjects,
   listSkills,
+  nombreDeCuenta,
   openInAntigravity,
   scanSessions,
   writeMission,
@@ -43,7 +44,7 @@ import {
 import { mirarMundo, mundoEnCache, reglasDeLaMemoria } from "../lib/mundo";
 import { leerPerfil } from "../lib/perfil";
 import { providerOf, sabe } from "../lib/providers";
-import { conUnaAbierta, cuentaDeLaReceta, esLaPrincipal } from "../lib/cuentasDelPlan";
+import { conUnaAbierta, cuentaDeLaReceta, esLaPrincipal, repartoDelPlan } from "../lib/cuentasDelPlan";
 import {
   MODOS,
   ROTULO,
@@ -314,7 +315,7 @@ Skills disponibles de Munir (ordénalas por su nombre dentro de los encargos cua
 function parsePlan(raw: string): ForemanPlan {
   const a = raw.indexOf("{");
   const b = raw.lastIndexOf("}");
-  if (a < 0 || b <= a) throw new Error("el Capataz no devolvió un plan legible");
+  if (a < 0 || b <= a) throw new Error("Adeo no devolvió un plan legible");
   const p = JSON.parse(raw.slice(a, b + 1)) as Partial<ForemanPlan>;
   return {
     resumen: String(p.resumen ?? "").trim(),
@@ -624,7 +625,7 @@ function teamPrompt(objetivo: string, yo: PartePlan, todas: PartePlan[]): string
 
 function missionFile(project: string, encargo: string): string {
   const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
-  return `# MISION.md · ${project}\n\n> Generado por el Capataz de Adeorq (${stamp}). Coordinación del equipo:\n> todos los agentes leen este archivo y avisan de sus avances en BUZON.md.\n\n## Encargo para Antigravity\n\n${encargo}\n`;
+  return `# MISION.md · ${project}\n\n> Generado por Adeo, de Adeorq (${stamp}). Coordinación del equipo:\n> todos los agentes leen este archivo y avisan de sus avances en BUZON.md.\n\n## Encargo para Antigravity\n\n${encargo}\n`;
 }
 
 function actionIcon(a: PlanAction): string {
@@ -764,6 +765,8 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
   const valid = checked.filter((c) => c.ok);
   /** Todos los cerebros que este plan va a encender, la cuadrilla desplegada. */
   const agentesDelPlan = valid.flatMap(cerebrosDe);
+  /** A qué cuentas van, para el resumen de debajo (vacío si todas a la principal). */
+  const repartoDeCuentas = repartoDelPlan(valid.flatMap((c) => (c.partes ? c.partes.map((p) => p.cuenta) : [c.cuenta])));
   /**
    * Lo gastado de la cuenta con MÁS margen, y solo cuando ya va apretada.
    *
@@ -1341,8 +1344,8 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
               data-on={!!voz}
               data-tip={
                 voz
-                  ? t("El Asistente habla con la voz {voz} (Grok, con tu clave de OpenRouter). Clic para callarlo; clic derecho para cambiar de voz.", { voz })
-                  : t("Que el Asistente diga sus respuestas en alto (Grok TTS por OpenRouter, con tu clave de Cuentas › OpenRouter).")
+                  ? t("Adeo habla con la voz {voz} (Grok, con tu clave de OpenRouter). Clic para callarlo; clic derecho para cambiar de voz.", { voz })
+                  : t("Que Adeo diga sus respuestas en alto (Grok TTS por OpenRouter, con tu clave de Cuentas › OpenRouter).")
               }
               onClick={() => {
                 const v = voz ? "" : VOCES[0];
@@ -1603,7 +1606,7 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
         <>
           {plan.resumen && <p className="foreman-summary">{plan.resumen}</p>}
           {checked.length === 0 && (
-            <p className="card-hint">{t("El Capataz no propuso acciones para ese pedido.")}</p>
+            <p className="card-hint">{t("Adeo no propuso acciones para ese pedido.")}</p>
           )}
           <ul className="plan-list">
             {checked.map((c, i) => (
@@ -1682,10 +1685,23 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
               factura. Es la única cifra comparable que existe. */}
           {agentesDelPlan.length > 0 && (
             <p className="plan-total">
-              {t("Abre {n} agentes", { n: String(agentesDelPlan.length) })} ·{" "}
+              {agentesDelPlan.length === 1 ? t("Abre 1 agente") : t("Abre {n} agentes", { n: String(agentesDelPlan.length) })} ·{" "}
               <strong>{resumeCerebros(agentesDelPlan)}</strong> ·{" "}
+              {/* A qué cuentas van, que la fila de cada acción solo dice si no es
+                  la principal, y el peso con palabras: un «×11» suelto no se
+                  entendía sin pasar el ratón por encima. */}
+              {repartoDeCuentas.length > 0 && (
+                <>
+                  {repartoDeCuentas
+                    .map((e) => t("{n} en {c}", { n: String(e.n), c: nombreDeCuenta(e.cuenta.label, t) }))
+                    .join(", ")}{" "}
+                  ·{" "}
+                </>
+              )}
               <span data-tip={t("Peso relativo, tomando haiku como 1")}>
-                ×{pesoDelPlan(agentesDelPlan)}
+                {pesoDelPlan(agentesDelPlan) === 1
+                  ? t("pesa como 1 haiku")
+                  : t("pesa como {n} haikus", { n: String(pesoDelPlan(agentesDelPlan)) })}
               </span>
               {semanaJusta != null && (
                 <span className="plan-total-cuota">
@@ -1733,11 +1749,10 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
       <div className="foreman-box">
         <div className="foreman-title">
           <Orbe estado={estadoOrbe} size={22} />
-          {/* «Capataz» y no «Asistente»: el panel se llamaba de las dos formas
-              a la vez (la tarjeta del Panel ya decía Capataz) y Munir cerró el
-              nombre el 2026-08-13. Un nombre a medias es dos piezas para quien
-              lo lee. */}
-          {t("Capataz")}
+          {/* «Adeo» en pantalla (Munir, 2026-11-04): el panel se llamaba
+              Capataz aquí, Asistente en la bola y conserje en el Chat, y un
+              nombre a medias es dos piezas para quien lo lee. */}
+          {t("Adeo")}
         </div>
         {body}
       </div>

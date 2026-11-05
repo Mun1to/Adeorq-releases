@@ -3,6 +3,7 @@ mod archivos;
 mod bots;
 mod bots_conexion;
 mod bots_yaml;
+mod claude_conexion;
 mod autostart;
 mod cierre;
 mod compactaciones;
@@ -564,6 +565,9 @@ pub fn run() {
             bots_conexion::bots_conectar,
             bots_conexion::bots_nivel,
             bots_conexion::bots_desconectar,
+            claude_conexion::claude_conexiones,
+            claude_conexion::claude_conectar,
+            claude_conexion::claude_desconectar,
             bots::bots_guardar,
             bots::bots_clave_poner,
             bots::bots_clave_quitar,

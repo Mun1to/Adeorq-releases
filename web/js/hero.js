@@ -1083,7 +1083,7 @@
       pomo.style.left = (100 + Math.random() * 250) + 'px';
       pomo.style.top = (80 + Math.random() * 120) + 'px';
       pomo.innerHTML = '<div class="demo-cnode-drag-handle"><span>⏱️</span><span class="demo-cnode-head">' +
-        (isEn ? 'Foreman Pomodoro' : 'Pomodoro Capataz') + '</span></div>' +
+        (isEn ? 'Adeo Pomodoro' : 'Pomodoro Adeo') + '</span></div>' +
         '<div class="demo-pomo-timer">25:00</div>' +
         '<div class="demo-pomo-controls"><button type="button" class="demo-btn-action demo-btn-action--primary">▶ ' +
         (isEn ? 'Start' : 'Iniciar') + '</button></div>';
@@ -1204,7 +1204,7 @@
       ev.preventDefault();
       var isVisible = drawerCapataz.style.display !== 'none';
       drawerCapataz.style.display = isVisible ? 'none' : 'flex';
-      showToast(isVisible ? '✦ Capataz Oculto' : '✦ Capataz Orquestador convocado (Ctrl+Mayús+A)', 'info');
+      showToast(isVisible ? '✦ Adeo oculto' : '✦ Adeo convocado (Ctrl+Mayús+A)', 'info');
     });
   }
 
@@ -1317,7 +1317,7 @@
   };
 
   window.capatazOptimizarDemo = function() {
-    showToast('⚡ Capataz Orquestador: 140MB liberados en memoria PTY y subagentes sincronizados.', 'ok');
+    showToast('⚡ Adeo: 140MB liberados en memoria PTY y subagentes sincronizados.', 'ok');
     if (drawerCapataz) drawerCapataz.style.display = 'none';
   };
 

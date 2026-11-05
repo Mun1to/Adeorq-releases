@@ -148,8 +148,8 @@
       }
       pintarPlan(elegirPlan(texto));
       if (plan) plan.hidden = false;
-      aviso('El Capataz propone 3 sesiones. No abre ninguna sin tu OK.',
-            'The Foreman proposes 3 sessions. It opens none without your OK.', 'info');
+      aviso('Adeo propone 3 sesiones. No abre ninguna sin tu OK.',
+            'Adeo proposes 3 sessions. It opens none without your OK.', 'info');
     });
   }
 

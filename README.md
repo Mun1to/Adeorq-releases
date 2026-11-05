@@ -67,7 +67,7 @@ replacing them, so the day something new ships, you have it.
 | **Home** | Adeo and one box to ask him for anything in your own words: he splits it into sessions and the router picks the model. Beside it, your projects ordered by who is waiting for you and who is working, and your usage this month. |
 | **The Cockpit** | A grid of real terminals. Split them, move them, set them aside without closing them, and find them where you left them next time. And if you want, they survive Adeorq itself: with **Settings → Terminals → Keep the terminals alive if Adeorq crashes** (experimental), your agents keep working through a crash and reattach when you open it again. |
 | **Your sessions** | Reads `~/.claude`, and Codex's `~/.codex`, with no API at all: title, real state (asking you / finished / halfway), how long ago, and which ones are still alive. One click resumes any of them inside the panel. |
-| **The Foreman** | Tell it what you want out loud and it proposes a board. Nothing runs without your OK, and the plan goes through a deterministic gate before you even see it. |
+| **Adeo's plan** | Tell Adeo what you want out loud and he proposes a board. Nothing runs without your OK, and the plan goes through a deterministic gate before you even see it. |
 | **The Canvas** | An infinite board with the terminals living inside it, plus notes, images, a kanban, and arrows that hand one agent's output to the next. A note with a title and steps can be **saved as a runbook** in the project's `docs/fichas`, ready to repeat. |
 | **Swarms** | Join sessions that are already open on the canvas into one group chat: drop a terminal on another, or **Add › Swarm**. What you type goes to Adeo, who picks the session it belongs to, rewrites the task and sends it; what each session answers comes back to the chat under its name. |
 | **The web pane** | Your localhost right beside the agent building it: a small browser with tabs, back and forward, and one click to swap in YOUR real browser, extensions and all. |
@@ -79,8 +79,8 @@ replacing them, so the day something new ships, you have it.
 | **Accounts** | Several logins of the same CLI side by side, each with its plan and how much of its limit is left. You choose which one new terminals are born with, or open a terminal on a specific one. |
 | **Commands** | Everything you can type inside each agent, searchable by what you want to do rather than by its name, and sent to the terminal with one click. |
 | **Memory** | Your Obsidian vault inside the panel, searchable by what the notes say, with a map of what links to what. |
-| **The Concierge** | One chat that opens sessions for you as tabs, with a router that picks which model or client takes each job. |
-| **On your phone** | The Concierge, your sessions and every terminal, from any browser and wherever you are. Attach photos, get a notification when an agent asks you something. |
+| **Adeo in the Chat** | One chat where Adeo opens sessions for you as tabs, with a router that picks which model or client takes each job. |
+| **On your phone** | Adeo, your sessions and every terminal, from any browser and wherever you are. Attach photos, get a notification when an agent asks you something. |
 | **Adeo** | The little pixel A in the top bar is the bell. He types when your agents are working, waves when one is waiting for you, jumps when one finishes and sleeps when there are none, and follows your mouse with his eye. |
 
 <div align="center">
@@ -99,16 +99,16 @@ usage are sample data.</sub>
 
 ## From your phone, or any browser
 
-Adeorq can travel with you: from your phone, a tablet or another computer you talk to the
-Concierge, read your sessions, type into any terminal and get a notification when an agent
+Adeorq can travel with you: from your phone, a tablet or another computer you talk to
+Adeo, read your sessions, type into any terminal and get a notification when an agent
 finishes or asks you something. What you see is **your PC**, not a copy in the cloud, so it
 has to be on with Adeorq open. Set it up once:
 
 1. Install [Tailscale](https://tailscale.com/download) on the PC and on your phone, and sign
    in with the same account on both. It is a private network between your devices, free for
    personal use.
-2. In Adeorq, open **Settings → Mobile** and turn on **Concierge on my phone**.
-3. Press **Bring the concierge to Tailscale**. The first time, Tailscale may ask you to enable
+2. In Adeorq, open **Settings → Mobile** and turn on **Adeo on your phone**.
+3. Press **Bring Adeo to Tailscale**. The first time, Tailscale may ask you to enable
    HTTPS on your account: if a link appears, open it, enable it and press again.
 4. Press **Pair a phone**. You get a QR code with your address
    (`https://your-pc.your-net.ts.net:8443`) and a six-digit code that lasts ten minutes.

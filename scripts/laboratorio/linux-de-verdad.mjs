@@ -9,7 +9,9 @@
 // deja instalada la release, o `compilar-en-fedora.sh` compila un commit y
 // `ADEORQ_BIN=<ruta>` le dice qué binario usar. Hacen falta Xvfb, xdotool e
 // ImageMagick:
-//   dnf install -y xorg-x11-server-Xvfb xdotool ImageMagick nodejs openbox xclip
+//   dnf install -y xorg-x11-server-Xvfb xdotool ImageMagick nodejs openbox xclip xorg-x11-utils
+// (en Debian y Ubuntu: xvfb xdotool imagemagick nodejs openbox xclip x11-utils; con ImageMagick 6, que
+// no trae `magick`, hace falta un `magick` que llame a `convert` y `compare`)
 //
 // Lo que hace:
 //   1. levanta `Xvfb` y abre la app con una casa de usar y tirar;
@@ -103,22 +105,44 @@ const env = {
   ...(process.env.DBUS_SESSION_BUS_ADDRESS ? { DBUS_SESSION_BUS_ADDRESS: process.env.DBUS_SESSION_BUS_ADDRESS } : {}),
 };
 
-const xvfb = spawn("Xvfb", [PANTALLA, "-screen", "0", "1600x1000x24", "-nolisten", "tcp"], { stdio: "ignore", detached: true });
-xvfb.unref();
-await dormir(1500);
+// Con `LAB_WAYLAND=<socket>` la app NO va en X11: va en el compositor de Wayland que ya esté corriendo en
+// ese socket, dentro de `XDG_RUNTIME_DIR` (el de quien lanza esto, con su propio directorio, nunca el de WSLg),
+// sin `DISPLAY` y con `GDK_BACKEND=wayland` para que no pueda caer en X11 sin que se note. El compositor lo
+// monta quien lanza esto, ANIDADO en la pantalla `:77` (weston, kwin, sway... con su backend X11): de ahí salen
+// las fotos y por ahí entran el teclado y el ratón (`xdotool` sobre `:77`; el compositor los reenvía). El
+// portapapeles es el del compositor (`wl-copy`, `wl-paste`). `LAB_ORIGEN=x,y,ancho,alto` dice dónde cae la
+// ventana de la app en la foto (su parte web, sin la barra), porque un compositor no tiene un X11 que
+// preguntar.
+const WAYLAND = process.env.LAB_WAYLAND;
+const envApp = WAYLAND
+  ? { ...env, DISPLAY: undefined, XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR, WAYLAND_DISPLAY: WAYLAND, GDK_BACKEND: "wayland" }
+  : env;
+if (WAYLAND) {
+  const guarda = process.env.XDG_RUNTIME_DIR ?? "";
+  if (WAYLAND === "wayland-0" || !guarda || /^\/(mnt|run\/user)/.test(guarda) || !existsSync(join(guarda, WAYLAND))) {
+    console.error(`LAB_WAYLAND=${WAYLAND} con XDG_RUNTIME_DIR=${guarda}: eso no es un socket propio (nada de WSLg). Me niego.`);
+    process.exit(3);
+  }
+}
+
+const xvfb = WAYLAND ? null : spawn("Xvfb", [PANTALLA, "-screen", "0", "1600x1000x24", "-nolisten", "tcp"], { stdio: "ignore", detached: true });
+xvfb?.unref();
+if (!WAYLAND) await dormir(1500);
 // Con un gestor de ventanas hay barra, botones y foco de teclado de verdad: sin él,
 // GTK no se entera de que su ventana está activa.
-const gestor = spawn("openbox", [], { env, stdio: "ignore", detached: true });
-gestor.unref();
-await dormir(500);
+if (!WAYLAND) {
+  const gestor = spawn("openbox", [], { env, stdio: "ignore", detached: true });
+  gestor.unref();
+  await dormir(500);
+}
 
 const registro = join(salida, "adeorq-salida.log");
-const log = spawn("/bin/sh", ["-c", `exec "$0" >"$1" 2>&1`, BINARIO, registro], { env, detached: true, stdio: "ignore", cwd: CASA });
+const log = spawn("/bin/sh", ["-c", `exec "$0" >"$1" 2>&1`, BINARIO, registro], { env: envApp, detached: true, stdio: "ignore", cwd: CASA });
 log.unref();
 const pidApp = log.pid;
 
 function puente() {
-  const p = spawn(BINARIO, ["--mcp"], { env });
+  const p = spawn(BINARIO, ["--mcp"], { env: envApp });
   let buf = "";
   const pend = new Map();
   p.stdout.on("data", (d) => {
@@ -159,14 +183,34 @@ function vive() {
   }
 }
 
+// Con un compositor que no se maneja desde un X11 (mutter y kwin sin pantalla, donde la entrada va por D-Bus), el
+// que lanza esto da `LAB_ENTRADA=<ejecutable>`, que recibe `clic X Y [boton]`, `tecla COMBINACION` o
+// `arrastrar X1 Y1 X2 Y2`, y `LAB_FOTO=<ejecutable>`, que recibe la ruta de la foto. Coordenadas de la pantalla.
+const ENTRADA = process.env.LAB_ENTRADA;
 function foto(nombre) {
+  if (process.env.LAB_FOTO) {
+    const r = spawnSync(process.env.LAB_FOTO, [join(salida, nombre)], { encoding: "utf8" });
+    console.log(`foto ${nombre}: ${r.stdout?.trim() === "ok" ? "ok" : `estado ${r.status} ${r.stdout?.trim() ?? ""} ${r.stderr?.trim() ?? ""}`}`);
+    return;
+  }
   const r = spawnSync("import", ["-display", PANTALLA, "-window", "root", join(salida, nombre)], { encoding: "utf8" });
   console.log(`foto ${nombre}: ${r.status === 0 ? "ok" : `estado ${r.status} ${r.stderr?.trim() ?? ""}`}`);
 }
 
 /** Dónde empieza lo de dentro de la ventana, sin la barra que le pone el gestor. */
 function origenDeLaVentana() {
+  if (process.env.LAB_ORIGEN) {
+    const [x, y, ancho, alto] = process.env.LAB_ORIGEN.split(",").map(Number);
+    return { x, y, ancho, alto };
+  }
   const ids = spawnSync("xdotool", ["search", "--onlyvisible", "--name", "Adeorq"], { env, encoding: "utf8" }).stdout.trim().split("\n");
+  // `xdotool` 3.2016 (el de Ubuntu 24.04 y Debian 13) suma la barra del gestor dos veces en Y (0,38 donde
+  // son 0,19), y todos los clics salían corridos: con `xwininfo` sale bien en todas.
+  const w = spawnSync("xwininfo", ["-id", ids.at(-1)], { env, encoding: "utf8" }).stdout ?? "";
+  const de = (re) => Number(w.match(re)?.[1] ?? NaN);
+  const x = de(/Absolute upper-left X:\s+(-?\d+)/);
+  const y = de(/Absolute upper-left Y:\s+(-?\d+)/);
+  if (Number.isFinite(x) && Number.isFinite(y)) return { x, y, ancho: de(/Width:\s+(\d+)/), alto: de(/Height:\s+(\d+)/) };
   const g = spawnSync("xdotool", ["getwindowgeometry", "--shell", ids.at(-1)], { env, encoding: "utf8" }).stdout;
   const dato = (n) => Number(g.match(new RegExp(`${n}=(-?\\d+)`))?.[1] ?? 0);
   return { x: dato("X"), y: dato("Y"), ancho: dato("WIDTH"), alto: dato("HEIGHT") };
@@ -175,25 +219,35 @@ let origen = { x: 0, y: 0, ancho: 0, alto: 0 };
 
 /** Un clic dentro de la ventana, en coordenadas de la propia ventana. */
 function clic(x, y, boton = 1) {
+  if (ENTRADA) return void spawnSync(ENTRADA, ["clic", String(origen.x + x), String(origen.y + y), String(boton)], { env: process.env });
   spawnSync("xdotool", ["mousemove", String(origen.x + x), String(origen.y + y), "click", String(boton)], { env });
 }
 
 /** Una combinación de teclas para la ventana activa. */
 function tecla(combinacion) {
+  if (ENTRADA) return void spawnSync(ENTRADA, ["tecla", combinacion], { env: process.env });
   spawnSync("xdotool", ["key", "--clearmodifiers", combinacion], { env });
 }
 
 /** Arrastrar con el botón izquierdo, como quien selecciona con el ratón. */
 function arrastrar(x1, y1, x2, y2) {
+  if (ENTRADA) return void spawnSync(ENTRADA, ["arrastrar", String(origen.x + x1), String(origen.y + y1), String(origen.x + x2), String(origen.y + y2)], { env: process.env });
   spawnSync("xdotool", ["mousemove", String(origen.x + x1), String(origen.y + y1), "mousedown", "1", "mousemove", String(origen.x + x2), String(origen.y + y2), "mouseup", "1"], { env });
 }
 
 /** El portapapeles de ESTA pantalla virtual, que no es el de Windows. `xclip` se
     queda en segundo plano guardándolo: sin soltar sus salidas, esto no volvería. */
 function aLaSeleccion(texto, seleccion = "clipboard") {
+  if (WAYLAND) {
+    spawnSync("wl-copy", [...(seleccion === "primary" ? ["--primary"] : []), "--", texto], { env: envApp, stdio: ["ignore", "ignore", "ignore"], timeout: 3000 });
+    return;
+  }
   spawnSync("xclip", ["-selection", seleccion], { env, input: texto, stdio: ["pipe", "ignore", "ignore"], timeout: 3000 });
 }
 function deLaSeleccion(seleccion = "clipboard") {
+  if (WAYLAND) {
+    return spawnSync("wl-paste", ["--no-newline", ...(seleccion === "primary" ? ["--primary"] : [])], { env: envApp, encoding: "utf8", timeout: 3000 }).stdout ?? "";
+  }
   return spawnSync("xclip", ["-o", "-selection", seleccion], { env, encoding: "utf8", timeout: 3000 }).stdout ?? "";
 }
 
@@ -222,10 +276,17 @@ async function acabar() {
   await dormir(1500);
   // El gestor y los `xclip` que quedan guardando el portapapeles mueren con la pantalla.
   try {
-    process.kill(xvfb.pid, "SIGTERM");
+    if (xvfb) process.kill(xvfb.pid, "SIGTERM");
   } catch {}
-  rmSync(BASE, { recursive: true, force: true });
   console.log(fallos.length ? `\n${fallos.length} fallo(s):\n- ${fallos.join("\n- ")}` : "\nTodo bien.");
+  // Dentro de un AppImage con `--appimage-extract-and-run`, el SIGTERM llega a su arrancador y no siempre a la app,
+  // que sigue escribiendo en su casa unos instantes: sin reintentos, `rmSync` caía en ENOTEMPTY y la pasada salía con 1
+  // estando todo en verde.
+  try {
+    rmSync(BASE, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
+  } catch (e) {
+    console.log(`(no se pudo borrar ${BASE}: ${e.code})`);
+  }
   process.exit(fallos.length ? 1 : 0);
 }
 

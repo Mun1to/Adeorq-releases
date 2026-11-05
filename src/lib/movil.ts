@@ -464,7 +464,7 @@ export async function atenderPedido(p: PedidoMovil, exec: ConserjeExec): Promise
   if (p.clase === "enviar") {
     const texto = typeof p.texto === "string" ? p.texto.trim() : "";
     if (!texto) return { error: "No hay nada que mandar." };
-    if (enCurso.get(id)?.pensando) return { error: "El conserje todavía está con lo anterior." };
+    if (enCurso.get(id)?.pensando) return { error: "Adeo todavía está con lo anterior." };
     const estado: EnCurso = { pensando: true, paso: "", texto, aviso: null, error: null };
     enCurso.set(id, estado);
     void (async () => {

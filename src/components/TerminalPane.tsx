@@ -575,7 +575,7 @@ export default function TerminalPane({
     // aisladas» mientras el agente seguía escribiendo en tu proyecto, que es la
     // peor de las dos opciones: creerte protegido sin estarlo.
     setNote(
-      t("El Modo Espejo se elige al ABRIR la terminal, no después: esta ya está corriendo dentro de tu carpeta. Ciérrala y ábrela en espejo, o pídeselo al Capataz."),
+      t("El Modo Espejo se elige al ABRIR la terminal, no después: esta ya está corriendo dentro de tu carpeta. Ciérrala y ábrela en espejo, o pídeselo a Adeo."),
     );
     setTimeout(() => setNote(null), 9000);
   };

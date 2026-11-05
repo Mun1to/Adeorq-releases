@@ -73,7 +73,7 @@ async (page) => {
   ok("el conserje es la elegida y lleva la raya", m.pestanas[0].on && !!m.pestanas[0].raya);
   ok("las demás, sin raya", m.pestanas.slice(1).every((p) => !p.raya));
   ok("cada sesión viva lleva su punto", m.pestanas.slice(1).every((p) => p.punto));
-  ok("el conserje se llama así, sin resumen detrás", m.pestanas[0].texto === "Conserje");
+  ok("el conserje se llama así, sin resumen detrás", m.pestanas[0].texto === "Adeo");
   await foto("tira", ".cj-pestanas");
 
   const segunda = page.locator(".cj-pestanas .cj-pestana").nth(1);

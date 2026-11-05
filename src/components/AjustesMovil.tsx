@@ -203,10 +203,10 @@ export default function AjustesMovil() {
     }
     if (ts.llevado) {
       return (
-        <Fila icono={icono} que="Tailscale" bien={!ts.ajeno} como={t("El conserje está en tu red")}>
+        <Fila icono={icono} que="Tailscale" bien={!ts.ajeno} como={t("Adeo está en tu red")}>
           {ts.ajeno && (
             <p className="movil-fila-ayuda">
-              {t("En su mismo puerto de Tailscale hay otra cosa ({a}): comparte dirección con el conserje y podría leer la clave del móvil. Quítala de tailscale serve.", { a: ts.ajeno })}
+              {t("En su mismo puerto de Tailscale hay otra cosa ({a}): comparte dirección con Adeo y podría leer la clave del móvil. Quítala de tailscale serve.", { a: ts.ajeno })}
             </p>
           )}
         </Fila>
@@ -217,12 +217,12 @@ export default function AjustesMovil() {
         icono={icono}
         que="Tailscale"
         bien={false}
-        como={t("Falta llevar el conserje a tu red")}
+        como={t("Falta llevar a Adeo a tu red")}
         botones={
           <>
             <button className="mini" disabled={ocupado || !!ts.ajeno} onClick={() => mirarTailscale(true)}>
               <Ocupado activo={ocupado} mientras={t("Conectando…")}>
-                {t("Llevar el conserje a Tailscale")}
+                {t("Llevar a Adeo a Tailscale")}
               </Ocupado>
             </button>
             {enlace && (
@@ -279,18 +279,18 @@ export default function AjustesMovil() {
   return (
     <section className="panel-card">
       <div className="movil-cab">
-        <h2>{t("El conserje en el móvil")}</h2>
+        <h2>{t("Adeo en el móvil")}</h2>
         <label className="setting-switch">
           <input
             type="checkbox"
-            aria-label={t("Conserje en el móvil")}
+            aria-label={t("Adeo en el móvil")}
             checked={!!estado?.encendido}
             onChange={(e) => encender(e.currentTarget.checked)}
           />
         </label>
       </div>
       <p className="card-hint">
-        {t("Habla con el conserje y con tus terminales desde el móvil, estés donde estés. Llega por Tailscale, una red privada entre tus aparatos: desde internet no se ve, y solo entran los móviles que emparejes aquí.")}
+        {t("Habla con Adeo y con tus terminales desde el móvil, estés donde estés. Llega por Tailscale, una red privada entre tus aparatos: desde internet no se ve, y solo entran los móviles que emparejes aquí.")}
       </p>
 
       {estado?.encendido && (
@@ -308,7 +308,7 @@ export default function AjustesMovil() {
                     {t("Despierto mientras esté encendido")}
                   </span>
                 ) : (
-                  t("Sirviendo el conserje")
+                  t("Atendiendo al móvil")
                 )
               }
             />

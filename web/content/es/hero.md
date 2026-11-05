@@ -75,7 +75,7 @@ Cuentas
 Emisión
 
 ## demo.capataz **[nueva]**
-Capataz
+Adeo
 
 ## demo.guia **[ya no se usa: la Guía no cabe en la maqueta]**
 Guía

@@ -33,7 +33,7 @@ export const PARTES: Array<{ id: Parte; nombre: string; que: string }> = [
   { id: "cabina", nombre: "Cabina", que: "las terminales en mosaico" },
   { id: "lienzo", nombre: "Lienzo", que: "las terminales en un tablero libre, con notas y flechas" },
   { id: "memoria", nombre: "Memoria", que: "tus notas y lo que recuerdan tus agentes" },
-  { id: "chat", nombre: "Chat", que: "tus sesiones como conversaciones, y el conserje" },
+  { id: "chat", nombre: "Chat", que: "tus sesiones como conversaciones, y Adeo" },
 ];
 
 export const PARTES_KEY = "adeorq-partes";

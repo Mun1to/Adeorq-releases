@@ -1,11 +1,15 @@
 //! Quién es de verdad el proceso que está al otro lado de una conexión al puerto.
 //!
-//! Hace falta para una sola cosa: el `adeorq secreto` de una versión anterior. Tras
-//! actualizar, el motor de terminales de la versión de antes sigue vivo y todas sus
-//! terminales llevan su carpeta en el `PATH`, así que `adeorq` es ese cliente viejo,
-//! que pide la clave sin decir de qué terminal viene. Sin esto, cada petición sacaba
-//! la ventana de «un programa de fuera» desde las propias terminales de Munir, que
-//! decidió justo lo contrario (`docs/contexto/secretos.md`).
+//! Hace falta para el `adeorq secreto` de una versión anterior. Tras actualizar, el
+//! motor de terminales de la versión de antes sigue vivo y todas sus terminales llevan
+//! su carpeta en el `PATH`, así que `adeorq` es ese cliente viejo, que pide la clave
+//! sin decir de qué terminal viene. Sin esto, cada petición sacaba la ventana de «un
+//! programa de fuera» desde las propias terminales de Munir, que decidió justo lo
+//! contrario (`docs/contexto/secretos.md`).
+//!
+//! Y para el escalón: lo de fuera de Adeorq solo ve la lista (`Nivel::Lista`), y un
+//! cliente sin contraseña que cuelga de una terminal (el puente de otra versión, un
+//! CLI que limpia el entorno de sus servidores MCP) no es de fuera y no baja con ello.
 //!
 //! Con cualquier duda la respuesta es `None`, o sea «de fuera», con su ventana.
 //! El motor aparte de fábrica solo existe en Windows: en los demás sistemas, `None`.
@@ -28,11 +32,28 @@ pub(super) fn quien_pide(presentado: Option<(u32, PanelCreido)>, por_su_proceso:
 
 /// La terminal de la que cuelga quien abrió esta conexión, si cuelga de alguna.
 pub(super) fn terminal_del_que_pide(app: &tauri::AppHandle, puntas: Option<(SocketAddr, SocketAddr)>) -> Option<u32> {
-    let (cliente, servidor) = puntas?;
-    let paneles: HashMap<u32, u32> = crate::pty::fichas(app).into_iter().filter_map(|f| Some((f.pid?, f.id))).collect();
-    let (panel, dueno) = terminal_al_otro_lado(cliente, servidor, &paneles)?;
+    let (panel, dueno) = terminal_y_proceso(app, puntas)?;
     crate::anotar(&format!("Una petición de clave sin terminal viene del proceso {dueno}, que cuelga de la terminal {panel}: es un `adeorq` de otra versión en su PATH."));
     Some(panel)
+}
+
+/// Si una conexión que no ha presentado contraseña cuelga de una terminal de Adeorq.
+pub(super) fn cuelga_de_una_terminal(app: &tauri::AppHandle, puntas: Option<(SocketAddr, SocketAddr)>) -> bool {
+    terminal_y_proceso(app, puntas).is_some()
+}
+
+fn terminal_y_proceso(app: &tauri::AppHandle, puntas: Option<(SocketAddr, SocketAddr)>) -> Option<(u32, u32)> {
+    let (cliente, servidor) = puntas?;
+    let paneles: HashMap<u32, u32> = crate::pty::fichas(app).into_iter().filter_map(|f| Some((f.pid?, f.id))).collect();
+    terminal_al_otro_lado(cliente, servidor, &paneles)
+}
+
+/// Lo que dijo una línea `panel` sobre si esta conexión puede mirarse por su proceso.
+/// Sin contraseña es un cliente que no la conoce (el puente de antes de la 0.9.239, o
+/// uno sin entorno): se mira. Una contraseña mala no se arregla por colgar de una
+/// terminal, y un número ya creído no necesita nada más.
+pub(super) fn se_mira_por_su_proceso(creido: PanelCreido, trae_clave: bool) -> bool {
+    creido == PanelCreido::No && !trae_clave
 }
 
 /// La terminal de la que desciende `inicio`, subiendo por los padres.
@@ -221,6 +242,14 @@ mod tests {
     }
 
     #[test]
+    fn una_linea_panel_dice_si_se_mira_su_proceso() {
+        assert!(se_mira_por_su_proceso(PanelCreido::No, false), "un número sin contraseña");
+        assert!(!se_mira_por_su_proceso(PanelCreido::No, true), "una contraseña mala no se arregla");
+        assert!(!se_mira_por_su_proceso(PanelCreido::Suyo, true));
+        assert!(!se_mira_por_su_proceso(PanelCreido::DeAntes, false), "ya está creído");
+    }
+
+    #[test]
     fn de_las_dos_puntas_cuenta_la_del_cliente() {
         let cliente: SocketAddr = "127.0.0.1:50000".parse().unwrap();
         let servidor: SocketAddr = "127.0.0.1:3012".parse().unwrap();
@@ -249,6 +278,37 @@ mod tests {
         assert_eq!(terminal_al_otro_lado(desde, servidor, &mapa(&[(yo, 38)])), Some((38, yo)));
         assert_eq!(terminal_al_otro_lado(desde, servidor, &mapa(&[(u32::MAX, 38)])), None);
         assert!(nacio(yo).is_some());
+    }
+
+    /// Lo que cuesta mirar el proceso de una conexión que no cuelga de ninguna terminal,
+    /// que es lo que paga cada llamada de un programa de fuera: la tabla de conexiones,
+    /// la foto de procesos y subir hasta arriba. Se mide, no se comprueba:
+    /// `cargo test --lib cuanto_cuesta_mirar -- --ignored --nocapture`.
+    #[cfg(windows)]
+    #[test]
+    #[ignore]
+    fn cuanto_cuesta_mirar_el_proceso_de_una_conexion_de_fuera() {
+        let escucha = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let _cliente = std::net::TcpStream::connect(escucha.local_addr().unwrap()).unwrap();
+        let (_aceptada, desde) = escucha.accept().unwrap();
+        let servidor = escucha.local_addr().unwrap();
+        let ninguna = HashMap::new();
+        let mut tiempos: Vec<f64> = (0..200)
+            .map(|_| {
+                let t = std::time::Instant::now();
+                assert_eq!(terminal_al_otro_lado(desde, servidor, &ninguna), None);
+                t.elapsed().as_secs_f64() * 1000.0
+            })
+            .collect();
+        tiempos.sort_by(f64::total_cmp);
+        let procesos = crate::pulso::foto_procesos().len();
+        let conexiones = tabla_de_conexiones().map_or(0, |t| t.len());
+        println!(
+            "MEDIDA {procesos} procesos, {conexiones} conexiones: mediana {:.2} ms, p95 {:.2} ms, máx {:.2} ms",
+            tiempos[100],
+            tiempos[190],
+            tiempos[199]
+        );
     }
 
     /// Un hijo de verdad cuelga de su padre, y deja de hacerlo si se dice que la

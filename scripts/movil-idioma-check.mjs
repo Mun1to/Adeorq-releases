@@ -44,7 +44,7 @@ const FUENTES = [
 
 /** Mensajes de `movil.rs` que no llegan nunca a la página, y por qué. */
 export const SOLO_EN_EL_PC = {
-  "Enciende primero el conserje en el móvil.": "lo enseña Ajustes > Móvil en el PC (movil_emparejar)",
+  "Enciende primero «Adeo en el móvil».": "lo enseña Ajustes > Móvil en el PC (movil_emparejar)",
   "Ese móvil no se reconoce.": "lo enseña Ajustes > Móvil en el PC (movil_olvidar)",
 };
 

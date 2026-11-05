@@ -280,7 +280,7 @@ export default function MemoriaView({
       .then((esqueleto) => foremanMapa(ruta, esqueleto, todos))
       .then(async (crudoMapa) => {
         const m = leerMapa(crudoMapa);
-        if (!m) throw new Error(t("el Capataz no devolvió un mapa que se pueda leer"));
+        if (!m) throw new Error(t("Adeo no devolvió un mapa que se pueda leer"));
         const cuando = new Date().toISOString();
         if (sigueAbierto()) {
           setMapa(m);

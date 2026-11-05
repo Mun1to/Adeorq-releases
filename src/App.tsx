@@ -2823,7 +2823,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
             líneas (Munir, 2026-08-05). */}
         <button
           className="tab foreman-call"
-          data-tip={t("Llamar al Asistente (Ctrl+Mayús+A · Ctrl+Mayús+M para dictarle)")}
+          data-tip={t("Llamar a Adeo (Ctrl+Mayús+A · Ctrl+Mayús+M para dictarle)")}
           onClick={() => {
             setDictarAlAbrir(false);
             setShowForeman((v) => !v);
@@ -3439,6 +3439,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
       {view === "ajustes" && (
         <SettingsView
           partes={{ apagadas, cambiar: cambiarPartes, vivas }}
+          cuentas={accounts}
           lang={lang}
           onLang={setLang}
           theme={theme}

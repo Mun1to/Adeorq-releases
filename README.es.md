@@ -68,7 +68,7 @@ programas en lugar de sustituirlos, así que el día que salga algo nuevo, lo ti
 | **El inicio** | Adeo y una caja para pedirle lo que quieras con tus palabras: lo reparte en sesiones y el router elige el modelo. Al lado, tus proyectos por quién te espera y quién trabaja, y tu uso del mes. |
 | **La Cabina** | Un mosaico de terminales reales. Se parten, se mueven, se apartan sin cerrarse y vuelven donde estaban al reabrir. Y si quieres, sobreviven a la propia Adeorq: con **Ajustes → Terminales → Que las terminales aguanten si Adeorq se cae** (en pruebas), tus agentes siguen trabajando aunque se cierre de golpe y se reenganchan al volver a abrirla. |
 | **Tus sesiones** | Lee `~/.claude`, y el `~/.codex` de Codex, sin API ninguna: título, estado real (te pregunta / terminó / a medias), cuándo fue y cuáles siguen vivas. Un clic las retoma dentro del panel. |
-| **El Capataz** | Le pides el tablero hablando y te propone un plan. Nada se ejecuta sin tu OK, y el plan pasa por una verja determinista antes de que lo veas. |
+| **El plan de Adeo** | Le pides el tablero hablando y te propone un plan. Nada se ejecuta sin tu OK, y el plan pasa por una verja determinista antes de que lo veas. |
 | **El Lienzo** | Tablero infinito con las terminales dentro, notas, imágenes, kanban y flechas que encadenan a un agente con el siguiente. Una nota con título y pasos se **guarda como ficha** en `docs/fichas` del proyecto, lista para repetirla. |
 | **Enjambres** | Junta sesiones que ya tienes abiertas en el lienzo en un solo chat de grupo: suelta una terminal encima de otra, o **Añadir › Enjambre**. Lo que escribes va a Adeo, que elige a qué sesión le toca, le reescribe el encargo y se lo manda; lo que contesta cada sesión vuelve al chat con su nombre. |
 | **El panel web** | Tu localhost al lado del agente que lo está construyendo: un navegador pequeño con pestañas, atrás y adelante, y un clic para meter TU navegador de verdad, con sus extensiones. |
@@ -80,8 +80,8 @@ programas en lugar de sustituirlos, así que el día que salga algo nuevo, lo ti
 | **Cuentas** | Varios logins del mismo CLI uno al lado del otro, cada uno con su plan y con lo que lleva gastado de su límite. Eliges con cuál nacen las terminales nuevas, o abres una terminal con una en concreto. |
 | **Comandos** | Todo lo que puedes escribir dentro de cada agente, buscando por lo que quieres hacer y no por cómo se llama, y enviado a la terminal con un clic. |
 | **La Memoria** | Tu bóveda de Obsidian dentro del panel, con búsqueda por contenido y el mapa de lo que enlaza con qué. |
-| **El conserje** | Un solo chat que te abre sesiones como pestañas, con un router que elige qué modelo o qué cliente coge cada encargo. |
-| **En el móvil** | El conserje, tus sesiones y cada terminal, desde cualquier navegador y estés donde estés. Adjuntas fotos y te avisa cuando un agente te pregunta. |
+| **Adeo en el Chat** | Un solo chat donde Adeo te abre sesiones como pestañas, con un router que elige qué modelo o qué cliente coge cada encargo. |
+| **En el móvil** | Adeo, tus sesiones y cada terminal, desde cualquier navegador y estés donde estés. Adjuntas fotos y te avisa cuando un agente te pregunta. |
 | **Adeo** | La A de cuadritos de la barra de arriba es la campana. Teclea cuando tus agentes trabajan, te llama cuando uno te espera, salta cuando uno termina y se duerme si no hay ninguno, y te sigue el ratón con el ojo. |
 
 <div align="center">
@@ -100,15 +100,15 @@ las cuentas, sus límites y el uso son datos de ejemplo.</sub>
 
 ## Desde el móvil, o desde cualquier navegador
 
-Adeorq se viene contigo: desde el móvil, una tablet u otro ordenador hablas con el conserje,
+Adeorq se viene contigo: desde el móvil, una tablet u otro ordenador hablas con Adeo,
 lees tus sesiones, escribes en cualquier terminal y te llega un aviso cuando un agente termina
 o te pregunta. Lo que ves es **tu PC**, no una copia en la nube, así que tiene que estar
 encendido y con Adeorq abierto. Se prepara una vez:
 
 1. Instala [Tailscale](https://tailscale.com/download) en el PC y en el móvil, y entra con la
    misma cuenta en los dos. Es una red privada entre tus aparatos, gratis para uso personal.
-2. En Adeorq, abre **Ajustes → Móvil** y activa **Conserje en el móvil**.
-3. Pulsa **Llevar el conserje a Tailscale**. La primera vez Tailscale puede pedirte activar
+2. En Adeorq, abre **Ajustes → Móvil** y activa **Adeo en el móvil**.
+3. Pulsa **Llevar a Adeo a Tailscale**. La primera vez Tailscale puede pedirte activar
    HTTPS en tu cuenta: si sale un enlace, ábrelo, actívalo y vuelve a pulsar.
 4. Pulsa **Emparejar un móvil**. Sale un QR con tu dirección
    (`https://tu-pc.tu-red.ts.net:8443`) y un código de seis cifras que vale diez minutos.

@@ -126,6 +126,22 @@ const cuentasDe = (mundo: CuentaViva[], acciones: unknown[]) =>
   ok("conUnaAbierta suma uno y no toca el original", luego[0].abiertas === 1 && mundo[0].abiertas === undefined && luego[1] === mundo[1], luego.map((v) => v.abiertas));
 }
 
+// 6b. El resumen de debajo de la tarjeta: a qué cuentas van las terminales.
+{
+  const { repartoDelPlan } = require("../src/lib/cuentasDelPlan") as typeof import("../src/lib/cuentasDelPlan");
+  const pro = viva("2da MAIN", {});
+  const tercera = viva("3ra", {});
+  const main = viva("Principal", {});
+  const sale = (cs: Array<CuentaViva | undefined>) => repartoDelPlan(cs.map((c) => c?.cuenta)).map((e) => `${e.n} en ${e.cuenta.label}`).join(", ");
+  ok("cuenta cada cuenta en el orden en que sale", sale([pro, tercera, pro]) === "2 en 2da MAIN, 1 en 3ra", sale([pro, tercera, pro]));
+  ok("con la principal por medio, sale también", sale([main, pro, main]) === "2 en Principal, 1 en 2da MAIN", sale([main, pro, main]));
+  ok("si todas nacen en la principal, no dice nada", sale([main, main, main]) === "", sale([main, main, main]));
+  ok("las que no llevan cuenta no cuentan, y sin ninguna no dice nada", sale([undefined, pro, undefined]) === "1 en 2da MAIN" && sale([undefined, undefined]) === "" && repartoDelPlan([]).length === 0);
+  const { makeT } = require("../src/lib/i18n") as typeof import("../src/lib/i18n");
+  const en = makeT("en");
+  ok("el peso y el reparto tienen su inglés", en("pesa como {n} haikus", { n: "11" }) === "weighs as much as 11 haikus" && en("{n} en {c}", { n: "2", c: "3ra" }) === "2 on 3ra" && en("Abre 1 agente") === "Opens 1 agent");
+}
+
 // 7. Lo que el Capataz marca como imposible, en el idioma de la app (el inglés del porqué
 //    del router y de las razones de una acción que no se puede hacer: `scripts/router-ingles-check.ts`).
 {

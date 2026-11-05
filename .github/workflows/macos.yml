@@ -253,6 +253,7 @@ jobs:
       # ellos), el run sale en rojo y hay que mirarlo.
       - name: Comprobar la firma
         run: |
+          cat "$RUNNER_TEMP/xcrun-testigo.log" 2>/dev/null || echo "el xcrun de reintentos no se usó"
           dmg=$(find "$DMGS" -maxdepth 1 -name "*.dmg" | head -n1)
           bash scripts/macos/comprobar-firma.sh "$APP" "${{ steps.firma.outputs.modo }}" "$dmg"
 

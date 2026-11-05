@@ -24,7 +24,7 @@
 15. [Commands](#15-commands)
 16. [Settings](#16-settings)
 17. [What an outside program can do](#17-what-an-outside-program-can-do)
-18. [The Foreman and the Split](#18-the-foreman-and-the-split)
+18. [Adeo and the Split](#18-adeo-and-the-split)
 19. [On your phone](#19-on-your-phone)
 20. [Streaming mode](#20-streaming-mode)
 21. [Updating without losing your terminals](#21-updating-without-losing-your-terminals)
@@ -60,7 +60,7 @@ them one by one.
 checks whether the project has changes not saved in git and shows them to you.
 Archiving never deletes anything and can be undone.
 
-**5. It splits the work and watches your quota.** The Foreman sets up the board from
+**5. It splits the work and watches your quota.** Adeo sets up the board from
 one sentence, and picks the model and the account according to what you have left
 on each subscription. You give the OK.
 
@@ -110,7 +110,7 @@ megabytes, it starts instantly and the terminals are drawn with the graphics car
   <text x="550" y="206" font-size="11" fill="currentColor" fill-opacity="0.55">4</text>
 </svg>
 
-1. **The app bar**: Adeo, the seven tabs, your goals, the Pulse, the music, streaming mode and the Foreman's orb.
+1. **The app bar**: Adeo, the seven tabs, your goals, the Pulse, the music, streaming mode and Adeo's orb.
 2. **Workspaces**: your projects and, inside them, their sessions.
 3. **The terminals**: each box is an agent or a console at work.
 4. **The strip on the right**: your usage, your skills, the project's files and a browser.
@@ -132,7 +132,8 @@ and it installs with one click: what happens to your open terminals is in
 
 ### The first time you open it
 
-A welcome of six screens appears, and you can **Skip** whenever you like:
+A welcome of six screens appears (seven if you have Claude Code installed), and you can
+**Skip** whenever you like:
 
 1. **Welcome to Adeorq**: what you are called (for the greeting) and the language.
 2. **Where your projects live**: the folder that is read to find out which projects
@@ -141,10 +142,13 @@ A welcome of six screens appears, and you can **Skip** whenever you like:
    one folder**.
 3. **Your agents**: you tick the programs you use, from the ones it finds
    installed, and you can **Pick up the sessions you already have**.
-4. **What do you want to use?**: the parts of Adeorq you want switched on (Cockpit,
+4. **Connect your Claude Code** (only if you have it installed): a button that connects
+   it to Adeorq's tools, with the file it touches in plain sight. **Next** skips it
+   without writing anything. It is told in [section 17](#17-what-an-outside-program-can-do).
+5. **What do you want to use?**: the parts of Adeorq you want switched on (Cockpit,
    Canvas, Memory and Chat). It is explained in [section 16](#16-settings).
-5. **The look**: the theme, which is applied while you choose it.
-6. **Done**: a summary. **Just go in** or **Show me around**, which launches a tour
+6. **The look**: the theme, which is applied while you choose it.
+7. **Done**: a summary. **Just go in** or **Show me around**, which launches a tour
    pointing at each part of the window.
 
 Everything can be repeated whenever you want in **Settings › Help**. Your name and
@@ -171,7 +175,7 @@ From left to right:
 | **The Pulse** | A pill with three figures: what Adeorq and its agents use in CPU, in memory (RAM) and how many agents are alive (AG). It turns amber when Adeorq uses a quarter or more of the machine's CPU or memory, and red when the whole machine is at 90% or Adeorq alone goes over 50% CPU. A click opens **What Adeorq is using**, with the detail. It measures the whole tree of processes, not just the window. |
 | **The music strip** | Only appears if something is playing on the PC: title, artist, previous, pause and next. The volume stays in the system mixer. It is not there on Linux and Mac. |
 | **Streaming** | The shield for broadcasting, icon only. Ctrl+Shift+E turns it on. Details in [section 20](#20-streaming-mode). |
-| **The orb** | Calls the Foreman (in some texts of the app, "the Assistant"). Ctrl+Shift+A opens and closes it; Ctrl+Shift+M opens it already listening to you. More in [section 18](#18-the-foreman-and-the-split). |
+| **The orb** | Calls Adeo. Ctrl+Shift+A opens and closes it; Ctrl+Shift+M opens it already listening to you. More in [section 18](#18-adeo-and-the-split). |
 | **Three more icons** | Only in the Cockpit and with more than one terminal: **Minimise all** (they stay alive in the strip below and it turns into **Bring them all back**), **Layout** (a grid of up to 4 by 4, or "one big one and the rest beside it") and **Close all**, which asks first because it kills their agents and tells you which ones are working. |
 
 The **update** is no longer a bar at the top: it is a card at the end of the sidebar
@@ -191,7 +195,7 @@ model and the project. It is explained field by field in
 - **Cockpit**: where the work happens. Projects on the left, terminals in the
   centre, a strip of tools on the right.
 - **Chat** (beta): the same conversations as the Cockpit, read like a chat, and on
-  top a concierge that opens sessions for you.
+  top Adeo, who opens sessions for you.
 - **Decisions**: what your agents ask you with options, so you can answer on the
   spot.
 - **Canvas**: a free board where terminals move around, connect with arrows and
@@ -404,7 +408,7 @@ not show.
 
 Chat (in beta) has two parts:
 
-- **At the top, the concierge.** "Talk to the concierge" opens a chat with Adeo: you
+- **At the top, Adeo.** "Talk to Adeo" opens a chat with it: you
   tell it what you want, it splits it into jobs and opens a session for each one.
   The sessions show up as tabs above the thread (green dot: working; amber: asking
   you; orange: finished) and a click enters them. Each session it opens leaves a
@@ -418,17 +422,17 @@ Chat (in beta) has two parts:
 
 What is worth knowing:
 
-- The concierge only opens sessions in real folders from your projects, only writes
+- Adeo only opens sessions in real folders from your projects, only writes
   in the terminals it opened itself and opens four at most per message.
-- Each message to the concierge is a short call made with your subscription
+- Each message to Adeo is a short call made with your subscription
   (Claude, or the program you choose in its pills), not with an API key. The
-  sessions it opens spend their own quota. With the concierge you can press
+  sessions it opens spend their own quota. With Adeo you can press
   **Improve** so it rewrites your message without adding anything, and **Stop**
   while it thinks.
 - The router reads rules that you write in your notes in the house memory, in the
   form `router: words -> model / effort / client` ([section 14](#14-memory)).
 - Switching off the "Chat" part also removes the box from the Dashboard. It does
-  not switch off the concierge on the phone, which has its own switch
+  not switch off Adeo on the phone, which has its own switch
   ([section 19](#19-on-your-phone)).
 
 ---
@@ -498,7 +502,7 @@ What each of the ones in your work is:
 - **Note** (Alt+N): a sticky note with checkboxes that inside is a real `.md` file,
   so an agent can tick the box when it finishes. Its launch button sends it to an
   open terminal, opens a new session in the project you choose or, if two or more
-  tasks are left, hands them to the Foreman to split. An empty note offers you the
+  tasks are left, hands them to Adeo to split. An empty note offers you the
   project's **runbooks**: every `.md` you save in `docs/fichas` is a recipe of steps
   that you repeat, and when you pick it the note is born with those steps as
   checkboxes. Any note can be **Saved as a runbook**.
@@ -851,7 +855,7 @@ renews tomorrow.
   specific account, it is born on that one or fails saying so: never on another one
   in silence. A scheduled order with no account does not choose: it goes to the
   default.
-- The same criterion chooses the account in the plans of the Foreman and of the
+- The same criterion chooses the account in the plans of Adeo and of the
   Split, and is explained in their "why".
 - There is a limit: six terminals open by agents at once and twelve per hour.
 
@@ -947,7 +951,7 @@ the Obsidian vaults it already knows, or lets you point at another folder.
 - **Brain**: the map of what links to what, in 3D, in two shapes, **Sphere** (by
   projects) and **Galaxy**. Performance mode, which turns on by itself with four
   terminals, leaves it still and says so.
-- **Schema**: you pick a project and **Read the project**. The Foreman (a Claude)
+- **Schema**: you pick a project and **Read the project**. Adeo (a Claude)
   reads the code and draws what it is made of; it takes a few minutes, spends quota,
   is saved and is shown as a map or a mind map.
 
@@ -1048,7 +1052,7 @@ names appear below so you can jump to one.
   *Never*. It never warns about the panel you are looking at.
 - **Your default brain**: *Let Adeorq decide*, or fix haiku, sonnet or opus for
   everything. Quota decides, and a task that needs judgement is never made cheaper.
-- **When the brain does not fit**: the Foreman warns you if the model of the terminal
+- **When the brain does not fit**: Adeo warns you if the model of the terminal
   in front of you is much more expensive or weaker than the task asks for. *Only big
   differences* (default), *Any difference* or *Never*.
 - **The crew lookout**: with a crew open, it checks every minute who finished, who is
@@ -1142,13 +1146,19 @@ There are eighteen tools, spread over three tiers named in plain words:
   not write into other people's.
 - **All**: also writes into any terminal, closes it and can compact it.
 
-**How you connect your Claude Code to these tools.** Adeorq does not touch your Claude
-Code's settings: you give it the door yourself, once, with
-`claude mcp add adeorq --scope user -- "<path to adeorq.exe>" --mcp` (the path is the
-folder where you installed Adeorq). Adeorq has to be open: with it open,
-`claude mcp list` should say "Connected". From then on, a Claude Code you open in an
-Adeorq terminal has the tools at that terminal's tier, and one in another console has
-them as an outside program (below).
+**How you connect your Claude Code to these tools.** With a button: the welcome has a
+step, **Connect your Claude Code**, and the same is in **Settings › Terminals › Connect
+your Claude Code**, with a row for every Claude account Adeorq knows. Each row says which
+file is touched (that account's `.claude.json`) and **Connect** adds an entry called
+`adeorq` to it that launches Adeorq's link. The rest of that file stays as it was, a copy
+of what it was stays next to it, and **Disconnect** removes that entry and leaves the file
+as it was. If the file cannot be understood, or there is already an `adeorq` entry that is
+not Adeorq's, it is not touched and you are told. With Adeorq open, `claude mcp list`
+should say "Connected", and the Claude terminals you already have open pick it up when you
+restart them. If you prefer to do it by hand, the usual command still works:
+`claude mcp add adeorq --scope user -- "<path to adeorq.exe>" --mcp`. From then on, a
+Claude Code you open in an Adeorq terminal has the tools at that terminal's tier, and one
+in another console has them as an outside program (below).
 
 **Each terminal is born with its own password**, and the tier comes from the terminal
 the program connects from, not from the name it claims to have. A program that
@@ -1157,16 +1167,27 @@ By default, **Claude Code has "All"** and the other programs have "Open and look
 
 **Outside Adeorq** is everything that arrives **without** the password of an Adeorq
 terminal: a Claude Code open in another console, any program that talks to the port.
-By default it can only **open terminals and look**. Those terminals start in the mode
-you have in Settings, and if it asks to open one **with a job**, a window appears with
-the text, who is asking and in which folder: **No** or **Open**; if nobody answers, it
-does not open. For it to do more, raise it
-yourself in **Settings › Terminals › What each client may do through the MCP**, on its
-row (it applies to any outside program, and on **All** it no longer asks, so raise it with
-care). Each row says the
-program, its version, how many times it connected and when the last time was. The
-Foreman and the concierge come in through a line of their own and do not count as
-clients.
+Its row has steps of its own:
+
+- **See the list and open**, by default: sees which terminals there are (without their
+  command, which carries the whole job), the usage and your projects, opens terminals,
+  and only reads and closes **the ones it opened**. It does not read yours, the memory
+  or the agenda.
+- **Read and open**: also reads your terminals, the memory and the agenda.
+- **All**: also types into any terminal and closes it.
+
+So a Claude Code open outside Adeorq cannot read your terminals until you raise it, in
+**Settings › Terminals › What each client may do through the MCP**, on its row, and it
+applies to any outside program (**Back to factory** puts it back). If you had already
+changed it, it stays as you left it; whoever had it on **Look only** still sees it
+there, and it is not offered again once changed. What it opens starts in the mode you
+have in Settings, and if it asks to open a terminal **with a job**, a window appears
+with the text, who is asking and in which folder: **No** or **Open**; if nobody answers,
+it does not open. On **All** it no longer asks, so raise it with care.
+
+Each row says the program, its version, how many times it connected and when the last
+time was. Adeo comes in through a line of its own and does not
+count as a client.
 
 An agent with a low tier that asks for something that is not its to ask gets a
 refusal that tells it which tier it has and where that is changed.
@@ -1208,13 +1229,13 @@ agent you do not trust: you do not give that one the key.
 
 ---
 
-## 18. The Foreman and the Split
+## 18. Adeo and the Split
 
-The Foreman is your orchestrator agent. You write what you want and it proposes a
+Adeo is your orchestrator agent. You write what you want and it proposes a
 plan; **nothing is run without your OK**. It opens with the orb in the top bar, with
 **Ctrl+Shift+A**, and from any tab. **Ctrl+Shift+M** opens it already listening to
-you, and with OpenRouter's voice it can answer you aloud. In the window and in some
-texts of the app it is called "the Assistant".
+you, and with OpenRouter's voice it can answer you aloud. It is the same Adeo that opens
+sessions from the Chat and from the phone.
 
 **How much it can touch.** It has the same three tiers as
 [section 17](#17-what-an-outside-program-can-do): *Look* (only reads), *Plan* (opens
@@ -1225,9 +1246,11 @@ any terminal). It is chosen in the window itself.
 
 - **Plan it**: it proposes which sessions to open, with which program, which brain and
   which brief. In the list you see with which brain it opens each thing and, before
-  the button, how much the whole plan weighs ("Opens 6 agents · 2 opus + 4 sonnet ·
-  ×22"). It is not a bill (with a subscription there is no bill): it is the only
-  comparable figure that exists, with haiku as 1.
+  the button, how much the whole plan weighs and which accounts it goes to ("Opens 6
+  agents · 2 opus + 4 sonnet · 4 on 2da MAIN, 2 on Main · weighs as much as 22
+  haikus"; the accounts only show when one of them is not the main one). It is not a
+  bill (with a subscription there is no bill): it is the only comparable figure that
+  exists, with haiku as 1.
 - **Ask**: it only looks at Adeorq and answers you, without opening anything.
 - **Write the brief**: you throw it one sentence of what you want and it gives you
   back the brief well written, for whom and why that one. There are three buttons: put
@@ -1237,7 +1260,7 @@ any terminal). It is chosen in the window itself.
 - **Automatic**: instead of showing you the card, it adjusts the brain and leaves the
   brief written in the terminal in front. It does not send it: "no intermediate
   screen" does not mean "without your finger".
-- **Voice**: for the Foreman to say its answers aloud.
+- **Voice**: for Adeo to say its answers aloud.
 
 **How it chooses the brain.** It goes through the same router as the rest of Adeorq
 and looks at your real quota, account by account:
@@ -1258,7 +1281,7 @@ and looks at your real quota, account by account:
 
 ### The Split: several tasks at once
 
-It has no button of its own: it is the same Foreman. One sentence is planned right
+It has no button of its own: it is the same Adeo. One sentence is planned right
 there; **several lines are several tasks**, and the button changes by itself to
 **Split up the N tasks** (up to eight per batch) and takes you to a screen with the
 text already put in. You can paste your tasks, one per line, or tick your **today's
@@ -1283,8 +1306,8 @@ agents on the same file go slower than one after the other.
 
 ## 19. On your phone
 
-Adeorq comes with you. From your phone, a tablet or another computer you talk to the
-concierge, see how each terminal is going and write to it, answer what your agents ask
+Adeorq comes with you. From your phone, a tablet or another computer you talk to
+Adeo, see how each terminal is going and write to it, answer what your agents ask
 you and open sessions on the PC. The page is **served by your own PC**, and the
 traffic goes over **Tailscale**, its private network: it does not go through any
 Adeorq server. Only devices you have paired get in. The PC has to be on with Adeorq
@@ -1292,9 +1315,9 @@ open (while it serves, it asks the system not to sleep).
 
 **Pairing a phone.** In **Settings › Mobile**:
 
-1. Turn on **Concierge on my phone**. Three rows appear with a green or red dot —
+1. Turn on **Adeo on your phone**. Three rows appear with a green or red dot —
    *This PC*, *Tailscale* and *Your phone* — and the fix on the one that fails.
-2. If it is missing, **Bring the concierge to Tailscale** (and *Open the Tailscale
+2. If it is missing, **Bring Adeo to Tailscale** (and *Open the Tailscale
    link* if it asks you to turn on HTTPS).
 3. An address `https://….ts.net:8443` appears with its QR and **Copy**.
 4. **Pair a phone** gives a six-digit code that is valid for ten minutes. On the phone
@@ -1303,11 +1326,11 @@ open (while it serves, it asks the system not to sleep).
 The paired devices show up on the same screen with "seen … ago", if they have
 notifications, **Test notification** and **Remove**.
 
-**What is on the phone.** A drawer with **Concierge**, **Terminals**, **Decisions**,
+**What is on the phone.** A drawer with **Adeo**, **Terminals**, **Decisions**,
 **Scheduled**, **Usage** and, at the bottom, **Settings**, plus **New task**.
 
 - **The home screen**: Adeo with the state of the PC, **Waiting for you** (decisions
-  and terminals that are asking), **Running**, your conversations with the concierge
+  and terminals that are asking), **Running**, your conversations with Adeo
   and the box to write to it.
 - **Terminals**: grouped into *Asking you*, *Working*, *Finished* and *Idle*. For each
   one you see **Chat** (what was said, with **Copy** on the code blocks) and **Screen**
@@ -1338,7 +1361,7 @@ rejected.
 
 Designed so that you can broadcast without giving away your keys. It has four pieces:
 
-1. **Covered, not blurred**: the foot of the sidebar, the Foreman's summary, the names
+1. **Covered, not blurred**: the foot of the sidebar, Adeo's summary, the names
    of accounts and the Agenda's texts are covered with a solid bar. A soft blur can be
    undone from a recording, which is why it is not used. **The titles of your sessions
    and the day's goals are not covered**: they are the thread of what you are doing,
@@ -1438,6 +1461,9 @@ asks for a desktop with a compositor. The differences you will see:
 - The panel's browser is a simple version in a frame, not the real Chromium.
 - The terminals do not run in a separate process by default.
 - The Video tab of the usage card is switched off.
+- The AppImage needs FUSE to open. If it says "Cannot mount AppImage, please check your FUSE
+  setup", install `fuse3` (`sudo apt install fuse3`, `sudo dnf install fuse3`) or open it
+  with `--appimage-extract-and-run`.
 
 **Mac.** There is a `.dmg` installer for Apple Silicon (macOS 12 or later) among the
 published versions. It is built and started on an automatic Mac, but **it has
@@ -1485,14 +1511,14 @@ the shortcuts written out.
 | Ctrl+Shift+→ | Split the active terminal to the right |
 | Ctrl+Shift+↓ (or D) | Split it down |
 | Ctrl+Shift+F | Maximise or restore the active terminal |
-| Ctrl+Shift+A | Call or close the Foreman |
-| Ctrl+Shift+M | Call the Foreman and dictate to it |
+| Ctrl+Shift+A | Call or close Adeo |
+| Ctrl+Shift+M | Call Adeo and dictate to it |
 | Ctrl+Shift+E | Streaming mode |
 | Ctrl+Shift+P | The curtain: covers the whole window |
 | Alt (held) | Look at what streaming mode covers |
 | Ctrl+Z | Reopen the last closed terminal (outside a terminal and a text box) |
 | Ctrl+Alt+Shift+0 | Switch off all mods |
-| Esc | Close whatever is open on top (palette, Pulse, Foreman, notifications) |
+| Esc | Close whatever is open on top (palette, Pulse, Adeo, notifications) |
 
 These **cannot be changed**; those of the canvas can.
 
@@ -1579,7 +1605,7 @@ wherever `XDG_DATA_HOME` says) and `~/Library/Application Support/Adeorq` on Mac
 | Canvas notes | `notas`, in Markdown |
 | The Canvas | `lienzo.json` |
 | Scheduled orders | `programados.json` |
-| Decisions and concierge conversations | `decisiones`, `conserje` and `chats` |
+| Decisions and conversations with Adeo | `decisiones`, `conserje` and `chats` |
 | Ideas and steps that the agents propose | `bandeja.md` |
 | Failure trail | `rastro.log` |
 | Summaries of the terminals that an agent closed | `rastros` |
@@ -1599,7 +1625,7 @@ cases:
 - **To look for updates**: it asks GitHub on startup, every six hours and when you come
   back to the window.
 - **OpenRouter**, only if you save your key: checking the key and the balance, listing
-  models, talking to one and generating the Foreman's voice.
+  models, talking to one and generating Adeo's voice.
 - **The compass** of the Agenda, only if you sign in with your account.
 - **Notifications to the phone**, encrypted, through your browser's notification
   service.
@@ -1611,7 +1637,7 @@ cases:
 - **The phone** goes over Tailscale; Adeorq runs `tailscale` on your machine.
 - **The panel's browser and the Canvas's localhost windows** load the page you open
   yourself.
-- **The agents** (Claude Code, Codex…) and the concierge reach the internet through the
+- **The agents** (Claude Code, Codex…) and Adeo reach the internet through the
   program of each one, not through Adeorq.
 
 Ollama, Discord, local voice and the phone and MCP servers stay inside your machine.
@@ -1647,8 +1673,9 @@ Ollama, Discord, local voice and the phone and MCP servers stay inside your mach
 - **Crew**: several terminals opened from the same split.
 - **Swarm**: several already-open sessions gathered into a piece of the Canvas with a
   single chat.
-- **Concierge**: Adeo's chat that opens sessions for you, in the Chat and on the phone.
-- **Foreman**: the orchestrator agent behind the orb.
+- **Adeo**: the mascot and the one who orchestrates: the orb you call with Ctrl+Shift+A, the
+  chat that opens sessions for you (in the Chat and on the phone) and whoever splits the work.
+  In old release notes it appears as the Foreman, the Assistant or the concierge.
 
 ---
 

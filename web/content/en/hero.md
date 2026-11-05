@@ -49,7 +49,7 @@ The mockup is being redrawn to match the real app. New keys:
 | `demo.cuentas` | Accounts |
 | `demo.cabina.n` | 2 |
 | `demo.emision` | Broadcast |
-| `demo.capataz` | Foreman |
+| `demo.capataz` | Adeo |
 | `demo.workspaces` | Workspaces |
 | `demo.proy1` | Adeorq |
 | `demo.proy1.badge` | 4 |

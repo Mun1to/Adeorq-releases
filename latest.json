@@ -1,11 +1,11 @@
 {
-  "version": "0.9.241",
-  "notes": "Conectar un bot con un clic en Ajustes, con su propio permiso y un boton para desconectarlo, una linea para Grok Bot, y varios arreglos.",
-  "pub_date": "2026-11-04T06:16:06Z",
+  "version": "0.9.242",
+  "notes": "Conectar tu Claude Code con un boton, lo de fuera solo ve la lista y el uso salvo que lo subas en Ajustes, Adeo en todas partes, y arreglos en Linux",
+  "pub_date": "2026-11-05T11:53:29Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzNoL25udk05N1ZXbG5PcVlhbzVNUVp1L2lnT1htQ201ZmxHTEU2ZGhGMUpxSFNuZU0vdTJxZnUrU2NGaGdLczFGZ1RjbWo1VW45eWxjeVhkZnowdUFvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNzcyOTIzCWZpbGU6QWRlb3JxXzAuOS4yNDFfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNDEKbkY5a0l5USs1aWJaOWwvb3RGWkI2L3duNmF6eFkzSkdlUzNTTDJPNExWMGxocHhUTjlQSHBVVEU1U1hCNDZlcmU3SjNLMVhUeVhwRVpXQ1JWOStXQkE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.241/Adeorq_0.9.241_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3hncmZtZUhicjJyb05rNGJXdkVjZElzRUZONytyWE9hR215UWhLbXVPbHdjbFB1c1ROdHJRMmswSG1mVHRSeVdEQUlYelp3NnZWZW1QZEFncXZ0UmdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzODc5NTc2CWZpbGU6QWRlb3JxXzAuOS4yNDJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNDIKcTJ6bjhLM055Z294Kzl1QXhFV1dvcFlMM05qNjdKaldVZXFmZUpxWlpwQTBleUhaRVZxVmVRWXUvU3c0OWRBTTAzeEZYdWhTN3VaTTl0czBPaU1OQ2c9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.242/Adeorq_0.9.242_x64-setup.exe"
     }
   }
 }

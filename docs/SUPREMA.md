@@ -406,9 +406,9 @@ una línea (medido; encargo S1, `docs/contexto/propuesta-seguridad-local.md`).
   Ajustes, sin error ni pista. La comparación no corta al primer byte distinto (`es_de_casa`).
 - **Tras reiniciar Adeorq**, un puente de casa que estaba vivo se reengancha con la contraseña
   vieja (`escuchar_adeorq`), y la nueva Adeorq tiene otra: termina su turno como lo de fuera de
-  Adeorq (ver la sección siguiente), que de fábrica abre y mira. El conserje solo usa
-  herramientas de mirar, así que no lo nota; un Capataz a media respuesta pierde escribir en
-  terminales hasta su siguiente llamada, que ya nace con la contraseña nueva. No se queda sin
+  Adeorq (ver la sección siguiente), que de fábrica solo ve la lista y el uso. Un conserje o un
+  Capataz a media respuesta pierde leer y escribir en terminales, y la memoria, hasta su
+  siguiente llamada, que ya nace con la contraseña nueva. No se queda sin
   permisos para siempre: dura lo que dure ese turno. Guardarla para que sobreviviera sería dejarla
   en un archivo.
 - **Lo que NO para:** un programa que lea la memoria o el entorno de esos procesos. Quita la línea
@@ -440,8 +440,10 @@ Ajustes».
   (`mcp_clientes::programa_del_comando`): Claude Code puede escribir en otras terminales, los demás
   abren y miran. El nombre con que se presenta el cliente ya no decide.
 - **Lo que llega sin una terminal creíble es «Fuera de Adeorq»**: su fila en Ajustes › Terminales,
-  que de fábrica abre y mira, y que Munir sube si quiere. Lo guardado por nombre se muda solo a su
-  programa, quedándose con el menor si dos nombres caen en el mismo.
+  que de fábrica ve la lista y el uso, abre, y lee y cierra lo que abrió (decisión A1, 2026-11-04:
+  `docs/contexto/bots.md`), y que Munir sube si quiere. Lo que no presenta contraseña pero cuelga de
+  una terminal no baja con ella. Lo guardado por nombre se muda solo a su programa, quedándose con
+  el menor si dos nombres caen en el mismo.
 - **Abrir desde fuera nace en el modo de Ajustes, y con encargo pide un clic** (`pedir_abrir.rs`,
   `PedirAbrir.tsx`): una ventana con el texto, quién lo pide y en qué carpeta, **No / Abrir**. Con
   «No», `open_pane` contesta un error; si nadie contesta en dos minutos, otro. La carpeta no se marca

@@ -868,7 +868,7 @@ ${v}` : txt));
               // nada: esperar a que «arranque» sería esperar para siempre.
               <div className="chat-elige">
                 <p className="chat-elige-tit">{t("Esta sesión se cerró sin llegar a escribir nada.")}</p>
-                <p className="chat-elige-sub">{t("Puedes quitar su pestaña con la ✕, o pedirle al conserje que la abra otra vez.")}</p>
+                <p className="chat-elige-sub">{t("Puedes quitar su pestaña con la ✕, o pedirle a Adeo que la abra otra vez.")}</p>
               </div>
             )}
           </>

@@ -96,7 +96,7 @@ async (page) => {
   pasos.nombrado = await textos(".note-lanzar [data-proyecto]");
   if (pasos.nombrado[0] !== "VoCript lo nombra la nota") fallos.push(`el proyecto que la nota nombra no sube: ${pasos.nombrado.join("|")}`);
   pasos.capataz = (await textos(".note-lanzar [data-repartir]")).join();
-  if (pasos.capataz !== "Repartir las 2 tareas Capataz") fallos.push(`con dos tareas no se ofrece el Capataz: «${pasos.capataz}»`);
+  if (pasos.capataz !== "Repartir las 2 tareas Adeo") fallos.push(`con dos tareas no se ofrece Adeo: «${pasos.capataz}»`);
 
   // 5. Una sesión nueva en otro proyecto: guarda, y nace allí con el encargo.
   const nombres = () => page.locator(".react-flow__node .pane-name").evaluateAll((ns) => ns.map((n) => n.innerText.trim()));

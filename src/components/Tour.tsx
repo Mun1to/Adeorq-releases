@@ -35,7 +35,7 @@ const PARADAS: Parada[] = [
   },
   {
     donde: [".foreman-call"],
-    titulo: "El Asistente",
+    titulo: "Adeo",
     texto:
       "Le sueltas una frase de lo que quieres y te escribe el encargo entero, elige con qué cliente y qué modelo sale más a cuenta, y te lo deja escrito en la terminal. También sabe repartir el trabajo entre varios agentes.",
   },

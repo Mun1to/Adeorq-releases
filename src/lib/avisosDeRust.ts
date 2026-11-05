@@ -20,14 +20,14 @@ const pieza = (t: Translate, e: string) => (e === "desconocido" ? t("desconocido
 
 export const REGLAS_DE_RUST: Regla[] = [
   [/^id de conversación no válido$/, (t) => t("id de conversación no válido")],
-  [/^«(.*)» no es un modelo con el que pueda pensar el conserje$/, (t, m) => t("«{x}» no es un modelo con el que pueda pensar el conserje", { x: m[1] })],
+  [/^«(.*)» no es un modelo con el que pueda pensar Adeo$/, (t, m) => t("«{x}» no es un modelo con el que pueda pensar Adeo", { x: m[1] })],
   [/^«(.*)» no es un modelo que se pueda fijar$/, (t, m) => t("«{x}» no es un modelo que se pueda fijar", { x: m[1] })],
-  [/^«(.*)» no es un programa con el que pueda pensar el conserje$/, (t, m) => t("«{x}» no es un programa con el que pueda pensar el conserje", { x: m[1] })],
+  [/^«(.*)» no es un programa con el que pueda pensar Adeo$/, (t, m) => t("«{x}» no es un programa con el que pueda pensar Adeo", { x: m[1] })],
   [/^«(.*)» no es un programa$/, (t, m) => t("«{x}» no es un programa", { x: m[1] })],
   [/^esa conversación no es un enjambre$/, (t) => t("esa conversación no es un enjambre")],
-  [/^el conserje todavía está con lo anterior en esta conversación$/, (t) => t("el conserje todavía está con lo anterior en esta conversación")],
+  [/^Adeo todavía está con lo anterior en esta conversación$/, (t) => t("Adeo todavía está con lo anterior en esta conversación")],
   [/^no hay nada que mandar$/, (t) => t("no hay nada que mandar")],
-  [/^el conserje se quedó pensando demasiado \(3 min\); reintenta$/, (t) => t("el conserje se quedó pensando demasiado (3 min); reintenta")],
+  [/^Adeo se quedó pensando demasiado \(3 min\); reintenta$/, (t) => t("Adeo se quedó pensando demasiado (3 min); reintenta")],
   [/^claude devolvió error: (.*)$/s, (t, m) => t("claude devolvió error: {e}", { e: pieza(t, m[1]) })],
   [/^claude no devolvió nada: (.*)$/s, (t, m) => t("claude no devolvió nada: {e}", { e: m[1] })],
   [/^(.+) devolvió error: (.*)$/s, (t, m) => t("{quien} devolvió error: {e}", { quien: m[1], e: m[2] })],

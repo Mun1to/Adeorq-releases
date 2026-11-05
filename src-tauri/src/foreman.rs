@@ -10,7 +10,7 @@ use crate::conserje::Quien;
 
 const PLAN_TIMEOUT: Duration = Duration::from_secs(120);
 
-const SYSTEM_PROMPT: &str = r#"Eres el Capataz de Adeorq, el panel de vibe coding de Munir. Convierte su pedido en un plan de acciones ESTRICTO en JSON. Munir te habla como a un jefe de obra: dice el objetivo del día ("hoy quiero arreglar errores de VoCript", "quiero hacer la web de Layco") y tú montas el tablero exacto para eso.
+const SYSTEM_PROMPT: &str = r#"Eres Adeo, el orquestador de Adeorq, el panel de vibe coding de Munir. Convierte su pedido en un plan de acciones ESTRICTO en JSON. Munir te habla como a un jefe de obra: dice el objetivo del día ("hoy quiero arreglar errores de VoCript", "quiero hacer la web de Layco") y tú montas el tablero exacto para eso.
 
 Acciones permitidas (campo "tipo"):
 - "abrir_sesion": retomar una sesión existente. Campos: "sessionId" (exacto), "motivo" (por qué ESA sesión sirve para el objetivo).
@@ -258,13 +258,13 @@ const PLAN_MODEL: &str = "sonnet";
 /// no qué modelo usar. El modelo no sabe qué CLIs hay instalados, qué cuentas
 /// están conectadas ni cuánta semana queda, así que si eligiera él el destino
 /// estaría adivinando con menos datos que el código que viene después.
-const PROMPT_SYSTEM: &str = r#"Eres el Capataz de Adeorq. Munir te suelta en una frase lo que quiere que haga el agente que tiene delante en la terminal, normalmente hablando y de pasada. Tu trabajo es doble: convertir eso en el encargo que ese agente necesita leer, y decir qué EXIGE ese trabajo.
+const PROMPT_SYSTEM: &str = r#"Eres Adeo, el orquestador de Adeorq. Munir te suelta en una frase lo que quiere que haga el agente que tiene delante en la terminal, normalmente hablando y de pasada. Tu trabajo es doble: convertir eso en el encargo que ese agente necesita leer, y decir qué EXIGE ese trabajo.
 
 CÓMO SE ESCRIBE EL ENCARGO:
 - En SEGUNDA PERSONA, dirigido al agente, como se lo diría Munir.
 - Añade solo lo que falta para no tener que preguntar: en qué parte del proyecto mirar, qué NO hay que tocar, y cómo se comprueba que quedó bien.
 - NO inventes requisitos que él no ha pedido. Si dice "más futurista", eso es lo que quiere; no decidas tú que además hay que cambiar la tipografía de la app.
-- Si lo que ha dicho es ambiguo en algo que importa, díselo AL AGENTE dentro del encargo ("si hay más de un icono del Capataz, pregúntame cuál antes de tocar nada"), en vez de elegir tú.
+- Si lo que ha dicho es ambiguo en algo que importa, díselo AL AGENTE dentro del encargo ("si hay más de un icono de Adeo, pregúntame cuál antes de tocar nada"), en vez de elegir tú.
 - Español, tono directo, sin florituras. Entre 2 y 6 frases; si de verdad hace falta una lista corta, ponla.
 - Sin saludo, sin "aquí tienes", sin comillas alrededor. Se pega tal cual en una terminal.
 
@@ -320,7 +320,7 @@ pub async fn foreman_prompt(request: String, context: String, quien: Option<Quie
 /// esperas y seis veces el mismo contexto pagado. Con una sola, además, el
 /// modelo ve todas las tareas juntas, que es lo que le permite repartir los
 /// archivos sin que dos se pisen: eso no se puede decidir mirando una sola.
-const LOTE_SYSTEM: &str = r#"Eres el Capataz de Adeorq. Te llega una LISTA de tareas que el usuario quiere repartir entre varios agentes que van a trabajar A LA VEZ. Para cada una: escribe el encargo que ese agente necesita leer, dile qué archivos son SUYOS, y clasifica qué exige el trabajo.
+const LOTE_SYSTEM: &str = r#"Eres Adeo, el orquestador de Adeorq. Te llega una LISTA de tareas que el usuario quiere repartir entre varios agentes que van a trabajar A LA VEZ. Para cada una: escribe el encargo que ese agente necesita leer, dile qué archivos son SUYOS, y clasifica qué exige el trabajo.
 
 CÓMO SE ESCRIBE CADA ENCARGO:
 - En SEGUNDA PERSONA, dirigido al agente. Español, directo, entre 2 y 5 frases.
@@ -372,7 +372,7 @@ const MAPA_MODEL: &str = "sonnet";
 /// mitad después de dos minutos de espera es peor que tardar.
 const MAPA_TIMEOUT: Duration = Duration::from_secs(360);
 
-const MAPA_SYSTEM: &str = r#"Eres el Capataz de Adeorq. Te dan un proyecto y tienes que explicar CÓMO FUNCIONA POR DENTRO, no qué carpetas tiene.
+const MAPA_SYSTEM: &str = r#"Eres Adeo, el orquestador de Adeorq. Te dan un proyecto y tienes que explicar CÓMO FUNCIONA POR DENTRO, no qué carpetas tiene.
 
 El resultado es un diagrama de flujo: cajas con una explicación dentro, unidas por flechas que dicen quién le pide qué a quién. Alguien que no conoce el proyecto tiene que entender, mirándolo, por dónde entra una acción suya y qué pasa después.
 
@@ -466,7 +466,7 @@ fn frase_de_paso(bloque: &serde_json::Value, en: bool) -> Option<String> {
 /// cada pieza es UN PROYECTO, y las flechas son lo que un proyecto usa de otro.
 /// Munir lo pidió de vuelta el mismo día que se quitó: es la vista de «qué
 /// tengo montado» (2026-08-14).
-const TALLER_SYSTEM: &str = r#"Eres el Capataz de Adeorq. Te dan una carpeta que contiene VARIOS proyectos distintos, uno por subcarpeta. Explica QUÉ TIENE MONTADO su dueño y cómo se apoyan unos en otros.
+const TALLER_SYSTEM: &str = r#"Eres Adeo, el orquestador de Adeorq. Te dan una carpeta que contiene VARIOS proyectos distintos, uno por subcarpeta. Explica QUÉ TIENE MONTADO su dueño y cómo se apoyan unos en otros.
 
 Cada pieza es UN PROYECTO, no un archivo ni un módulo. Esto no es el mapa de un programa: es el mapa de un taller.
 
@@ -736,7 +736,7 @@ pub async fn foreman_agente(
                 Ok(None) if start.elapsed() > AGENTE_TIMEOUT => {
                     let _ = child.kill();
                     let _ = child.wait();
-                    return Err("el Capataz se quedó pensando demasiado (3 min); reintenta".into());
+                    return Err("Adeo se quedó pensando demasiado (3 min); reintenta".into());
                 }
                 Ok(None) => std::thread::sleep(Duration::from_millis(200)),
                 Err(e) => return Err(e.to_string()),
@@ -767,7 +767,7 @@ pub async fn foreman_agente(
 
 const AGENTE_TIMEOUT: Duration = Duration::from_secs(180);
 
-const AGENTE_SYSTEM: &str = r#"Eres el Capataz de Adeorq, el panel desde el que Munir dirige a sus agentes. Estás DENTRO de Adeorq y tienes herramientas para mirarlo y para moverlo.
+const AGENTE_SYSTEM: &str = r#"Eres Adeo, el orquestador de Adeorq, el panel desde el que Munir dirige a sus agentes. Estás DENTRO de Adeorq y tienes herramientas para mirarlo y para moverlo.
 
 CÓMO CONTESTAS:
 - En español, a Munir, de tú. Directo y corto: dos o tres frases, y si son datos, una lista de líneas cortas.
@@ -813,7 +813,7 @@ pub(crate) async fn preguntar_con(prompt: String, modelo: &'static str) -> Resul
                     // transcript al salir de aquí y el CLI sigue escribiéndolo
                     // hasta que el sistema lo da por terminado.
                     let _ = child.wait();
-                    return Err("el Capataz tardó demasiado (120 s); reintenta".into());
+                    return Err("Adeo tardó demasiado (120 s); reintenta".into());
                 }
                 Ok(None) => std::thread::sleep(Duration::from_millis(200)),
                 Err(e) => return Err(e.to_string()),

@@ -381,7 +381,7 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
             <button role="menuitem" data-repartir onClick={() => void repartir()}>
               <GroupIcon size={13} />
               <span>{t("Repartir las {n} tareas", { n: pendientes })}</span>
-              <em>{t("Capataz")}</em>
+              <em>{t("Adeo")}</em>
             </button>
           )}
           {donde.length > 0 && <p>{t("En una sesión nueva en")}</p>}

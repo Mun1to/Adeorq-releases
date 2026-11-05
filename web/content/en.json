@@ -71,7 +71,7 @@
   "roadmap.0.texto": "Automatically saving node coordinates, terminal states, and drawing layers upon closing the app so you resume exactly where you left off.",
   "roadmap.1.estado": "Up next",
   "roadmap.1.titulo": "Isolated workspaces",
-  "roadmap.1.texto": "A group of sessions devoted to one big job, apart from everything else: you go in and you only see theirs. Half the piece already exists, because the Foreman groups what it hands out; what is missing is for the group to survive a restart and to be creatable by hand.",
+  "roadmap.1.texto": "A group of sessions devoted to one big job, apart from everything else: you go in and you only see theirs. Half the piece already exists, because Adeo groups what it hands out; what is missing is for the group to survive a restart and to be creatable by hand.",
   "roadmap.2.estado": "Pending Certificate",
   "roadmap.2.titulo": "EV Code Signing Certificate",
   "roadmap.2.texto": "Eliminating Windows SmartScreen first-install warnings with a verified Code Signing certificate.",

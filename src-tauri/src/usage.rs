@@ -427,6 +427,10 @@ pub async fn usage_limits(config_dir: Option<String>) -> Result<Limits, String> 
             "/usage",
             "--output-format",
             "json",
+            // Zero MCP servers: this asks for a local card and uses no tool. Without
+            // it, each refresh started Adeorq's own bridge from a process outside any
+            // terminal, and Settings counted those as visits from outside Adeorq.
+            "--strict-mcp-config",
             "--session-id",
             &id,
         ])

@@ -78,6 +78,7 @@ replacing them, so the day something new ships, you have it.
 | **Your profile and usage** | Your name, your @ and your photo, with your Accounts, Agenda, Memory and Commands inside, each with its summary. Below, your usage: this month's tokens by provider, model or project, the year in squares, and a card to share it as an image or a video. |
 | **Accounts** | Several logins of the same CLI side by side, each with its plan and how much of its limit is left. You choose which one new terminals are born with, or open a terminal on a specific one. |
 | **Commands** | Everything you can type inside each agent, searchable by what you want to do rather than by its name, and sent to the terminal with one click. |
+| **Your agents and bots** | One button connects your Claude Code to Adeorq, in the welcome and in **Settings → Terminals**, and takes the entry out again just as cleanly. **Settings → Bots** connects Hermes or OpenClaw with one click, each with its own permission. A program from outside Adeorq sees the list of terminals and the usage, and can open new ones; to let it read more, raise it in **Settings → Terminals**. |
 | **Memory** | Your Obsidian vault inside the panel, searchable by what the notes say, with a map of what links to what. |
 | **Adeo in the Chat** | One chat where Adeo opens sessions for you as tabs, with a router that picks which model or client takes each job. |
 | **On your phone** | Adeo, your sessions and every terminal, from any browser and wherever you are. Attach photos, get a notification when an agent asks you something. |

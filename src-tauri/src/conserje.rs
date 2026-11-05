@@ -1798,7 +1798,7 @@ fn correr_otro(
     let exe = ejecutable(p.exe).ok_or_else(|| format!("{} no está instalado en este equipo", p.id))?;
     let (programa, delante) = lanzador(&exe);
     // Barras normales: van dentro de un TOML y de un JSON.
-    let adeorq = std::env::current_exe().map_err(|e| format!("no sé dónde estoy: {e}"))?.to_string_lossy().replace('\\', "/");
+    let adeorq = crate::packaged::exe_visible().map_err(|e| format!("no sé dónde estoy: {e}"))?.to_string_lossy().replace('\\', "/");
     if adeorq.contains('\'') {
         return Err("la ruta de Adeorq lleva una comilla y no cabe en la línea de órdenes".into());
     }

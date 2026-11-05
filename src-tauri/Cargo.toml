@@ -1,6 +1,6 @@
 [package]
 name = "adeorq"
-version = "0.9.242"
+version = "0.9.243"
 description = "El ADE de la casa: panel de vibe coding con terminales reales"
 authors = ["Munir Torres Athayde"]
 # PolyForm Shield 1.0.0 no está en la lista SPDX, así que se apunta al archivo.
@@ -108,6 +108,9 @@ windows-sys = { version = "0.61.2", features = [
     "Win32_System_DataExchange",
     "Win32_System_Memory",
     "Win32_System_Ole",
+    # GetCurrentPackageFullName: si esta copia corre desde el paquete de la
+    # Microsoft Store (`packaged.rs`).
+    "Win32_Storage_Packaging_Appx",
 ] }
 # WinRT media transport controls (what is playing, next/previous) plus Core
 # Audio for per-app volume: no Spotify account, no OAuth, no Premium needed.
@@ -123,6 +126,9 @@ windows = { version = "0.62", features = [
     "Win32_Security_Credentials",
     # Qué modificadores lleva una tecla pulsada dentro del navegador (`navegador.rs`).
     "Win32_UI_Input_KeyboardAndMouse",
+    # StartupTask: el arranque con Windows de la app del paquete, que no puede
+    # escribir en `HKCU\...\Run` (`autostart.rs`).
+    "ApplicationModel",
 ] }
 # Lo que Tauri no expone del WebView2 del navegador (`navegador.rs`): la
 # dirección que cambia sin recargar, atrás y adelante, el icono, las teclas y la

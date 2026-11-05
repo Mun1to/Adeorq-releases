@@ -1,0 +1,38 @@
+# El sondeo de la Microsoft Store: un programa de juguete que se empaqueta con el mismo
+# tipo de manifiesto que Adeorq y hace, dentro del paquete, lo que Adeorq haría, para
+# medir las reglas del paquete sin mezclarlas con los fallos de Adeorq. No es Adeorq y
+# no se publica. Ver `docs/contexto/tiendas.md` (pruebas T1 a T8) y `../medir.ps1`.
+
+[package]
+name = "sondeo"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Fuera de cualquier otro proyecto de Cargo: este se compila solo.
+[workspace]
+
+# Dos ejecutables, como pide la prueba T3 (el alias con un `.exe` de ventana y con uno
+# de consola): el de ventana se parece a `adeorq.exe`, que no tiene consola.
+[[bin]]
+name = "sondeo"
+path = "src/main.rs"
+
+[[bin]]
+name = "sondeo-consola"
+path = "src/bin/consola.rs"
+
+[dependencies]
+windows-sys = { version = "0.61.2", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Storage_Packaging_Appx",
+    "Win32_System_Registry",
+    "Win32_System_Threading",
+] }
+# StartupTask (el arranque con Windows de un paquete), la misma llamada que `autostart.rs`.
+windows = { version = "0.62", features = ["ApplicationModel", "Foundation", "Win32_System_Com"] }
+
+[profile.release]
+opt-level = "s"
+strip = true

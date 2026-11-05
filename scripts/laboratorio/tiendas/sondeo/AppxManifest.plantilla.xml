@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  El manifiesto del sondeo: el mismo tipo que el de Adeorq (`scripts/tiendas/AppxManifest.plantilla.xml`)
+  con dos aplicaciones, la de ventana y la de consola, para medir el alias con las dos (prueba T3).
+  Lo rellena `../empaquetar-sondeo.ps1`:
+    @NOMBRE@ @EDITOR@ @VERSION@  la identidad (del sondeo, no de Adeorq: no es el nombre reservado)
+    @ALIAS@                       sondeoa / sondeob: dos paquetes distintos, dos alias
+    @MINVERSION@                  10.0.18362.0 (clásica) o 10.0.19041.0 (win32App)
+    @APLICACION@                  vacío (packagedClassicApp) o los dos atributos de win32App
+    @ENTRADA@                     EntryPoint de la aplicación y de sus extensiones
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap3 uap10 desktop rescap">
+
+  <Identity Name="@NOMBRE@" Publisher="@EDITOR@" Version="@VERSION@" ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>Sondeo @ALIAS@</DisplayName>
+    <PublisherDisplayName>Adeorq CI</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <Description>Programa de prueba del paquete de la Microsoft Store. No es Adeorq.</Description>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="@MINVERSION@" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="es" />
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="Sondeo" Executable="sondeo.exe" @ENTRADA@ @APLICACION@>
+      <uap:VisualElements DisplayName="Sondeo @ALIAS@" Description="Programa de prueba" BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Square71x71Logo="Assets\Square71x71Logo.png" />
+      </uap:VisualElements>
+      <Extensions>
+        <uap3:Extension Category="windows.appExecutionAlias" Executable="sondeo.exe" EntryPoint="Windows.FullTrustApplication">
+          <uap3:AppExecutionAlias><desktop:ExecutionAlias Alias="@ALIAS@.exe" /></uap3:AppExecutionAlias>
+        </uap3:Extension>
+        <desktop:Extension Category="windows.startupTask" Executable="sondeo.exe" EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask TaskId="SondeoStartup" Enabled="false" DisplayName="Sondeo" />
+        </desktop:Extension>
+      </Extensions>
+    </Application>
+
+    <Application Id="Consola" Executable="sondeo-consola.exe" @ENTRADA@ @APLICACION@>
+      <uap:VisualElements DisplayName="Sondeo @ALIAS@ consola" Description="Programa de prueba" BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Square71x71Logo="Assets\Square71x71Logo.png" />
+      </uap:VisualElements>
+      <Extensions>
+        <uap3:Extension Category="windows.appExecutionAlias" Executable="sondeo-consola.exe" EntryPoint="Windows.FullTrustApplication">
+          <uap3:AppExecutionAlias><desktop:ExecutionAlias Alias="@ALIAS@-consola.exe" /></uap3:AppExecutionAlias>
+        </uap3:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

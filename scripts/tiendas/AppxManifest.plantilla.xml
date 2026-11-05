@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  El manifiesto del paquete de Adeorq para la Microsoft Store (`docs/contexto/tiendas.md`, apendice A).
+  Lo rellena `empaquetar.ps1`:
+    @NOMBRE@    la identidad del paquete. MARCADOR mientras el nombre no este reservado en Partner Center.
+    @EDITOR@    el editor (`CN=...` de Partner Center). MARCADOR hasta tener el del producto.
+    @VERSION@   cuatro numeros, el ultimo 0 (lo reserva la Tienda). Decision de Munir pendiente.
+
+  Que declara y por que:
+    runFullTrust  Adeorq es una app de escritorio con terminales reales: sin esta capacidad restringida
+                  un paquete no puede ejecutar un .exe normal. Hay que justificarla en el envio.
+    microphone    la voz de Adeorq usa getUserMedia; sin declararlo, el usuario no tiene como permitirlo.
+    alias         `adeorq.exe` en %LOCALAPPDATA%\Microsoft\WindowsApps: la UNICA ruta estable por la que un
+                  agente de fuera (Claude Code, Codex...) puede lanzar el enlace MCP y `adeorq secreto`
+                  (`packaged::exe_visible`). El paquete vive en una carpeta con la version en el nombre.
+    startupTask   arrancar con Windows. Nace apagada: el usuario la enciende en Ajustes (`autostart.rs`).
+
+  Que NO declara: el protocolo `adeorq://` (nada lo maneja todavia; `cuentas.md` lo pedira cuando se
+  construya la vuelta de la web) ni mas capacidades (no `broadFileSystemAccess`, no `allowElevation`).
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap3 desktop rescap">
+
+  <Identity Name="@NOMBRE@" Publisher="@EDITOR@" Version="@VERSION@" ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>Adeorq</DisplayName>
+    <PublisherDisplayName>Munito</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <Description>Panel de escritorio con terminales reales para tus agentes de codigo. Necesita un agente ya instalado y con tu cuenta.</Description>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.18362.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="es" />
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="Adeorq" Executable="adeorq.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="Adeorq"
+        Description="Panel de escritorio con terminales reales para tus agentes de codigo"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Square71x71Logo="Assets\Square71x71Logo.png" />
+      </uap:VisualElements>
+      <Extensions>
+        <uap3:Extension Category="windows.appExecutionAlias" Executable="adeorq.exe" EntryPoint="Windows.FullTrustApplication">
+          <uap3:AppExecutionAlias>
+            <desktop:ExecutionAlias Alias="adeorq.exe" />
+          </uap3:AppExecutionAlias>
+        </uap3:Extension>
+        <desktop:Extension Category="windows.startupTask" Executable="adeorq.exe" EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask TaskId="AdeorqStartup" Enabled="false" DisplayName="Adeorq" />
+        </desktop:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+    <DeviceCapability Name="microphone" />
+  </Capabilities>
+</Package>

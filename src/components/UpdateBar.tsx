@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { check, type Update } from "@tauri-apps/plugin-updater";
+import type { Update } from "@tauri-apps/plugin-updater";
+import { buscarActualizacion } from "../lib/empaquetada";
 import { relaunch } from "@tauri-apps/plugin-process";
 import {
   isPermissionGranted,
@@ -85,7 +86,7 @@ export default function UpdateBar() {
       const ahora = Date.now();
       if (ahora - ultima < MIN_ENTRE_MS) return;
       ultima = ahora;
-      check()
+      buscarActualizacion()
         .then((u) => {
           // Lo bajado vive dentro del objeto de cada versión: la misma versión no
           // se cambia por otro objeto, y con la descarga en marcha no entra

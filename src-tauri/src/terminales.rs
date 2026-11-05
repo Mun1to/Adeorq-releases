@@ -886,6 +886,13 @@ fn leer_ajuste(contenido: Option<&[u8]>, de_fabrica: bool) -> bool {
 }
 
 pub fn encendido() -> bool {
+    // Dentro del paquete de la Tienda, nunca: el proceso aparte es una copia que
+    // se lanza por su ruta, sin la identidad del paquete, y buscaría la carpeta
+    // de datos y el canal en otro sitio que la app (`docs/contexto/tiendas.md`,
+    // pruebas T4 y T5).
+    if crate::packaged::is_packaged() {
+        return false;
+    }
     let contenido = ruta_del_ajuste().ok().and_then(|r| std::fs::read(r).ok());
     leer_ajuste(contenido.as_deref(), DE_FABRICA)
 }
@@ -897,6 +904,9 @@ pub fn terminales_aparte() -> bool {
 
 #[tauri::command(async)]
 pub fn terminales_aparte_poner(encender: bool) -> Result<(), String> {
+    if encender && crate::packaged::is_packaged() {
+        return Err("En la versión de la Microsoft Store las terminales viven dentro de la app: lo de ponerlas aparte aún no está disponible aquí.".into());
+    }
     // Apagar se ESCRIBE: con lo de fábrica encendido, borrar el fichero lo
     // volvería a encender.
     let r = ruta_del_ajuste()?;

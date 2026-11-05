@@ -68,6 +68,8 @@ mod mcp;
 mod mcp_clientes;
 mod mcp_estable;
 mod mods;
+/// Si esta copia corre desde el paquete de la Microsoft Store (`docs/contexto/tiendas.md`).
+pub mod packaged;
 mod git_shadow;
 
 pub use mcp::run_mcp_bridge;
@@ -127,6 +129,12 @@ fn ahora() -> String {
 pub fn dir_datos() -> Result<std::path::PathBuf, String> {
     #[cfg(windows)]
     {
+        // Dentro del paquete de la Tienda, lo que se crea en `%LOCALAPPDATA%` es
+        // privado de la app y un agente de fuera no lo ve (`packaged::datos_de_la_tienda`).
+        if packaged::is_packaged() {
+            let casa = dir_casa().ok_or("no sé cuál es tu carpeta de usuario")?;
+            return Ok(packaged::datos_de_la_tienda(&casa));
+        }
         let local = std::env::var("LOCALAPPDATA").map_err(|e| e.to_string())?;
         Ok(std::path::Path::new(&local).join("Adeorq"))
     }
@@ -409,9 +417,16 @@ pub fn run() {
         }));
     }
 
+    // El actualizador baja un instalador de GitHub y lo ejecuta. Dentro del
+    // paquete de la Tienda su política lo prohíbe (10.2.2) y la Tienda ya
+    // actualiza sola, así que allí el plugin no existe: ningún código del front
+    // puede llamarlo (`docs/contexto/tiendas.md`).
+    if !packaged::is_packaged() {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    }
+
     builder
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_notification::init())
         .setup(|app| {
@@ -420,6 +435,19 @@ pub fn run() {
             // de que la ventana pida su primera terminal, o unas irían dentro de
             // la app y otras fuera.
             terminales::arrancar(app.handle());
+            // La carpeta de datos del paquete no es la de `$APPLOCALDATA`, que es
+            // lo único que el protocolo `asset` sirve de fábrica (las capturas
+            // pegadas, las imágenes de las notas).
+            if packaged::is_packaged() {
+                if let Ok(datos) = dir_datos() {
+                    let _ = app.asset_protocol_scope().allow_directory(&datos, true);
+                    // Para saber en qué mundo corre cuando alguien cuente un fallo.
+                    anotar(&format!(
+                        "corre desde el paquete de la Microsoft Store: sin actualizador propio, datos en {}",
+                        datos.display()
+                    ));
+                }
+            }
             // Que un Codex dentro de una terminal le diga al enlace del MCP de
             // cuál es (`mcp_estable.rs`). En un hilo: es disco.
             std::thread::spawn(mcp_estable::codex_con_su_entorno);
@@ -786,6 +814,7 @@ pub fn run() {
             pedir_secreto::secreto_de_agente_olvidar,
             autostart::autostart_get,
             autostart::autostart_set,
+            packaged::esta_empaquetada,
             git_shadow::shadow_init,
             git_shadow::shadow_diff,
             git_shadow::shadow_status,

@@ -1,0 +1,111 @@
+# Adeorq en la Microsoft Store: lo que solo se ve en un Windows limpio.
+#
+# Un paquete MSIX corre con otras reglas que el instalador de siempre (lo que crea en
+# `%LOCALAPPDATA%` es privado de la app, sus hijos viven fuera, el alias de línea de órdenes
+# es la única ruta estable, etc.). `docs/contexto/tiendas.md` lo deduce de la documentación
+# de Microsoft; esto lo MIDE, con un programa de juguete (el sondeo) empaquetado con el mismo
+# tipo de manifiesto, en un runner de GitHub que se tira al acabar. Nunca en un equipo de
+# trabajo: instala paquetes y confía un certificado desechable.
+#
+# Solo corre en la rama `ci/tiendas` o con el botón de «Run workflow». Cuesta un trabajo corto
+# de Windows. No publica nada y no habla con Partner Center.
+#
+# Cada medida sale con su veredicto (ESPERADO, SORPRESA o MEDIDO): con una SORPRESA o un
+# ERROR el trabajo se pone en rojo, para que lo que el plano daba por hecho y no era cierto
+# no pase desapercibido. El detalle queda en el resumen del trabajo y en el artefacto `sondeo`.
+
+name: tiendas
+
+on:
+  push:
+    branches: [ci/tiendas]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sondeo:
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "scripts/laboratorio/tiendas/sondeo -> target"
+          cache-on-failure: true
+
+      - name: Compilar el sondeo (no es Adeorq)
+        run: cargo build --release --locked --manifest-path scripts/laboratorio/tiendas/sondeo/Cargo.toml
+
+      # Windows PowerShell 5.1 y no pwsh: los cmdlets de Appx (Add-AppxPackage) son suyos.
+      - name: Medir T1 a T8
+        shell: powershell
+        run: |
+          ./scripts/laboratorio/tiendas/medir.ps1 `
+            -Binarios "$PWD\scripts\laboratorio\tiendas\sondeo\target\release" `
+            -Salida "$env:RUNNER_TEMP\sondeo-out"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sondeo
+          path: ${{ runner.temp }}\sondeo-out
+          if-no-files-found: warn
+
+  # La Adeorq de verdad (T9): compilada aqui, abierta como siempre y dentro de un paquete de prueba.
+  # Es lo caro (compilar Tauri en Windows), por eso va en su propio trabajo y en paralelo al sondeo.
+  adeorq:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
+          shared-key: tiendas-adeorq
+          cache-on-failure: true
+
+      - run: pnpm install --frozen-lockfile
+
+      # `tauri build` y no `cargo build --release`: solo el primero empotra la interfaz en el binario (si no,
+      # la app abre `localhost refused to connect`, el rechazo de VoCript del 2026-08-21). Sin paquetes del
+      # instalador (`--no-bundle`) y sin artefactos del actualizador, que pedirian una clave que no se guarda.
+      # El mismo `adeorq.exe` salvo el puerto de depuracion de la ventana (`config-de-prueba.mjs` cuenta por que va
+      # en la configuracion y no en una variable de entorno): sin eso no se puede mirar la app por dentro.
+      - name: Configuracion de la compilacion de prueba
+        shell: bash
+        run: node scripts/laboratorio/tiendas/config-de-prueba.mjs "${{ runner.temp }}/tauri.prueba.json"
+
+      - name: Compilar Adeorq con la interfaz dentro
+        shell: bash
+        run: pnpm tauri build --no-bundle --config "${{ runner.temp }}/tauri.prueba.json"
+
+      - name: Medir T9 (la app de verdad, normal y en paquete)
+        shell: powershell
+        run: |
+          ./scripts/laboratorio/tiendas/medir-adeorq.ps1 `
+            -Release "$PWD\src-tauri\target\release" `
+            -Salida "$env:RUNNER_TEMP\adeorq-out"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: adeorq
+          path: ${{ runner.temp }}\adeorq-out
+          if-no-files-found: warn

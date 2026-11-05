@@ -672,7 +672,9 @@ pub async fn foreman_lote(tareas: String, context: String, quien: Option<Quien>)
 /// ESTA ventana y no con la que hubiera instalada en otro sitio. Se reescribe
 /// en cada llamada porque una actualización cambia el binario de sitio.
 pub(crate) fn config_mcp() -> Result<PathBuf, String> {
-    let exe = std::env::current_exe().map_err(|e| format!("no sé dónde estoy: {e}"))?;
+    // `exe_visible`: dentro del paquete de la Tienda, el alias; `claude` corre
+    // fuera y no puede abrir la carpeta del paquete (`packaged.rs`).
+    let exe = crate::packaged::exe_visible().map_err(|e| format!("no sé dónde estoy: {e}"))?;
     // Barras normales: en un JSON, `C:\Apps\...` son escapes inválidos y el CLI
     // lo rechaza con «MCP config is not a valid JSON», que no dice nada de
     // barras. Windows acepta las de dividir igual de bien.

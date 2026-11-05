@@ -738,6 +738,8 @@ const EN: Record<string, string> = {
     "Adeorq's documentation on the web: it opens in your browser, reads anywhere, and is always current without waiting for an app update.",
   "Versión instalada": "Installed version",
   "Buscar actualizaciones": "Check for updates",
+  "Esta Adeorq viene de la Microsoft Store, que la mantiene al día sola: no hay nada que buscar ni que instalar desde aquí.":
+    "This Adeorq comes from the Microsoft Store, which keeps it up to date by itself: there is nothing to look for or install from here.",
   "Hay una versión nueva: la {v}.": "There is a new version: {v}.",
   "Poner la {v}": "Install {v}",
   "Bajando…": "Downloading…",

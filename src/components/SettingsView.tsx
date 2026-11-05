@@ -3,6 +3,7 @@ import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { getVersion } from "@tauri-apps/api/app";
 import { useEffect } from "react";
+import { buscarActualizacion, enLaTienda } from "../lib/empaquetada";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { FAMILIAS_TEMA, THEMES, useT, type Lang, type ThemeId } from "../lib/i18n";
 import Espera, { Ocupado } from "./Espera";
@@ -455,6 +456,8 @@ export default function SettingsView({
       instala: instalar cierra la app, y aquí dentro hay terminales trabajando. */
   const [hallada, setHallada] = useState<Awaited<ReturnType<typeof check>>>(null);
   const [bajando, setBajando] = useState(false);
+  /** Si esta Adeorq viene del paquete de la Microsoft Store: allí se actualiza sola. */
+  const [enTienda, setEnTienda] = useState(false);
   // Starting with Windows is a fact about the machine, not a preference of
   // ours: it is read from the system, never remembered here. null = still
   // asking, so the switch cannot flicker from off to on in front of him.
@@ -541,6 +544,7 @@ export default function SettingsView({
     // que no está cuando sí, o al revés.
     ollamaModels().then(setModelos).catch(() => setModelos([]));
     getVersion().then(setVersion).catch(() => {});
+    void enLaTienda().then(setEnTienda);
     autostartGet()
       .then(setBoot)
       .catch((e) => {
@@ -577,7 +581,7 @@ export default function SettingsView({
     setNews(null);
     setUpdPct(0);
     setHallada(null);
-    check()
+    buscarActualizacion()
       .then((u) => {
         if (!u) {
           setNews(t("Ya tienes la última versión."));
@@ -1844,6 +1848,21 @@ export default function SettingsView({
                 </button>
               </section>
 
+              {/* Desde la Microsoft Store no hay nada que buscar ni que poner: la
+                  Tienda actualiza sola y su política no deja que una app baje
+                  código y lo ejecute (`docs/contexto/tiendas.md`). */}
+              {enTienda && (
+                <section className="panel-card">
+                  <h2>{t("Actualizaciones")}</h2>
+                  <p className="card-hint">
+                    {t("Esta Adeorq viene de la Microsoft Store, que la mantiene al día sola: no hay nada que buscar ni que instalar desde aquí.")}
+                  </p>
+                  <p className="setting-line">
+                    {t("Versión instalada")}: <strong>{version || "…"}</strong>
+                  </p>
+                </section>
+              )}
+              {!enTienda && (
               <section className="panel-card">
                 <h2>{t("Actualizaciones")}</h2>
                 <p className="card-hint">
@@ -1880,6 +1899,7 @@ export default function SettingsView({
                 </div>
                 {news && <p className="np-ok">{news}</p>}
               </section>
+              )}
               <section className="panel-card">
                 <h2>{t("Tu cuota")}</h2>
                 <p className="card-hint">

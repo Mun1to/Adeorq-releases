@@ -1,11 +1,11 @@
 {
-  "version": "0.9.242",
-  "notes": "Conectar tu Claude Code con un boton, lo de fuera solo ve la lista y el uso salvo que lo subas en Ajustes, Adeo en todas partes, y arreglos en Linux",
-  "pub_date": "2026-11-05T11:53:29Z",
+  "version": "0.9.243",
+  "notes": "Linux: adeorq se encuentra en las terminales del AppImage en Debian. Adeorq ya sabe correr en el paquete de la Microsoft Store.",
+  "pub_date": "2026-11-05T14:46:06Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3hncmZtZUhicjJyb05rNGJXdkVjZElzRUZONytyWE9hR215UWhLbXVPbHdjbFB1c1ROdHJRMmswSG1mVHRSeVdEQUlYelp3NnZWZW1QZEFncXZ0UmdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzODc5NTc2CWZpbGU6QWRlb3JxXzAuOS4yNDJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNDIKcTJ6bjhLM055Z294Kzl1QXhFV1dvcFlMM05qNjdKaldVZXFmZUpxWlpwQTBleUhaRVZxVmVRWXUvU3c0OWRBTTAzeEZYdWhTN3VaTTl0czBPaU1OQ2c9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.242/Adeorq_0.9.242_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzRDRWlKWnlrTUZ3OWNzdktJL29qTWMyM2wvaFgxYWY1MjRMWS83dnpIdC9UNHplZXVrbjRPY3cxNG5qMFVOc0lkQ3d6YXlBZ3NYYnJlUkdKejdTU2dJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzODg5OTUxCWZpbGU6QWRlb3JxXzAuOS4yNDNfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNDMKNi85T1g4amRxMGhUakpXK09Pb0VldDhaL0QyN1gwRjRVUGgwR2J1WTErdkhTL1AzSEpjSW5NYk5ybERFbnV0T3JlTktESjlMSytwblJJNnREWHloQWc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.243/Adeorq_0.9.243_x64-setup.exe"
     }
   }
 }

@@ -29,6 +29,11 @@ pub fn preparar() {
     if cfg!(debug_assertions) || !cfg!(windows) {
         return;
     }
+    // Dentro del paquete de la Tienda no hay copia que hacer: el alias de
+    // `adeorq.exe` ya es una ruta estable que la Tienda mantiene entre versiones.
+    if crate::packaged::is_packaged() {
+        return;
+    }
     let Ok(exe) = std::env::current_exe() else { return };
     let copia = match crate::dir_datos().and_then(|d| copia_estable(&exe, &d.join("mcp"), env!("CARGO_PKG_VERSION"))) {
         Ok(c) => c,
@@ -53,6 +58,12 @@ pub fn preparar() {
 pub(crate) fn ruta_del_enlace() -> Result<PathBuf, String> {
     if let Some(imagen) = std::env::var_os("APPIMAGE").filter(|a| !a.is_empty()) {
         return Ok(PathBuf::from(imagen));
+    }
+    // Dentro del paquete de la Tienda: el alias. `current_exe` es una carpeta de
+    // solo lectura que nadie de fuera puede abrir, y una copia en `AppData` solo
+    // la vería la app (`packaged.rs`).
+    if let Some(alias) = crate::packaged::alias() {
+        return Ok(alias);
     }
     let exe = std::env::current_exe().map_err(|e| format!("no sé dónde estoy: {e}"))?;
     if cfg!(debug_assertions) || !cfg!(windows) {

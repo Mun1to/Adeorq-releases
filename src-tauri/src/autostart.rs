@@ -69,8 +69,60 @@ fn launcher() -> Result<auto_launch::AutoLaunch, String> {
         .map_err(|e| format!("no he podido preparar el arranque automático: {e}"))
 }
 
+/// El arranque con Windows de la app EMPAQUETADA (la Tienda). Escribir en
+/// `HKCU\...\Run` desde el paquete va al registro privado de la app, que Windows
+/// no mira al iniciar sesión: el interruptor no haría nada y no lo diría. El
+/// manifiesto declara una tarea de arranque (`AdeorqStartup`, apagada) y aquí se
+/// enciende y apaga con `StartupTask`. Windows puede negarse: si el usuario la
+/// apagó en Configuración › Aplicaciones › Inicio, solo él puede volver a
+/// encenderla, y se le dice (política 10.2.8, `docs/contexto/tiendas.md`).
+#[cfg(windows)]
+mod tarea {
+    use windows::core::HSTRING;
+    use windows::ApplicationModel::{StartupTask, StartupTaskState};
+    use windows::Win32::System::Com::{CoInitializeEx, COINIT_MULTITHREADED};
+
+    /// El `TaskId` del manifiesto (`scripts/tiendas/AppxManifest.plantilla.xml`).
+    pub const ID: &str = "AdeorqStartup";
+
+    fn la_tarea() -> Result<StartupTask, String> {
+        // El hilo de un comando no trae COM puesto; si ya lo tenía de otra forma, da igual.
+        // SAFETY: inicializar COM en el hilo actual no toca memoria de nadie.
+        let _ = unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) };
+        StartupTask::GetAsync(&HSTRING::from(ID))
+            .and_then(|a| a.join())
+            .map_err(|e| format!("no he podido leer la tarea de arranque de Adeorq: {e}"))
+    }
+
+    pub fn encendida() -> Result<bool, String> {
+        let estado = la_tarea()?.State().map_err(|e| e.to_string())?;
+        Ok(estado == StartupTaskState::Enabled || estado == StartupTaskState::EnabledByPolicy)
+    }
+
+    pub fn poner(encender: bool) -> Result<(), String> {
+        let tarea = la_tarea()?;
+        if !encender {
+            return tarea.Disable().map_err(|e| format!("no he podido desactivarlo: {e}"));
+        }
+        let estado = tarea
+            .RequestEnableAsync()
+            .and_then(|a| a.join())
+            .map_err(|e| format!("no he podido activarlo: {e}"))?;
+        match estado {
+            StartupTaskState::Enabled | StartupTaskState::EnabledByPolicy => Ok(()),
+            StartupTaskState::DisabledByUser => Err("Windows lo tiene apagado por ti: enciéndelo en Configuración › Aplicaciones › Inicio".into()),
+            StartupTaskState::DisabledByPolicy => Err("Una directiva de tu equipo no deja que Adeorq arranque con Windows".into()),
+            _ => Err("Windows no ha dejado activar el arranque automático".into()),
+        }
+    }
+}
+
 #[tauri::command(async)]
 pub fn autostart_get() -> Result<bool, String> {
+    #[cfg(windows)]
+    if crate::packaged::is_packaged() {
+        return tarea::encendida();
+    }
     launcher()?
         .is_enabled()
         .map_err(|e| format!("no he podido leer el arranque automático: {e}"))
@@ -78,6 +130,10 @@ pub fn autostart_get() -> Result<bool, String> {
 
 #[tauri::command(async)]
 pub fn autostart_set(on: bool) -> Result<(), String> {
+    #[cfg(windows)]
+    if crate::packaged::is_packaged() {
+        return tarea::poner(on);
+    }
     let app = launcher()?;
     if on {
         app.enable()

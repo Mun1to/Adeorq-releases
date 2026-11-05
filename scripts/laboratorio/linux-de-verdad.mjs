@@ -26,6 +26,9 @@
 // Con `LAB_FONDO_VIDEO=<ruta a un .mp4>`, en vez de todo eso mira que un fondo de vídeo
 // se vea y se mueva.
 //
+// Con `LAB_PERFIL_REESCRIBE_EL_PATH=1`, el perfil de la shell de la consola reescribe el PATH como el
+// `/etc/profile` de Debian, y se mira que el `adeorq` que se teclea siga siendo el de esta app.
+//
 // Lo que NO prueba: la aceleración gráfica de un equipo real (Xvfb pinta por
 // software), un escritorio de verdad (GNOME, KDE) ni el .deb.
 import { spawn, spawnSync } from "node:child_process";
@@ -82,6 +85,9 @@ mkdirSync(RUNTIME, { recursive: true, mode: 0o700 });
 // Lo de fuera de una terminal de Adeorq solo mira y abre; esta sonda también
 // escribe, así que nace con ese permiso subido, como se sube en Ajustes.
 writeFileSync(join(DATOS, "mcp_clientes.json"), JSON.stringify({ niveles: { fuera: "auto" } }));
+// Con `LAB_PERFIL_REESCRIBE_EL_PATH=1`, el perfil de la shell de login reescribe el PATH como el
+// `/etc/profile` de Debian (Fedora y Ubuntu lo conservan, y por eso allí nunca se ve).
+if (process.env.LAB_PERFIL_REESCRIBE_EL_PATH) writeFileSync(join(CASA, ".bash_profile"), "PATH=/usr/bin:/bin\nexport PATH\n");
 const FONDO_VIDEO = process.env.LAB_FONDO_VIDEO;
 if (FONDO_VIDEO) copyFileSync(FONDO_VIDEO, join(DATOS, "fondo.mp4"));
 
@@ -345,7 +351,7 @@ try {
   debe(Number.isFinite(id), `se sabe el número del panel (${id})`);
   if (Number.isFinite(id)) {
     await dormir(3000);
-    const manda = await agente.llamar("send_command", { paneId: id, command: 'echo adeorq-linux-$((6*7)); echo bash=$BASH_VERSION; echo clave=${#ADEORQ_PANE_CLAVE}' });
+    const manda = await agente.llamar("send_command", { paneId: id, command: 'echo adeorq-linux-$((6*7)); echo bash=$BASH_VERSION; echo clave=${#ADEORQ_PANE_CLAVE}; echo adeorq=$(command -v adeorq)' });
     debe(Boolean(manda.texto) && !manda.error && !manda.esError, `send_command acepta la orden (${(manda.texto ?? manda.error ?? "").slice(0, 80)})`);
     let pantalla = "";
     await hasta(async () => {
@@ -357,6 +363,7 @@ try {
     debe(pantalla.includes("adeorq-linux-42"), "la consola EJECUTÓ el echo (salió 42, no el 6*7 escrito)");
     debe(/bash=\d/.test(pantalla), "la shell de la consola es bash");
     debe(/clave=[1-9]\d*/.test(pantalla), "la consola nació con su contraseña");
+    debe(pantalla.includes(`adeorq=${BINARIO}`), `el \`adeorq\` que se teclea en la consola es el de esta Adeorq (${BINARIO})${process.env.LAB_PERFIL_REESCRIBE_EL_PATH ? ", aunque el perfil de la shell reescriba el PATH" : ""}`);
     await dormir(1000);
     foto("2-con-consola.png");
 

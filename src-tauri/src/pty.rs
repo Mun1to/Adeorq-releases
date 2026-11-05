@@ -194,6 +194,40 @@ fn quitar_el_entorno_del_appimage(cmd: &mut CommandBuilder) {
     }
 }
 
+/// Las shells que entienden `-l -c '<guion>' <$0> <$1>` como un guion POSIX. `fish`,
+/// `nu` y compañía hablan otro idioma y se quedan como estaban.
+const SHELLS_POSIX: [&str; 6] = ["bash", "zsh", "sh", "dash", "ksh", "ash"];
+
+/// La primera etapa de una shell que tiene que ponerse una carpeta delante del
+/// `PATH` (`$1`) y que se abre de login. Va en una sola línea porque el laboratorio
+/// de Linux la lee de aquí (`scripts/laboratorio/shell-del-appimage.sh`). `$0` es la
+/// propia shell. Si la carpeta ya está, no se repite.
+const ARRANQUE_CON_LA_CARPETA: &str = r#"case ":$PATH:" in *":$1:"*) ;; *) PATH="$1:$PATH"; export PATH;; esac; exec "$0" -i"#;
+
+/// Los argumentos de la shell de una terminal sin programa. De fábrica `-l`, de login,
+/// para que estén el `PATH` y los alias de la persona. Pero la carpeta del ejecutable
+/// (la que hace que `adeorq` se pueda teclear, y que en un AppImage cambia en cada
+/// arranque) la pone `abrir` en el `PATH` ANTES de que la shell lea su perfil, y el
+/// `/etc/profile` de Debian reescribe el `PATH` entero (el de Ubuntu 24.04 y el de
+/// Fedora no): medido en un Debian 13 y su `/etc/profile`, tras `bash -l` el `adeorq`
+/// ya no se encuentra, con WebKitGTK o sin él. Se hace donde hubo que poner la carpeta
+/// y no solo en Debian, porque un perfil que reescribe el `PATH` puede estar en
+/// cualquier parte (`~/.profile`, `/etc/profile.d`). Con carpeta, la shell de login lee
+/// su perfil, se pone la carpeta DESPUÉS y se reemplaza (`exec`) por una shell
+/// interactiva normal, que lee su `.bashrc` o su `.zshrc` como en cualquier emulador de
+/// terminal. Lo que el perfil exportó se queda; lo que solo definió como función o alias
+/// de login, no.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn argumentos_de_la_shell(shell: &str, carpeta: Option<&str>) -> Vec<String> {
+    let nombre = shell.rsplit('/').next().unwrap_or(shell);
+    match carpeta {
+        Some(c) if SHELLS_POSIX.contains(&nombre) => {
+            ["-l", "-c", ARRANQUE_CON_LA_CARPETA, shell, c].iter().map(|s| s.to_string()).collect()
+        }
+        _ => vec!["-l".to_string()],
+    }
+}
+
 /// La contraseña de una terminal: con ella, su puente demuestra al MCP que
 /// habla desde ESA terminal (decisión B1 de Munir, 2026-11-03). Nueva en cada
 /// terminal, 32 bytes del sistema en hex, y vale mientras la terminal viva: con
@@ -733,6 +767,8 @@ pub fn abrir(mapa: &Mapa, alta: Alta, salida: std::sync::Arc<dyn Salida>) -> Res
         })
         .map_err(|e| e.to_string())?;
 
+    #[cfg(target_os = "linux")]
+    let shell_sola = !matches!(&command, Some(argv) if !argv.is_empty());
     let mut cmd = match command {
         Some(argv) if !argv.is_empty() => {
             let mut c = CommandBuilder::new(&argv[0]);
@@ -816,7 +852,9 @@ pub fn abrir(mapa: &Mapa, alta: Alta, salida: std::sync::Arc<dyn Salida>) -> Res
     // añade DELANTE por lo de siempre, que un `adeorq` de otro sitio no gane, y
     // solo si no estaba ya, para que reabrir terminales no vaya alargando la
     // variable sin freno.
-    if let Ok(exe) = std::env::current_exe() {
+    // `exe_visible`: dentro del paquete de la Tienda, la carpeta del alias (que
+    // ya va en el PATH del usuario) y no la del paquete, que nadie de fuera abre.
+    if let Ok(exe) = crate::packaged::exe_visible() {
         if let Some(carpeta) = exe.parent().map(|p| p.to_string_lossy().to_string()) {
             let sep = if cfg!(windows) { ';' } else { ':' };
             let actual = std::env::var("PATH").unwrap_or_default();
@@ -825,6 +863,15 @@ pub fn abrir(mapa: &Mapa, alta: Alta, salida: std::sync::Arc<dyn Salida>) -> Res
             let actual = cmd.get_env("PATH").and_then(|v| v.to_str()).map(String::from).unwrap_or(actual);
             if !actual.split(sep).any(|t| t == carpeta) {
                 cmd.env("PATH", format!("{carpeta}{sep}{actual}"));
+                // Una shell de login de Debian o Ubuntu reescribe este PATH y la carpeta se
+                // pierde: ver `argumentos_de_la_shell`.
+                #[cfg(target_os = "linux")]
+                if shell_sola {
+                    let argv = cmd.get_argv_mut();
+                    let shell = argv[0].to_string_lossy().to_string();
+                    argv.truncate(1);
+                    argv.extend(argumentos_de_la_shell(&shell, Some(&carpeta)).into_iter().map(std::ffi::OsString::from));
+                }
             }
         }
     }
@@ -3665,5 +3712,140 @@ mod entorno_del_appimage {
     fn sin_carpeta_del_appimage_no_se_toca_nada() {
         assert!(cambios_por_el_appimage([("PATH", "/usr/bin:/bin")], "").is_empty());
         assert!(cambios_por_el_appimage([("PATH", "/usr/bin:/bin")], "/").is_empty());
+    }
+}
+
+/// Que `adeorq` se pueda teclear en una terminal cuya shell de login reescribe el `PATH`,
+/// como hace el `/etc/profile` de Debian (medido en un Debian 13, 2026-11-05; el de Ubuntu
+/// 24.04 no lo hace).
+#[cfg(test)]
+mod shell_con_la_carpeta {
+    use super::{argumentos_de_la_shell, ARRANQUE_CON_LA_CARPETA};
+
+    #[test]
+    fn con_carpeta_y_una_shell_posix_se_arranca_en_dos_etapas() {
+        for shell in ["/bin/bash", "/usr/bin/zsh", "/bin/sh", "/usr/bin/dash", "/bin/ksh", "/bin/ash"] {
+            let a = argumentos_de_la_shell(shell, Some("/tmp/.mount_X/usr/bin"));
+            assert_eq!(a, ["-l", "-c", ARRANQUE_CON_LA_CARPETA, shell, "/tmp/.mount_X/usr/bin"], "{shell}");
+        }
+    }
+
+    #[test]
+    fn sin_carpeta_o_con_otra_shell_se_queda_como_estaba() {
+        assert_eq!(argumentos_de_la_shell("/bin/bash", None), ["-l"]);
+        assert_eq!(argumentos_de_la_shell("/usr/bin/fish", Some("/opt/a/bin")), ["-l"]);
+        assert_eq!(argumentos_de_la_shell("/usr/bin/nu", Some("/opt/a/bin")), ["-l"]);
+        // Un nombre que solo contiene el de una shell no es esa shell.
+        assert_eq!(argumentos_de_la_shell("/opt/bashful", Some("/opt/a/bin")), ["-l"]);
+    }
+
+    #[test]
+    fn una_carpeta_con_espacios_y_comillas_viaja_como_un_solo_argumento() {
+        let c = "/tmp/mi carpeta/'x'/\"y\"/usr/bin";
+        let a = argumentos_de_la_shell("/bin/bash", Some(c));
+        assert_eq!(a.len(), 5);
+        assert_eq!(a[4], c);
+        assert!(!ARRANQUE_CON_LA_CARPETA.contains('\n'), "una sola línea: el laboratorio de Linux la lee de aquí");
+    }
+
+    /// Donde queda el programa de prueba dentro de su carpeta.
+    #[cfg(unix)]
+    const RUTA_DE_LA_PRUEBA: &str = "carpeta con espacio/bin/adeorq-de-prueba";
+
+    /// La shell de verdad, en un PTY de verdad (el mismo `portable-pty` con que `abrir` abre
+    /// una terminal), con un perfil que reescribe el `PATH` como el de Debian. Devuelve lo que
+    /// salió por la pantalla tras preguntarle dónde está un programa que solo existe en la
+    /// carpeta. Una shell que no esté instalada se salta.
+    #[cfg(unix)]
+    fn pantalla_tras_preguntar(shell: &str, perfil: &str, args: impl Fn(&str) -> Vec<String>) -> Option<String> {
+        use portable_pty::{native_pty_system, CommandBuilder, PtySize};
+        use std::io::{Read, Write};
+        use std::os::unix::fs::PermissionsExt;
+        if !std::path::Path::new(shell).exists() {
+            eprintln!("{shell}: no está instalada, se salta");
+            return None;
+        }
+        let nombre = shell.rsplit('/').next().unwrap();
+        let raiz = std::env::temp_dir().join(format!("adeorq-shell-{}-{nombre}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&raiz);
+        let casa = raiz.join("casa");
+        let carpeta = raiz.join("carpeta con espacio").join("bin");
+        std::fs::create_dir_all(&casa).unwrap();
+        std::fs::create_dir_all(&carpeta).unwrap();
+        // Con otro nombre que `adeorq`: un Linux con Adeorq instalado ya tiene uno en el `PATH`.
+        let programa = carpeta.join("adeorq-de-prueba");
+        std::fs::write(&programa, "#!/bin/sh\necho hola\n").unwrap();
+        std::fs::set_permissions(&programa, std::fs::Permissions::from_mode(0o755)).unwrap();
+        std::fs::write(casa.join(perfil), "PATH=/usr/bin:/bin\nexport PATH\n").unwrap();
+        // Vacíos, para que zsh no enseñe su asistente de primera vez.
+        std::fs::write(casa.join(".zshrc"), "").unwrap();
+        std::fs::write(casa.join(".bashrc"), "").unwrap();
+        let carpeta_s = carpeta.to_string_lossy().to_string();
+
+        let par = native_pty_system().openpty(PtySize { rows: 24, cols: 200, pixel_width: 0, pixel_height: 0 }).unwrap();
+        let mut cmd = CommandBuilder::new(shell);
+        for a in args(&carpeta_s) {
+            cmd.arg(a);
+        }
+        cmd.env_clear();
+        cmd.env("HOME", &casa);
+        cmd.env("PATH", format!("{carpeta_s}:/usr/bin:/bin"));
+        cmd.env("TERM", "dumb");
+        cmd.cwd(&casa);
+        let mut hijo = par.slave.spawn_command(cmd).unwrap();
+        drop(par.slave);
+        let mut lector = par.master.try_clone_reader().unwrap();
+        let mut escritor = par.master.take_writer().unwrap();
+        let (tx, rx) = std::sync::mpsc::channel::<Vec<u8>>();
+        std::thread::spawn(move || {
+            let mut b = [0u8; 4096];
+            while let Ok(n) = lector.read(&mut b) {
+                if n == 0 || tx.send(b[..n].to_vec()).is_err() {
+                    break;
+                }
+            }
+        });
+        // Se pregunta cada medio segundo hasta que sale la marca: lo escrito antes de que la
+        // shell esté lista puede perderse, y repetir la pregunta no estorba. `FI""N` se
+        // escribe con comillas para que la marca solo salga como RESPUESTA, no en el eco.
+        let mut pantalla = String::new();
+        let fin = std::time::Instant::now() + std::time::Duration::from_secs(20);
+        while std::time::Instant::now() < fin && !pantalla.contains("FIN") {
+            let _ = escritor.write_all(b"command -v adeorq-de-prueba; echo FI\"\"N\r");
+            let _ = escritor.flush();
+            let hasta = std::time::Instant::now() + std::time::Duration::from_millis(500);
+            while let Some(resto) = hasta.checked_duration_since(std::time::Instant::now()) {
+                match rx.recv_timeout(resto) {
+                    Ok(trozo) => pantalla.push_str(&String::from_utf8_lossy(&trozo)),
+                    Err(_) => break,
+                }
+            }
+        }
+        let _ = hijo.kill();
+        let _ = std::fs::remove_dir_all(&raiz);
+        Some(pantalla)
+    }
+
+    /// Rojo con `-l` a secas (la carpeta se pierde) y verde con los argumentos de ahora.
+    #[cfg(unix)]
+    fn comprobar(shell: &str, perfil: &str) {
+        let Some(antes) = pantalla_tras_preguntar(shell, perfil, |_| vec!["-l".to_string()]) else { return };
+        assert!(antes.contains("FIN"), "{shell} -l no llegó a contestar: {antes:?}");
+        assert!(!antes.contains(RUTA_DE_LA_PRUEBA), "{shell} -l con un perfil que reescribe el PATH debería perder la carpeta: {antes:?}");
+        let ahora = pantalla_tras_preguntar(shell, perfil, |c| argumentos_de_la_shell(shell, Some(c))).unwrap();
+        assert!(ahora.contains("FIN"), "{shell} en dos etapas no llegó a contestar: {ahora:?}");
+        assert!(ahora.contains(RUTA_DE_LA_PRUEBA), "{shell} en dos etapas no encuentra el programa: {ahora:?}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn bash_con_un_perfil_que_reescribe_el_path_sigue_encontrando_adeorq() {
+        comprobar("/bin/bash", ".bash_profile");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn zsh_con_un_perfil_que_reescribe_el_path_sigue_encontrando_adeorq() {
+        comprobar("/usr/bin/zsh", ".zprofile");
     }
 }

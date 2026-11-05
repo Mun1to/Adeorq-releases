@@ -50,6 +50,7 @@ import {
 import { enviarAlEnjambre, respuestaDe, turnoAcabadoEn, useLienzoVivo, type EnjambreData, type SesionLeible } from "../lib/enjambreEnLienzo";
 import type { PaneStatus } from "../lib/pty";
 import { useConversacion } from "./Conserje";
+import { AvisoIA, BotonInformar } from "./Informar";
 import Mascota from "./Mascota";
 import ProviderMark from "./ProviderMark";
 import { CloseIcon, EyeIcon, EyeOffIcon, PlusIcon, SendIcon, TargetIcon, UnlinkIcon } from "./Icons";
@@ -127,6 +128,9 @@ const TurnoDelGrupo = memo(function TurnoDelGrupo({ turno, tinte, marca }: { tur
           {entero ? t("Recoger") : t("Ver entera")}
         </button>
       )}
+      {/* Lo que dice Adeo se puede denunciar; lo que contesta una sesión es de
+          su programa, no de Adeo (política 11.16 de la Microsoft Store). */}
+      {turno.rol === "conserje" && <BotonInformar donde="enjambre" />}
     </article>
   );
 });
@@ -296,7 +300,11 @@ export default function EnjambreNode({ data, selected }: NodeProps<Node<Enjambre
     const el = cajaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
+    // Al montarse, con la pieza aún sin pintar, `scrollHeight` es 0: fijar ese 0
+    // dejaba la caja sin alto hasta la primera tecla (21 px con el relleno y el
+    // borde, y el texto de ayuda cortado). Sin medida, se queda con el alto de
+    // dos líneas que le da `rows={2}`.
+    if (el.scrollHeight > 0) el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
   }, [texto]);
 
   useEffect(() => {
@@ -539,6 +547,8 @@ export default function EnjambreNode({ data, selected }: NodeProps<Node<Enjambre
           <SendIcon size={14} />
         </button>
       </div>
+      {/* `nodrag`: un clic en el botón no arrastra la pieza del lienzo. */}
+      <AvisoIA donde="enjambre" className="nodrag" />
     </div>
   );
 }

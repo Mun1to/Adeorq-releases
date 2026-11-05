@@ -38,6 +38,7 @@ starts: it keeps the data files already on disk and prints a warning.
 | `pnpm data:latest`   | Rebuild `data/latest.json` and `data/release.json`        |
 | `pnpm data:changelog`| Rebuild `data/changelog.json`                             |
 | `pnpm ingles`        | Write the English front page `en/index.html`             |
+| `pnpm privacidad`    | Write the two privacy pages from `legal/`                |
 | `pnpm demo`          | Pack the hero demo from a dump of the real app           |
 | `pnpm clientes`      | Rebuild the client strip from the app's provider list    |
 
@@ -57,6 +58,31 @@ is missing and warns about Spanish left in the English page.
 each its own canonical. Nobody is redirected by language: `portada/idioma.js`
 only suggests the other version and remembers the choice in `adeorq-lang`, the
 same key the guide reads.
+
+## The privacy pages
+
+`/privacidad` and `/en/privacy` (Cloudflare Pages serves `privacidad.html` and
+`en/privacy.html` without the extension, the same as `guia.html` at `/guia`).
+The text lives in two fragments, `legal/privacidad.es.html` and
+`legal/privacy.en.html`, which must keep the same structure (same sections,
+lists and links, in the same order); the date of the last change and the contact
+address live once in `legal/datos.mjs`. `scripts/hacer-privacidad.mjs` (run by
+`dev`, `build` and `metadatos`) writes both pages with the bar and the footer
+around them; neither is committed. `vite.config.js` strips their workshop
+comments from the built page, except the `email_off` marks that keep Cloudflare
+from replacing the address with `[email protected]`, and does not publish
+`legal/`. The pages have no scripts and a content policy that allows nothing
+from outside.
+
+Changing the text means editing both fragments and the date in `legal/datos.mjs`
+in the same commit. `scripts/privacidad-web-check.mjs` (part of `pnpm
+comprobar`) turns red on a draft mark left in the published text (`[[FALTA`,
+`[S7]`, a note for the lawyer, a path of this repository, the name of the
+developer's personal panel, a long dash), on a section that one language has and
+the other does not, on a footer without its link, and on a real build that
+publishes a workshop comment. The text is a policy of the app, measured on the
+code: before changing what it says about what leaves the computer, read
+`docs/contexto/tiendas/privacidad-borrador.md`, apartado 7.
 
 ## The demo in the hero
 
@@ -94,6 +120,7 @@ web/
   index.html        page                    <- hero agent
   styles/ js/       styles and behaviour    <- hero and sections agents
   sections/         section fragments       <- sections agent
+  legal/            privacy page texts      <- generate /privacidad and /en/privacy
   data/             generated JSON          <- this agent
   scripts/          data generators         <- this agent
   api/              Cloudflare worker       <- this agent

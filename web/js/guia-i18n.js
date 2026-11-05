@@ -207,6 +207,10 @@ window.ADEORQ_I18N_EXTRA = {
                     'program you pick in its pills), not with an API key. The sessions it opens spend their own ' +
                     'quota. <b>Improve</b> rewrites your message without adding anything, and <b>Stop</b> cuts it ' +
                     'off while it thinks.',
+    'guia.chat.l6': 'Adeo is an AI and can make mistakes: under the box it always says so, and right there is ' +
+                    '"Report an issue", which opens a public GitHub form in your browser, without your ' +
+                    'conversation. It is also next to each answer from Adeo, in the Adeo window, in a swarm chat ' +
+                    'and on your phone.',
     'guia.chat.l5': 'Turning off the "Chat" part in Settings also removes the box from the Dashboard. It does not ' +
                     'turn off Adeo on your phone, which has its own switch (<a href="#movil">On your ' +
                     'phone</a>).',
@@ -751,10 +755,24 @@ window.ADEORQ_I18N_EXTRA = {
                      'online only in these cases:',
     'guia.dudas.r3a': '<b>To check for updates</b>: it asks GitHub at startup, every six hours and when you come ' +
                       'back to the window.',
-    'guia.dudas.r3b': '<b>OpenRouter</b>, only if you save your key: checking the key and the balance, listing ' +
-                      'models, talking to one and generating Adeo’s voice.',
+    'guia.dudas.r3b': '<b>OpenRouter</b>: with your key saved, checking the key and the balance, talking to a ' +
+                      'model and generating Adeo’s voice. <b>Without a key</b> there are also two public ' +
+                      'requests: the session copilot, while a session is open, asks OpenRouter for its list of ' +
+                      'models and its offers, and it carries neither your projects nor any key. You cut it off by ' +
+                      'setting <b>The session copilot</b> to <i>Never</i> (Settings → Notifications).',
     'guia.dudas.r3c': '<b>The compass</b> in the Agenda (dates and ideas), only if you sign in to it with a ' +
                       'munito.dev account.',
+    'guia.dudas.r3discord': '<b>Discord</b>, if <b>Show Adeorq on my Discord</b> is on (it is by default): Adeorq ' +
+                            'hands your Discord, the one you have open on your machine, a line ("Coding with ' +
+                            'agents" and how many terminals you have open; the project name only if you turn it ' +
+                            'on yourself, and never in streaming mode), and Discord publishes it on your profile. ' +
+                            'You turn it off in Settings → Discord.',
+    'guia.dudas.r3informar': '<b>Report an issue</b>: a button under the Chat’s box, the Adeo window’s, a swarm ' +
+                             'chat’s, the canvas model chat’s and the phone page’s, and next to each answer from ' +
+                             'Adeo or the model. Only when you press it does it open your browser on a public ' +
+                             'GitHub form (a GitHub account is needed) with the Adeorq version already filled in. ' +
+                             'It does not carry your conversation: you paste whatever you want to show, and what ' +
+                             'you write there can be read by anyone.',
     'guia.dudas.r3d': '<b>Phone notifications</b>, if you turn them on: they travel encrypted through your ' +
                       'browser’s notification service (Google, Apple or Mozilla).',
     'guia.dudas.r3bot': '<b>Notifications to a bot</b>, only if you turn them on in Settings → Bots: the webhook of ' +
@@ -766,7 +784,7 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.dudas.r3f': '<b>What you open yourself</b>: the panel browser and the web windows on the canvas load ' +
                       'whatever page you give them, and the agents (Claude Code, Codex…) and Adeo reach ' +
                       'the internet through each one’s own program, not through Adeorq.',
-    'guia.dudas.r3g': 'Ollama, Discord, local voice and the phone and MCP servers stay inside your machine.',
+    'guia.dudas.r3g': 'Ollama, local voice and the phone and MCP servers stay inside your machine.',
     'guia.dudas.q4': 'Can I use two accounts of the same program?',
     'guia.dudas.r4': 'Yes, as long as they are yours and the program supports it (seven do today: see ' +
                      '<a href="#cuentas">Accounts</a>). Each one lives in its own configuration folder and they ' +
@@ -798,6 +816,7 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.pie.ecosistema': 'Ecosystem',
     'guia.pie.preguntas': 'Questions',
     'guia.pie.versiones': 'All versions',
+    'guia.pie.politica': 'Privacy',
     'guia.pie.licencia': 'Licence',
     'guia.pie.marcas': 'Not affiliated with Anthropic, OpenAI, Google or Microsoft. Their names and logos are ' +
                        'trademarks of their owners, and here they only identify which tool you are working with.',

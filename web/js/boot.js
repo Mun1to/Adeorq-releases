@@ -370,11 +370,14 @@
 
     /* La portada tiene una URL por idioma (/ y /en/): los enlaces de la guía a
        ella siguen el idioma en que se está leyendo («/», «/#seccion» o el
-       antiguo «index.html#seccion»). */
+       antiguo «index.html#seccion»). La privacidad también (/privacidad y
+       /en/privacy) y su dirección inglesa no se saca cambiando el principio:
+       la trae el propio enlace en `data-href-en`. */
     Array.prototype.forEach.call(document.querySelectorAll('a[href^="index.html"], a[href="/"], a[href^="/#"], a[data-href-es]'), function (a) {
       if (!a.hasAttribute('data-href-es')) a.setAttribute('data-href-es', a.getAttribute('href'));
       var es = a.getAttribute('data-href-es');
-      a.setAttribute('href', lang === 'en' ? es.replace(/^(index\.html|\/)/, '/en/') : es);
+      var en = a.getAttribute('data-href-en') || es.replace(/^(index\.html|\/)/, '/en/');
+      a.setAttribute('href', lang === 'en' ? en : es);
     });
 
     /* Las capturas de la app tienen una carpeta por idioma (assets/screens/es

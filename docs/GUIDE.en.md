@@ -431,6 +431,10 @@ What is worth knowing:
   while it thinks.
 - The router reads rules that you write in your notes in the house memory, in the
   form `router: words -> model / effort / client` ([section 14](#14-memory)).
+- Adeo is an AI and can make mistakes: under the box it always says so, and right
+  there is **Report an issue**, which opens a public GitHub form in your browser, without
+  your conversation ([section 26](#26-where-your-things-are-kept)). It is also next to
+  each answer from Adeo, in the Adeo window, in a swarm chat and on the phone.
 - Switching off the "Chat" part also removes the box from the Dashboard. It does
   not switch off Adeo on the phone, which has its own switch
   ([section 19](#19-on-your-phone)).
@@ -1624,9 +1628,23 @@ cases:
 
 - **To look for updates**: it asks GitHub on startup, every six hours and when you come
   back to the window.
-- **OpenRouter**, only if you save your key: checking the key and the balance, listing
-  models, talking to one and generating Adeo's voice.
+- **OpenRouter**: with your key saved, checking the key and the balance, talking to a
+  model and generating Adeo's voice. **Without a key** there are also two public
+  requests: the session copilot, while a session is open, asks OpenRouter for its list
+  of models and its offers, and it carries neither your projects nor any key. You cut it
+  off by setting **The session copilot** to *Never* (**Settings › Notifications**).
 - **The compass** of the Agenda, only if you sign in with your account.
+- **Discord**, if **Show Adeorq on my Discord** is on (it is by default): Adeorq hands
+  your Discord, the one you have open on your machine, a line ("Coding with agents" and
+  how many terminals you have open; the project name only if you turn it on yourself, and
+  never in streaming mode), and Discord publishes it on your profile. You turn it off in
+  **Settings › Discord**.
+- **Report an issue**: a button under the Chat's box, the Adeo window's, a swarm chat's,
+  the canvas model chat's and the phone page's, and next to each answer from Adeo or the
+  model. Only when you press it does it open your browser on a public GitHub form
+  (`Mun1to/Adeorq-releases`; a GitHub account is needed) with the Adeorq version already
+  filled in. It does not carry your conversation: you paste whatever you want to show,
+  and what you write there can be read by anyone.
 - **Notifications to the phone**, encrypted, through your browser's notification
   service.
 - **Notifications to a bot**, only if you turn them on in **Settings › Bots**: the
@@ -1640,7 +1658,7 @@ cases:
 - **The agents** (Claude Code, Codex…) and Adeo reach the internet through the
   program of each one, not through Adeorq.
 
-Ollama, Discord, local voice and the phone and MCP servers stay inside your machine.
+Ollama, local voice and the phone and MCP servers stay inside your machine.
 
 ---
 

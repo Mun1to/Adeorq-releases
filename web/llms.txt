@@ -44,6 +44,7 @@ includes selling it. It is not open source.
 - [Portada en inglés](https://adeorq.com/en/): la misma portada, en su propia dirección.
 - [Guía](https://adeorq.com/guia): qué hace cada pantalla, la instalación, los estados de una sesión, los atajos y dónde guarda sus cosas.
 - [En el móvil](https://adeorq.com/guia#movil): cómo usar Adeorq desde el móvil o desde otro navegador, paso a paso.
+- [Privacidad](https://adeorq.com/privacidad): qué lee Adeorq de tu ordenador, qué guarda y a dónde sale algo de lo que haces; también [en inglés](https://adeorq.com/en/privacy).
 
 ## Descargas y código
 

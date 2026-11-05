@@ -12,3 +12,7 @@ dist/
 # Local secrets (never commit)
 .dev.vars
 .froede-token
+
+# Las dos páginas de privacidad: las genera scripts/hacer-privacidad.mjs desde legal/ en cada
+# build. La inglesa (en/privacy.html) ya cae dentro de /en/, más arriba.
+/privacidad.html

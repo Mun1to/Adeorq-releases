@@ -58,6 +58,7 @@ import { createPortal } from "react-dom";
 import { makeT, useT, type Translate } from "../lib/i18n";
 import { useMenu } from "./Overlays";
 import Orbe, { type EstadoOrbe } from "./Orbe";
+import { AvisoIA, BotonInformar } from "./Informar";
 import { BoltIcon, CheckIcon, CloseIcon, VozIcon } from "./Icons";
 import { decir, parar, vozElegida, VOCES, VOZ_KEY } from "../lib/hablar";
 import { propsDeVelo } from "../lib/velo";
@@ -1404,6 +1405,7 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
               <button className="fm-respuesta-x" onClick={() => setRespuesta(null)}>
                 {t("Vale")}
               </button>
+              <BotonInformar donde="plan" />
             </div>
           )}
           <span className="foreman-hint">{t("Enter planea · Ctrl+Mayús+M dicta · Esc cierra · nada se ejecuta sin tu OK")}</span>
@@ -1604,7 +1606,12 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
         </>
       ) : phase === "plan" && plan ? (
         <>
-          {plan.resumen && <p className="foreman-summary">{plan.resumen}</p>}
+          {plan.resumen && (
+            <>
+              <p className="foreman-summary">{plan.resumen}</p>
+              <BotonInformar donde="plan" />
+            </>
+          )}
           {checked.length === 0 && (
             <p className="card-hint">{t("Adeo no propuso acciones para ese pedido.")}</p>
           )}
@@ -1755,6 +1762,8 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
           {t("Adeo")}
         </div>
         {body}
+        {/* En todas las fases, también con la ventana recién abierta y vacía. */}
+        <AvisoIA donde="plan" />
       </div>
     </div>,
     document.body,

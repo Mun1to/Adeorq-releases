@@ -131,3 +131,6 @@
 
 /* Conectar tu Claude Code: la fila de cada cuenta, en Ajustes y en la bienvenida. */
 @import "./estilos/38-claude-conexion.css";
+
+/* «Adeo es una IA» y el botón de informar de un problema (política 11.16). */
+@import "./estilos/39-informar.css";

@@ -51,6 +51,7 @@ import {
   type Project,
 } from "../lib/pty";
 import { useT, type Translate } from "../lib/i18n";
+import { enLaTienda, yaEnLaTienda } from "../lib/empaquetada";
 import { latido } from "../lib/latido";
 import ProjectAvatar from "./ProjectAvatar";
 import AgendaSesiones, { ESPERAN } from "./AgendaSesiones";
@@ -333,6 +334,12 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
   const [projects, setProjects] = useState<Project[]>([]);
   const [icons, setIcons] = useState<Record<string, string>>({});
   const [link, setLink] = useState<Link>("checking");
+  /** Dentro del paquete de la Microsoft Store no hay brújula (`lib/brujula.ts`):
+      ni su cifra, ni su acceso, ni guardar una idea en ella. */
+  const [enTienda, setEnTienda] = useState(yaEnLaTienda);
+  useEffect(() => {
+    void enLaTienda().then(setEnTienda);
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [ventanas, setVentanas] = useState<Ventana[]>([]);
   const [ideas, setIdeas] = useState<Idea[]>([]);
@@ -641,6 +648,9 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
      remontar. La condición para que esto valga es que NINGUNA use hooks, y por
      eso los del calendario están arriba. */
   const contenido = () => {
+    // Sin brújula (la Tienda) estas dos pantallas no tienen de dónde leer, y a ellas
+    // no se llega: la cifra que abría la de ideas no sale.
+    if (enTienda && (modo === "ideas" || modo === "fechas")) return null;
     switch (modo) {
       case "propuestas":
         return Revision();
@@ -792,12 +802,15 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
             pie={project ? shownName(project) : t("elige un proyecto")}
             onClick={() => setModo("metas")}
           />
-          <Cifra
-            n={projectIdeas.length}
-            que={t("ideas vivas")}
-            pie={link !== "in" ? t("brújula sin conectar") : t("en tu brújula")}
-            onClick={() => setModo("ideas")}
-          />
+          {/* Las ideas viven en la brújula: sin ella (la Tienda) no hay cifra. */}
+          {!enTienda && (
+            <Cifra
+              n={projectIdeas.length}
+              que={t("ideas vivas")}
+              pie={link !== "in" ? t("brújula sin conectar") : t("en tu brújula")}
+              onClick={() => setModo("ideas")}
+            />
+          )}
           <Cifra
             n={programados?.encargos.length ?? 0}
             viva={parados > 0}
@@ -957,18 +970,23 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
                 {rotuloDe(acc)}
               </button>
             )}
-            <button
-              className="ag-si"
-              data-tip={
-                n.kind === "paso"
-                  ? t("Escribirlo en el METAS.md de {p}", { p: n.project })
-                  : t("Guardarlo como idea en tu brújula")
-              }
-              onClick={() => void acceptNote(n)}
-            >
-              <CheckIcon size={14} />
-              {t("Aceptar")}
-            </button>
+            {/* Una idea se guarda en la brújula; sin ella (la Tienda) no se puede
+                aceptar, solo descartar o dejar para luego. Un paso va al METAS.md
+                y sigue igual. */}
+            {!(enTienda && n.kind !== "paso") && (
+              <button
+                className="ag-si"
+                data-tip={
+                  n.kind === "paso"
+                    ? t("Escribirlo en el METAS.md de {p}", { p: n.project })
+                    : t("Guardarlo como idea en tu brújula")
+                }
+                onClick={() => void acceptNote(n)}
+              >
+                <CheckIcon size={14} />
+                {t("Aceptar")}
+              </button>
+            )}
             <button
               data-tip={t("Descartar: se borra de la bandeja y ya está")}
               onClick={() => void dropNote(n)}

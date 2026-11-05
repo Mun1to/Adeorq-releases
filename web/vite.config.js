@@ -31,6 +31,11 @@ const NEVER_COPY = new Set([
   // version procesada y dejaria sus rutas apuntando a archivos sin hashear.
   'index.html',
   'guia.html',
+  // La privacidad en español, que también es una entrada (la genera
+  // hacer-privacidad.mjs), y los fragmentos de texto de donde sale: son borradores
+  // de taller, no páginas, y no se publican.
+  'privacidad.html',
+  'legal',
   // La portada inglesa, que también es una entrada (la genera hacer-ingles.mjs).
   'en',
   // Las cuentas: fuera siempre de esta copia. Con ADEORQ_CUENTAS=1 entran como
@@ -126,6 +131,28 @@ function accountPages() {
       sequential: true,
       handler() {
         revisarSalida(outDir)
+      },
+    },
+  }
+}
+
+/**
+ * The two privacy pages are generated (scripts/hacer-privacidad.mjs) and carry
+ * workshop comments: the "generated, do not edit" mark and the markers of the
+ * metadata block, which name files of this repository. None of that belongs in
+ * what is served, so it goes. The two `email_off` marks stay: Cloudflare reads
+ * them to leave the contact address alone instead of replacing it with
+ * "[email protected]" and a script these pages do not load.
+ */
+function legalSinComentarios() {
+  return {
+    name: 'adeorq-legal-sin-comentarios',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html, ctx) {
+        if (!/[\\/](privacidad|privacy)\.html$/.test(ctx.filename)) return html
+        return html.replace(/<!--(?!\/?email_off-->)[\s\S]*?-->\n?/g, '')
       },
     },
   }
@@ -230,7 +257,7 @@ export default defineConfig({
   // Multi page: an unknown path returns a real 404 instead of the home page.
   appType: 'mpa',
   publicDir: false,
-  plugins: [reloadOnPartials(), bakeReleaseData(), copyStaticExtras(), accountPages()],
+  plugins: [reloadOnPartials(), bakeReleaseData(), legalSinComentarios(), copyStaticExtras(), accountPages()],
   // 127.0.0.1 y no «localhost»: en esta máquina localhost resuelve solo a ::1,
   // el servidor escuchaba solo en IPv6 y el Edge de Munir no llegaba (2026-10-14,
   // «me estáis abriendo localhost que no funcionan en mi navegador»).
@@ -254,6 +281,9 @@ export default defineConfig({
         index: resolve(ROOT, 'index.html'),
         guia: resolve(ROOT, 'guia.html'),
         en: resolve(ROOT, 'en/index.html'),
+        // Las dos de privacidad: /privacidad y /en/privacy.
+        privacidad: resolve(ROOT, 'privacidad.html'),
+        privacy: resolve(ROOT, 'en/privacy.html'),
         // La web anterior, hasta que sus secciones (descarga, changelog, FAQ
         // y pie) esten portadas a la portada nueva de `index.html`.
         ...entradasDeCuentas(ROOT),

@@ -51,6 +51,27 @@ use tauri::{Emitter, Manager};
 use crate::SinVentana;
 
 pub const PUERTO: u16 = 3013;
+
+/// El puerto de la página del móvil: el 3013, salvo que `ADEORQ_MOVIL_PUERTO` diga otro.
+/// Lo cambia una Adeorq aislada de pruebas, que si no pelea el 3013 con la de verdad (y
+/// el móvil encendido no se podía medir nunca). Como con el MCP (`mcp::puerto`), un valor
+/// que no es un puerto es un error y no cae en el 3013, que es el de la de verdad.
+pub fn puerto() -> Result<u16, String> {
+    puerto_de(std::env::var("ADEORQ_MOVIL_PUERTO").ok().as_deref())
+}
+
+fn puerto_de(valor: Option<&str>) -> Result<u16, String> {
+    match valor {
+        None => Ok(PUERTO),
+        Some(p) => p
+            .trim()
+            .parse::<u16>()
+            .ok()
+            .filter(|&n| n != 0)
+            .ok_or_else(|| format!("ADEORQ_MOVIL_PUERTO={p} no es un puerto, y no se usa el {PUERTO} en su lugar porque es el de la Adeorq de verdad")),
+    }
+}
+
 const TOPE_CABECERAS: usize = 16 * 1024;
 const TOPE_CUERPO: usize = 64 * 1024;
 /// En caracteres. Era 8.000 y el mensaje de compactación de un `/fin` largo,
@@ -931,7 +952,10 @@ pub fn atender(
     match (p.metodo.as_str(), p.ruta.as_str()) {
         ("GET", "/api/yo") => {
             let avisos = guardia.lock().unwrap().avisos_de(clave).unwrap_or_default();
-            Respuesta::json(200, json!({ "nombre": nombre, "avisos": avisos }))
+            // La versión va para el enlace de «Informar de un problema» de la página
+            // (política 11.16 de la Microsoft Store): el informe tiene que decir de
+            // qué Adeorq habla, y la página la sirve este mismo programa.
+            Respuesta::json(200, json!({ "nombre": nombre, "avisos": avisos, "version": env!("CARGO_PKG_VERSION") }))
         }
         // Lo que el móvil elige en sus Ajustes y tiene que saber el PC: qué
         // avisos le manda, y olvidarse de él.
@@ -1683,11 +1707,19 @@ fn arrancar(app: &tauri::AppHandle) {
     let app = app.clone();
     std::thread::spawn(move || {
         let m = app.state::<Movil>();
+        let puerto = match puerto() {
+            Ok(p) => p,
+            Err(e) => {
+                crate::anotar(&format!("Móvil: {e}"));
+                m.sirviendo.store(false, Ordering::SeqCst);
+                return;
+            }
+        };
         // Se insiste un rato, como el MCP: al reinstalar, el Adeorq viejo aún
         // suelta el puerto cuando el nuevo arranca.
         let mut escucha = None;
         for _ in 0..40 {
-            match TcpListener::bind(("127.0.0.1", PUERTO)) {
+            match TcpListener::bind(("127.0.0.1", puerto)) {
                 Ok(l) => {
                     escucha = Some(l);
                     break;
@@ -1698,7 +1730,7 @@ fn arrancar(app: &tauri::AppHandle) {
         }
         let Some(escucha) = escucha else {
             crate::anotar(&format!(
-                "Móvil: el {PUERTO} ya lo sirve otro programa (¿otro Adeorq abierto?), así que Adeo no está en el móvil."
+                "Móvil: el {puerto} ya lo sirve otro programa (¿otro Adeorq abierto?), así que Adeo no está en el móvil."
             ));
             m.sirviendo.store(false, Ordering::SeqCst);
             return;
@@ -1879,7 +1911,7 @@ fn estado(m: &Movil) -> EstadoMovil {
         sirviendo: m.sirviendo.load(Ordering::SeqCst),
         despierto: m.despierto.load(Ordering::SeqCst),
         avisos: g.ajustes.dispositivos.iter().filter(|d| d.push.is_some()).count(),
-        puerto: PUERTO,
+        puerto: puerto().unwrap_or(PUERTO),
         dispositivos: g
             .ajustes
             .dispositivos
@@ -2226,7 +2258,14 @@ pub fn movil_tailscale(conectar: bool) -> Tailscale {
     // Lo que ya ocupa el puerto no se pisa: `serve` lo reemplazaría sin preguntar.
     if conectar && !puesto.nuestro && puesto.ajeno.is_none() {
         let https = format!("--https={PUERTO_TAILSCALE}");
-        let destino = format!("http://127.0.0.1:{PUERTO}");
+        // Con un `ADEORQ_MOVIL_PUERTO` mal escrito no se le pone a Tailscale el 3013 de la de verdad.
+        let destino = match puerto() {
+            Ok(p) => format!("http://127.0.0.1:{p}"),
+            Err(e) => {
+                t.salida = e;
+                return t;
+            }
+        };
         match correr(&exe, &["serve", "--bg", &https, &destino], Duration::from_secs(20)) {
             Ok(d) => {
                 t.salida = d.todo();
@@ -2252,6 +2291,16 @@ pub fn movil_tailscale(conectar: bool) -> Tailscale {
 mod tests {
     use super::*;
     use std::cell::RefCell;
+
+    #[test]
+    fn el_puerto_del_movil_es_el_3013_salvo_que_se_diga_otro_y_uno_malo_no_cae_en_el_3013() {
+        assert_eq!(puerto_de(None), Ok(3013));
+        assert_eq!(puerto_de(Some("47813")), Ok(47813));
+        assert_eq!(puerto_de(Some(" 47813 ")), Ok(47813));
+        for mal in ["", "0", "abc", "70000", "-1", "3013x"] {
+            assert!(puerto_de(Some(mal)).is_err(), "«{mal}» no es un puerto y no tenía que valer");
+        }
+    }
 
     #[test]
     fn solo_este_pc_o_un_nombre_de_tailscale() {
@@ -2913,6 +2962,8 @@ mod tests {
         let reloj = (Instant::now(), 10);
         let pide = |m: &str, ruta: &str, c: Option<&str>, cuerpo: &str| atender(&pedir(m, ruta, c, cuerpo), &g, &casa, &persistir, reloj);
         assert_eq!(cuerpo_de(&pide("GET", "/api/yo", Some(&clave), ""))["avisos"]["terminadas"], true);
+        // La página arma con ella el enlace de informar de un problema.
+        assert_eq!(cuerpo_de(&pide("GET", "/api/yo", Some(&clave), ""))["version"], env!("CARGO_PKG_VERSION"));
         assert_eq!(pide("POST", "/api/avisos", None, "{}").estado, 401);
         assert_eq!(pide("POST", "/api/avisos", Some(&clave), r#"{"terminadas":"no"}"#).estado, 400);
         assert_eq!(pide("GET", "/api/avisos", Some(&clave), "").estado, 405);

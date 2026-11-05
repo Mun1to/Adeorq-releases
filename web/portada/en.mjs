@@ -301,6 +301,8 @@ export default {
   'pie.novedades': 'What’s new',
   'pie.preguntas': 'Questions',
   'pie.guia': 'The guide',
+  'pie.privacidad': 'Privacy',
+  'pie.privacidad.href': '/en/privacy',
   'pie.versiones': 'All releases',
   'pie.codigo': 'Code',
   'pie.repositorio': 'The repository',

@@ -58,12 +58,8 @@ import { pendientes, useDecisiones } from "./lib/decisiones";
 import { useBarraQueCabe } from "./lib/barraQueCabe";
 import { STREAM_KEY, useAtajosGlobales } from "./lib/atajosGlobales";
 import { encargoDeGuia } from "./lib/guia";
-import {
-  DISCORD_KEY,
-  loadDiscord,
-  useDiscordPresence,
-  type DiscordConfig,
-} from "./lib/discord";
+import { DISCORD_KEY, useDiscordPresence } from "./lib/discord";
+import { useDiscordConfig } from "./lib/discordConfig";
 import {
   addPane as layoutAdd,
   applyPreset,
@@ -444,8 +440,9 @@ function App() {
   // Streaming safety: an opaque curtain (never a blur, which a recorder can
   // partly undo), raised by hand with Ctrl+Shift+P or on its own the moment
   // something key-shaped reaches a pane.
-  // META 7: what his Discord says he is doing. Off until he sets it up.
-  const [discord, setDiscord] = useState<DiscordConfig>(loadDiscord);
+  // META 7: what his Discord says he is doing. On from the start, except inside
+  // the Microsoft Store package, where it starts off (`lib/discordConfig.ts`).
+  const { discord, setDiscord, listo: discordListo } = useDiscordConfig();
   const [discordError, setDiscordError] = useState<string | null>(null);
   const [wizard, setWizard] = useState(false);
   /** La bienvenida: sale sola la primera vez y se puede repetir desde Ajustes.
@@ -644,7 +641,7 @@ function App() {
   }, [panes, focusedId]);
   const raizArchivosRef = useRef("");
   raizArchivosRef.current = raizArchivos;
-  useDiscordPresence(discord, presence, setDiscordError, lang);
+  useDiscordPresence(discordListo ? discord : null, presence, setDiscordError, lang);
 
   // Theme lives on <html> so it also tints things rendered outside .app.
   useEffect(() => {
@@ -3586,6 +3583,8 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           onDone={(verTour) => {
             setOnboarding(false);
             setTour(verTour);
+            // La carpeta (o «sin carpeta») se eligió con la barra ya cargada con la de antes.
+            setRefreshKey((k) => k + 1);
           }}
         />
       )}

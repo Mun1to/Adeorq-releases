@@ -93,6 +93,15 @@ export interface Provider {
       a mano, que es lo único honesto que se les puede ofrecer. */
   web?: string;
   /**
+   * Su página oficial de descarga, para la Adeorq de la Microsoft Store. Allí no
+   * se lanza ningún instalador de otro (políticas 10.2.2 y 10.2.3, `docs/contexto/
+   * tiendas.md`): en vez de la orden y del botón «Descargar», la lista enseña
+   * este enlace (y si falta, `web`). Aparte de `web` a propósito: tener `web` hace
+   * que la lista de siempre enseñe además «Abrir su web», y la instalación de
+   * siempre no cambia. Comprobado con `curl` el 2026-11-05 (200, tras redirecciones).
+   */
+  oficial?: string;
+  /**
    * La variable con la que arranca usando una CLAVE DE API en vez de tu login,
    * y por tanto facturando por tokens en vez de gastar tu suscripción.
    *
@@ -247,6 +256,12 @@ export interface Provider {
   skills?: boolean;
 }
 
+/** A dónde manda la lista de «No instalados» dentro de la Microsoft Store, en
+ *  vez de lanzar un instalador: su página oficial (`oficial`, o `web`). */
+export function enlaceOficial(p: Pick<Provider, "oficial" | "web">): string | undefined {
+  return p.oficial ?? p.web;
+}
+
 export const PROVIDERS: Provider[] = [
   {
     id: "claude",
@@ -296,6 +311,7 @@ export const PROVIDERS: Provider[] = [
     install: "pnpm add -g @openai/codex",
     apiEnv: "OPENAI_API_KEY",
     cmd: "pnpm add -g @openai/codex",
+    oficial: "https://github.com/openai/codex",
     arranque: "codex --sandbox workspace-write",
     // Verificado el 2026-10-06 con `codex --help` (0.147.0) y su código
     // (`codex-rs/tui/src/cli.rs`): el encargo va como argumento suelto
@@ -330,6 +346,7 @@ export const PROVIDERS: Provider[] = [
     install: "pnpm add -g @google/gemini-cli",
     apiEnv: "GEMINI_API_KEY",
     cmd: "pnpm add -g @google/gemini-cli",
+    oficial: "https://github.com/google-gemini/gemini-cli",
     arranque: "gemini --approval-mode auto_edit",
     // Verificado el 2026-10-06 con `gemini --help` (0.52.0) y su código
     // (`packages/cli/src/config/config.ts`): el encargo con
@@ -365,6 +382,7 @@ export const PROVIDERS: Provider[] = [
     hue: "#a78bfa",
     install: "pnpm add -g @qwen-code/qwen-code",
     cmd: "pnpm add -g @qwen-code/qwen-code",
+    oficial: "https://github.com/QwenLM/qwen-code",
   },
   {
     id: "copilot",
@@ -381,6 +399,7 @@ export const PROVIDERS: Provider[] = [
     hue: "#8b949e",
     install: "pnpm add -g @github/copilot",
     cmd: "pnpm add -g @github/copilot",
+    oficial: "https://github.com/github/copilot-cli",
   },
   {
     id: "grok",
@@ -428,6 +447,9 @@ export const PROVIDERS: Provider[] = [
     // hecho, `XAI_API_KEY` no cambia nada y sigue gastando el plan.
     apiEnv: "XAI_API_KEY",
     cmd: "irm https://x.ai/cli/install.ps1 | iex",
+    // El repositorio de xAI (`xai-org`), no `x.ai/cli`: esa dirección contesta 403
+    // a una petición sin navegador y no se pudo comprobar que abra una página.
+    oficial: "https://github.com/xai-org/grok-build",
   },
   {
     id: "crush",
@@ -440,6 +462,7 @@ export const PROVIDERS: Provider[] = [
     hue: "#ff7ac6",
     install: "pnpm add -g @charmland/crush",
     cmd: "pnpm add -g @charmland/crush",
+    oficial: "https://charm.land/crush/",
   },
   {
     id: "opencode",
@@ -512,6 +535,7 @@ export const PROVIDERS: Provider[] = [
     // npm package: the ones using that name belong to other people.
     install: "irm https://antigravity.google/cli/install.ps1 | iex",
     cmd: "irm https://antigravity.google/cli/install.ps1 | iex",
+    oficial: "https://antigravity.google/docs/cli/install",
     // Su instalador solo añade su carpeta al PATH de las consolas NUEVAS, así
     // que cuando Rust encuentra su ruta se le llama por ella (`agyCommand`).
     // Esta línea es el respaldo para cuando no la ha encontrado.

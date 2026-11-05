@@ -56,9 +56,13 @@ interface Props {
   aiderInstalado: boolean;
   onInstalarAider: () => void;
   onVibecoding: (modelo: string) => void;
+  /** Dentro del paquete de la Microsoft Store no se lanza el instalador de otro
+      (políticas 10.2.2 y 10.2.3): el botón manda a la web de Aider en vez de
+      abrir una terminal que lo instala. Fuera de la Tienda, `false` y todo igual. */
+  enTienda?: boolean;
 }
 
-export default function OpenRouterCard({ aiderInstalado, onInstalarAider, onVibecoding }: Props) {
+export default function OpenRouterCard({ aiderInstalado, onInstalarAider, onVibecoding, enTienda = false }: Props) {
   const { t } = useT();
   const aider = providerOf("aider");
   const [info, setInfo] = useState<OpenRouterInfo | null>(null);
@@ -268,7 +272,7 @@ export default function OpenRouterCard({ aiderInstalado, onInstalarAider, onVibe
             />
             <div className="account-actions">
               <button className="np-btn" disabled={!modelo.trim()} onClick={vibecoding}>
-                {aiderInstalado ? t("Abrir terminal") : t("Instalar Aider primero")}
+                {aiderInstalado ? t("Abrir terminal") : enTienda ? t("Bajar Aider de su web") : t("Instalar Aider primero")}
               </button>
               <button
                 className="mini"

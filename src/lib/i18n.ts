@@ -1459,6 +1459,9 @@ const EN: Record<string, string> = {
   "No está en este equipo y no tiene un comando de instalación de fiar, así que hay que bajarlo de su web:":
     "Not on this machine, and it has no install command worth trusting, so it has to come from its own site:",
   "Abrir su web": "Open its site",
+  "Bajar Aider de su web": "Get Aider from its site",
+  "No está en este equipo. Desde la Microsoft Store, Adeorq no instala programas de otros: bájalo de su web oficial.":
+    "It is not on this computer. From the Microsoft Store, Adeorq does not install other people's programs: download it from its official site.",
   instalar: "install",
   "Cuando termine la instalación, vuelve aquí y dale a ↻: el que acabe de aparecer se coloca solo con los demás.":
     "When the install finishes, come back here and hit ↻: whatever just showed up joins the others on its own.",
@@ -1823,6 +1826,17 @@ const EN: Record<string, string> = {
     "Write below what needs doing. Adeo passes it to the right session, rewritten so it gets it the first time.",
   "Dile al enjambre qué hay que hacer: Adeo lo reparte": "Tell the swarm what needs doing: Adeo hands it out",
   "Adeo está repartiendo…": "Adeo is handing it out…",
+  // Adeo es una IA y el botón de informar (política 11.16 de la Microsoft Store).
+  "Adeo es una IA y puede equivocarse.": "Adeo is an AI and can make mistakes.",
+  "Este modelo es una IA y puede equivocarse.": "This model is an AI and can make mistakes.",
+  "Informar de un problema": "Report an issue",
+  "Abre un formulario público en GitHub. No lleva tu conversación: pegas tú lo que quieras enseñar.":
+    "Opens a public form on GitHub. It does not carry your conversation: you paste whatever you want to show.",
+  // El correo, para quien no tiene cuenta de GitHub: solo en la línea de debajo de la caja.
+  "o por correo": "or by email",
+  "Informar de un problema por correo": "Report an issue by email",
+  "Abre tu programa de correo con un mensaje ya escrito para {correo}. No lleva tu conversación: pegas tú lo que quieras enseñar.":
+    "Opens your email program with a message already written to {correo}. It does not carry your conversation: you paste whatever you want to show.",
   "Este enjambre todavía no tiene sesiones: añade alguna y vuelve a mandarlo.":
     "This swarm has no sessions yet: add one and send it again.",
   "Ese enjambre ya tiene {n} terminales: no caben más.":
@@ -2168,8 +2182,8 @@ const EN: Record<string, string> = {
   "Nada con ese nombre.": "Nothing by that name.",
   "En qué proyecto se abre lo que sueltes aquí":
     "Which project anything you drop here opens in",
-  "Pomodoro, cronómetro, calculadora o calendario":
-    "Pomodoro, stopwatch, calculator or calendar",
+  "Notas, carriles, enjambres, la galería, el tablero, chats y herramientas":
+    "Notes, lanes, swarms, the gallery, the board, chats and tools",
   "Contarle a la terminal enfocada qué más hay en el lienzo y qué flechas salen de dónde":
     "Tell the focused terminal what else is on the canvas and which arrows go where",
   "Enfoca una terminal del lienzo para poder contarle el tablero":

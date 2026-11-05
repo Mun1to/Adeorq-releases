@@ -91,10 +91,6 @@ pub struct PlanInfo {
     pub tier: String,
 }
 
-/// Which plan is signed in. Reads ONLY these two fields from the credentials
-/// file: the tokens next to them are never read, returned or logged.
-// async porque un comando sin async corre en el hilo de la ventana, y estos
-// dos los sondea el panel de uso: cada lectura del disco congelaba la UI.
 /// Un día de trabajo, ya sumado entre todas las cuentas.
 #[derive(Serialize, Default, Clone)]
 pub struct DiaUso {
@@ -219,6 +215,13 @@ pub async fn stats_historia(config_dirs: Vec<String>) -> Historia {
     out
 }
 
+/// Which plan is signed in. The credentials file is read and parsed whole (there
+/// is no parsing half of a JSON), so the tokens next to the two fields we want
+/// pass through memory for an instant and are dropped with the rest; only
+/// `subscriptionType` and `rateLimitTier` are kept and returned, and nothing from
+/// that file is stored, logged or sent anywhere.
+// async porque un comando sin async corre en el hilo de la ventana, y este y
+// `usage_report` los sondea el panel de uso: cada lectura del disco congelaba la UI.
 #[tauri::command]
 pub async fn plan_info(config_dir: Option<String>) -> Option<PlanInfo> {
     let path = config_root(config_dir.as_deref())?.join(".credentials.json");

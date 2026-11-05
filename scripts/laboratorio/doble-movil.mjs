@@ -526,7 +526,8 @@ http
       const id = url.searchParams.get("id") || v.id;
       switch (url.pathname) {
         case "/api/yo":
-          return json(res, 200, { nombre: "Android", avisos: avisosPrefs });
+          // `version` como `movil.rs`: el enlace de «Informar de un problema» la lleva.
+          return json(res, 200, { nombre: "Android", avisos: avisosPrefs, version: "0.9.243" });
         case "/api/avisos": {
           const claves = ["preguntas", "terminadas", "programados", "silencio"];
           if (claves.some((k) => k in v && typeof v[k] !== "boolean")) return json(res, 400, { error: "Eso no son avisos." });

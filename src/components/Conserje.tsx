@@ -65,6 +65,7 @@ import { proveedorDe, providerOf, sabe } from "../lib/providers";
 import ProviderMark from "./ProviderMark";
 import Mascota from "./Mascota";
 import { abrirEnlacesFuera } from "../lib/enlacesFuera";
+import { AvisoIA, BotonInformar } from "./Informar";
 import {
   ChevronIcon,
   CloseIcon,
@@ -313,6 +314,9 @@ const TurnoConserje = memo(function TurnoConserje({ turno }: { turno: Turno }) {
   return (
     <article className="chat-turno" data-rol={turno.rol === "tu" ? "tu" : "agente"}>
       <div className="chat-burbuja" onClick={abrirEnlacesFuera} dangerouslySetInnerHTML={{ __html: html }} />
+      {/* Junto a cada respuesta de Adeo, a la vista (política 11.16 de la
+          Microsoft Store: informar de lo que dijo una IA en vivo). */}
+      {turno.rol === "conserje" && <BotonInformar donde="chat" />}
     </article>
   );
 });
@@ -889,6 +893,9 @@ export function HiloConserje({
             <span className="chat-hueco" />
           </div>
         </div>
+        {/* Siempre a la vista, también con el chat recién instalado y vacío
+            (el agujero por el que rechazaron dos veces a VoCript). */}
+        <AvisoIA donde="chat" />
       </div>
     </>
   );

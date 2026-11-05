@@ -723,6 +723,23 @@
   .caja { position: relative; padding: 8px 12px calc(10px + env(safe-area-inset-bottom)); }
   .caja .fallo, .aviso-mejora { margin: 0 4px 8px; }
   .aviso-mejora { font-size: calc(12.5px * var(--z)); color: var(--acento); }
+  /* «Adeo es una IA y puede equivocarse» + el enlace de informar de un problema
+     (política 11.16 de la Microsoft Store): una línea bajo la caja, siempre a la
+     vista, y el mismo enlace bajo cada respuesta de Adeo. Suelto y sin caja. */
+  .aviso-ia { margin: 6px 4px 0; text-align: center; color: var(--tinta); font-size: calc(12.5px * var(--z)); line-height: 1.45; }
+  a.informar {
+    display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px; border-radius: var(--r-chico);
+    color: var(--acento); font-size: calc(12.5px * var(--z)); text-decoration: none; -webkit-tap-highlight-color: transparent;
+  }
+  /* El toque mide 44 px, pero la línea no crece: lo que sobra se descuenta con margen. */
+  .aviso-ia a.informar { margin: -8px 0; }
+  /* En un móvil la frase, el enlace y «o por correo» no caben en una línea, y partirla
+     deja «o por correo» solo abajo: la frase arriba y los dos enlaces juntos debajo. */
+  @media (max-width: 520px) { .aviso-ia > span { display: block; } }
+  a.informar:active { background: color-mix(in srgb, var(--acento) 16%, transparent); }
+  a.informar:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+  .turno.con-informe { flex-direction: column; align-items: flex-start; }
+  .turno.con-informe a.informar { margin: -12px 0 -18px -6px; }
   .fila-caja {
     display: flex; flex-direction: column; border-radius: 26px; overflow: hidden;
     border: 1px solid var(--borde-fuerte); background: var(--cristal);
@@ -1245,6 +1262,31 @@ const EN = {
     "Improved: the same thing you said, in order. If you do not like it, Undo.",
   "Dile qué hay que hacer": "Tell it what needs doing",
   "Mensaje a Adeo": "Message to Adeo",
+  // Adeo es una IA y el enlace de informar de un problema (política 11.16 de la
+  // Microsoft Store). Lo que arma la dirección va igual que en `src/lib/informar.ts`.
+  "Adeo es una IA y puede equivocarse.": "Adeo is an AI and can make mistakes.",
+  "Informar de un problema": "Report an issue",
+  "Abre un formulario público en GitHub. No lleva tu conversación: pegas tú lo que quieras enseñar.":
+    "Opens a public form on GitHub. It does not carry your conversation: you paste whatever you want to show.",
+  "Informe de un problema con Adeo: ": "Report an issue with Adeo: ",
+  // El correo de debajo de la caja, para quien no tiene cuenta de GitHub.
+  "o por correo": "or by email",
+  "Informar de un problema por correo": "Report an issue by email",
+  "Abre tu programa de correo con un mensaje ya escrito para {correo}. No lleva tu conversación: pegas tú lo que quieras enseñar.":
+    "Opens your email program with a message already written to {correo}. It does not carry your conversation: you paste whatever you want to show.",
+  "Informe de un problema con Adeo": "Report an issue with Adeo",
+  "Este correo llega a quien desarrolla Adeorq. Pega solo lo que quieras enseñar.":
+    "This email goes to whoever develops Adeorq. Paste only what you want to show.",
+  "Versión de Adeorq": "Adeorq version",
+  "no la sé": "I do not know",
+  "Dónde": "Where",
+  "Adeo en el móvil": "Adeo on the phone",
+  "Qué ha pasado": "What happened",
+  "Cuéntalo con tus palabras: qué le pediste a Adeo y qué dijo o hizo que no está bien. Si quieres enseñar un trozo de lo que dijo, pégalo aquí:":
+    "Tell it in your own words: what you asked Adeo and what it said or did that is not right. If you want to show a piece of what it said, paste it here:",
+  "Antes de enviar": "Before you send",
+  "Esta incidencia es pública: la puede leer cualquiera. Pega solo lo que quieras enseñar, y quita antes los nombres de proyectos, las rutas, los correos y las claves.":
+    "This issue is public: anyone can read it. Paste only what you want to show, and first remove project names, paths, emails and keys.",
   "Mejorar": "Improve",
   "Mejorando…": "Improving…",
   "Deshacer": "Undo",
@@ -2986,9 +3028,11 @@ async function pintarLista() {
           <textarea id="decir" rows="1" placeholder="${tr("Dile a Adeo qué hay que hacer")}" aria-label="${tr("Mensaje nuevo a Adeo")}"></textarea>
           <div class="mandos"><span class="hueco"></span><button class="enviar" id="decir-enviar" aria-label="${tr("Enviar a Adeo")}" disabled>${ICONO.subir}</button></div>
         </div>
+        ${avisoIA()}
       </footer>
     </div>`;
   montarBotonCajon();
+  cargarVersion();
   /* Al conserje se le escribe desde aquí mismo: antes esto era un botón que
      abría la conversación, y había que tocar otra vez para empezar a escribir.
      Lo que mandas abre su conversación ya con tu mensaje saliendo. */
@@ -3091,6 +3135,77 @@ async function pintarLista() {
   sondear(6000, () => Promise.all([cargar(), mirar()]));
 }
 
+// ─── Informar de un problema con Adeo ───────────────────────────────────────
+// Política 11.16 de la Microsoft Store (contenido de una IA en vivo): un medio, a
+// la vista, para avisar al desarrollador. Es la MISMA dirección que arma el PC
+// (`src/lib/informar.ts`; `scripts/informar-check.ts` mira que las dos coincidan
+// en los dos idiomas): una incidencia nueva en el repo público con el título y la
+// plantilla ya escritos, y SIN la conversación, que es pública. Es un enlace y no
+// un botón: un enlace no lo bloquea ningún navegador del móvil, y se abre aparte.
+// informar:inicio
+const INCIDENCIAS = "https://github.com/Mun1to/Adeorq-releases/issues/new";
+function direccionDelInforme(version) {
+  const cuerpo = [
+    `**${tr("Versión de Adeorq")}:** ${version || tr("no la sé")}`,
+    `**${tr("Dónde")}:** ${tr("Adeo en el móvil")}`,
+    "",
+    `**${tr("Qué ha pasado")}**`,
+    tr("Cuéntalo con tus palabras: qué le pediste a Adeo y qué dijo o hizo que no está bien. Si quieres enseñar un trozo de lo que dijo, pégalo aquí:"),
+    "",
+    "",
+    `**${tr("Antes de enviar")}**`,
+    tr("Esta incidencia es pública: la puede leer cualquiera. Pega solo lo que quieras enseñar, y quita antes los nombres de proyectos, las rutas, los correos y las claves."),
+  ].join("\n");
+  return `${INCIDENCIAS}?title=${encodeURIComponent(tr("Informe de un problema con Adeo: "))}&body=${encodeURIComponent(cuerpo)}`;
+}
+// El mismo informe por correo, para quien no tiene cuenta de GitHub (`correoDelInforme`
+// de `src/lib/informar.ts`: texto plano, saltos de línea de un correo, sin la conversación).
+const CORREO = "munitodev@gmail.com";
+function correoDelInforme(version) {
+  const cuerpo = [
+    `${tr("Versión de Adeorq")}: ${version || tr("no la sé")}`,
+    `${tr("Dónde")}: ${tr("Adeo en el móvil")}`,
+    "",
+    tr("Qué ha pasado"),
+    tr("Cuéntalo con tus palabras: qué le pediste a Adeo y qué dijo o hizo que no está bien. Si quieres enseñar un trozo de lo que dijo, pégalo aquí:"),
+    "",
+    "",
+    tr("Este correo llega a quien desarrolla Adeorq. Pega solo lo que quieras enseñar."),
+  ].join("\r\n");
+  return `mailto:${CORREO}?subject=${encodeURIComponent(tr("Informe de un problema con Adeo"))}&body=${encodeURIComponent(cuerpo)}`;
+}
+// informar:fin
+/** La versión de Adeorq, la del PC (la página la sirve él): se pide una vez y
+    el enlace la lleva. Hasta que llega, la plantilla dice «no la sé». */
+let versionDeAdeorq = "";
+let versionPedida = false;
+function enlaceInformar(clase) {
+  return `<a class="informar${clase ? ` ${clase}` : ""}" href="${esc(direccionDelInforme(versionDeAdeorq))}" target="_blank" rel="noopener noreferrer" title="${esc(tr("Abre un formulario público en GitHub. No lleva tu conversación: pegas tú lo que quieras enseñar."))}">${tr("Informar de un problema")}</a>`;
+}
+/** La línea de debajo de la caja: lo que es Adeo, y el enlace. Siempre, también
+    con la conversación vacía (el agujero por el que rechazaron a VoCript). */
+function avisoIA() {
+  return `<p class="aviso-ia"><span>${tr("Adeo es una IA y puede equivocarse.")}</span> ${enlaceInformar("")} ${enlaceCorreo()}</p>`;
+}
+/** «o por correo»: solo en la línea de debajo de la caja, no junto a cada respuesta.
+    Un enlace `mailto:` abre el programa de correo del móvil. La ayuda lleva la
+    dirección porque, sin un programa de correo, el toque no abre nada. */
+function enlaceCorreo() {
+  const ayuda = tr("Abre tu programa de correo con un mensaje ya escrito para {correo}. No lleva tu conversación: pegas tú lo que quieras enseñar.").replace("{correo}", CORREO);
+  return `<a class="informar por-correo" href="${esc(correoDelInforme(versionDeAdeorq))}" aria-label="${esc(tr("Informar de un problema por correo"))}" title="${esc(ayuda)}">${tr("o por correo")}</a>`;
+}
+function cargarVersion() {
+  if (versionPedida) return;
+  versionPedida = true;
+  api("GET", "/api/yo")
+    .then((v) => {
+      versionDeAdeorq = String(v.version || "");
+      document.querySelectorAll("a.informar:not(.por-correo)").forEach((a) => a.setAttribute("href", direccionDelInforme(versionDeAdeorq)));
+      document.querySelectorAll("a.por-correo").forEach((a) => a.setAttribute("href", correoDelInforme(versionDeAdeorq)));
+    })
+    .catch(() => { versionPedida = false; });
+}
+
 // ─── El hilo ────────────────────────────────────────────────────────────────
 
 function pintarHiloEntero() {
@@ -3118,9 +3233,11 @@ function pintarHiloEntero() {
           <button class="enviar" id="enviar" aria-label="${tr("Enviar")}">${ICONO.subir}</button>
           </div>
         </div>
+        ${avisoIA()}
       </footer>
     </div>`;
   montarBotonCajon();
+  cargarVersion();
   const texto = document.getElementById("texto");
   const crecer = () => { texto.style.height = "auto"; texto.style.height = `${Math.min(texto.scrollHeight, 160)}px`; };
   texto.addEventListener("input", () => {
@@ -3200,7 +3317,9 @@ function pintarHilo() {
   const ent = (e.ent ||= entradas());
   const claveDeTurno = (t) => (t.rol === "tu" ? `tu:${t.texto}` : `c${t.n}`);
   for (const t of conv?.turnos || []) {
-    html += `<div class="turno${ent.de(claveDeTurno(t))}" data-rol="${t.rol === "tu" ? "tu" : "agente"}"><div class="burbuja">${md(t.texto)}</div></div>`;
+    // Cada respuesta de Adeo lleva su enlace de informar de un problema.
+    const informe = t.rol === "conserje";
+    html += `<div class="turno${ent.de(claveDeTurno(t))}${informe ? " con-informe" : ""}" data-rol="${t.rol === "tu" ? "tu" : "agente"}"><div class="burbuja">${md(t.texto)}</div>${informe ? enlaceInformar("") : ""}</div>`;
     if (t.rol === "conserje") {
       for (const w of conv.trabajos.filter((x) => x.turno === t.n)) { html += tarjeta(w, ent); colocadas.add(claveDe(w)); }
     }

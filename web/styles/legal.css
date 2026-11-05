@@ -1,0 +1,183 @@
+/* ============================================================================
+   Adeorq · web/styles/legal.css
+   Las páginas de leer: /privacidad y /en/privacy (las genera
+   scripts/hacer-privacidad.mjs). Una columna, el tema del sistema con los
+   tokens de base.css, la barra de siempre (portada/barra.css) y nada que se
+   mueva: ni un reveal, ni un script.
+
+   Lo que dicen los gustos de la casa y se nota aquí: el texto en tinta plena
+   (lo que se lee no va en gris apagado), la jerarquía con tamaño y peso, ninguna
+   caja alrededor de nada corto, ningún rótulo en mayúsculas espaciadas, y la
+   letra grande, porque se lee en pantallas grandes con el escalado alto.
+   ========================================================================= */
+
+.pagina-legal {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+/* ------------------------------ LA BARRA --------------------------------- */
+
+/* El mismo peso que «Código» y «English» en la guía. Por debajo de 860 px
+   barra.css esconde el cambio de idioma (en la guía vive dentro del menú), y
+   aquí no hay menú: se queda a la vista, con sitio alrededor para el dedo. */
+.pagina-legal .nav__enlace,
+.pagina-legal .nav__idioma {
+  display: inline-block;
+  padding: 10px 6px;
+  color: var(--p-suave);
+  font-size: 14.5px;
+  transition: color 0.15s ease;
+}
+.pagina-legal .nav__enlace:hover,
+.pagina-legal .nav__enlace:focus-visible,
+.pagina-legal .nav__idioma:hover,
+.pagina-legal .nav__idioma:focus-visible { color: var(--p-texto); }
+
+/* ------------------------------ EL TEXTO --------------------------------- */
+
+.legal {
+  flex: 1;
+  width: min(100%, 44rem);
+  margin-inline: auto;
+  padding: calc(var(--nav-alto) + clamp(28px, 6vh, 64px)) clamp(18px, 4vw, 32px) clamp(48px, 9vh, 96px);
+  font-size: clamp(1.0625rem, 0.98rem + 0.3vw, 1.25rem);
+  line-height: 1.65;
+  color: var(--tinta);
+}
+
+.legal h1 {
+  font-size: var(--t-h2);
+  font-weight: var(--peso-alto);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.legal__fecha {
+  margin-top: 0.7em;
+  color: var(--tinta-media);
+  font-size: 0.9em;
+}
+
+/* Cada apartado se tiene que ver de lejos: un texto largo se recorre por sus
+   títulos. El de apartado pesa más que el cuerpo (31 px frente a 20 en
+   pantalla grande) y el de subapartado se queda a medio camino. */
+.legal h2 {
+  margin-top: 2.3em;
+  font-size: clamp(1.45rem, 1.2rem + 0.9vw, 1.95rem);
+  font-weight: var(--peso-alto);
+  line-height: 1.22;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.legal h3 {
+  margin-top: 1.9em;
+  font-size: 1.12em;
+  font-weight: var(--peso-alto);
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
+.legal p,
+.legal li { text-wrap: pretty; }
+
+.legal p { margin-top: 1em; }
+.legal h1 + p,
+.legal h2 + p,
+.legal h3 + p { margin-top: 0.7em; }
+
+.legal ul,
+.legal ol {
+  margin: 1em 0 0;
+  padding-left: 1.4em;
+}
+.legal ul { list-style: disc; }
+.legal ol { list-style: decimal; padding-left: 1.7em; }
+.legal li { margin-top: 0.7em; padding-left: 0.2em; }
+.legal li:first-child { margin-top: 0; }
+.legal li::marker { color: var(--tinta-media); }
+
+.legal strong {
+  font-weight: var(--peso-alto);
+  color: var(--tinta);
+}
+
+.legal a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--acento);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+  transition: text-decoration-thickness 0.18s var(--curva-ui);
+}
+.legal a:hover { text-decoration-thickness: 2px; }
+
+/* Lo que es máquina (carpetas, direcciones) en mono, sin caja alrededor. */
+.legal code {
+  font-family: var(--tipo-mono);
+  font-size: 0.88em;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------ EL PIE ----------------------------------- */
+
+.legal-pie {
+  padding: 36px clamp(18px, 4vw, 54px) 32px;
+  background: var(--fondo-hondo);
+  border-top: 1px solid var(--borde);
+  color: var(--tinta-media);
+  font-size: 15px;
+}
+
+.legal-pie__caja {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px 32px;
+  width: min(100%, var(--ancho));
+  margin-inline: auto;
+}
+
+.legal-pie__marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--tinta);
+  font-size: 17px;
+}
+.legal-pie__marca b { font-weight: var(--peso-alto); letter-spacing: -0.01em; }
+
+.legal-pie__enlaces {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0 22px;
+}
+.legal-pie__enlaces a {
+  display: inline-block;
+  padding: 10px 0;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  transition: color 0.18s var(--curva-ui), text-decoration-color 0.18s var(--curva-ui);
+}
+.legal-pie__enlaces a:hover { color: var(--tinta); text-decoration-color: var(--acento); }
+.legal-pie__enlaces a[aria-current="page"] {
+  color: var(--tinta);
+  font-weight: var(--peso-alto);
+}
+
+.legal-pie__linea {
+  grid-column: 1 / -1;
+  font-size: 15px;
+}
+
+@media (max-width: 720px) {
+  .legal-pie__caja { grid-template-columns: minmax(0, 1fr); }
+  .legal-pie__enlaces { justify-content: flex-start; }
+}

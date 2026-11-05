@@ -15,7 +15,7 @@
 // de API sí, y sin verlo. Un chat que no dice lo que va costando es el camino
 // corto a una factura sorpresa.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Handle, NodeResizer, Position, type Node, type NodeProps } from "@xyflow/react";
 import { useT } from "../lib/i18n";
 import { nodragEnControles } from "../lib/arrastre";
@@ -33,6 +33,7 @@ import {
   CloseIcon,
   SendIcon,
 } from "./Icons";
+import { AvisoIA, BotonInformar } from "./Informar";
 
 export interface ChatData extends Record<string, unknown> {
   nodeId: string;
@@ -205,9 +206,14 @@ export default function ChatNode({ data, selected }: NodeProps<Node<ChatData>>) 
           </p>
         )}
         {mensajes.map((m, i) => (
-          <div key={i} className="ch-msg" data-de={m.role}>
-            {m.content}
-          </div>
+          <Fragment key={i}>
+            <div className="ch-msg" data-de={m.role}>
+              {m.content}
+            </div>
+            {/* Es IA en vivo (política 11.16 de la Microsoft Store): un medio de
+                informar junto a cada respuesta del modelo, no junto a lo tuyo. */}
+            {m.role === "assistant" && <BotonInformar donde="modelo" />}
+          </Fragment>
         ))}
         {enVuelo !== null && (
           <div className="ch-msg" data-de="assistant" data-escribiendo={true}>
@@ -241,6 +247,9 @@ export default function ChatNode({ data, selected }: NodeProps<Node<ChatData>>) 
           {enVuelo !== null ? "…" : <SendIcon size={14} />}
         </button>
       </div>
+      {/* Siempre a la vista, también con el chat vacío. `nodrag`: un clic en el
+          botón no arrastra la pieza del lienzo. */}
+      <AvisoIA donde="modelo" className="nodrag" />
       <Handle type="source" position={Position.Right} className="rf-handle" />
     </div>
   );

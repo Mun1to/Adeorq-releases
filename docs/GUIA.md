@@ -417,6 +417,10 @@ Lo que conviene saber:
   reescriba tu mensaje sin añadir nada, y **Parar** mientras piensa.
 - El router lee reglas que escribas en tus notas de la memoria de la casa, con la
   forma `router: palabras -> modelo / esfuerzo / cliente` ([punto 14](#14-memoria)).
+- Adeo es una IA y puede equivocarse: bajo la caja lo dice siempre, y ahí mismo está
+  **Informar de un problema**, que abre en tu navegador un formulario público de GitHub, sin
+  tu conversación ([punto 26](#26-dónde-guarda-tus-cosas)). También está junto a cada
+  respuesta suya, en la ventana de Adeo, en el chat de un enjambre y en el móvil.
 - Apagar la parte «Chat» también quita la caja del Panel. No apaga a Adeo en el
   móvil, que tiene su propio interruptor ([punto 19](#19-en-el-móvil)).
 
@@ -1571,9 +1575,23 @@ Adeorq no lleva telemetría ni analíticas. Sale de tu equipo, y solo en estos c
 
 - **Para buscar actualizaciones**: pregunta a GitHub al arrancar, cada seis horas y al
   volver a la ventana.
-- **OpenRouter**, solo si guardas tu clave: comprobar la clave y el saldo, listar
-  modelos, hablar con uno y generar la voz de Adeo.
+- **OpenRouter**: con tu clave guardada, comprobar la clave y el saldo, hablar con un
+  modelo y generar la voz de Adeo. **Sin clave** también hay dos peticiones públicas: el
+  copiloto de las sesiones, mientras haya una sesión abierta, pide a OpenRouter su lista de
+  modelos y sus ofertas, y no lleva tus proyectos ni ninguna clave. Se corta poniendo **El
+  copiloto de las sesiones** en *Nunca* (**Ajustes › Avisos**).
 - **La brújula** de la Agenda, solo si entras con tu cuenta.
+- **Discord**, si tienes encendido **Mostrar Adeorq en mi Discord** (de fábrica lo está):
+  Adeorq le pasa a tu Discord, el que tienes abierto en tu equipo, una línea («Programando
+  con agentes» y cuántas terminales tienes abiertas; el nombre del proyecto solo si lo
+  enciendes tú, y nunca en modo emisión), y Discord la publica en tu perfil. Se apaga en
+  **Ajustes › Discord**.
+- **Informar de un problema**: un botón que está bajo la caja del Chat, de la ventana de
+  Adeo, del chat de un enjambre, del chat con un modelo del lienzo y de la página del móvil,
+  y junto a cada respuesta de Adeo o del modelo. Solo al pulsarlo abre tu navegador en un
+  formulario público de GitHub (`Mun1to/Adeorq-releases`; hace falta una cuenta de GitHub)
+  con la versión de Adeorq ya puesta. No lleva tu conversación: pegas tú lo que quieras
+  enseñar, y lo que escribas allí lo puede leer cualquiera.
 - **Los avisos al móvil**, cifrados, por el servicio de avisos de tu navegador.
 - **Los avisos a un bot**, solo si los enciendes en **Ajustes › Bots**: el webhook de tu Grok
   Bot (la dirección que pegas tú) o el programa Hermes u OpenClaw de tu equipo, que sale
@@ -1586,8 +1604,7 @@ Adeorq no lleva telemetría ni analíticas. Sale de tu equipo, y solo en estos c
 - **Los agentes** (Claude Code, Codex…) y Adeo salen a internet por el programa de
   cada uno, no por Adeorq.
 
-Ollama, Discord, la voz local y los servidores del móvil y del MCP se quedan dentro de tu
-equipo.
+Ollama, la voz local y los servidores del móvil y del MCP se quedan dentro de tu equipo.
 
 ---
 

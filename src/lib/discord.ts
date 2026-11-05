@@ -40,6 +40,11 @@ export interface DiscordConfig {
  * project (that is its own switch, off), never a path, never an account, and
  * streaming mode overrides the lot. A switch nobody ever finds is a feature
  * nobody ever has, and this one shows Adeorq to everyone its user talks to.
+ *
+ * That is for the installs that have always been like this. Inside the
+ * Microsoft Store package it starts OFF (`loadDiscord(true)`): the store's
+ * policy 10.5.2 wants the person's consent BEFORE anything is sent to a third
+ * party, and a line on somebody's Discord profile is sent to Discord.
  */
 export const EMPTY_DISCORD: DiscordConfig = {
   on: true,
@@ -47,21 +52,27 @@ export const EMPTY_DISCORD: DiscordConfig = {
   showProject: false,
 };
 
-export function loadDiscord(): DiscordConfig {
+/**
+ * `enTienda`: this Adeorq runs from the Microsoft Store package. It changes ONE
+ * thing, the default for somebody who has never chosen: off instead of on. A
+ * saved choice (the switch in Settings writes `on` explicitly) stands in both.
+ */
+export function loadDiscord(enTienda = false): DiscordConfig {
+  const deFabrica = !enTienda;
   try {
     const raw = JSON.parse(localStorage.getItem(DISCORD_KEY) ?? "{}");
     const saved = typeof raw.clientId === "string" ? raw.clientId.trim() : "";
     return {
-      // Only an explicit false counts as off: anything else is somebody who
-      // has never opened the setting, and they get it on.
-      on: typeof raw.on === "boolean" ? raw.on : true,
+      // Only an explicit boolean counts as a choice: anything else is somebody
+      // who has never opened the setting, and they get the default.
+      on: typeof raw.on === "boolean" ? raw.on : deFabrica,
       // An empty box means "use Adeorq's own", which is what it means for
       // everyone who never opens that setting.
       clientId: saved || ADEORQ_APP_ID,
       showProject: !!raw.showProject,
     };
   } catch {
-    return EMPTY_DISCORD;
+    return { ...EMPTY_DISCORD, on: deFabrica };
   }
 }
 
@@ -144,9 +155,12 @@ const REFRESH_MS = 60_000;
  * Keeps the activity in step with the app. `onError` gets the reason the first
  * time it fails and null once it works, so Settings can say what happened
  * instead of failing quietly forever.
+ *
+ * `cfg` is null while it is not yet known whether this is the Store package
+ * (`discordConfig.ts`): then it does nothing at all, not even a clear.
  */
 export function useDiscordPresence(
-  cfg: DiscordConfig,
+  cfg: DiscordConfig | null,
   p: Presence,
   onError: (message: string | null) => void,
   lang: Lang = "es",
@@ -163,6 +177,7 @@ export function useDiscordPresence(
 
   useEffect(() => {
     window.clearTimeout(timer.current);
+    if (!cfg) return;
     const id = cfg.clientId.trim();
     if (!cfg.on || !id) {
       last.current = { at: 0, details: "", status: "" };

@@ -477,7 +477,7 @@ function Canvas({
     listProjects()
       .then((list) => {
         setProjects(list);
-        setProject((p) => p || list[0]?.name || "");
+        setProject((p) => (list.some((x) => x.name === p) ? p : list[0]?.name || ""));
       })
       .catch(() => {});
   }, [visible]); // Siempre montado y escondido: con `[]`, un proyecto recién creado no salía aquí.
@@ -3300,7 +3300,7 @@ ${ruta}` : ruta;
         </div>
 
         <div className="cb-group">
-          <button className="cb-btn" data-tip={t("Pomodoro, cronómetro, calculadora o calendario")} onClick={menuPiezas}>
+          <button className="cb-btn" data-tip={t("Notas, carriles, enjambres, la galería, el tablero, chats y herramientas")} onClick={menuPiezas}>
             <span aria-hidden="true">＋</span> {t("Añadir")} <span className="cb-caret">▾</span>
           </button>
           <button

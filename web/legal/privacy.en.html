@@ -1,0 +1,80 @@
+<h1>Adeorq privacy policy</h1>
+<p class="legal__fecha">Last updated: {{fecha}}.</p>
+
+<p>It applies to the Adeorq app for Windows, both the one installed from the Microsoft Store and the one downloaded from GitHub. Where they differ, it says so. The Linux and macOS apps keep their data and keys somewhere else, which <a href="/guia#donde-guarda">the guide</a> explains.</p>
+
+<h2 id="who">Who is responsible</h2>
+<p>The person responsible is <strong>Munir Torres Athayde</strong>, as an individual. Contact: <strong>{{correo}}</strong>.</p>
+
+<h2 id="essentials">The essentials</h2>
+<p>Adeorq is a program that runs on your computer. <strong>It has no servers of its own, it does not ask you for an Adeorq account, it has no telemetry or analytics, and it sends us nothing of what you do.</strong> What leaves your computer is what <a href="#leaves">What leaves your computer and where it goes</a> lists, one point at a time, and almost all of it leaves because you turn it on or because you use another company’s program (an AI agent).</p>
+
+<h2 id="reads">What Adeorq reads on your computer</h2>
+<p>To work, Adeorq reads these things. <strong>They stay on your computer, except what <a href="#leaves">What leaves your computer and where it goes</a> says.</strong></p>
+<ul>
+  <li><strong>Your projects:</strong> the project folders you point it to, the files of those projects that you open, search or edit, and their Git status.</li>
+  <li><strong>The history of your AI agents,</strong> to show it grouped by project: Claude Code’s in your user folder (<code>.claude</code>), Codex’s (<code>.codex</code>) and Pi’s (<code>.pi</code>). It mostly reads the end of each conversation (title and state) and, for the sessions open inside Adeorq, their recent activity and which files the agent touched. The welcome screen has a checkbox for this, ticked by default.</li>
+  <li><strong>Which plan each Claude Code account has:</strong> it opens the credentials file and keeps two facts, the subscription type and its limit tier. It does not store or use anything else in that file.</li>
+  <li><strong>The usage quota</strong> that Codex and other agents write in their files.</li>
+  <li><strong>Your Obsidian notes,</strong> if you tell it where your vault is, and your agent skills.</li>
+  <li><strong>The configuration of Claude Code, Codex and Gemini,</strong> to add (when you ask with “Connect”) and keep up to date an entry called “adeorq”. It only changes that entry, and only if it already exists.</li>
+  <li><strong>What you paste</strong> (text, images and files), when you press paste.</li>
+  <li><strong>Your voice,</strong> if you dictate (see <a href="#microphone">The microphone</a>).</li>
+</ul>
+
+<h2 id="stores">What Adeorq stores and where</h2>
+<p>All on your computer. None of it is sent to an Adeorq server.</p>
+<ul>
+  <li><strong>Its own data folder.</strong> In the Microsoft Store version it is <code>.adeorq</code>, inside your user folder; in the GitHub one, <code>%LOCALAPPDATA%\Adeorq</code>. It holds your goals and notes, the canvas, the scheduled tasks, your conversations with Adeo and with the chats, the decisions, the screenshots and files you paste or send from the phone, a failure log, the folders of your agent accounts, the mods, the list of paired phones (the name, a fingerprint of its key and, if it accepted notifications, the notification address its browser gave) and the keys of the notification service.</li>
+  <li><strong>Your keys and passwords</strong> (OpenRouter’s and the agents’) go to the Windows Credential Manager, not to a file.</li>
+  <li><strong>Your window settings</strong> (theme, font, your name, your @ and a small photo) in the window’s own local storage.</li>
+  <li><strong>The cache and data of the internal browser.</strong> Adeorq’s window and, separately, the panel’s browser use Microsoft Edge WebView2, which keeps on your computer what any browser keeps: cache, cookies and the history of what it loads. In a test, after a minute of use, that folder weighed about 30 MB, almost all of it cache of Adeorq’s own pages. In the GitHub version it is in <code>%LOCALAPPDATA%\com.orquio.adeorq</code>.</li>
+  <li><strong>When you uninstall:</strong> the Store version <strong>does not delete the <code>.adeorq</code> folder</strong>. If you connected Claude Code to Adeorq, disconnect it first (Settings › Terminals), or its configuration keeps an entry that points to a program that is gone.</li>
+</ul>
+
+<h2 id="leaves">What leaves your computer and where it goes</h2>
+
+<h3>What Adeorq itself sends over the internet</h3>
+<ol>
+  <li><strong>Checking for updates, GitHub version only</strong> (the Store version updates through the Store and does not do this). It asks GitHub for a file with the latest version at startup, every six hours and when you return to the window. GitHub sees your IP address.</li>
+  <li><strong>OpenRouter, without you having saved any key.</strong> While an agent session is open and the “copilot” is not set to “Never” (Settings), Adeorq asks OpenRouter for its public list of models and promotions to work out prices and make recommendations. It carries nothing of yours, only your IP address and a header that says “Adeorq”. It also asks when you open the model selector of a canvas chat.</li>
+  <li><strong>OpenRouter, if you save your key:</strong> Adeorq checks your key and your balance. If you talk to a model from a canvas chat, <strong>your messages and that conversation go to OpenRouter and from there to the model’s provider</strong>. If you turn on Adeo answering aloud with OpenRouter’s voice, <strong>the text of its answers</strong>.</li>
+  <li><strong>A webhook, if you turn on notifications to a bot</strong> (Settings › Bots): to the address you paste, with a key of yours, a notice text and the list of terminals with their name, project and state.</li>
+  <li><strong>Notifications to the phone, if you pair one and it accepts notifications:</strong> each one goes end-to-end encrypted to the notification service of that phone’s browser (Google, Mozilla or Apple, depending on the browser). That service sees that a notification exists, its size and the time, not the content.</li>
+  <li><strong>An optional login to the developer’s personal panel, GitHub version only.</strong> It is an Agenda feature that only the developer can use: nobody else has an account to sign in with. If you do not sign in, it calls nothing. <strong>In the Store version it does not exist</strong>: it is not on screen and that service is never called.</li>
+  <li><strong>Discord, if you turn it on and Discord is open.</strong> <strong>In the Store version it ships off</strong> and only turns on if you ask for it in Settings › Discord; in the GitHub version it is on by default. When on, it tells Discord “Coding with agents” and how many terminals you have open. <strong>It does not say the name of any project</strong> unless you turn that on, and in broadcast mode it says nothing private. Discord shows it to whoever can see your profile. It is turned off in Settings › Discord.</li>
+  <li><strong>Tailscale, only if you turn the phone on:</strong> Adeorq runs Tailscale on your computer to publish the phone page on your private network. That traffic is Tailscale’s. While the phone is on, Adeorq asks Windows not to put the computer to sleep.</li>
+</ol>
+
+<h3>What leaves through other companies’ programs that Adeorq runs for you, not through Adeorq</h3>
+<ol start="9">
+  <li><strong>Your AI agents</strong> (Claude Code, Codex, Gemini and the others). Adeorq runs the program you installed and that program goes out to the internet with your account. <strong>What you type in a terminal, and what you type to Adeo, reaches that agent’s provider</strong> and is governed by that provider’s policy.</li>
+  <li><strong>Adeo.</strong> It is live generative AI: what it writes is created by an AI model, in response to what you type, and it can be wrong (under its box there is a line that says so and a “Report an issue” button). So that it can work, <strong>each message carries information about your computer</strong>: the list of your projects, the state of your open sessions and the latest parts of the conversation; Adeo can also <strong>read</strong> (never write) the content of your sessions’ conversations and your memory notes when it needs to. All of that goes in the request to your AI provider.</li>
+  <li><strong>The panel’s browser and the canvas</strong> load the pages you open. Those pages see you like any browser. <strong>And Adeorq’s window is an internal browser from Microsoft (Edge WebView2)</strong>, which on its own, and not through Adeorq, connects to Microsoft servers: in a test with the window just opened and nothing done, to <code>config.edge.skype.com</code> and <code>edge.microsoft.com</code>, and over port 80 to the server of the Windows certificate list (<code>ctldl.windowsupdate.com</code>). Adeorq neither decides nor controls that, and it is governed by Microsoft’s policy.</li>
+  <li><strong>Links</strong> (help, downloads) open in your browser. <strong>“Report an issue”</strong> (under the box and next to each answer from Adeo, and also in the canvas model chat) opens a public GitHub form with a title, a template, the Adeorq version and which screen it comes from. <strong>“or by email”</strong> (only in the line under the box, for people without a GitHub account) opens your email program with a message already written to {{correo}}, with the same details. <strong>Neither carries your conversation:</strong> you paste whatever you want to show. Anyone can read what you write in the form, so first remove project names, paths, emails and keys; the email reaches whoever develops Adeorq and is not public.</li>
+</ol>
+
+<p><strong>What stays on your computer:</strong> the phone server and the tools server for other programs listen only on <code>127.0.0.1</code>; the local Ollama model, if you use it, is your computer’s; and the voice is processed here (see <a href="#microphone">The microphone</a>).</p>
+<p><strong>What Adeorq never does:</strong> telemetry, analytics, advertising, selling data, or sending us your code or your conversations.</p>
+
+<h2 id="microphone">The microphone</h2>
+<p>Adeorq asks for the microphone permission <strong>only to dictate by voice.</strong> When you press the dictate button, it first checks whether the whisper.cpp program and a model are installed; <strong>if it does not find them, it warns you and does not open the microphone.</strong> If you have them: it records while you speak, saves the audio in a temporary file in your temporary folder, transcribes it with whisper.cpp <strong>on your computer</strong>, deletes the file when it is done and puts the text in the box. <strong>The audio does not leave your computer and Adeorq does not send it to anyone.</strong> The transcribed text is like anything else you type: if you send it to an agent, see <a href="#leaves">What leaves your computer and where it goes</a>, points 9 and 10. You can remove the permission in the Windows privacy settings.</p>
+
+<h2 id="sharing">Who it is shared with</h2>
+<p>Adeorq does not share data with anyone on its own. What leaves (see <a href="#leaves">What leaves your computer and where it goes</a>) goes to services that <strong>you</strong> use or turn on: your AI agent’s provider, OpenRouter, GitHub, your browser’s notification service, Discord (if you turn it on), Tailscale and your bot’s webhook. And, on its own and without Adeorq deciding it, Microsoft’s window component (point 11). None of them works for Adeorq.</p>
+
+<h2 id="rights">Your controls and rights</h2>
+<ul>
+  <li><strong>Turn off what leaves:</strong> Settings › Discord (turn the presence off, which in the Store version already ships off), Settings › Bots (the notifications), the phone (it ships off), the copilot on “Never”, and not saving an OpenRouter key.</li>
+  <li><strong>Delete what it stores:</strong> the data folder (see <a href="#stores">What Adeorq stores and where</a>) and the keys in the Windows Credential Manager. Since we hold no data of yours outside your computer, <strong>there is nothing to delete on an Adeorq server.</strong></li>
+  <li><strong>Your rights:</strong> you can ask for <strong>access, rectification, erasure, objection, restriction and portability</strong> of your personal data by writing to {{correo}}. Adeorq stores no data of yours on any server of its own, so almost all of it is exercised on your computer: what it stores is in your data folder, in formats you can open, and there you can see it, change it, delete it or take it with you yourself. What goes out to the services above is held by them and is governed by their policy. If you believe your data has not been handled as it should, you can complain to the <a href="https://www.aepd.es" rel="noopener">Spanish Data Protection Agency</a> (aepd.es).</li>
+</ul>
+
+<h2 id="children">Children</h2>
+<p>Adeorq is a programming tool and is not aimed at children under 14.</p>
+
+<h2 id="security">Security</h2>
+<p>Keys go to the Credential Manager, not to files. The local servers listen only on <code>127.0.0.1</code>. The phone page is published over your private Tailscale network and asks for a six-digit pairing code. Notifications to the phone are end-to-end encrypted. “Mods” (styles that people add) are forbidden from making requests to the internet.</p>
+
+<h2 id="changes">Changes and contact</h2>
+<p>Contact: {{correo}}. If any of this changes, this page and the date above change.</p>

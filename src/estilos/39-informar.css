@@ -1,0 +1,114 @@
+/* «Adeo es una IA y puede equivocarse» y el botón de informar de un problema
+   (`components/Informar.tsx`, política 11.16 de la Microsoft Store).
+
+   Una línea, sin caja ni cartel (Munir: «lo simple gana»): la frase en la tinta
+   normal y a 12,5 px, que es lo que la hace discreta sin dejarla en un gris que
+   no se lee; el botón, suelto y en el acento, y con el filo del cristal solo al
+   pasar el ratón. Tiene que verse SIEMPRE, también con el chat recién instalado
+   y vacío: a VoCript la rechazaron por tener su botón escondido. */
+
+.inf-aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px 8px;
+  margin: 0;
+  color: var(--text);
+  font-size: 12.5px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.inf-boton {
+  flex: none;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: var(--r-btn);
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.45;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--t-rapida) ease,
+    box-shadow var(--t-rapida) ease;
+}
+.inf-aviso .inf-boton { align-self: auto; }
+.inf-boton:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.inf-boton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* «o por correo», para quien no tiene cuenta de GitHub: va solo en la línea de
+   debajo de la caja, justo después del botón, y sin el relleno de la izquierda
+   para que la «o» caiga a la misma distancia que el botón de la frase. */
+.inf-aviso .inf-correo { padding-left: 0; }
+
+/* Bajo la caja de Adeo de la primera pantalla (`PanelPedir.tsx`): va suelta sobre el
+   fondo de la casa, como el saludo, y no sobre una superficie. El azul del acento sobre
+   una foto no se lee: los dos botones van en la tinta de la frase, subrayados, con la
+   misma sombra de texto que el resto de lo que va suelto ahí (`34-inicio.css`). */
+.inicio-caja + .inf-aviso {
+  margin-top: 10px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+}
+.inicio-caja + .inf-aviso .inf-boton {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--text) 45%, transparent);
+  text-underline-offset: 3px;
+}
+
+/* Bajo una respuesta, pegado a su borde izquierdo (su relleno de 8 px se
+   descuenta para que el texto del botón caiga bajo el de la respuesta). */
+.chat-turno > .inf-boton,
+.enj-turno > .inf-boton {
+  margin-left: -8px;
+}
+
+/* Bajo la caja del Chat, con un respiro. */
+.chat-caja-zona > .inf-aviso { margin-top: 8px; }
+
+/* En la ventana de la bola, junto a su «Vale» y bajo el resumen del plan. */
+.fm-respuesta > .inf-boton { margin-left: 6px; }
+.foreman-summary + .inf-boton { margin: -6px 0 8px -8px; }
+
+/* El enjambre es una rejilla (la respuesta y su botón), no una columna. */
+.enj-turno > .inf-boton { justify-self: start; }
+
+/* En la ventana de la bola, en el chat del enjambre y en el chat con un modelo
+   la columna es estrecha: la línea va a la izquierda, como el resto del texto de
+   esas piezas. */
+.foreman-box > .inf-aviso,
+.rf-enjambre > .inf-aviso,
+.rf-chat > .inf-aviso {
+  justify-content: flex-start;
+  text-align: left;
+}
+.foreman-box > .inf-aviso { margin-top: 12px; }
+/* La pieza del lienzo es estrecha y la línea baja a dos: el botón, al volver al
+   borde, no se sangra con su relleno (su texto cae bajo el de la frase). */
+.rf-chat > .inf-aviso .inf-boton { margin-left: -8px; }
+.rf-chat > .inf-aviso .inf-correo { margin-left: 0; }
+/* Bajo la respuesta de un modelo, en la columna del chat del lienzo. */
+.ch-charla > .inf-boton {
+  align-self: flex-start;
+  margin: -4px 0 0 3px;
+}
+/* Sigue al pie de la caja del enjambre y del chat con un modelo, con su mismo
+   fondo. */
+.rf-chat > .inf-aviso,
+.rf-enjambre > .inf-aviso {
+  flex: none;
+  padding: 0 10px 8px;
+  background: var(--row);
+  font-size: 12px;
+}

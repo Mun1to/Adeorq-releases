@@ -55,6 +55,17 @@ const PORTADAS = [
   { idioma: 'x-default', url: '/en/' },
 ]
 
+/**
+ * La privacidad también existe en dos idiomas, cada uno en su URL (las genera
+ * scripts/hacer-privacidad.mjs). Mismo reparto que las portadas: cada una se
+ * incluye a sí misma, su canonical apunta a sí misma y x-default es la inglesa.
+ */
+const PRIVACIDAD = [
+  { idioma: 'es', url: '/privacidad' },
+  { idioma: 'en', url: '/en/privacy' },
+  { idioma: 'x-default', url: '/en/privacy' },
+]
+
 /** Las paginas indexables, con lo suyo. El orden es el del sitemap. */
 const PAGINAS = [
   {
@@ -95,6 +106,35 @@ const PAGINAS = [
       'los objetivos del dia, los atajos y donde guarda tus cosas.',
     prioridad: '0.8',
     frecuencia: 'monthly',
+  },
+  {
+    archivo: 'privacidad.html',
+    url: '/privacidad',
+    tipo: 'website',
+    idioma: 'es',
+    locale: 'es_ES',
+    alternos: PRIVACIDAD,
+    // Una política de privacidad no es una portada: sin datos estructurados.
+    sinDatosEstructurados: true,
+    titulo: 'Política de privacidad · Adeorq',
+    descripcion:
+      'Qué lee Adeorq de tu ordenador, qué guarda y a dónde sale algo de lo que haces. Quién es el responsable y cómo pedirle algo.',
+    prioridad: '0.5',
+    frecuencia: 'yearly',
+  },
+  {
+    archivo: 'en/privacy.html',
+    url: '/en/privacy',
+    tipo: 'website',
+    idioma: 'en',
+    locale: 'en_US',
+    alternos: PRIVACIDAD,
+    sinDatosEstructurados: true,
+    titulo: 'Privacy policy · Adeorq',
+    descripcion:
+      'What Adeorq reads on your computer, what it stores and where anything you do goes. Who is responsible and how to ask them for something.',
+    prioridad: '0.4',
+    frecuencia: 'yearly',
   },
 ]
 
@@ -292,11 +332,11 @@ for (const pagina of PAGINAS) {
   }
   const html = readFileSync(resolve(WEB, pagina.archivo), 'utf8')
   // Las preguntas de cada portada salen de SU HTML, en su idioma.
-  const preguntas = pagina.alternos ? preguntasDe(html) : []
-  const extras = pagina.alternos ? jsonLdPortada(preguntas, pagina) : jsonLdGuia()
+  const preguntas = pagina.alternos && !pagina.sinDatosEstructurados ? preguntasDe(html) : []
+  const extras = pagina.sinDatosEstructurados ? [] : pagina.alternos ? jsonLdPortada(preguntas, pagina) : jsonLdGuia()
   pagina.titulo = tituloDe(html, pagina.titulo)
   escribir(pagina, metadatos(pagina, extras))
-  console.log(`${pagina.archivo.padEnd(14)} -> ${SITIO}${pagina.url}${pagina.alternos ? `  (${preguntas.length} preguntas)` : ''}`)
+  console.log(`${pagina.archivo.padEnd(14)} -> ${SITIO}${pagina.url}${pagina.alternos && !pagina.sinDatosEstructurados ? `  (${preguntas.length} preguntas)` : ''}`)
 }
 
 // --- sitemap ---------------------------------------------------------------

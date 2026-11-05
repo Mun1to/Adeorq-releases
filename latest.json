@@ -1,11 +1,11 @@
 {
-  "version": "0.9.243",
-  "notes": "Linux: adeorq se encuentra en las terminales del AppImage en Debian. Adeorq ya sabe correr en el paquete de la Microsoft Store.",
-  "pub_date": "2026-11-05T14:46:06Z",
+  "version": "0.9.244",
+  "notes": "Adeo dice que es una IA y deja informar de un problema. Pagina de privacidad en adeorq.com. Arreglos en la bienvenida, el Lienzo y el enjambre.",
+  "pub_date": "2026-11-05T19:44:25Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzRDRWlKWnlrTUZ3OWNzdktJL29qTWMyM2wvaFgxYWY1MjRMWS83dnpIdC9UNHplZXVrbjRPY3cxNG5qMFVOc0lkQ3d6YXlBZ3NYYnJlUkdKejdTU2dJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzODg5OTUxCWZpbGU6QWRlb3JxXzAuOS4yNDNfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNDMKNi85T1g4amRxMGhUakpXK09Pb0VldDhaL0QyN1gwRjRVUGgwR2J1WTErdkhTL1AzSEpjSW5NYk5ybERFbnV0T3JlTktESjlMSytwblJJNnREWHloQWc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.243/Adeorq_0.9.243_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzZJRk1FaDlQNTUwR2tNNDNlK2hMMEdScjk2QS96bzVubUh5Wm01R29lYWlhOVMvR25USms2Y0JTa2dHeFEvcGFpZVZyL1M0blZqeTRmWU5qWUFFY1FRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzOTA3ODQ3CWZpbGU6QWRlb3JxXzAuOS4yNDRfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNDQKaE9rejJpRUdVOFAzc0ZDZkdCeGpqTTJ5OTU1dk0rcDB5cURMTSsxOFlwSTF1WkFESTFTOFNtY1p4bytPNTVtaCtqUndEVjdPaVZqS0E5TjE0VHFWQlE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.244/Adeorq_0.9.244_x64-setup.exe"
     }
   }
 }

@@ -20,12 +20,16 @@
 //
 // ── Y POR QUÉ UNA HOJA TAMPOCO PASA SIN MIRAR ───────────────────────────────
 //
-// Una hoja de estilo no ejecuta nada, pero sí puede pedir cosas a la red: la
-// app va con `csp: null`, así que un `url(https://…)` es una petición a fuera,
-// y un selector de atributo puede elegir CUÁNDO hacerla. Un mod no habla con
-// la red: fuera `@import`, fuera `image-set(` (que admite direcciones sin
-// `url`), fuera cualquier `url(` que no sea `data:`, y fuera la barra
-// invertida, porque en CSS `\75rl(` es `url(` y un filtro de texto no lo ve.
+// Una hoja de estilo no ejecuta nada, pero sí puede pedir cosas a la red: un
+// `url(https://…)` es una petición a fuera, y un selector de atributo puede
+// elegir CUÁNDO hacerla. La app lleva una política de contenido (`security.csp`
+// de `tauri.conf.json`) cuyo `img-src` y `font-src` no admiten direcciones de
+// fuera, pero aquí no se cuenta con ella: es una línea de configuración que se
+// puede aflojar sin pensar en los mods, y no se ha medido en la app publicada
+// que corte ese `url(`. Un mod no habla con la red: fuera `@import`, fuera
+// `image-set(` (que admite direcciones sin `url`), fuera cualquier `url(` que no
+// sea `data:`, y fuera la barra invertida, porque en CSS `\75rl(` es `url(` y un
+// filtro de texto no lo ve.
 // El filtro mira el texto tal cual, comentarios incluidos: quitarlos antes
 // obligaría a entender las cadenas igual que el navegador, y un `"/*"` dentro
 // de una cadena escondería lo que viene detrás.

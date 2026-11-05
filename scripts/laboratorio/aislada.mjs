@@ -68,6 +68,13 @@ const GUARDA = `(() => {
   };
 })()`;
 
+/** La misma guarda SIN cortar la red: no rechaza lo de supabase.co y openrouter.ai ni finge el
+ *  actualizador. Es para medir a dónde se conecta la app de verdad (`conexiones-de-verdad.mjs`):
+ *  con la normal, esas llamadas no salían nunca y la medida mentía. Sigue contestando lo de Munir
+ *  (sus claves, el estado de la barra, lo que suena en su equipo): sin clave no hay nada que mandar. */
+const GUARDA_CON_RED = GUARDA.split("\n").filter((l) => !/supabase|"updater"/.test(l)).join("\n");
+if (/supabase|updater/.test(GUARDA_CON_RED)) throw new Error("GUARDA_CON_RED sigue cortando la red: la guarda cambió y hay que volver a recortarla");
+
 /** La ventana, por el protocolo de depuración de su navegador. */
 async function ventana(depurar) {
   const destino = await hasta(async () => {
@@ -117,7 +124,9 @@ async function ventana(depurar) {
  * que lista (solo la lista); `sembrar(datos)`, lo que haya que dejar en su
  * carpeta de datos antes de que arranque; `guarda`, más código que se
  * ejecuta en la página detrás de `GUARDA` (puede envolver otra vez `fetch`); y
- * `entorno`, variables de más para la app (`ADEORQ_NAVEGADOR_LABORATORIO`).
+ * `entorno`, variables de más para la app (`ADEORQ_NAVEGADOR_LABORATORIO`); y
+ * `red`, que no corta la red: no rechaza supabase.co ni openrouter.ai y no finge el
+ * actualizador (`GUARDA_CON_RED`), para medir a dónde se conecta de verdad.
  *
  * Con `aparte`, las terminales van en su proceso aparte: el fichero
  * `terminales\encendido` se escribe antes de arrancar (se lee en `setup`), con
@@ -134,7 +143,8 @@ async function ventana(depurar) {
  * quien actualiza con terminales abiertas. Una release no se abre como app aquí:
  * comparte identificador con la instalada.
  */
-export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(), exe = EXE, raiz, sembrar, guarda = "", entorno = {}, aparte = process.env.LAB_TERMINALES_APARTE === "1", fueraConTodo = true, motorDeAntes = null }) {
+export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(), exe = EXE, raiz, sembrar, guarda = "", entorno = {}, aparte = process.env.LAB_TERMINALES_APARTE === "1", fueraConTodo = true, motorDeAntes = null, red = false }) {
+  const base_guarda = red ? GUARDA_CON_RED : GUARDA;
   const base = join(tmpdir(), `adeorq-${nombre}-${process.pid}`);
   const demo = join(base, "proyectos", "demo");
   const proyectos = raiz ?? join(base, "proyectos");
@@ -329,7 +339,7 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
     if (!(await hasta(() => alFondo(app, exe), 12_000, 200))) throw new Error("la ventana de pruebas no salió (o no es la mía)");
     v = await ventana(depurar);
     await v.enviar("Page.enable");
-    await v.enviar("Page.addScriptToEvaluateOnNewDocument", { source: guarda ? `${GUARDA};\n${guarda}` : GUARDA });
+    await v.enviar("Page.addScriptToEvaluateOnNewDocument", { source: guarda ? `${base_guarda};\n${guarda}` : base_guarda });
     // Sin la bienvenida: la app entera montada, que es donde vive el oyente del MCP.
     await v.js(`localStorage.setItem("adeorq-lang", "es"); localStorage.setItem("adeorq-perfil", ${JSON.stringify(
       JSON.stringify({ nombre: "Prueba", raiz: proyectos, sinRaiz: false, extras: [], leerSesiones: false, clis: [], hecho: true, tour: true }),
@@ -393,13 +403,13 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
     v = await ventana(depurar);
     aislada.v = v;
     await v.enviar("Page.enable");
-    await v.enviar("Page.addScriptToEvaluateOnNewDocument", { source: guarda ? `${GUARDA};\n${guarda}` : GUARDA });
+    await v.enviar("Page.addScriptToEvaluateOnNewDocument", { source: guarda ? `${base_guarda};\n${guarda}` : base_guarda });
     // Y en la carga que ya corre, sin recargarla: recargar aquí caía en mitad de
     // la vuelta del tablero, con las terminales de la primera carga vivas en
     // Rust, y la segunda las tomaba por ajenas («· recuperada») sobre un tablero
     // guardado a medias. Era el «FALLO al reiniciar Adeorq vuelve en la Pro»
     // intermitente de `reparto-cuentas-de-verdad.mjs` (t75, 2026-11-03).
-    await v.js(guarda ? `${GUARDA};\n${guarda}` : GUARDA);
+    await v.js(guarda ? `${base_guarda};\n${guarda}` : base_guarda);
     await dormir(1500);
     await hasta(() => v.js(`document.readyState === "complete" && !!document.querySelector(".app, #root > *")`), 20_000);
     await hasta(() => {

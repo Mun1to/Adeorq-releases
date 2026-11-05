@@ -38,7 +38,8 @@ import {
   type Limits,
   type PlanInfo,
 } from "../lib/pty";
-import { PROVIDERS, providerOf, sabe, type Provider } from "../lib/providers";
+import { enLaTienda, yaEnLaTienda } from "../lib/empaquetada";
+import { enlaceOficial, PROVIDERS, providerOf, sabe, type Provider } from "../lib/providers";
 import { limitesDe } from "../lib/cuota";
 import { etiquetaCorta } from "../lib/uso";
 import { useT } from "../lib/i18n";
@@ -139,6 +140,13 @@ export default function AccountsView({
   onVibecoding,
 }: Props) {
   const { t } = useT();
+  /** Dentro del paquete de la Microsoft Store no se lanza el instalador de
+   *  otro programa (políticas 10.2.2 y 10.2.3): la lista enseña su enlace
+   *  oficial. Fuera, la de siempre. */
+  const [enTienda, setEnTienda] = useState(yaEnLaTienda);
+  useEffect(() => {
+    void enLaTienda().then(setEnTienda);
+  }, []);
   const [installed, setInstalled] = useState<Set<string> | null>(null);
   const [info, setInfo] = useState<Record<string, Info>>({});
   const [busy, setBusy] = useState(false);
@@ -675,8 +683,14 @@ export default function AccountsView({
               <>
                 <OpenRouterCard
                   aiderInstalado={!!installed?.has("aider")}
-                  onInstalarAider={() => onInstall(providerOf("aider"))}
+                  onInstalarAider={() => {
+                    const aider = providerOf("aider");
+                    // En la Tienda, su web y no una terminal que lo instala.
+                    if (enTienda) void openUrl(enlaceOficial(aider) ?? "").catch(() => {});
+                    else onInstall(aider);
+                  }}
                   onVibecoding={onVibecoding}
+                  enTienda={enTienda}
                 />
                 <ApiKeysCard />
               </>
@@ -945,7 +959,13 @@ export default function AccountsView({
                   </span>
                   <span className="account-name">{p.label}</span>
                 </div>
-                {p.cmd ? (
+                {enTienda ? (
+                  /* En la Tienda: ni la orden ni el botón. Adeorq no baja ni
+                     ejecuta instaladores de otros desde dentro del paquete. */
+                  <p className="account-empty">
+                    {t("No está en este equipo. Desde la Microsoft Store, Adeorq no instala programas de otros: bájalo de su web oficial.")}
+                  </p>
+                ) : p.cmd ? (
                   <p className="account-empty">
                     {t("No está en este equipo. El botón abre una terminal y lo descarga con")}{" "}
                     <code>{p.cmd}</code>.{" "}
@@ -958,18 +978,28 @@ export default function AccountsView({
                   </p>
                 )}
                 <div className="account-actions">
-                  {p.cmd && (
-                    <button className="np-btn" onClick={() => onInstall(p)}>
-                      {t("Descargar")}
-                    </button>
-                  )}
-                  {p.web && (
-                    <button
-                      className="mini"
-                      onClick={() => void openUrl(p.web ?? "").catch(() => {})}
-                    >
-                      {t("Abrir su web")}
-                    </button>
+                  {enTienda ? (
+                    enlaceOficial(p) && (
+                      <button className="np-btn" onClick={() => void openUrl(enlaceOficial(p) ?? "").catch(() => {})}>
+                        {t("Abrir su web")}
+                      </button>
+                    )
+                  ) : (
+                    <>
+                      {p.cmd && (
+                        <button className="np-btn" onClick={() => onInstall(p)}>
+                          {t("Descargar")}
+                        </button>
+                      )}
+                      {p.web && (
+                        <button
+                          className="mini"
+                          onClick={() => void openUrl(p.web ?? "").catch(() => {})}
+                        >
+                          {t("Abrir su web")}
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </article>

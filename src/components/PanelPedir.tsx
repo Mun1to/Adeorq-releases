@@ -12,6 +12,7 @@ import { useT } from "../lib/i18n";
 import { algunoPensando, onPensando } from "../lib/conserje";
 import { dictar, transcribir, vozLista, type Dictado } from "../lib/voz";
 import { SendIcon, VozIcon } from "./Icons";
+import { AvisoIA } from "./Informar";
 
 export default function PanelPedir({ onPedir }: { onPedir: (texto: string) => void }) {
   const { t } = useT();
@@ -87,45 +88,50 @@ export default function PanelPedir({ onPedir }: { onPedir: (texto: string) => vo
       : (vozError ?? t("Adeo lo reparte en sesiones y el router elige el modelo."));
 
   return (
-    <div className="inicio-caja" data-trabajando={trabaja}>
-      <textarea
-        ref={caja}
-        id="inicio-pedir"
-        className="inicio-texto"
-        rows={2}
-        value={texto}
-        aria-label={t("Lo que le pides a Adeo")}
-        placeholder={t("Dile a Adeo qué hacemos: «abre lo de Orquio», «repasa el login», «sube lo de hoy»…")}
-        onChange={(e) => setTexto(e.currentTarget.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            enviar();
-          }
-        }}
-      />
-      <div className="inicio-mandos">
-        <span className="inicio-nota" data-oyendo={oyendo || undefined} data-error={(!oyendo && !transcribiendo && !!vozError) || undefined}>
-          {nota}
-        </span>
-        <span className="inicio-botones">
-          <button
-            type="button"
-            className="mini icono"
-            data-tip={t("Dictar")}
-            aria-label={t("Dictar")}
-            aria-pressed={oyendo}
-            disabled={transcribiendo}
-            onClick={() => voz()}
-          >
-            <VozIcon />
-          </button>
-          <button type="button" className="np-btn inicio-enviar" disabled={!texto.trim()} onClick={() => enviar()}>
-            <SendIcon size={15} />
-            {t("Enviar")}
-          </button>
-        </span>
+    <>
+      <div className="inicio-caja" data-trabajando={trabaja}>
+        <textarea
+          ref={caja}
+          id="inicio-pedir"
+          className="inicio-texto"
+          rows={2}
+          value={texto}
+          aria-label={t("Lo que le pides a Adeo")}
+          placeholder={t("Dile a Adeo qué hacemos: «abre lo de Orquio», «repasa el login», «sube lo de hoy»…")}
+          onChange={(e) => setTexto(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              enviar();
+            }
+          }}
+        />
+        <div className="inicio-mandos">
+          <span className="inicio-nota" data-oyendo={oyendo || undefined} data-error={(!oyendo && !transcribiendo && !!vozError) || undefined}>
+            {nota}
+          </span>
+          <span className="inicio-botones">
+            <button
+              type="button"
+              className="mini icono"
+              data-tip={t("Dictar")}
+              aria-label={t("Dictar")}
+              aria-pressed={oyendo}
+              disabled={transcribiendo}
+              onClick={() => voz()}
+            >
+              <VozIcon />
+            </button>
+            <button type="button" className="np-btn inicio-enviar" disabled={!texto.trim()} onClick={() => enviar()}>
+              <SendIcon size={15} />
+              {t("Enviar")}
+            </button>
+          </span>
+        </div>
       </div>
-    </div>
+      {/* Es lo primero que ve quien abre Adeorq, y Adeo contesta desde aquí: la línea de IA y
+          el botón de informar tienen que estar a la vista sin haber escrito nada (11.16). */}
+      <AvisoIA donde="inicio" />
+    </>
   );
 }

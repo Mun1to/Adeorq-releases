@@ -21,7 +21,16 @@
 //   · Supabase rotates the refresh token on every use, so each refresh writes
 //     the new one back into the vault.
 
+import { enLaTienda } from "./empaquetada";
 import { secretForget, secretGet, secretPut } from "./pty";
+
+// Dentro del paquete de la Microsoft Store la brújula no existe. Es el panel
+// personal de su dueño (una cuenta de munito.dev que nadie más tiene) y un revisor
+// que abriera la Agenda se encontraría pidiéndole un correo y una contraseña de un
+// servicio que no es de la app ni de la Tienda. Las dos puertas por las que entra
+// algo (`signIn` y `restore`, de la que cuelgan todas las lecturas) se cierran
+// aquí, a la vez, sin tocar el almacén de claves ni la red; `AgendaView.tsx`
+// esconde además lo que la enseña. Fuera del paquete nada cambia.
 
 const BASE = "https://ijraewpmsgwmxmfgwwae.supabase.co";
 const PUBLISHABLE = "sb_publishable_7x34u1r_bNVnDpD45HdG2g_JKLWuW0y";
@@ -85,6 +94,7 @@ async function keep(json: { access_token: string; refresh_token: string; expires
 }
 
 export async function signIn(email: string, password: string): Promise<void> {
+  if (await enLaTienda()) throw new Error("La brújula no está en esta versión de Adeorq");
   const res = await fetch(`${BASE}/auth/v1/token?grant_type=password`, {
     method: "POST",
     headers: headers(),
@@ -96,6 +106,7 @@ export async function signIn(email: string, password: string): Promise<void> {
 
 /** True when a stored token could be traded for a live session. */
 export async function restore(): Promise<boolean> {
+  if (await enLaTienda()) return false;
   const saved = await secretGet(VAULT_KEY);
   if (!saved) return false;
   const res = await fetch(`${BASE}/auth/v1/token?grant_type=refresh_token`, {

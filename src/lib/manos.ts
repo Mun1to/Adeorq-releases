@@ -74,6 +74,12 @@ export const MANOS = {
   decidir: "mcp__adeorq__ask_decision",
   /** Leer lo que contestó a una decisión. */
   decision: "mcp__adeorq__get_decision",
+  /** Darla por resuelta cuando su respuesta llegó por otro lado: deja de
+      esperarle en el móvil. No toca terminales, va con montar trabajo. */
+  resolver: "mcp__adeorq__close_decision",
+  /** Enseñarle a Munir una imagen, una página o una web del PC en el móvil.
+      No toca terminales, va con montar trabajo. */
+  compartir: "mcp__adeorq__compartir_en_el_movil",
   /** Cómo se cambia el aspecto de Adeorq sin perderlo al actualizar: la guía
       de los mods y los que hay. Solo lee archivos. */
   mods: "mcp__adeorq__get_mods",
@@ -104,7 +110,7 @@ const LECTURA = [
   MANOS.decision,
   MANOS.mods,
 ];
-const MONTAR = [MANOS.abrir, MANOS.enlazar, MANOS.decidir];
+const MONTAR = [MANOS.abrir, MANOS.enlazar, MANOS.decidir, MANOS.resolver, MANOS.compartir];
 /** Lo que puede pisar el trabajo de otro: escribirle, mandarle teclas o cerrarlo. */
 const PISAR = [MANOS.teclear, MANOS.teclas, MANOS.cerrar, MANOS.compactar];
 

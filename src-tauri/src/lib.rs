@@ -25,6 +25,9 @@ mod media;
 mod navegador;
 mod pedir_abrir;
 pub mod pedir_secreto;
+mod claves_caducan;
+// El escudo: la ventana que pide tu verificación y el vigilante (`docs/contexto/escudo.md`).
+pub mod escudo;
 
 /// `adeorq preguntar`: una llamada al MCP de una sola vez (`mcp/preguntar.rs`).
 pub fn preguntar_principal(args: &[String]) -> i32 {
@@ -48,6 +51,8 @@ mod memoria_casa;
 mod vectores;
 mod conserje;
 mod decisiones;
+// Lo que un agente le enseña a Munir en el móvil (`compartir_en_el_movil`).
+mod compartidos;
 mod programados;
 mod historia;
 mod movil;
@@ -489,6 +494,11 @@ pub fn run() {
             // El reloj de los encargos programados («cada lunes a las 9»). En
             // la ventana de desarrollo no arranca: ver `programados::arrancar`.
             programados::arrancar(app.handle().clone());
+            // Si alguna clave de agente caduca o dejó de valer, una vez al día
+            // (`claves_caducan.rs`). En la ventana de desarrollo no arranca.
+            claves_caducan::arrancar(app.handle().clone());
+            // El vigilante del escudo, si está instalado (`escudo.rs`).
+            escudo::arrancar(app.handle().clone());
 
             // El significado de las notas de memoria, calculado por detrás.
             //
@@ -812,6 +822,15 @@ pub fn run() {
             pedir_secreto::secreto_permitir,
             pedir_secreto::secretos_de_agente,
             pedir_secreto::secreto_de_agente_olvidar,
+            escudo::escudo_firmar,
+            escudo::escudo_comprobar,
+            escudo::escudo_rechazar,
+            escudo::escudo_estado,
+            escudo::escudo_preparar,
+            escudo::escudo_crear_llave,
+            escudo::escudo_cambios,
+            escudo::escudo_deshacer,
+            escudo::escudo_lo_cambie_yo,
             autostart::autostart_get,
             autostart::autostart_set,
             packaged::esta_empaquetada,

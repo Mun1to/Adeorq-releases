@@ -25,6 +25,9 @@ async (page) => {
     await page.evaluate(() => ir({ vista: "nueva" }));
     await page.waitForSelector("#n-abrir");
     await page.waitForTimeout(300);
+    // La pantalla entra deslizándose 14 px (`@keyframes entra`), y sin ventana
+    // esa animación a veces sigue a los 300 ms: el ancho se medía a mitad (391).
+    await page.evaluate(() => Promise.all((document.querySelector(".vista")?.getAnimations() ?? []).map((a) => a.finished.catch(() => {}))));
   };
   const leer = () => page.evaluate(() => ({
     proyectos: [...document.querySelectorAll("#n-proyectos [data-carpeta]")].map((b) => `${b.querySelector("b").textContent}${b.getAttribute("aria-checked") === "true" ? "*" : ""}`),

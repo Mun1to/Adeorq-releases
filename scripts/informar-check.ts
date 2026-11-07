@@ -126,7 +126,9 @@ const direcciones = (readFileSync("src/lib/informar.ts", "utf8").match(/munitode
 ok("la dirección de correo se escribe una vez en informar.ts", direcciones === 1, String(direcciones));
 
 // ─── 3. El móvil da la misma dirección ──────────────────────────────────────
-const pagina = readFileSync("src-tauri/src/movil.html", "utf8");
+// Con saltos de Linux: un clon o un worktree nuevo en Windows la saca con `\r\n`
+// (core.autocrlf), y las marcas de abajo se buscan con `\n`.
+const pagina = readFileSync("src-tauri/src/movil.html", "utf8").replace(/\r\n/g, "\n");
 const trozo = pagina.split("// informar:inicio\n")[1]?.split("// informar:fin")[0] ?? "";
 ok("la página del móvil lleva su función marcada", trozo.includes("function direccionDelInforme"));
 // El diccionario inglés de la página, ejecutado tal cual.

@@ -247,6 +247,64 @@ try {
     medida(`${etiqueta}.adeorq_donde`, modo === "empaquetada" ? "y es el alias de WindowsApps" : "y es la copia del motor de terminales (lo de siempre)", buena, true, donde);
     await foto(v, `${etiqueta}-terminal.png`);
   });
+
+  // Lo que ve primero quien revisa la Tienda (politica 11.16): la linea de IA, su boton y el correo con la app
+  // recien abierta y sin escribir nada. `informar-de-verdad.mjs` lo mide con el paquete FINGIDO; esto, dentro del
+  // paquete instalado de verdad.
+  const LINEA = "Adeo es una IA y puede equivocarse. Informar de un problema o por correo";
+  const verLinea = (sel) =>
+    v.js(`(() => {
+      const e = document.querySelector(${JSON.stringify(sel)});
+      if (!e) return null;
+      const r = e.getBoundingClientRect();
+      const c = getComputedStyle(e);
+      return { texto: e.textContent.replace(/\\s+/g, " ").trim(), px: parseFloat(c.fontSize),
+        ve: c.visibility === "visible" && c.display !== "none" && Number(c.opacity) > 0.9 && r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= innerHeight };
+    })()`);
+  await prueba(`${etiqueta}.ia`, async () => {
+    await v.js(`document.querySelector('[data-tab="panel"]')?.click(); "ok"`);
+    const inicio = await hasta(() => verLinea(".inicio-caja + .inf-aviso"), 10_000);
+    medida(`${etiqueta}.ia_panel`, "la primera pantalla lleva la linea de IA, el boton y el correo, a la vista", Boolean(inicio?.ve && inicio.texto === LINEA && inicio.px >= 12), true, JSON.stringify(inicio).slice(0, 140));
+    await foto(v, `${etiqueta}-panel.png`);
+    await v.js(`document.querySelector('[data-tab="chat"]')?.click(); "ok"`);
+    await hasta(async () => {
+      await v.js(`document.querySelector(".cj-nueva")?.click(); "ok"`);
+      await dormir(400);
+      return v.js(`!!document.querySelector(".chat-caja.cj-caja")`);
+    }, 10_000);
+    const chat = await hasta(() => verLinea(".chat-caja-zona .inf-aviso"), 8000);
+    medida(`${etiqueta}.ia_chat`, "el Chat vacio lleva la misma linea", Boolean(chat?.ve && chat.texto === LINEA), true, JSON.stringify(chat).slice(0, 140));
+    await foto(v, `${etiqueta}-chat.png`);
+  });
+
+  // Discord publica en tu perfil lo que enseña (politica 10.5.2): en el paquete nace APAGADO. Fuera, lo de siempre.
+  await prueba(`${etiqueta}.discord`, async () => {
+    await v.js(`document.querySelector('.topbar .tab[data-tab="ajustes"]')?.click(); "ok"`);
+    await dormir(1200);
+    await v.js(`[...document.querySelectorAll(".set-tab")].find((b) => b.querySelector(".set-tab-nom")?.textContent.trim() === "Discord")?.click(); "ok"`);
+    const sw = await hasta(
+      () => v.js(`(() => { const l = [...document.querySelectorAll(".setting-switch")].find((x) => x.textContent.includes("Mostrar Adeorq en mi Discord")); return l ? { on: l.querySelector("input").checked } : null; })()`),
+      8000,
+    );
+    medida(`${etiqueta}.discord`, "«Mostrar Adeorq en mi Discord» nace encendido", sw ? sw.on : "sin el interruptor", modo === "empaquetada" ? false : null);
+    await foto(v, `${etiqueta}-discord.png`);
+  });
+
+  // La brujula de la Agenda pide un inicio de sesion que el revisor no puede usar: en el paquete no existe.
+  await prueba(`${etiqueta}.agenda`, async () => {
+    await v.js(`document.querySelector('[data-tab="perfil"]')?.click(); "ok"`);
+    await hasta(() => v.js(`!!document.querySelector('[data-seccion="agenda"]')`), 8000);
+    await v.js(`document.querySelector('[data-seccion="agenda"]')?.click(); "ok"`);
+    await hasta(() => v.js(`!!document.querySelector(".agenda .ag-cifras")`), 10_000);
+    await dormir(1500);
+    const cifras = await v.js(`[...document.querySelectorAll(".ag-cifra .ag-q")].map((q) => q.firstChild?.textContent.trim())`);
+    medida(`${etiqueta}.agenda_ideas`, "la Agenda trae la cifra «ideas vivas» (la de la brujula)", cifras.includes("ideas vivas"), modo === "normal", JSON.stringify(cifras));
+    if (modo === "empaquetada") {
+      const pantalla = await v.js(`document.querySelector(".agenda")?.textContent ?? ""`);
+      medida(`${etiqueta}.agenda_sin_brujula`, "y no sale ni «brújula» ni munito.dev", /brújula|brujula|munito\.dev/i.test(pantalla), false);
+    }
+    await foto(v, `${etiqueta}-agenda.png`);
+  });
 } catch (e) {
   medidas.push({ id: `${etiqueta}.guion`, que: "el guion fallo", obtenido: String(e?.message ?? e), esperado: "", veredicto: "ERROR", nota: "" });
   console.log(`ERROR    ${etiqueta}: ${e?.message ?? e}`);

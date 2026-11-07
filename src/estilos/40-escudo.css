@@ -1,0 +1,209 @@
+/* ── El escudo ────────────────────────────────────────────────────────────────
+   La ventana que sale cuando un agente quiere cambiar un archivo importante (la
+   roja) o hacer algo posiblemente grave (la del PIN), y Ajustes › Escudo. El
+   marco lleva el color de lo que pide, con un poco de resplandor: rojo para lo
+   que necesita tus tres pasos, ámbar para lo que solo necesita el PIN. */
+
+.escudo-velo {
+  /* Encima de cualquier otro diálogo: una verificación que se abre detrás de
+     otra ventana es una que no se puede contestar. */
+  z-index: 120;
+}
+
+.escudo-modal {
+  width: min(560px, calc(100vw - 60px));
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+  border: 2px solid var(--mal);
+  box-shadow:
+    var(--glass-edge),
+    0 0 22px color-mix(in srgb, var(--mal) 35%, transparent),
+    var(--sombra-3);
+}
+
+.escudo-modal[data-tipo="pin"] {
+  border-color: var(--warn);
+  box-shadow:
+    var(--glass-edge),
+    0 0 22px color-mix(in srgb, var(--warn) 30%, transparent),
+    var(--sombra-3);
+}
+
+.escudo-quien {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mal);
+}
+
+.escudo-modal[data-tipo="pin"] .escudo-quien {
+  color: var(--warn);
+}
+
+.escudo-titulo {
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.escudo-modal .modal-text {
+  font-size: 14px;
+}
+
+.escudo-que code {
+  font-family: var(--mono, ui-monospace, "Cascadia Mono", monospace);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.escudo-error {
+  color: var(--mal);
+  font-weight: 600;
+}
+
+/* Lo que cambia, línea a línea: lo que se va en rojo y lo que entra en verde. */
+.escudo-diff {
+  max-height: 34vh;
+  overflow: auto;
+  margin: 4px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-caja);
+  background: var(--panel-solid);
+  color: var(--text);
+  font-family: var(--mono, ui-monospace, "Cascadia Mono", monospace);
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.escudo-diff [data-signo="mas"] {
+  color: var(--ok);
+}
+
+.escudo-diff [data-signo="menos"] {
+  color: var(--mal);
+}
+
+.escudo-sigue {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.escudo-vale {
+  color: var(--muted);
+}
+
+.escudo-vale b {
+  color: var(--text);
+}
+
+.escudo-paso {
+  display: block;
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.escudo-campo {
+  display: block;
+  margin-top: 6px;
+}
+
+.escudo-campo .secreto-caja {
+  margin-bottom: 4px;
+}
+
+/* El sí de la roja, en el rojo de la casa: dice que lo que apruebas es serio. */
+.escudo-modal[data-tipo="rojo"] .escudo-si {
+  background: var(--mal);
+  color: var(--oscuro);
+}
+
+/* ── Ajustes › Escudo ─────────────────────────────────────────────────────── */
+
+.escudo-fila .setting-input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  max-width: 340px;
+}
+
+.escudo-fila > span {
+  min-width: 96px;
+}
+
+.escudo-acciones {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 12px;
+}
+
+.escudo-pie {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--mono, ui-monospace, "Cascadia Mono", monospace);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.escudo-cambios {
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
+}
+
+.escudo-cambio {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.escudo-cambio-que {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.escudo-cambio-que b {
+  font-size: 14px;
+}
+
+.escudo-cambio-donde {
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.escudo-cambio[data-rojo] .escudo-cambio-que b,
+.escudo-cambio[data-rojo] .escudo-cambio-que span:last-child {
+  color: var(--mal);
+}
+
+.escudo-cambio-botones {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+/* A lo ancho, Ajustes pone las filas de una tarjeta de dos en dos
+   (`07-ajustes.css`, «hay un pedazo de espacio vacío aquí»). Las del formulario
+   y las de la lista van dentro de su caja: sin esto, cada fila medía 1.500 px y
+   el campo o el «Deshacer» se iban a la otra punta de su nombre. */
+@container (min-width: 1000px) {
+  .settings .set-marco:not([data-ancha]) .panel-card > :is(.escudo-formulario, .escudo-cambios) {
+    display: contents;
+  }
+
+  .settings .set-marco:not([data-ancha]) .escudo-formulario > .escudo-acciones {
+    grid-column: 1 / -1;
+  }
+}

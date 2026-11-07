@@ -5,7 +5,7 @@
 # alguna (en VoCript, olvidar una costo un rechazo de la Tienda). Capitulo: `docs/contexto/tiendas.md`.
 #
 #   .\scripts\tiendas\empaquetar.ps1 -Salida C:\temp\adeorq-msix
-#   .\scripts\tiendas\empaquetar.ps1 -Salida ... -Nombre X -Editor "CN=Y" -VersionTienda 1.9.242.0
+#   .\scripts\tiendas\empaquetar.ps1 -Salida ... -Nombre X -Editor "CN=Y"
 #   .\scripts\tiendas\empaquetar.ps1 -Salida ... -Pfx p.pfx -ClavePfx clave   # firma una prueba
 #
 # SIN firmar es lo que se sube a Partner Center (la Tienda firma ella). Firmado con un certificado
@@ -15,8 +15,9 @@
 #
 # NOMBRE Y EDITOR SON MARCADORES: 'Adeorq' no esta reservado en Partner Center (E24), y el editor es
 # el de la cuenta de VoCript. Cuando se reserve, se pasan los de verdad. LA VERSION DE LA TIENDA
-# TAMBIEN: la Tienda no admite un numero que empiece por 0 (la 0.9.242 no se puede subir) y
-# `{mayor+1}.{menor}.{parche}.0` es una PROPUESTA; la decision es de Munir y no se deshace.
+# sale sola de la de la app: la Tienda no admite un numero que empiece por 0, y la regla que decidio
+# Munir es `{mayor+1}.{menor}.{parche}.0` (la 0.9.244 es la 1.9.244.0). No se deshace: la Tienda
+# nunca acepta un numero mas bajo que uno ya subido.
 
 [CmdletBinding()]
 param(
@@ -48,9 +49,11 @@ $tauri = Get-Content $conf -Raw | ConvertFrom-Json
 $versionApp = $tauri.version
 if ($versionApp -notmatch '^(\d+)\.(\d+)\.(\d+)$') { Falla "La version de la app no es mayor.menor.parche: $versionApp" }
 $propuesta = '{0}.{1}.{2}.0' -f ([int]$Matches[1] + 1), $Matches[2], $Matches[3]
+# La regla la decidio Munir el 2026-11-06 (tiendas.md 1.5): {mayor+1}.{menor}.{parche}.0, y la primera es la 1.9.244.0.
 if (-not $VersionTienda) {
     $VersionTienda = $propuesta
-    Write-Host "  AVISO: version de la tienda $VersionTienda es la PROPUESTA de tiendas.md (1.5), no una decision." -ForegroundColor Yellow
+} elseif ($VersionTienda -ne $propuesta) {
+    Write-Host "  AVISO: $VersionTienda no sigue la regla de la tienda, que para la app $versionApp da $propuesta (tiendas.md 1.5)." -ForegroundColor Yellow
 }
 if ($VersionTienda -notmatch '^[1-9]\d{0,4}\.\d{1,5}\.\d{1,5}\.0$') {
     Falla "La version de la tienda ($VersionTienda) no vale: cuatro numeros, el primero no puede ser 0 y el ultimo tiene que ser 0."

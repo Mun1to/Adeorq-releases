@@ -26,6 +26,10 @@ fn main() {
     if args.len() > 1 && args[1] == "secreto" {
         std::process::exit(adeorq_lib::pedir_secreto::principal(&args[2..]));
     }
+    // `adeorq escudo pedir '<json>'`: una petición al escudo, como la del gancho.
+    if args.len() > 1 && args[1] == "escudo" {
+        std::process::exit(adeorq_lib::escudo::principal(&args[2..]));
+    }
     // `adeorq preguntar <herramienta> '<json>'`: una llamada al MCP de una sola vez, la
     // única vía de un bot que vive en la nube. Ver `mcp/preguntar.rs`.
     if args.len() > 1 && args[1] == "preguntar" {

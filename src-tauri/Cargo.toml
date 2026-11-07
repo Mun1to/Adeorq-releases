@@ -1,6 +1,6 @@
 [package]
 name = "adeorq"
-version = "0.9.244"
+version = "0.9.245"
 description = "El ADE de la casa: panel de vibe coding con terminales reales"
 authors = ["Munir Torres Athayde"]
 # PolyForm Shield 1.0.0 no está en la lista SPDX, así que se apunta al archivo.
@@ -62,6 +62,19 @@ hkdf = "0.12"
 aes-gcm = "0.10"
 auto-launch = "0.6.0"
 tauri-plugin-dialog = "2"
+# La contraseña y la respuesta del escudo (`escudo.rs`) se guardan como huella
+# argon2id, nunca el texto. RustCrypto, MIT o Apache-2.0, sin C detrás. Sin su
+# `rand`: la sal sale de `getrandom`, que ya estaba.
+argon2 = { version = "0.5", default-features = false, features = ["alloc", "password-hash"] }
+
+# argon2 sin optimizar tarda segundos en cada huella, y la ventana del escudo
+# comprueba la contraseña mientras Munir espera: en desarrollo y en los tests
+# también va optimizado. No cambia nada en la release.
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3
 
 # Lo de Windows, solo en Windows.
 #
@@ -111,6 +124,10 @@ windows-sys = { version = "0.61.2", features = [
     # GetCurrentPackageFullName: si esta copia corre desde el paquete de la
     # Microsoft Store (`packaged.rs`).
     "Win32_Storage_Packaging_Appx",
+    # FindWindowW y SetForegroundWindow: el cuadro del PIN de Windows Hello sale a
+    # veces DETRÁS de una app de escritorio, y el escudo lo trae al frente
+    # (`escudo.rs`, como hace KeePassWinHello).
+    "Win32_UI_WindowsAndMessaging",
 ] }
 # WinRT media transport controls (what is playing, next/previous) plus Core
 # Audio for per-app volume: no Spotify account, no OAuth, no Premium needed.
@@ -129,6 +146,13 @@ windows = { version = "0.62", features = [
     # StartupTask: el arranque con Windows de la app del paquete, que no puede
     # escribir en `HKCU\...\Run` (`autostart.rs`).
     "ApplicationModel",
+    # La llave del escudo en Windows Hello (`escudo.rs`): KeyCredentialManager
+    # crea la llave en el TPM y firma con el PIN; CryptographicBuffer y Core
+    # pasan bytes y comprueban la firma con la llave pública.
+    "Security_Credentials",
+    "Security_Cryptography",
+    "Security_Cryptography_Core",
+    "Storage_Streams",
 ] }
 # Lo que Tauri no expone del WebView2 del navegador (`navegador.rs`): la
 # dirección que cambia sin recargar, atrás y adelante, el icono, las teclas y la

@@ -98,6 +98,25 @@ pub struct Decision {
     /// contestado aquí (milisegundos): lo habló con el agente.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hablada: Option<u64>,
+    /// La dio por resuelta el agente: la respuesta le llegó por otro lado, o
+    /// la sustituye otra que pregunta lo mismo mejor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resuelta: Option<Resuelta>,
+}
+
+/// Munir, 2026-11-07, con tres «te esperan» en el móvil: «por qué hay
+/// decisiones waiting for me en móvil que ya he decidido». Las seis del escudo
+/// las había contestado pegándolas en el chat de otra sesión, que se las pasó a
+/// la terminal que preguntaba, y la misma pregunta seguía abierta dos veces: la
+/// primera y su versión reescrita. Ninguna de las dos vías la cerraba.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct Resuelta {
+    pub cuando: u64,
+    /// Cómo se resolvió, dicho por el agente («me lo pegó la Suprema: A1, B1…»).
+    pub como: String,
+    /// La decisión que la sustituye, si es eso.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sustituta: Option<String>,
 }
 
 /// En qué punto está una decisión, que es lo que se pinta.
@@ -120,6 +139,9 @@ pub enum Vigencia {
     Hablada,
     Contestada,
     Descartada,
+    /// El agente la dio por resuelta: le llegó la respuesta por otro lado, o la
+    /// sustituye otra.
+    Resuelta,
 }
 
 /// Una decisión con su vigencia al lado: lo que viaja a la app y al móvil.
@@ -140,6 +162,9 @@ pub fn vigencia(d: &Decision, arranque: u64, abiertos: &[u32]) -> Vigencia {
     if d.descartada.is_some() {
         return Vigencia::Descartada;
     }
+    if d.resuelta.is_some() {
+        return Vigencia::Resuelta;
+    }
     if d.hablada.is_some() {
         return Vigencia::Hablada;
     }
@@ -152,7 +177,7 @@ pub fn vigencia(d: &Decision, arranque: u64, abiertos: &[u32]) -> Vigencia {
 
 /// Lo último que le pasó, para saber cuánto lleva sin esperar a nadie.
 fn ultimo_movimiento(d: &Decision) -> u64 {
-    [d.respuesta.as_ref().map(|r| r.cuando), d.descartada, d.hablada]
+    [d.respuesta.as_ref().map(|r| r.cuando), d.descartada, d.hablada, d.resuelta.as_ref().map(|r| r.cuando)]
         .into_iter()
         .flatten()
         .fold(d.creada, u64::max)
@@ -163,9 +188,14 @@ pub fn con_vigencia(d: Decision, arranque: u64, abiertos: &[u32]) -> ConVigencia
     ConVigencia { decision: d, vigencia }
 }
 
-/// Ya no hay nada que hacer con ella: contestada o descartada.
+/// Ya no hay nada que hacer con ella: contestada, descartada o resuelta.
 fn cerrada(d: &Decision) -> bool {
-    d.respuesta.is_some() || d.descartada.is_some()
+    d.respuesta.is_some() || d.descartada.is_some() || d.resuelta.is_some()
+}
+
+/// Cuándo dejó de esperar: lo que viaja como `cerrada` al móvil y a la app.
+pub fn cuando_se_cerro(d: &Decision) -> Option<u64> {
+    d.respuesta.as_ref().map(|r| r.cuando).or(d.descartada).or(d.resuelta.as_ref().map(|r| r.cuando)).or(d.hablada)
 }
 
 /// Lo que pide el agente, antes de tener id ni fecha.
@@ -242,6 +272,7 @@ pub fn validar(p: &Pedido, ahora: u64, arranque: u64) -> Result<Decision, String
         respuesta: None,
         descartada: None,
         hablada: None,
+        resuelta: None,
     })
 }
 
@@ -344,6 +375,9 @@ pub fn responder(dir: &Path, id: &str, elecciones: BTreeMap<String, Eleccion>, d
     if d.descartada.is_some() {
         return Err("Esa decisión está descartada: al agente ya se le dijo que no esperase respuesta.".into());
     }
+    if let Some(r) = &d.resuelta {
+        return Err(ya_resuelta(r));
+    }
     let mut limpias = BTreeMap::new();
     for q in &d.preguntas {
         let e = elecciones.get(&q.id).cloned().unwrap_or_default();
@@ -371,10 +405,50 @@ pub fn descartar(dir: &Path, id: &str, ahora: u64) -> Result<Decision, String> {
     if d.respuesta.is_some() {
         return Err("Esa decisión ya está contestada.".into());
     }
-    if d.descartada.is_none() {
+    // Resuelta por el agente ya no espera a nadie: descartarla no cambia nada.
+    if d.descartada.is_none() && d.resuelta.is_none() {
         d.descartada = Some(ahora);
         escribir(dir, &d)?;
     }
+    Ok(d)
+}
+
+fn ya_resuelta(r: &Resuelta) -> String {
+    match &r.sustituta {
+        Some(id) => format!("Esa decisión ya no se contesta: la sustituye la {id}."),
+        None => format!("Esa decisión ya está resuelta por otra vía: {}", r.como),
+    }
+}
+
+/// El agente la da por resuelta: la respuesta le llegó por otro lado (Munir se
+/// la dijo en su terminal, otra sesión se la pegó). Deja de esperarle en el
+/// móvil y en la app. Una contestada no se toca, que esa respuesta es la buena;
+/// una que ya no espera (descartada o resuelta antes) se queda como estaba.
+pub fn resolver(dir: &Path, id: &str, como: &str, ahora: u64) -> Result<Decision, String> {
+    cerrar_por_el_agente(dir, id, como, None, ahora)
+}
+
+/// La `vieja` deja de esperar porque la `nueva` pregunta lo mismo, mejor. Lo
+/// pide el agente al preguntar otra vez (`replaces` en `ask_decision`).
+pub fn sustituir(dir: &Path, vieja: &str, nueva: &Decision, ahora: u64) -> Result<Decision, String> {
+    let como = format!("La sustituye «{}» ({}).", nueva.titulo, nueva.id);
+    cerrar_por_el_agente(dir, vieja, &como, Some(nueva.id.clone()), ahora)
+}
+
+fn cerrar_por_el_agente(dir: &Path, id: &str, como: &str, sustituta: Option<String>, ahora: u64) -> Result<Decision, String> {
+    let mut d = leer(dir, id).ok_or_else(|| format!("No hay ninguna decisión {id}."))?;
+    if d.respuesta.is_some() {
+        return Err(format!("La decisión {id} ya está contestada desde «Decisiones»: lee su respuesta con get_decision."));
+    }
+    if cerrada(&d) {
+        return Ok(d);
+    }
+    let como = limpio(como, TOPE_TEXTO);
+    if como.is_empty() {
+        return Err("Di en una frase cómo se resolvió (how): qué contestó Munir y por dónde.".into());
+    }
+    d.resuelta = Some(Resuelta { cuando: ahora, como, sustituta });
+    escribir(dir, &d)?;
     Ok(d)
 }
 
@@ -407,6 +481,12 @@ pub fn como_texto(d: &Decision) -> String {
                 "Munir ha descartado la decisión «{}» ({}) sin contestarla: no esperes respuesta. Si sigue haciendo falta, pregúntaselo de nuevo.",
                 d.titulo, d.id
             );
+        }
+        if let Some(r) = &d.resuelta {
+            return match &r.sustituta {
+                Some(id) => format!("La decisión «{}» ({}) ya no espera respuesta: la sustituye la {id}.", d.titulo, d.id),
+                None => format!("La decisión «{}» ({}) está resuelta por otra vía: {}", d.titulo, d.id, r.como),
+            };
         }
         if d.hablada.is_some() {
             return format!(
@@ -739,6 +819,53 @@ mod tests {
         // Un archivo de antes de que existiera «hablada» se sigue leyendo.
         let viejo = serde_json::json!({ "id": "d1", "titulo": "Vieja", "creada": 1, "preguntas": [] });
         assert_eq!(serde_json::from_value::<Decision>(viejo).unwrap().hablada, None);
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// Lo del 2026-11-07: «por qué hay decisiones waiting for me en móvil que
+    /// ya he decidido». La del escudo y su versión reescrita seguían vivas
+    /// aunque las había contestado por el chat de otra sesión.
+    #[test]
+    fn la_que_se_resuelve_por_otra_via_o_se_sustituye_deja_de_esperar() {
+        let d = dir();
+        let primera = crear(&d, validar(&pedido(), 1000, 77).unwrap()).unwrap();
+        let mut reescrita = pedido();
+        reescrita.titulo = "Diseño de la guía (preguntas reescritas)".into();
+        let segunda = crear(&d, validar(&reescrita, 2000, 77).unwrap()).unwrap();
+        assert_eq!(vigencia(&primera, 77, &[3]), Vigencia::Viva);
+
+        // La reescrita retira la de antes, y la de antes dice cuál la sustituye.
+        let vieja = sustituir(&d, &primera.id, &segunda, 2000).unwrap();
+        assert_eq!(vigencia(&vieja, 77, &[3]), Vigencia::Resuelta);
+        assert_eq!(vieja.resuelta.as_ref().unwrap().sustituta.as_deref(), Some(segunda.id.as_str()));
+        assert!(como_texto(&vieja).contains(&format!("la sustituye la {}", segunda.id)), "{}", como_texto(&vieja));
+
+        // La respuesta llega por el chat: el agente la cierra con sus palabras.
+        assert!(resolver(&d, &segunda.id, "   ", 3000).unwrap_err().contains("cómo se resolvió"));
+        let hecha = resolver(&d, &segunda.id, "Me la pegó la Suprema: A1, B1.", 3000).unwrap();
+        assert_eq!(vigencia(&hecha, 77, &[3]), Vigencia::Resuelta);
+        assert!(como_texto(&hecha).contains("resuelta por otra vía: Me la pegó la Suprema: A1, B1."), "{}", como_texto(&hecha));
+        assert_eq!(cuando_se_cerro(&hecha), Some(3000));
+        assert_eq!(resolver(&d, &segunda.id, "otra cosa", 4000).unwrap().resuelta.unwrap().cuando, 3000, "dos veces no la cambia");
+
+        // Ya no se contesta, ni se marca hablada, y descartarla no la cambia.
+        let mut el = BTreeMap::new();
+        el.insert("A".to_string(), Eleccion { opcion: Some(1), texto: None });
+        el.insert("B".to_string(), Eleccion { opcion: Some(1), texto: None });
+        assert!(responder(&d, &segunda.id, el.clone(), "x", 5000).unwrap_err().contains("resuelta por otra vía"));
+        assert!(responder(&d, &primera.id, el.clone(), "x", 5000).unwrap_err().contains("la sustituye"));
+        assert!(marcar_habladas(&d, 3, 77, 6000).is_empty());
+        assert_eq!(descartar(&d, &segunda.id, 7000).unwrap().descartada, None);
+
+        // Una contestada no la cierra el agente: esa respuesta es la buena.
+        let tercera = crear(&d, validar(&pedido(), 8000, 77).unwrap()).unwrap();
+        responder(&d, &tercera.id, el, "Android · Chrome", 8500).unwrap();
+        assert!(resolver(&d, &tercera.id, "ya está", 9000).unwrap_err().contains("ya está contestada"));
+        assert!(resolver(&d, "d999", "x", 9000).unwrap_err().contains("No hay ninguna decisión d999"));
+        // Caducan como las demás: a la semana de cuando se resolvieron.
+        assert_eq!(podar(&d, 77, &[3], 2000 + 7 * 86_400_000), 0, "a los siete días justos siguen");
+        assert_eq!(podar(&d, 77, &[3], 2001 + 7 * 86_400_000), 1, "pasada la semana se va la primera");
+        assert!(leer(&d, &primera.id).is_none() && leer(&d, &segunda.id).is_some());
         let _ = std::fs::remove_dir_all(&d);
     }
 }

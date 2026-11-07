@@ -3,6 +3,7 @@ import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { getVersion } from "@tauri-apps/api/app";
 import { useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { buscarActualizacion, enLaTienda } from "../lib/empaquetada";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { FAMILIAS_TEMA, THEMES, useT, type Lang, type ThemeId } from "../lib/i18n";
@@ -70,6 +71,7 @@ import AjustesBotsConexion from "./AjustesBotsConexion";
 import AjustesClaudeConexion from "./AjustesClaudeConexion";
 import AjustesMcp from "./AjustesMcp";
 import AjustesClavesAgente from "./AjustesClavesAgente";
+import AjustesEscudo, { type EstadoEscudo } from "./AjustesEscudo";
 import AjustesMods from "./AjustesMods";
 import AjustesPartes from "./AjustesPartes";
 import { pestanasEncendidas, type Parte, type TerminalesPorVista } from "../lib/partes";
@@ -78,7 +80,7 @@ import TerminalesAparte from "./TerminalesAparte";
 import AjusteBuscador from "./AjusteBuscador";
 import AjusteCabeceraTerminal from "./AjusteCabeceraTerminal";
 import AjusteCompactar from "./AjusteCompactar";
-import { CheckIcon, ChevronIcon, CommandIcon, SearchIcon, TerminalIcon } from "./Icons";
+import { CheckIcon, ChevronIcon, CommandIcon, RobotIcon, SearchIcon, TerminalIcon } from "./Icons";
 import type { Atajos } from "../lib/atajos";
 
 /** La documentación pública. Vive en adeorq.com, el sitio del proyecto desde
@@ -182,6 +184,8 @@ const SECCIONES = [
   { id: "discord", label: "Discord" },
   { id: "movil", label: "Móvil" },
   { id: "bots", label: "Bots" },
+  /* Solo donde se instaló el escudo (`conEscudo`, decisión F1). */
+  { id: "escudo", label: "Escudo" },
   { id: "mods", label: "Mods" },
   { id: "ayuda", label: "Ayuda" },
   { id: "adeorq", label: "Adeorq" },
@@ -213,6 +217,7 @@ const CUANTOS: Record<string, number> = {
   discord: 1,
   movil: 1,
   bots: 1,
+  escudo: 3,
   mods: 1,
   ayuda: 2,
   adeorq: 3,
@@ -256,12 +261,14 @@ const PERMISSION_MODE_HINT: Record<PermissionMode, string> = {
  * otro icono de al lado, y eso es justo lo que los hacía costar de reconocer
  * (Munir, 2026-07-30). Ahora comparten rejilla y grosor con el resto.
  *
- * Y dos no se dibujan aquí porque ya existen: la terminal y la tecla de atajo.
- * Un segundo dibujo de lo mismo es un dibujo que un día se queda distinto.
+ * Y tres no se dibujan aquí porque ya existen: la terminal, la tecla de atajo y
+ * el robot de los agentes, que es el de «Bots». Un segundo dibujo de lo mismo es
+ * un dibujo que un día se queda distinto.
  */
 function IconoSeccion({ id }: { id: SeccionId }) {
   if (id === "terminales") return <TerminalIcon size={17} />;
   if (id === "atajos") return <CommandIcon size={17} />;
+  if (id === "bots") return <RobotIcon size={17} />;
 
   const P = {
     fill: "none",
@@ -290,6 +297,13 @@ function IconoSeccion({ id }: { id: SeccionId }) {
           <circle cx="12" cy="12" r="8.8" {...P} />
           <circle cx="12" cy="12" r="3.6" {...P} />
           <path d="m5.8 5.8 3.7 3.7M18.2 5.8l-3.7 3.7M5.8 18.2l3.7-3.7M18.2 18.2l-3.7-3.7" {...P} />
+        </>
+      )}
+      {/* El escudo, con la marca de «a salvo» dentro. */}
+      {id === "escudo" && (
+        <>
+          <path d="M12 3.2 4.8 6v5.4c0 4.4 3 8.1 7.2 9.4 4.2-1.3 7.2-5 7.2-9.4V6Z" {...P} />
+          <path d="m8.9 12.1 2.2 2.2 4-4.2" {...P} />
         </>
       )}
       {/* La campana, con su badajo: sin él es una seta. */}
@@ -474,6 +488,14 @@ export default function SettingsView({
     return SECCIONES.some((s) => s.id === guardada) ? (guardada as SeccionId) : "aspecto";
   });
 
+  /** Si este equipo tiene el escudo instalado: sin él, su grupo no sale. */
+  const [conEscudo, setConEscudo] = useState(false);
+  useEffect(() => {
+    invoke<EstadoEscudo>("escudo_estado")
+      .then((e) => setConEscudo(e.instalado))
+      .catch(() => {});
+  }, []);
+
   /** Si la lista de bloques del grupo abierto está recogida. Volver a pulsar el
    *  grupo que ya estás viendo la esconde, que es lo que hace cualquier
    *  desplegable y lo que faltaba aquí (Munir, 2026-08-10: «cuando le das no se
@@ -635,7 +657,7 @@ export default function SettingsView({
             rejilla, y como una tenia dos botones y otra veinticuatro
             temas, la rejilla quedaba llena de huecos (Munir, 2026-07-30). */}
         <nav className="set-nav">
-          {SECCIONES.map((s) => {
+          {SECCIONES.filter((s) => s.id !== "escudo" || conEscudo).map((s) => {
             const abierto = seccion === s.id;
             // Abierto manda el dato real; cerrado, la cuenta aprendida.
             const despliega = abierto ? bloques.length > 1 : (CUANTOS[s.id] ?? 0) > 1;
@@ -1666,6 +1688,7 @@ export default function SettingsView({
           {seccion === "movil" && <AjustesMovil />}
           {seccion === "bots" && <AjustesBotsConexion />}
           {seccion === "bots" && <AjustesBots />}
+          {seccion === "escudo" && <AjustesEscudo />}
           {seccion === "mods" && <AjustesMods onAlAgente={onAlAgente} />}
           {/* La guía dejó de ser una pestaña de la barra de arriba. Ocupaba
               sitio permanente para algo que se mira el primer día y casi nunca

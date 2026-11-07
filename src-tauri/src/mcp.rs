@@ -101,6 +101,39 @@ fn es_suya(madre: Option<&Madre>, mi_panel: Option<u32>, mi_sesion: Option<&str>
     })
 }
 
+/// Quién puede dar por resuelta una decisión (`close_decision`) o retirarla con
+/// otra (`replaces`): la terminal que la pidió, o la que abrió esa terminal (la
+/// Sesión Suprema que le pasó la respuesta). Una sin terminal detrás (sin panel,
+/// o de otro arranque, donde ese número ya es otra) la cierra cualquiera de
+/// casa; desde fuera de Adeorq, solo la de una terminal suya.
+fn puede_cerrar_decision(
+    id: &str,
+    panel_vivo: Option<u32>,
+    madre: Option<&Madre>,
+    mi_panel: Option<u32>,
+    mi_sesion: Option<&str>,
+    conexion: u64,
+    de_fuera: bool,
+) -> Result<(), String> {
+    match panel_vivo {
+        Some(p) if mi_panel == Some(p) || es_suya(madre, mi_panel, mi_sesion, conexion) => Ok(()),
+        Some(p) => Err(format!(
+            "La decisión {id} la pidió el panel {p}: solo esa terminal, o la que la abrió, la da por resuelta. Pásale la respuesta y que la cierre ella."
+        )),
+        None if de_fuera => Err(format!(
+            "Desde fuera de Adeorq solo se cierran las decisiones de una terminal que abriste tú, y la {id} no es de ninguna."
+        )),
+        None => Ok(()),
+    }
+}
+
+fn decision_de_quien_pide(app: &tauri::AppHandle, d: &crate::decisiones::Decision, quien: Option<u32>, conexion: u64, de_fuera: Option<DeFuera>) -> Result<(), String> {
+    let panel_vivo = d.panel.filter(|_| d.arranque == Some(crate::conserje::arranque()));
+    let madre = panel_vivo.and_then(|p| app.state::<Puente>().delegadas.lock().unwrap().get(&p).cloned());
+    let mi_sesion = quien.and_then(|p| sesion_del_panel(app, p));
+    puede_cerrar_decision(&d.id, panel_vivo, madre.as_ref(), quien, mi_sesion.as_deref(), conexion, de_fuera.is_some())
+}
+
 /// Por qué un cliente que solo puede cerrar lo suyo no puede cerrar ESA, o `None`.
 fn cierre_ajeno(nombre: &str, panel: u32, madre: Option<&Madre>, mi_panel: Option<u32>, mi_sesion: Option<&str>, conexion: u64) -> Option<String> {
     if es_suya(madre, mi_panel, mi_sesion, conexion) {
@@ -1482,12 +1515,55 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                     (n, panel_creible(ficha.as_ref().map(|f| f.clave.as_ref()), v["clave"].as_str()))
                 });
                 let quien = quien_conecta::quien_pide(presentado, || quien_conecta::terminal_del_que_pide(&app, puntas));
-                let res = match crate::pedir_secreto::atender(&app, nombre, motivo, quien) {
-                    Ok(valor) => json!({ "valor": valor }),
+                // Sin `solo_guardar` (un `adeorq` de antes) se pide el valor, como siempre.
+                let pide = crate::pedir_secreto::Pide {
+                    valor: v["solo_guardar"].as_bool() != Some(true),
+                    nueva: v["nueva"].as_bool() == Some(true),
+                };
+                let res = match crate::pedir_secreto::atender(&app, nombre, motivo, quien, pide) {
+                    Ok(Some(valor)) => json!({ "valor": valor }),
+                    Ok(None) => json!({ "guardada": true }),
                     Err(e) => json!({ "error": e }),
                 };
                 enviar(&escritor, &format!("{res}\n"))?;
                 // Una petición por conexión: el que la abrió ya tiene lo suyo.
+                return Ok(());
+            }
+            // `adeorq secreto --lista`: los nombres guardados, sin valores. Lo
+            // mismo que hay en los ficheros de la carpeta de datos.
+            if v["adeorq"].as_str() == Some("secretos") {
+                enviar(&escritor, &format!("{}\n", crate::pedir_secreto::lista()))?;
+                return Ok(());
+            }
+            // Un comando lanzado con una clave falló con un «no autorizado»: la
+            // app le pregunta a su servicio (la clave no sale de aquí) y contesta
+            // si vale. Solo puede marcarla como muerta el propio servicio.
+            if v["adeorq"].as_str() == Some("secreto_no_vale") {
+                let nombre = v["nombre"].as_str().unwrap_or_default();
+                let res = if crate::pedir_secreto::nombres_guardados().iter().any(|n| n == nombre) {
+                    crate::claves_caducan::tras_un_fallo(&app, nombre)
+                } else {
+                    json!({ "veredicto": "no_se" })
+                };
+                enviar(&escritor, &format!("{res}\n"))?;
+                return Ok(());
+            }
+            // La verificación del escudo (`escudo.rs`, contrato en
+            // `docs/contexto/escudo.md`): la misma forma que la de `secreto`,
+            // con su acuse antes de esperar a Munir y una petición por conexión.
+            if v["adeorq"].as_str() == Some("escudo") {
+                enviar(&escritor, "{\"adeorq\":\"esperando\"}\n")?;
+                let panel = v["panel"].as_u64().and_then(|n| u32::try_from(n).ok());
+                let presentado = panel.map(|n| {
+                    let ficha = crate::pty::ficha(&app, n);
+                    (n, panel_creible(ficha.as_ref().map(|f| f.clave.as_ref()), v["clave"].as_str()))
+                });
+                let quien = quien_conecta::quien_pide(presentado, || quien_conecta::terminal_del_que_pide(&app, puntas));
+                let res = match crate::escudo::atender(&app, &v, quien) {
+                    Ok(firma) => json!({ "ok": true, "firma": firma }),
+                    Err(e) => json!({ "error": e }),
+                };
+                enviar(&escritor, &format!("{res}\n"))?;
                 return Ok(());
             }
         }
@@ -1978,7 +2054,29 @@ pub fn lista_de_herramientas() -> Vec<Value> {
     let mut todas = v.as_array().cloned().unwrap_or_default();
     todas.extend(herramientas_de_decisiones());
     todas.push(herramienta_de_mods());
+    todas.push(herramienta_de_compartir());
     todas
+}
+
+/// Enseñarle algo a Munir en el móvil (`compartidos.rs`).
+fn herramienta_de_compartir() -> Value {
+    json!({
+        "name": "compartir_en_el_movil",
+        "description": "Shows Munir something you made on his phone, in «Para ver» of Adeo's phone page (with a notification): an image (a screenshot, a PNG of a card), a single-file HTML page (an options page, a progress page), or a web running on this PC (127.0.0.1:<port>), which travels as a phone-width screenshot he can refresh. Use it whenever you would open something in the PC browser for him to look at. The file must be in the projects folder or the temp folder; it is checked again each time he opens it, and it expires on its own (24 h by default). Nothing else on the PC can be reached from the phone.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "title": { "type": "string", "description": "What it is, in Spanish, short (e.g. \"La tarjeta, color 2\")." },
+                "path": { "type": "string", "description": "An image (png, jpg, gif, webp) or a single-file .html page, as an absolute path. Leave it out to share a web with port." },
+                "port": { "type": "number", "description": "A web running on this PC: its port on 127.0.0.1. Leave it out to share a file." },
+                "urlPath": { "type": "string", "description": "Optional, with port: the path inside the web, like \"/guia.html\". Default \"/\"." },
+                "hours": { "type": "number", "description": "Optional. How long it stays, 1 to 72 hours. Default 24." },
+                "project": { "type": "string", "description": "Optional. The project it belongs to." },
+                "paneId": { "type": "number", "description": "Optional. Your own pane ID (ADEORQ_PANE_ID)." }
+            },
+            "required": ["title"]
+        }
+    })
 }
 
 /// La de los mods (`mods.rs`): sin ella, un agente al que le piden cambiar cómo
@@ -1997,7 +2095,7 @@ fn herramientas_de_decisiones() -> Vec<Value> {
     let v = json!([
                             {
                                 "name": "ask_decision",
-                                "description": "Asks Munir to decide something, and reaches him wherever he is: it shows up in the Decisions section of his phone (with a notification) and of any browser paired with Adeorq. Use it whenever he has to choose between options (designs, plans, names) instead of only an HTML page on the PC, which he cannot see when he is away. Each question has 2 to 6 numbered options, at most one recommended, and he can always answer in his own words. Pass paneId (your ADEORQ_PANE_ID) and his answer will be typed into your pane when he replies; you can also read it with get_decision. Do not go on with anything that depends on the answer until you have it.",
+                                "description": "Asks Munir to decide something, and reaches him wherever he is: it shows up in the Decisions section of his phone (with a notification) and of any browser paired with Adeorq. Use it whenever he has to choose between options (designs, plans, names) instead of only an HTML page on the PC, which he cannot see when he is away. Each question has 2 to 6 numbered options, at most one recommended, and he can always answer in his own words. Pass paneId (your ADEORQ_PANE_ID) and his answer will be typed into your pane when he replies; you can also read it with get_decision. Do not go on with anything that depends on the answer until you have it. If his answer reaches you some other way (pasted by another session, said in your terminal), call close_decision at once, or it keeps waiting for him on his phone. To rewrite a decision, pass replaces with the old id: the old one stops waiting.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {
@@ -2005,6 +2103,7 @@ fn herramientas_de_decisiones() -> Vec<Value> {
                                         "context": { "type": "string", "description": "Optional. One or two sentences of why, in Spanish." },
                                         "project": { "type": "string", "description": "Optional. The project it belongs to." },
                                         "paneId": { "type": "number", "description": "Optional. Your own pane ID (ADEORQ_PANE_ID), so the answer is typed back into you." },
+                                        "replaces": { "type": "string", "description": "Optional. The id of an earlier decision of yours that this one rewrites: it stops waiting for Munir and points to this one." },
                                         "questions": {
                                             "type": "array",
                                             "description": "1 to 8 questions, in Spanish. They are labelled A, B, C… in order.",
@@ -2042,6 +2141,18 @@ fn herramientas_de_decisiones() -> Vec<Value> {
                                     "properties": {
                                         "id": { "type": "string", "description": "The decision id returned by ask_decision (like d19a2b3c4d5)." }
                                     }
+                                }
+                            },
+                            {
+                                "name": "close_decision",
+                                "description": "Marks one of your decisions as resolved when Munir's answer reached you some other way (another session pasted it to you, he said it in your terminal, he answered on a page): it stops waiting for him in Decisions on his phone and on the PC. Call it as soon as you have the answer, with one sentence of what he chose and how it reached you. A decision already answered in Decisions is not changed.",
+                                "inputSchema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": { "type": "string", "description": "The decision id returned by ask_decision." },
+                                        "how": { "type": "string", "description": "One sentence, in Spanish: what he decided and how it reached you (e.g. \"Me lo pegó la Sesión Suprema: A1, B1, C2\")." }
+                                    },
+                                    "required": ["id", "how"]
                                 }
                             }
     ]);
@@ -2937,12 +3048,24 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                 panel: args["paneId"].as_u64().and_then(|n| u32::try_from(n).ok()),
                 preguntas,
             };
-            let ahora = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_millis() as u64)
-                .unwrap_or(0);
+            let ahora = ahora_ms();
             let d = crate::decisiones::validar(&pedido, ahora, crate::conserje::arranque())?;
-            let d = crate::decisiones::crear(&crate::decisiones::dir_de_verdad()?, d)?;
+            let dir = crate::decisiones::dir_de_verdad()?;
+            // La que reescribe se mira ANTES de crear la nueva: si no se puede
+            // retirar, no se pregunta dos veces lo mismo.
+            let vieja = match args["replaces"].as_str().map(str::trim).filter(|s| !s.is_empty()) {
+                Some(id) => {
+                    let v = crate::decisiones::leer(&dir, id).ok_or_else(|| format!("`replaces`: no hay ninguna decisión {id}."))?;
+                    if v.respuesta.is_some() {
+                        return Err(format!("La decisión {id} ya está contestada: lee su respuesta con get_decision en vez de preguntar otra vez."));
+                    }
+                    decision_de_quien_pide(app, &v, quien, conexion, de_fuera)?;
+                    Some(v.id)
+                }
+                None => None,
+            };
+            let d = crate::decisiones::crear(&dir, d)?;
+            let retirada = vieja.and_then(|v| crate::decisiones::sustituir(&dir, &v, &d, ahora).ok().map(|_| v));
             crate::decisiones::avisar_cambio(app);
             // El aviso al móvil, si los pidió: tocarlo abre la decisión.
             let avisados = crate::movil::movil_avisar(
@@ -2955,15 +3078,17 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             // Y a su bot, si tiene alguno encendido (solo el proyecto, no la pregunta).
             crate::bots::avisar_decision(app, d.proyecto.as_deref());
             let vuelta = match d.panel {
-                Some(p) => format!("Cuando conteste, su respuesta se teclea en el panel {p}; también la puedes leer con get_decision. Si en vez de eso te escribe en la terminal, esa es su respuesta y la decisión se cierra sola."),
-                None => "Léela con get_decision cuando quieras (sin paneId no se teclea en ninguna terminal).".into(),
+                Some(p) => format!("Cuando conteste, su respuesta se teclea en el panel {p}; también la puedes leer con get_decision. Si en vez de eso te escribe él en la terminal, esa es su respuesta y la decisión se cierra sola; si te la pasa otra sesión, ciérrala tú con close_decision."),
+                None => "Léela con get_decision cuando quieras (sin paneId no se teclea en ninguna terminal). Si su respuesta te llega por otro lado, ciérrala con close_decision.".into(),
             };
+            let retirada = retirada.map(|v| format!(" La {v} ya no le espera: ahora apunta a esta.")).unwrap_or_default();
             Ok(json!({
                 "content": [{ "type": "text", "text": format!(
-                    "Decisión {} creada: «{}». Le llega a Munir a «Decisiones» en el móvil y en cualquier navegador emparejado{}. {} No sigas con lo que dependa de ella hasta tener la respuesta.",
+                    "Decisión {} creada: «{}». Le llega a Munir a «Decisiones» en el móvil y en cualquier navegador emparejado{}.{} {} No sigas con lo que dependa de ella hasta tener la respuesta.",
                     d.id,
                     d.titulo,
                     if avisados > 0 { ", con aviso" } else { " (no tiene avisos puestos: la verá al abrir la página)" },
+                    retirada,
                     vuelta
                 ) }]
             }))
@@ -2989,6 +3114,8 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                                     "contestada"
                                 } else if d.descartada.is_some() {
                                     "descartada"
+                                } else if d.resuelta.is_some() {
+                                    "resuelta por otra vía"
                                 } else if d.hablada.is_some() {
                                     "hablada en tu terminal"
                                 } else {
@@ -3002,6 +3129,64 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                 }
             };
             Ok(json!({ "content": [{ "type": "text", "text": texto }] }))
+        }
+        // La respuesta le llegó al agente por otro lado: la decisión deja de
+        // esperar a Munir en el móvil y en la app (`decisiones::resolver`).
+        "close_decision" => {
+            let id = args["id"].as_str().map(str::trim).filter(|s| !s.is_empty()).ok_or("Falta `id`: la decisión que ya está resuelta.")?;
+            let como = args["how"].as_str().unwrap_or("");
+            let dir = crate::decisiones::dir_de_verdad()?;
+            let d = crate::decisiones::leer(&dir, id).ok_or_else(|| format!("No hay ninguna decisión {id}."))?;
+            decision_de_quien_pide(app, &d, quien, conexion, de_fuera)?;
+            let antes = d.resuelta.is_some() || d.descartada.is_some();
+            let d = crate::decisiones::resolver(&dir, id, como, ahora_ms())?;
+            crate::decisiones::avisar_cambio(app);
+            let texto = if antes {
+                format!("La decisión {} ya no esperaba a Munir: se queda como estaba.", d.id)
+            } else {
+                format!("Decisión {} («{}») resuelta: ya no le espera a Munir en el móvil ni en el PC.", d.id, d.titulo)
+            };
+            Ok(json!({ "content": [{ "type": "text", "text": texto }] }))
+        }
+        // Lo que un agente le enseña a Munir en el móvil (`compartidos.rs`): un
+        // archivo que se comprueba, o una web de este PC que viaja como captura.
+        "compartir_en_el_movil" => {
+            let texto = |k: &str| args[k].as_str().map(str::to_string).filter(|s| !s.trim().is_empty());
+            let pedido = crate::compartidos::Pedido {
+                titulo: texto("title").unwrap_or_default(),
+                ruta: texto("path"),
+                puerto: args["port"].as_u64().map(|n| u16::try_from(n).map_err(|_| format!("`port` {n} no es un puerto."))).transpose()?,
+                camino: texto("urlPath"),
+                horas: args["hours"].as_u64(),
+                proyecto: texto("project"),
+                panel: args["paneId"].as_u64().and_then(|n| u32::try_from(n).ok()),
+            };
+            let ahora = ahora_ms();
+            let c = crate::compartidos::preparar(&pedido, ahora, &crate::compartidos::raices_de_verdad(), crate::compartidos::id_nuevo()?)?;
+            if let Some(p) = c.puerto.filter(|p| !crate::compartidos::alguien_escucha(*p)) {
+                return Err(format!("No hay nada escuchando en 127.0.0.1:{p}: arranca la web antes de compartirla."));
+            }
+            let c = crate::compartidos::guardar(&crate::compartidos::dir_de_verdad()?, c, ahora)?;
+            let avisados = crate::movil::movil_avisar(
+                app.clone(),
+                "Te enseñan algo".into(),
+                c.titulo.clone(),
+                Some(format!("/#ver={}", c.id)),
+                Some("termino".into()),
+            );
+            let horas = (c.caduca - c.creado) / 3_600_000;
+            let como = match c.tipo {
+                crate::compartidos::Tipo::Web => " Le llega como una captura a ancho de móvil, que puede repetir.",
+                crate::compartidos::Tipo::Pagina => " La página se pinta en un marco cerrado: su JavaScript corre, pero no llega a nada del móvil.",
+                crate::compartidos::Tipo::Imagen => "",
+            };
+            Ok(json!({
+                "content": [{ "type": "text", "text": format!(
+                    "Compartido «{}»: lo ve en «Para ver», en Adeo del móvil{}. Caduca solo en {horas} h.{como}",
+                    c.titulo,
+                    if avisados > 0 { ", con aviso" } else { " (no tiene avisos puestos: lo verá al abrir la página)" },
+                ) }]
+            }))
         }
         // Quien abre, recoge. Hasta el 2026-08-27 un agente podía abrir seis
         // terminales y no cerrar ninguna: el tope le decía «cierra alguna» y no
@@ -3573,6 +3758,21 @@ mod tests {
             .into_iter()
             .filter(|h| h["name"].as_str().is_some_and(|n| crate::mcp_clientes::la_ve(nivel, n)))
             .collect()
+    }
+
+    /// Una decisión la da por resuelta la terminal que preguntó o la que la
+    /// abrió (la Suprema que le pegó la respuesta); la de otra terminal, no.
+    #[test]
+    fn una_decision_la_cierra_quien_pregunto_o_quien_le_abrio() {
+        let suprema = Madre { panel: Some(5), conexion: 3, sesion: None, nombre: None, bot: None };
+        assert!(puede_cerrar_decision("d1", Some(9), None, Some(9), None, 1, false).is_ok(), "la suya");
+        assert!(puede_cerrar_decision("d1", Some(9), Some(&suprema), Some(5), None, 4, false).is_ok(), "quien le abrió");
+        let otra = puede_cerrar_decision("d1", Some(9), Some(&suprema), Some(7), None, 4, false).unwrap_err();
+        assert!(otra.contains("la pidió el panel 9") && otra.contains("que la cierre ella"), "{otra}");
+        assert!(puede_cerrar_decision("d1", Some(9), None, None, None, 4, true).is_err(), "desde fuera, la de una terminal ajena");
+        // Sin terminal detrás no espera a nadie: la cierra cualquiera de casa, y desde fuera nadie.
+        assert!(puede_cerrar_decision("d1", None, None, Some(7), None, 4, false).is_ok());
+        assert!(puede_cerrar_decision("d1", None, None, None, None, 4, true).unwrap_err().contains("fuera de Adeorq"));
     }
 
     /// Un cliente en «plan» cierra lo que abrió él: por esta conexión, o por su

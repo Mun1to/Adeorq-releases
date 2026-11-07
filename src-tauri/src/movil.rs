@@ -835,6 +835,18 @@ pub trait Casa {
     fn fondo(&self) -> Option<PathBuf> {
         None
     }
+    /// Lo que los agentes le enseñan en el móvil (`compartidos.rs`): dónde se
+    /// guarda, de qué carpetas puede salir y cómo se captura una web. Sin
+    /// esto no se comparte nada.
+    fn compartidos(&self) -> Result<PathBuf, String> {
+        Err("Aquí no se comparte nada.".into())
+    }
+    fn raices_compartibles(&self) -> Vec<PathBuf> {
+        Vec::new()
+    }
+    fn capturar_web(&self, _puerto: u16, _camino: &str) -> Result<Vec<u8>, String> {
+        Err("Aquí no se capturan webs.".into())
+    }
     /// El historial de una sesión en orden, para la Pantalla (`historia.rs`).
     fn historia(&self, _cwd: &str, _sesion: &str) -> Result<Value, String> {
         Err("Aquí no hay historial.".into())
@@ -1431,7 +1443,7 @@ pub fn atender(
                             "id": d.id, "titulo": d.titulo, "proyecto": d.proyecto, "panel": d.panel,
                             "creada": d.creada, "preguntas": d.preguntas.len(), "contestada": d.respuesta.is_some(),
                             "vigencia": crate::decisiones::vigencia(d, arranque, &abiertos),
-                            "cerrada": d.respuesta.as_ref().map(|r| r.cuando).or(d.descartada).or(d.hablada),
+                            "cerrada": crate::decisiones::cuando_se_cerro(d),
                         })
                     })
                     .collect();
@@ -1490,6 +1502,11 @@ pub fn atender(
             if crate::decisiones::leer(&dir, id).is_some_and(|d| d.respuesta.is_some()) {
                 return Respuesta::error(409, "Esa decisión ya está contestada.");
             }
+            // La cerró el agente mientras la tenías abierta: también es 409, y
+            // la página la repinta como quedó.
+            if crate::decisiones::leer(&dir, id).is_some_and(|d| d.resuelta.is_some()) {
+                return Respuesta::error(409, "Esa decisión ya no espera respuesta: el agente la dio por resuelta.");
+            }
             match crate::decisiones::responder(&dir, id, elecciones, &nombre, reloj.1.saturating_mul(1000)) {
                 Ok(d) => {
                     let mut entregada = false;
@@ -1505,7 +1522,32 @@ pub fn atender(
                 Err(e) => Respuesta::error(400, &e),
             }
         }
+        // Lo que los agentes le enseñan (`compartidos.rs`): la lista y cada uno
+        // por su id. Nunca una ruta: no se puede pedir otra cosa que lo compartido.
+        ("GET", "/api/compartidos") => match casa.compartidos() {
+            Ok(dir) => {
+                let lista: Vec<Value> = crate::compartidos::vigentes(&dir, reloj.1.saturating_mul(1000))
+                    .iter()
+                    .map(|c| json!({ "id": c.id, "titulo": c.titulo, "tipo": c.tipo, "proyecto": c.proyecto, "creado": c.creado, "caduca": c.caduca }))
+                    .collect();
+                Respuesta::json(200, json!({ "compartidos": lista }))
+            }
+            Err(e) => Respuesta::error(500, &e),
+        },
+        ("GET", "/api/compartido") => {
+            let id = p.consulta.get("id").map(String::as_str).unwrap_or("");
+            let ahora = reloj.1.saturating_mul(1000);
+            let Some((dir, c)) = casa.compartidos().ok().and_then(|dir| crate::compartidos::buscar(&dir, id, ahora).map(|c| (dir, c))) else {
+                return Respuesta::error(404, "Eso ya no está compartido.");
+            };
+            let nueva = p.consulta.get("nueva").is_some_and(|v| v == "1");
+            match crate::compartidos::contenido(&dir, &c, &casa.raices_compartibles(), nueva, ahora, &|puerto, camino| casa.capturar_web(puerto, camino)) {
+                Ok((tipo, cuerpo)) => Respuesta { estado: 200, tipo, cuerpo },
+                Err(e) => Respuesta::error(409, &e),
+            }
+        }
         (_, "/api/yo" | "/api/lista" | "/api/conversacion" | "/api/enviar" | "/api/mejorar" | "/api/router" | "/api/olvidar" | "/api/programados" | "/api/uso"
+            | "/api/compartidos" | "/api/compartido"
             | "/api/cerebro" | "/api/fijo" | "/api/programas" | "/api/pensador" | "/api/programa"
             | "/api/parar" | "/api/sesion" | "/api/push/clave" | "/api/push/suscribir"
             | "/api/push/olvidar" | "/api/terminales" | "/api/terminal" | "/api/terminal/escribir"
@@ -1643,6 +1685,15 @@ impl Casa for CasaDeVerdad {
     }
     fn fondo(&self) -> Option<PathBuf> {
         crate::manage::fondo_actual()
+    }
+    fn compartidos(&self) -> Result<PathBuf, String> {
+        crate::compartidos::dir_de_verdad()
+    }
+    fn raices_compartibles(&self) -> Vec<PathBuf> {
+        crate::compartidos::raices_de_verdad()
+    }
+    fn capturar_web(&self, puerto: u16, camino: &str) -> Result<Vec<u8>, String> {
+        crate::compartidos::capturar_web(puerto, camino)
     }
     fn historia(&self, cwd: &str, sesion: &str) -> Result<Value, String> {
         crate::historia::de_sesion(cwd, sesion, 250).map(|v| json!(v))
@@ -2496,6 +2547,15 @@ mod tests {
         fn decisiones(&self) -> Result<PathBuf, String> {
             Ok(std::env::temp_dir().join(format!("adeorq-movil-decisiones-{}{}", std::process::id(), self.sitio)))
         }
+        fn compartidos(&self) -> Result<PathBuf, String> {
+            Ok(std::env::temp_dir().join(format!("adeorq-movil-compartidos-{}{}", std::process::id(), self.sitio)).join("almacen"))
+        }
+        fn raices_compartibles(&self) -> Vec<PathBuf> {
+            self.compartidos().ok().and_then(|d| d.parent()?.canonicalize().ok()).into_iter().collect()
+        }
+        fn capturar_web(&self, puerto: u16, camino: &str) -> Result<Vec<u8>, String> {
+            Ok(format!("PNG de {puerto}{camino}").into_bytes())
+        }
         fn arranque(&self) -> u64 {
             77
         }
@@ -2643,7 +2703,74 @@ mod tests {
         assert_eq!(responde(&cerrada.id).estado, 200);
         assert_eq!(descarta(&cerrada.id).estado, 409);
         assert_eq!(atender(&pedir("GET", "/api/decision/descartar", c, ""), &g, &casa, &nada, reloj).estado, 405);
+
+        // La que el agente da por resuelta (le llegó la respuesta por otro lado)
+        // deja de esperar, dice cuándo se cerró y contestarla después es 409:
+        // la página la repinta como quedó (2026-11-07, las dos del escudo).
+        let otra = pedir_una("Me la pegó la Suprema", 4, 6000, 77);
+        assert_eq!(vigencias()[0], "Me la pegó la Suprema=viva");
+        crate::decisiones::resolver(&dir, &otra.id, "Me la pegó la Suprema: A1.", 7000).unwrap();
+        let lista = cuerpo_de(&atender(&pedir("GET", "/api/decisiones", c, ""), &g, &casa, &nada, reloj));
+        let suya = lista["decisiones"].as_array().unwrap().iter().find(|d| d["id"] == json!(otra.id)).cloned().unwrap();
+        assert_eq!((suya["vigencia"].clone(), suya["cerrada"].clone()), (json!("resuelta"), json!(7000)));
+        let una = cuerpo_de(&atender(&pedir("GET", &format!("/api/decision?id={}", otra.id), c, ""), &g, &casa, &nada, reloj));
+        assert_eq!(una["resuelta"]["como"], json!("Me la pegó la Suprema: A1."));
+        assert_eq!(responde(&otra.id).estado, 409);
+        assert_eq!(descarta(&otra.id).estado, 200, "descartar una resuelta no es un error ni la cambia");
+        assert_eq!(crate::decisiones::leer(&dir, &otra.id).unwrap().descartada, None);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Lo que comparte un agente se ve desde un móvil emparejado y solo por su
+    /// id: la imagen tal cual, la página como texto (el móvil la pinta en un
+    /// marco cerrado), la web como captura. Sin clave, nada; caducado, tampoco.
+    #[test]
+    fn lo_compartido_solo_se_ve_emparejado_y_por_su_id() {
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira { sitio: "-compartidos", ..Default::default() };
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 10);
+        let c = Some(clave.as_str());
+        let dir = casa.compartidos().unwrap();
+        let raiz = dir.parent().unwrap().to_path_buf();
+        let _ = std::fs::remove_dir_all(&raiz);
+        std::fs::create_dir_all(&raiz).unwrap();
+        std::fs::write(raiz.join("tarjeta.png"), b"\x89PNG tarjeta").unwrap();
+        std::fs::write(raiz.join("plano.html"), "<script>alert(1)</script><p>plano</p>").unwrap();
+        let raices = casa.raices_compartibles();
+        let compartir = |p: crate::compartidos::Pedido| {
+            let c = crate::compartidos::preparar(&p, 10_000, &raices, crate::compartidos::id_nuevo().unwrap()).unwrap();
+            crate::compartidos::guardar(&dir, c, 10_000).unwrap()
+        };
+        let foto = compartir(crate::compartidos::Pedido { titulo: "La tarjeta".into(), ruta: Some(raiz.join("tarjeta.png").display().to_string()), ..Default::default() });
+        let plano = compartir(crate::compartidos::Pedido { titulo: "El plano".into(), ruta: Some(raiz.join("plano.html").display().to_string()), ..Default::default() });
+        let web = compartir(crate::compartidos::Pedido { titulo: "La web".into(), puerto: Some(8080), camino: Some("/guia".into()), ..Default::default() });
+
+        assert_eq!(atender(&pedir("GET", "/api/compartidos", None, ""), &g, &casa, &nada, reloj).estado, 401);
+        assert_eq!(atender(&pedir("GET", &format!("/api/compartido?id={}", foto.id), None, ""), &g, &casa, &nada, reloj).estado, 401);
+        let lista = cuerpo_de(&atender(&pedir("GET", "/api/compartidos", c, ""), &g, &casa, &nada, reloj));
+        let tipos: Vec<String> = lista["compartidos"].as_array().unwrap().iter().map(|x| format!("{}={}", x["titulo"].as_str().unwrap(), x["tipo"].as_str().unwrap())).collect();
+        assert_eq!(tipos, ["La web=web", "El plano=pagina", "La tarjeta=imagen"]);
+        assert!(lista["compartidos"][0].get("ruta").is_none() && lista["compartidos"][0].get("puerto").is_none(), "la lista no dice rutas ni puertos");
+
+        let ver = |id: &str| atender(&pedir("GET", &format!("/api/compartido?id={id}"), c, ""), &g, &casa, &nada, reloj);
+        let r = ver(&foto.id);
+        assert_eq!((r.estado, r.tipo, r.cuerpo.as_slice()), (200, "image/png", b"\x89PNG tarjeta".as_slice()));
+        let r = ver(&plano.id);
+        assert_eq!((r.estado, r.tipo), (200, "text/plain; charset=utf-8"), "la página nunca como HTML del origen del móvil");
+        let r = ver(&web.id);
+        assert_eq!((r.estado, r.tipo, String::from_utf8_lossy(&r.cuerpo).into_owned()), (200, "image/png", "PNG de 8080/guia".to_string()));
+        // Ni una ruta ni un id inventado llevan a nada.
+        for raro in ["../almacen", "C:%5CWindows%5Cwin.ini", &"0".repeat(32)] {
+            assert_eq!(ver(raro).estado, 404, "{raro}");
+        }
+        assert_eq!(atender(&pedir("POST", "/api/compartido", c, "{}"), &g, &casa, &nada, reloj).estado, 405);
+        // Si el archivo desaparece, se dice, y lo caducado ya no está.
+        std::fs::remove_file(raiz.join("tarjeta.png")).unwrap();
+        assert_eq!(ver(&foto.id).estado, 409);
+        let tarde = (Instant::now(), 10 + 25 * 3600);
+        assert_eq!(atender(&pedir("GET", &format!("/api/compartido?id={}", plano.id), c, ""), &g, &casa, &nada, tarde).estado, 404);
+        let _ = std::fs::remove_dir_all(&raiz);
     }
 
     /// Una foto en tres trozos llega entera y con su nombre limpio; un trozo

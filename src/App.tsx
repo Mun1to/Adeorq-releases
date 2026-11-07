@@ -17,6 +17,7 @@ import Paleta from "./components/Paleta";
 import AlCerrar from "./components/AlCerrar";
 import Campana from "./components/Campana";
 import PedirSecreto from "./components/PedirSecreto";
+import EscudoVentana from "./components/EscudoVentana";
 import PedirAbrir from "./components/PedirAbrir";
 import PuenteMovil from "./components/PuenteMovil";
 import type { ConserjeExec } from "./lib/conserje";
@@ -2676,6 +2677,8 @@ function App() {
           siempre y sin pintar nada hasta que llega la petición, como el aviso
           de cuota: se abre sola desde Rust, no cuelga de ninguna pantalla. */}
       <PedirSecreto />
+      {/* La del escudo, igual: sale sola cuando un agente pide tu verificación. */}
+      <EscudoVentana panes={panes} />
       <PedirAbrir />
       <Paleta panes={panes} delLienzo={canvasPanes} irA={setView} abrirProyecto={openClaude} irATerminal={irATerminal} raiz={raizArchivos} abrirArchivo={abrirArchivo} />
       <AlCerrar />

@@ -1,0 +1,210 @@
+{
+  "version": 1,
+  "como_se_lee": [
+    "Lo leen el gancho (escudo/gancho.mjs) y el vigilante de Adeorq (src-tauri/src/escudo.rs). Las dos lecturas tienen que coincidir.",
+    "Una ruta se compara normalizada: minusculas, con / en vez de \\, sin // ni . ni .. y con las fichas {casa}, {proyectos}, {datos} y {programas} sustituidas (USERPROFILE, la raiz de proyectos de Adeorq, LOCALAPPDATA y C:/Program Files).",
+    "Un * vale cualquier cosa DENTRO de un trozo de la ruta, nunca una barra. No hay **.",
+    "nombres: la ruta acaba en /<nombre> (puede llevar carpeta, como .claude/settings.json), este donde este. carpetas: todo lo que cuelga de ella. archivos: esa ruta exacta.",
+    "Si una ruta cae en varias clases, manda la mas dura: escudo, luego rojo, luego memoria.",
+    "vigilar: false quita una entrada del vigilante (la cambia un programa por su cuenta, no un agente) pero el gancho la sigue parando.",
+    "fuera: lo que mancha una terminal durante una hora (decisiones A1 y B1). herramientas: nombres de herramienta, con * para cualquier cosa. carpetas y trozos: un Read de ahi dentro, o de una ruta que lleve ese trozo, es de fuera. Las webs que baja un comando (curl, wget, Invoke-WebRequest, gh issue view) las reconoce el gancho."
+  ],
+  "clases": {
+    "escudo": "Ningun agente lo puede cambiar, ni con la verificacion.",
+    "rojo": "Te pido la verificacion siempre.",
+    "memoria": "Te pido la verificacion solo si esa terminal leyo algo de fuera en la ultima hora (decision A1)."
+  },
+  "nombres": [
+    {
+      "clase": "rojo",
+      "nombre": "agents.md"
+    },
+    {
+      "clase": "rojo",
+      "nombre": "claude.md"
+    },
+    {
+      "clase": "rojo",
+      "nombre": "gemini.md"
+    },
+    {
+      "clase": "rojo",
+      "nombre": "reglas_de_los_proyectos.md"
+    },
+    {
+      "clase": "rojo",
+      "nombre": "prioridades.md"
+    },
+    {
+      "clase": "rojo",
+      "nombre": "copilot-instructions.md"
+    },
+    {
+      "clase": "rojo",
+      "nombre": ".claude/settings.json"
+    },
+    {
+      "clase": "rojo",
+      "nombre": ".claude/settings.local.json",
+      "vigilar": false
+    }
+  ],
+  "carpetas": [
+    {
+      "clase": "escudo",
+      "carpeta": "{datos}/adeorq/escudo"
+    },
+    {
+      "clase": "escudo",
+      "carpeta": "{programas}/adeorq escudo"
+    },
+    {
+      "clase": "escudo",
+      "carpeta": "{programas}/claudecode"
+    },
+    {
+      "clase": "rojo",
+      "carpeta": "{proyectos}/adeorq/escudo"
+    },
+    {
+      "clase": "rojo",
+      "carpeta": "{proyectos}/.githooks"
+    },
+    {
+      "clase": "rojo",
+      "carpeta": "{proyectos}/*/.cursor/rules"
+    },
+    {
+      "clase": "rojo",
+      "carpeta": "{casa}/.claude/hooks"
+    },
+    {
+      "clase": "rojo",
+      "carpeta": "{casa}/.claude/skills"
+    },
+    {
+      "clase": "rojo",
+      "carpeta": "{casa}/.claude/agents"
+    },
+    {
+      "clase": "rojo",
+      "carpeta": "{casa}/.claude/commands"
+    },
+    {
+      "clase": "rojo",
+      "carpeta": "{casa}/claude-*/hooks"
+    },
+    {
+      "clase": "rojo",
+      "carpeta": "{casa}/claude-*/skills"
+    },
+    {
+      "clase": "rojo",
+      "carpeta": "{casa}/.codex/rules"
+    },
+    {
+      "clase": "rojo",
+      "carpeta": "{casa}/codex-*/rules"
+    },
+    {
+      "clase": "memoria",
+      "carpeta": "{casa}/.claude/projects/*/memory"
+    },
+    {
+      "clase": "memoria",
+      "carpeta": "{casa}/claude-*/projects/*/memory"
+    }
+  ],
+  "archivos": [
+    {
+      "clase": "rojo",
+      "archivo": "{casa}/claude-*/settings.json"
+    },
+    {
+      "clase": "rojo",
+      "archivo": "{casa}/claude-*/settings.local.json",
+      "vigilar": false
+    },
+    {
+      "clase": "rojo",
+      "archivo": "{proyectos}/memoria-comun.mjs"
+    },
+    {
+      "clase": "rojo",
+      "archivo": "{casa}/.codex/config.toml"
+    },
+    {
+      "clase": "rojo",
+      "archivo": "{casa}/.codex/hooks.json"
+    },
+    {
+      "clase": "rojo",
+      "archivo": "{casa}/codex-*/config.toml"
+    },
+    {
+      "clase": "rojo",
+      "archivo": "{casa}/codex-*/hooks.json"
+    },
+    {
+      "clase": "rojo",
+      "archivo": "{casa}/.gemini/settings.json"
+    },
+    {
+      "clase": "memoria",
+      "archivo": "{proyectos}/_docs/gustos-de-diseno.md"
+    }
+  ],
+  "vigilar": {
+    "raices": [
+      "{proyectos}",
+      "{casa}/.claude",
+      "{casa}/.codex",
+      "{casa}/.gemini"
+    ],
+    "profundidad": 5,
+    "saltar": [
+      "node_modules",
+      ".git",
+      "target",
+      "dist",
+      "build",
+      ".next",
+      ".turbo",
+      ".venv",
+      "venv",
+      "__pycache__",
+      "_clones",
+      "file-history",
+      "backups",
+      "paste-cache",
+      "shell-snapshots",
+      "cache",
+      "plugins"
+    ]
+  },
+  "fuera": {
+    "herramientas": [
+      "WebFetch",
+      "WebSearch",
+      "mcp__playwright__*",
+      "mcp__claude_ai_Exa__*",
+      "mcp__claude_ai_Context7__*",
+      "mcp__claude-in-chrome__*",
+      "mcp__Claude_Browser__*",
+      "web_fetch",
+      "google_web_search",
+      "web_search",
+      "web_search_preview"
+    ],
+    "carpetas": [
+      "{casa}/downloads",
+      "{proyectos}/davinci-resolve-mcp",
+      "{proyectos}/ccc alex web"
+    ],
+    "trozos": [
+      "node_modules",
+      "_clones",
+      "_clon"
+    ]
+  }
+}

@@ -34,6 +34,8 @@ const PAGINA = path.join(RAIZ, "src-tauri", "src", "movil.html");
 const FUENTES = [
   "src-tauri/src/movil.rs",
   "src-tauri/src/decisiones.rs",
+  // Lo que se le enseña en «Para ver» (`compartir_en_el_movil`).
+  "src-tauri/src/compartidos.rs",
   "src-tauri/src/sessions.rs",
   "src-tauri/src/conserje.rs",
   "src/lib/movil.ts",

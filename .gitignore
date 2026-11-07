@@ -5,6 +5,9 @@ BUZON.md
 # recarga con F5. Interna y derivada, asi que no se versiona.
 PROGRESO.html
 PROGRESO.html.version.js
+# La ficha de la Microsoft Store para copiar en Partner Center: la genera
+# scripts/tiendas/ficha-para-copiar.mjs desde docs/contexto/tiendas, no se versiona.
+TIENDA.html
 
 # Dependencies / build output
 node_modules/

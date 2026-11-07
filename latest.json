@@ -1,11 +1,11 @@
 {
-  "version": "0.9.244",
-  "notes": "Adeo dice que es una IA y deja informar de un problema. Pagina de privacidad en adeorq.com. Arreglos en la bienvenida, el Lienzo y el enjambre.",
-  "pub_date": "2026-11-05T19:44:25Z",
+  "version": "0.9.245",
+  "notes": "Para ver en el movil: los agentes te ensenan imagenes, paginas y capturas de webs de tu PC. Las decisiones resueltas por otra via dejan de esperarte. Un doble toque en Enviar ya no cancela tu respuesta. Una clave que ya diste no se vuelve a pedir.",
+  "pub_date": "2026-11-07T13:14:05Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzZJRk1FaDlQNTUwR2tNNDNlK2hMMEdScjk2QS96bzVubUh5Wm01R29lYWlhOVMvR25USms2Y0JTa2dHeFEvcGFpZVZyL1M0blZqeTRmWU5qWUFFY1FRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzOTA3ODQ3CWZpbGU6QWRlb3JxXzAuOS4yNDRfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNDQKaE9rejJpRUdVOFAzc0ZDZkdCeGpqTTJ5OTU1dk0rcDB5cURMTSsxOFlwSTF1WkFESTFTOFNtY1p4bytPNTVtaCtqUndEVjdPaVZqS0E5TjE0VHFWQlE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.244/Adeorq_0.9.244_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzlLRG9KaXJya0pXT2ZTazE3N1l3S0gyQUtFQ3pXWmNjOHpqRG9kMUlhUlFzYzljeGVPeFVjT2hjaHJ6N3FJUm81eXo3ZE8yMU4renNhNVFqd2JDYXcwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0MDU3MjIyCWZpbGU6QWRlb3JxXzAuOS4yNDVfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNDUKbFp0NEpVVkFGLy9RRmNkVzg1eFV2LzI3UzVMWi9wMnA0R2YwcXpoNU1nZVNxZ1c2THZacXRtUGtxZjE2Q3hCUXo1U0NnanN2U3hTRXI2NTlaQkt4Q1E9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.245/Adeorq_0.9.245_x64-setup.exe"
     }
   }
 }

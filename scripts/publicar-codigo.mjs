@@ -78,6 +78,12 @@ const FUERA = [
   // cuentan al agente el stack, los comandos y lo que no debe tocar. Es una
   // CARPETA, y por eso el borrado de abajo lleva `recursive`.
   ".agents",
+  // El gancho del escudo: protege los archivos de la casa (las reglas, la memoria),
+  // los nombra en sus avisos y solo se instala en el ordenador de Munir (decisión
+  // F1 de docs/contexto/escudo.md); el barrido lo cazó en la 0.9.245. El resto de
+  // `escudo/` sí sale: escudo.rs y sus pruebas leen `lista.json` y
+  // `pruebas/vector.json`, también en el Linux del repo público.
+  "escudo/gancho.mjs",
 ];
 
 /**

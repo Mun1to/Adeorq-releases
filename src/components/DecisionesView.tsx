@@ -58,6 +58,7 @@ const ACABO: Record<string, string> = {
   hablada: "hablada",
   contestada: "contestada",
   descartada: "descartada",
+  resuelta: "resuelta",
 };
 
 function Fila({ d, activa, onAbrir }: { d: Decision; activa: boolean; onAbrir: (id: string) => void }) {
@@ -102,8 +103,8 @@ function Abierta({ d }: { d: Decision }) {
   const { t } = useT();
   const deCuando = useHace();
   const contestada = d.respuesta;
-  // Descartada: se enseña como quedó, y ya no se contesta.
-  const cerrada = Boolean(contestada) || d.vigencia === "descartada";
+  // Descartada, o resuelta por el agente: se enseña como quedó, y ya no se contesta.
+  const cerrada = Boolean(contestada) || d.vigencia === "descartada" || d.vigencia === "resuelta";
   const [el, setEl] = useState<Elecciones>(() => (cerrada ? {} : leerBorrador(d.id)));
   const [quedan, setQuedan] = useState<number | null>(null);
   const [mandando, setMandando] = useState(false);
@@ -295,6 +296,13 @@ function Abierta({ d }: { d: Decision }) {
         {d.vigencia === "descartada" && d.descartada != null && (
           <p className="dec-vigencia" data-v="descartada">
             {t("La descartaste {cuando}, sin contestarla.", { cuando: deCuando(d.descartada) })}
+          </p>
+        )}
+        {d.vigencia === "resuelta" && d.resuelta && (
+          <p className="dec-vigencia" data-v="descartada">
+            {d.resuelta.sustituta
+              ? t("Ya está decidida: la sustituye otra que pregunta lo mismo ({id}).", { id: d.resuelta.sustituta })
+              : t("Ya está decidida: el agente la dio por resuelta {cuando}. {como}", { cuando: deCuando(d.resuelta.cuando), como: d.resuelta.como })}
           </p>
         )}
 

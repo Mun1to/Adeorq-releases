@@ -214,7 +214,9 @@ pub fn escalon_de(herramienta: &str) -> Option<Nivel> {
         | "read_pane_screen" | "buscar_memoria" | "leer_memoria" | "leer_turno" | "get_decision" | "get_mods" => Some(Nivel::Mirar),
         // Preguntarle algo a Munir no toca ninguna terminal que esté trabajando:
         // su respuesta vuelve a la del que pregunta.
-        "open_pane" | "link_panes" | "ask_decision" => Some(Nivel::Plan),
+        // Y darla por resuelta solo deja de esperar a Munir: tampoco toca terminales.
+        // Enseñarle algo en el móvil tampoco: lo ve él, y solo lo que se nombra.
+        "open_pane" | "link_panes" | "ask_decision" | "close_decision" | "compartir_en_el_movil" => Some(Nivel::Plan),
         // Compactar es teclear `/fin` y `/compact` en una terminal viva.
         "send_command" | "send_keys" | "close_pane" | "compactar_terminal" => Some(Nivel::Auto),
         _ => None,
@@ -524,7 +526,7 @@ mod tests {
             .filter(|n| escalon_de(n).is_none())
             .collect();
         assert!(sin.is_empty(), "sin escalón: {sin:?}");
-        assert_eq!(crate::mcp::lista_de_herramientas().len(), 18, "si cambió el número, revisa la tabla");
+        assert_eq!(crate::mcp::lista_de_herramientas().len(), 20, "si cambió el número, revisa la tabla");
     }
 
     #[test]

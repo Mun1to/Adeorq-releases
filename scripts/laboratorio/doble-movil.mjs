@@ -329,9 +329,9 @@ const decisiones = [
 ];
 // Como `vigencia` (decisiones.rs): viva si la terminal que preguntó sigue
 // abierta en este arranque; si no, ya no la espera nadie.
-const cerrada = (d) => Number(Boolean(d.respuesta || d.descartada));
+const cerrada = (d) => Number(Boolean(d.respuesta || d.descartada || d.resuelta));
 const vigenciaDe = (d) =>
-  d.respuesta ? "contestada" : d.descartada ? "descartada" : d.hablada ? "hablada"
+  d.respuesta ? "contestada" : d.descartada ? "descartada" : d.resuelta ? "resuelta" : d.hablada ? "hablada"
     : d.arranque === ARRANQUE && terminales.some((t) => t.panel === d.panel) ? "viva" : "huerfana";
 // La del panel 1 tiene historia larga y acaba en un cierre con su bloque de
 // compactación, que es lo que Munir no podía leer entero desde el móvil.
@@ -811,7 +811,7 @@ http
           // Como `marcar_habladas` (decisiones.rs): escribirle a una terminal
           // cierra lo que te hubiera preguntado.
           for (const d of decisiones) {
-            if (d.panel === t.panel && d.arranque === ARRANQUE && !d.respuesta && !d.descartada && !d.hablada) d.hablada = Date.now();
+            if (d.panel === t.panel && d.arranque === ARRANQUE && !d.respuesta && !d.descartada && !d.resuelta && !d.hablada) d.hablada = Date.now();
           }
           return json(res, 202, { ok: true });
         }
@@ -856,7 +856,7 @@ http
             .sort((a, b) => cerrada(a) - cerrada(b) || b.creada - a.creada)
             .map((d) => ({
               id: d.id, titulo: d.titulo, proyecto: d.proyecto, panel: d.panel, creada: d.creada, preguntas: d.preguntas.length,
-              contestada: Boolean(d.respuesta), vigencia: vigenciaDe(d), cerrada: d.respuesta?.cuando ?? d.descartada ?? d.hablada ?? null,
+              contestada: Boolean(d.respuesta), vigencia: vigenciaDe(d), cerrada: d.respuesta?.cuando ?? d.descartada ?? d.resuelta?.cuando ?? d.hablada ?? null,
             })) });
         case "/api/decision": {
           const d = decisiones.find((x) => x.id === url.searchParams.get("id"));
@@ -870,6 +870,13 @@ http
             preguntas: v.preguntas ?? [{ id: "A", titulo: "¿Sí o no?", opciones: [{ texto: "Sí" }, { texto: "No" }] }],
           });
           return json(res, 200, { ok: true });
+        // Solo del banco: lo que hace `close_decision` (o `replaces`) del MCP.
+        case "/api/resolver-decision": {
+          const d = decisiones.find((x) => x.id === v.id);
+          if (!d) return json(res, 404, { error: "Esa decisión ya no está." });
+          if (!d.respuesta && !d.descartada) d.resuelta ??= { cuando: Date.now(), como: v.como || "", ...(v.sustituta ? { sustituta: v.sustituta } : {}) };
+          return json(res, 200, { ok: true });
+        }
         // Como `descartar` y `aviso_de_descarte` (decisiones.rs): a la terminal
         // que seguía esperándola se le escribe que no espere; a las demás, nada.
         case "/api/decision/descartar": {
@@ -877,7 +884,7 @@ http
           if (!d) return json(res, 404, { error: "Esa decisión ya no está." });
           if (d.respuesta) return json(res, 409, { error: "Esa decisión ya está contestada." });
           const avisada = vigenciaDe(d) === "viva";
-          d.descartada ??= Date.now();
+          if (!d.resuelta) d.descartada ??= Date.now();
           if (avisada) escrito.set(d.panel, `Munir ha descartado la decisión «${d.titulo}» (${d.id}) sin contestarla: no esperes respuesta.`);
           console.log(`decisión ${d.id} descartada${avisada ? `, y se le dice al panel ${d.panel}` : ""}`);
           return json(res, 200, { ok: true, avisada, panel: d.panel });
@@ -886,6 +893,7 @@ http
           const d = decisiones.find((x) => x.id === v.id);
           if (!d) return json(res, 400, { error: "Esa decisión ya no está." });
           if (d.respuesta) return json(res, 409, { error: "Esa decisión ya está contestada." });
+          if (d.resuelta) return json(res, 409, { error: "Esa decisión ya no espera respuesta: el agente la dio por resuelta." });
           if (d.descartada) return json(res, 400, { error: "Esa decisión está descartada." });
           for (const q of d.preguntas) {
             const e = v.elecciones?.[q.id] || {};

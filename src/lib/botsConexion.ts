@@ -78,6 +78,8 @@ const QUE_HIZO: Record<string, string> = {
   link_panes: "Dibujó una flecha",
   ask_decision: "Te pidió una decisión",
   get_decision: "Miró las decisiones",
+  close_decision: "Dio una decisión por resuelta",
+  compartir_en_el_movil: "Te enseñó algo en el móvil",
   buscar_memoria: "Buscó en la memoria",
   leer_memoria: "Leyó la memoria",
   leer_turno: "Leyó una conversación",

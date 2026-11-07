@@ -40,9 +40,20 @@ export interface Respuesta {
  * En qué punto está (`Vigencia` en `decisiones.rs`): «viva» es que la terminal
  * que preguntó sigue abierta y espera la respuesta; «huerfana», que está sin
  * contestar pero ya no hay nadie detrás (se cerró, o es de otro arranque);
- * «hablada», que le escribiste a esa terminal después de que preguntara.
+ * «hablada», que le escribiste a esa terminal después de que preguntara;
+ * «resuelta», que el agente la dio por resuelta porque la respuesta le llegó
+ * por otro lado, o porque la sustituye otra (`close_decision`, `replaces`).
  */
-export type Vigencia = "viva" | "huerfana" | "hablada" | "contestada" | "descartada";
+export type Vigencia = "viva" | "huerfana" | "hablada" | "contestada" | "descartada" | "resuelta";
+
+/** Cómo la cerró el agente (`Resuelta` en `decisiones.rs`). */
+export interface Resuelta {
+  /** Milisegundos. */
+  cuando: number;
+  como: string;
+  /** La decisión que la sustituye, si es eso. */
+  sustituta?: string;
+}
 
 export interface Decision {
   id: string;
@@ -59,6 +70,7 @@ export interface Decision {
   descartada?: number;
   /** Cuándo le escribiste a la terminal que preguntó, en milisegundos. */
   hablada?: number;
+  resuelta?: Resuelta;
   vigencia: Vigencia;
 }
 
@@ -131,7 +143,7 @@ export const pendientes = (lista: Decision[]) => lista.filter((d) => d.vigencia 
 
 /** Lo último que le pasó: contestarla, descartarla, hablarla o, si nada, pedirla. */
 export const ultimoMovimiento = (d: Decision) =>
-  Math.max(d.creada, d.respuesta?.cuando ?? 0, d.descartada ?? 0, d.hablada ?? 0);
+  Math.max(d.creada, d.respuesta?.cuando ?? 0, d.descartada ?? 0, d.hablada ?? 0, d.resuelta?.cuando ?? 0);
 
 /**
  * Los dos montones de la lista: las que te esperan y las anteriores, con la

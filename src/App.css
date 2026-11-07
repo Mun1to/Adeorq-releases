@@ -134,3 +134,6 @@
 
 /* «Adeo es una IA» y el botón de informar de un problema (política 11.16). */
 @import "./estilos/39-informar.css";
+
+/* El escudo: la ventana que pide tu verificación y Ajustes › Escudo. */
+@import "./estilos/40-escudo.css";

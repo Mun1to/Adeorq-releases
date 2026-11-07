@@ -8,15 +8,15 @@ Cada componente sigue siendo de quien lo escribió y se usa bajo su propia
 licencia, que es la que manda sobre ese componente. Nada de lo que hay aquí es
 de Adeorq ni cambia por estar en esta lista.
 
-Resumen: **86** componentes de la interfaz y **555** del núcleo en Rust. No hay
+Resumen: **86** componentes de la interfaz y **558** del núcleo en Rust. No hay
 ninguna dependencia con licencia GPL o AGPL. Hay 6 con MPL-2.0 (cssparser,
 cssparser-macros, dtoa-short, mediabunny, option-ext, selectors): la MPL solo
 obliga a publicar los cambios de SUS propios archivos, y Adeorq no modifica
 ninguno.
 
 El texto íntegro de cada licencia viaja dentro del paquete de la dependencia
-correspondiente y puede consultarse en su repositorio de origen. De 641
-componentes, 483 declaran un titular de copyright explícito, recogido abajo.
+correspondiente y puede consultarse en su repositorio de origen. De 644
+componentes, 486 declaran un titular de copyright explícito, recogido abajo.
 
 ## Interfaz (npm, dependencias de producción)
 
@@ -123,6 +123,7 @@ componentes, 483 declaran un titular de copyright explícito, recogido abajo.
 | android_system_properties | 0.1.5 | MIT/Apache-2.0 | Copyright 2016 Nicolas Silva |
 | anyhow | 1.0.104 | MIT OR Apache-2.0 | — |
 | arbitrary | 1.4.2 | MIT OR Apache-2.0 | Copyright 2019 Manish Goregaokar |
+| argon2 | 0.5.3 | MIT OR Apache-2.0 | Copyright 2021-2024 The RustCrypto Project Developers |
 | arraydeque | 0.5.1 | MIT/Apache-2.0 | Copyright 2018 Andy Lok <andylokandy@hotmail.com> |
 | async-broadcast | 0.7.2 | MIT OR Apache-2.0 | Copyright 2020 Yoshua Wuyts |
 | async-channel | 2.5.0 | Apache-2.0 OR MIT | — |
@@ -148,6 +149,7 @@ componentes, 483 declaran un titular de copyright explícito, recogido abajo.
 | bit-vec | 0.8.0 | Apache-2.0 OR MIT | Copyright 2023 The Rust Project Developers |
 | bitflags | 1.3.2 | MIT/Apache-2.0 | Copyright 2014 The Rust Project Developers |
 | bitflags | 2.13.1 | MIT OR Apache-2.0 | Copyright 2014 The Rust Project Developers |
+| blake2 | 0.10.6 | MIT OR Apache-2.0 | Copyright 2015-2016 The blake2-rfc Developers, Cesar Barros; Copyright 2017 Artyom Pavlov |
 | block-buffer | 0.10.4 | MIT OR Apache-2.0 | Copyright 2018-2019 The RustCrypto Project Developers |
 | block2 | 0.6.2 | MIT | — |
 | blocking | 1.6.2 | Apache-2.0 OR MIT | — |
@@ -385,6 +387,7 @@ componentes, 483 declaran un titular de copyright explícito, recogido abajo.
 | parking | 2.2.1 | Apache-2.0 OR MIT | Copyright 2014-2020 The Rust Project Developers |
 | parking_lot | 0.12.5 | MIT OR Apache-2.0 | Copyright 2016 The Rust Project Developers |
 | parking_lot_core | 0.9.12 | MIT OR Apache-2.0 | Copyright 2016 The Rust Project Developers |
+| password-hash | 0.5.0 | MIT OR Apache-2.0 | Copyright 2020-2023 RustCrypto Developers |
 | pem-rfc7468 | 0.7.0 | Apache-2.0 OR MIT | Copyright 2021 The RustCrypto Project Developers |
 | percent-encoding | 2.3.2 | MIT OR Apache-2.0 | Copyright 2013-2025 The rust-url developers |
 | phf | 0.13.1 | MIT | Copyright 2014-2022 Steven Fackler, Yuki Okushi |
@@ -671,6 +674,6 @@ componentes, 483 declaran un titular de copyright explícito, recogido abajo.
 
 ---
 
-Generado el 2026-11-04 con `pnpm terceros` a partir de `pnpm licenses list --prod`
+Generado el 2026-11-07 con `pnpm terceros` a partir de `pnpm licenses list --prod`
 y `cargo metadata`. Si eres autor de alguno de estos componentes y ves algo mal
 atribuido, escribe y se corrige.

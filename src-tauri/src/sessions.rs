@@ -708,7 +708,8 @@ pub async fn scan_sessions(
     // proyecto enseña su día entero de una vez.
     out.extend(scan_codex());
     out.extend(scan_pi());
-    // Los títulos que Munir les puso desde Adeorq a las de Codex y Pi: sus
+    out.extend(scan_gemini());
+    // Los títulos que Munir les puso desde Adeorq a las de Codex, Pi y Gemini: sus
     // ficheros los escribe el otro CLI, así que el título va aparte (ver
     // `titulos_propios`). Las de Claude llevan el suyo dentro del transcript.
     let propios = titulos_propios();
@@ -788,24 +789,11 @@ fn codex_dir() -> Option<PathBuf> {
     crate::dir_casa().map(|h| h.join(".codex").join("sessions"))
 }
 
-/// Las sesiones de Codex, que hasta ahora no salían en ningún sitio.
-///
-/// Un proyecto debería enseñar TODO lo que ha pasado en él, lo abriera quien lo
-/// abriera; antes solo se miraba `~/.claude/projects`, así que abrir Codex
-/// dentro de un proyecto y volver al panel era como si no hubiera pasado nada
-/// (Munir, 2026-07-30).
-///
-/// Codex guarda un `.jsonl` por sesión en `~/.codex/sessions/AAAA/MM/DD/`, y su
-/// PRIMERA línea es un `session_meta` con el `cwd` y el `session_id`, que es
-/// justo lo que hace falta. De los demás CLIs no se puede hacer esto y no es un
-/// olvido: se miró el disco el 2026-07-30 y Gemini solo guarda con `/chat save`
-/// (su carpeta estaba vacía), y Qwen, Copilot y Crush no dejan historial
-/// legible. Cuando alguno empiece a guardarlo, se añade aquí al lado.
 /// Dónde se guardan los títulos puestos desde Adeorq a sesiones que no son de
 /// Claude (`<dir_datos>/titulos.json`, id → título). A un transcript de Claude
-/// se le añade una línea `custom-title` y su CLI la entiende; al de Codex o Pi
-/// no se le puede escribir nada, que es de su programa. Antes renombrar una de
-/// esas fallaba igual que fallaba borrarla (bandeja, 2026-08).
+/// se le añade una línea `custom-title` y su CLI la entiende; al de Codex, Pi o
+/// Gemini no se le puede escribir nada, que es de su programa. Antes renombrar
+/// una de esas fallaba igual que fallaba borrarla (bandeja, 2026-08).
 fn ruta_titulos() -> Option<PathBuf> {
     crate::dir_datos().ok().map(|d| d.join("titulos.json"))
 }
@@ -834,6 +822,20 @@ pub fn guardar_titulo_propio(session_id: &str, titulo: &str) -> Result<(), Strin
     std::fs::rename(&tmp, &ruta).map_err(|e| e.to_string())
 }
 
+/// Las sesiones de Codex, que hasta ahora no salían en ningún sitio.
+///
+/// Un proyecto debería enseñar TODO lo que ha pasado en él, lo abriera quien lo
+/// abriera; antes solo se miraba `~/.claude/projects`, así que abrir Codex
+/// dentro de un proyecto y volver al panel era como si no hubiera pasado nada
+/// (Munir, 2026-07-30).
+///
+/// Codex guarda un `.jsonl` por sesión en `~/.codex/sessions/AAAA/MM/DD/`, y su
+/// PRIMERA línea es un `session_meta` con el `cwd` y el `session_id`, que es
+/// justo lo que hace falta. Pi y Gemini también se leen (`scan_pi`,
+/// `scan_gemini`); Gemini guarda cada sesión sola desde hace tiempo, aunque el
+/// 2026-07-30 su carpeta estaba vacía y aquí se llegó a escribir que solo
+/// guardaba con `/chat save`. Qwen, Copilot y Crush no dejan historial
+/// legible. Cuando alguno empiece a guardarlo, se añade aquí al lado.
 fn scan_codex() -> Vec<SessionInfo> {
     let Some(raiz) = codex_dir() else {
         return Vec::new();
@@ -1473,6 +1475,447 @@ fn pi_transcript_en(raiz: &Path, session_id: &str) -> Option<PathBuf> {
         for f in ficheros.flatten() {
             if let Some(p) = mira(f.path()) {
                 return Some(p);
+            }
+        }
+    }
+    None
+}
+
+/// La carpeta de Gemini CLI. Calca su `homedir()` (`packages/core/src/utils/paths.ts`,
+/// leído en su 0.52.0): con `GEMINI_CLI_HOME` puesta, esa es la casa y `.gemini`
+/// cuelga de ella, como cuenta `accounts.rs` de una segunda cuenta.
+fn gemini_dir() -> Option<PathBuf> {
+    if let Ok(casa) = std::env::var("GEMINI_CLI_HOME") {
+        if !casa.is_empty() {
+            return Some(PathBuf::from(casa).join(".gemini"));
+        }
+    }
+    crate::dir_casa().map(|h| h.join(".gemini"))
+}
+
+/// Las sesiones de Gemini CLI, que las guarda solas, sin `/chat save`.
+///
+/// Medido en su disco el 2026-11-08 (Gemini 0.52.0, cinco sesiones) y leído en
+/// su código (`chatRecordingService.js`, `sessionUtils.js`):
+///
+///  - una carpeta por proyecto en `~/.gemini/tmp/<apodo>/`, con un
+///    `.project_root` que trae la ruta del proyecto y un
+///    `chats/session-<AAAA-MM-DDTHH-MM>-<8 del id>.jsonl` por sesión;
+///  - la primera línea es la cabecera (`sessionId`, `projectHash`, `startTime`,
+///    `lastUpdated`, `kind`) y detrás va un registro por línea: un mensaje
+///    (`id`, `timestamp`, `type`, `content`), un `$set` que cambia la cabecera
+///    o un `$rewindTo` que deshace desde un mensaje (ver `gemini_mensajes`);
+///  - los subagentes guardan en `chats/<id del padre>/<id>.jsonl` con
+///    `kind: "subagent"`: son trabajo DENTRO de otra sesión, como una
+///    `sidechain` de Claude, y no salen.
+///
+/// Solo la cuenta de siempre, como Codex y Pi. Las de una segunda cuenta de
+/// Gemini viven en `<cuenta>/.gemini/tmp` y se quedan fuera mientras retomar no
+/// sepa abrirlas con su `GEMINI_CLI_HOME`.
+fn scan_gemini() -> Vec<SessionInfo> {
+    gemini_dir()
+        .map(|d| scan_gemini_en(&d.join("tmp")))
+        .unwrap_or_default()
+}
+
+/// El barrido de verdad, con la carpeta `tmp` por parámetro para poder probarlo
+/// sin tocar `USERPROFILE` (el motivo de `codex_transcript_en`).
+fn scan_gemini_en(tmp: &Path) -> Vec<SessionInfo> {
+    let mut out = Vec::new();
+    for proyecto in leer_dirs(tmp) {
+        // Sin carpeta de trabajo no hay dónde retomarla: `gemini --resume` solo
+        // encuentra la sesión desde la carpeta en la que nació.
+        let Some(cwd) = gemini_cwd(&proyecto) else {
+            continue;
+        };
+        for path in sesiones_gemini(&proyecto) {
+            if let Some(info) = analyze_gemini(&path, &cwd) {
+                out.push(info);
+            }
+        }
+    }
+    out
+}
+
+/// Los `session-*.jsonl` sueltos de `chats/`, que son las sesiones principales.
+/// Los de los subagentes van en subcarpetas y no se miran.
+fn sesiones_gemini(proyecto: &Path) -> Vec<PathBuf> {
+    let Ok(ficheros) = std::fs::read_dir(proyecto.join("chats")) else {
+        return Vec::new();
+    };
+    ficheros
+        .flatten()
+        .filter(|f| {
+            let nombre = f.file_name();
+            let nombre = nombre.to_string_lossy();
+            nombre.starts_with("session-") && nombre.ends_with(".jsonl")
+        })
+        .map(|f| f.path())
+        .filter(|p| p.is_file())
+        .collect()
+}
+
+/// La carpeta de trabajo de un proyecto de Gemini, de su `.project_root`.
+///
+/// El nombre de la carpeta de `tmp` no sirve: es un apodo que pone Gemini
+/// (`proyectos` y `proyectos-1` eran dos raíces distintas en su disco), y
+/// `projectHash` es el sha256 de la ruta, que no se deshace. `.project_root` la
+/// trae entera, pero en Windows en minúsculas (`c:\proyectos\adeorq`), y así el
+/// proyecto saldría «adeorq»: si la carpeta existe, se le pregunta al disco cómo
+/// se escribe. Si ya no existe, se queda como venía.
+fn gemini_cwd(proyecto: &Path) -> Option<String> {
+    let ruta = std::fs::read_to_string(proyecto.join(".project_root")).ok()?;
+    let ruta = ruta.trim();
+    (!ruta.is_empty()).then(|| como_en_el_disco(ruta))
+}
+
+/// La misma ruta con las mayúsculas que tiene en el disco. Solo en Windows, que
+/// es donde Gemini la baja a minúsculas.
+fn como_en_el_disco(ruta: &str) -> String {
+    #[cfg(windows)]
+    {
+        if let Ok(real) = std::fs::canonicalize(ruta) {
+            let real = real.to_string_lossy().into_owned();
+            let real = real.strip_prefix(r"\\?\").unwrap_or(&real);
+            // `canonicalize` también sigue uniones y enlaces: si sale OTRA
+            // carpeta y no la misma con otras mayúsculas, vale la de Gemini.
+            if real.to_lowercase() == ruta.to_lowercase() {
+                return real.to_owned();
+            }
+        }
+    }
+    ruta.to_owned()
+}
+
+fn analyze_gemini(path: &Path, cwd: &str) -> Option<SessionInfo> {
+    let meta = std::fs::metadata(path).ok()?;
+    let size = meta.len();
+    let mtime = meta
+        .modified()
+        .ok()?
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .ok()?
+        .as_secs();
+
+    let cabeza = gemini_cabeza(path)?;
+
+    let now = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(mtime);
+    let hours = (now.saturating_sub(mtime)) as f64 / 3600.0;
+    let fresh = if hours < SLEEP_H {
+        "activa"
+    } else if hours < DEAD_H {
+        "dormida"
+    } else {
+        "muerta"
+    };
+
+    Some(SessionInfo {
+        id: cabeza.id,
+        title: clean(if cabeza.titulo.is_empty() { "(sin título)" } else { &cabeza.titulo }, 90),
+        // Como Pi: no se ha medido cómo deja Gemini un turno a medias, y un
+        // estado inventado es peor que ninguno.
+        state: String::new(),
+        fresh: fresh.into(),
+        hours: (hours * 10.0).round() / 10.0,
+        mtime,
+        ago: ago_text(hours),
+        project: project_of(cwd, "", ""),
+        resume_cwd: cwd.to_owned(),
+        folder: String::new(),
+        cwd: cwd.to_owned(),
+        // Gemini no publica qué sesiones tiene abiertas: nunca en verde.
+        live: false,
+        size_kb: size / 1024,
+        agents_live: 0,
+        agents_total: 0,
+        fuente: "gemini".into(),
+        cuenta: String::new(),
+    })
+}
+
+/// Lo que la barra necesita de una sesión de Gemini.
+struct CabezaGemini {
+    /// El `sessionId` ENTERO de la cabecera, que es lo que acepta
+    /// `gemini --resume` (`SessionSelector.findSession` compara con él). El del
+    /// nombre del fichero son solo sus ocho primeros.
+    id: String,
+    titulo: String,
+}
+
+/// La cabecera y el título de una sesión de Gemini, leídos desde el PRINCIPIO y
+/// no desde la cola: la cabecera es la primera línea y el título, el primer
+/// mensaje tuyo, que va justo detrás. Se para en cuanto lo encuentra, o pasado
+/// `TAIL_BYTES`, para no leer entera una sesión larga en cada barrido.
+///
+/// `None` si no es una sesión que Gemini deje retomar: sin cabecera, de un
+/// subagente, o sin nada que retomar (abierta y cerrada sin escribirle: solo
+/// lleva el `<session_context>` que se pone el CLI, su propia lista la descarta
+/// por `hasResumableContent` y `gemini --resume` no la encuentra).
+fn gemini_cabeza(path: &Path) -> Option<CabezaGemini> {
+    use std::io::{BufRead, BufReader};
+    let mut lineas = BufReader::new(std::fs::File::open(path).ok()?).lines();
+    let cabecera: Value = serde_json::from_str(&lineas.next()?.ok()?).ok()?;
+    let id = cabecera["sessionId"].as_str()?.to_owned();
+    if !cabecera["projectHash"].is_string() || cabecera["kind"].as_str() == Some("subagent") {
+        return None;
+    }
+    // El id acaba tecleado en una terminal (`gemini --resume {id}`): con un
+    // espacio o un `;` dentro sería otra orden.
+    if id.is_empty() || !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+        return None;
+    }
+
+    // El primer mensaje tuyo de un registro, y de paso si trae una respuesta
+    // que ya haga retomable la sesión.
+    let mira = |v: &Value, retomable: &mut bool| -> Option<String> {
+        for m in mensajes_del_registro(v) {
+            if m["type"].as_str() == Some("user") {
+                let texto = gemini_texto_tuyo(m);
+                if !gemini_ignorado(&texto) {
+                    return Some(texto);
+                }
+            } else if gemini_retomable(m) {
+                *retomable = true;
+            }
+        }
+        None
+    };
+    let mut retomable = false;
+    if let Some(titulo) = mira(&cabecera, &mut retomable) {
+        return Some(CabezaGemini { id, titulo });
+    }
+    let mut leido = 0u64;
+    for linea in lineas {
+        let Ok(linea) = linea else {
+            break;
+        };
+        leido += linea.len() as u64 + 1;
+        if let Ok(v) = serde_json::from_str::<Value>(&linea) {
+            if let Some(titulo) = mira(&v, &mut retomable) {
+                return Some(CabezaGemini { id, titulo });
+            }
+        }
+        // Mega y medio sin un mensaje tuyo: algo hay que retomar, aunque no
+        // tenga título que enseñar.
+        if leido > TAIL_BYTES {
+            retomable = true;
+            break;
+        }
+    }
+    retomable.then(|| CabezaGemini { id, titulo: String::new() })
+}
+
+/// Los mensajes que trae un registro de Gemini: él mismo si es un mensaje, los
+/// de un `$set.messages`, o los de una cabecera que los lleve dentro (la que
+/// escribe al pasar una sesión vieja de `.json` a `.jsonl`).
+fn mensajes_del_registro(v: &Value) -> Vec<&Value> {
+    if v["id"].is_string() {
+        return vec![v];
+    }
+    v["$set"]["messages"]
+        .as_array()
+        .or_else(|| v["messages"].as_array())
+        .map(|ms| ms.iter().collect())
+        .unwrap_or_default()
+}
+
+/// El texto de un `content` de Gemini: una cadena, una parte o una lista de
+/// partes, de las que solo cuentan las de texto, juntas sin separador como en
+/// su `partListUnionToString`. Las respuestas de herramienta van en partes
+/// `functionResponse` y no son conversación.
+fn gemini_texto(content: &Value) -> String {
+    if let Some(s) = content.as_str().or_else(|| content["text"].as_str()) {
+        return s.trim().to_owned();
+    }
+    content
+        .as_array()
+        .map(|partes| {
+            partes
+                .iter()
+                .filter_map(|p| p["text"].as_str())
+                .collect::<String>()
+                .trim()
+                .to_owned()
+        })
+        .unwrap_or_default()
+}
+
+/// Lo que escribiste tú: `displayContent` si lo hay (Gemini lo guarda cuando lo
+/// que mandó al modelo no es lo que tecleaste, por ejemplo con un `@archivo`
+/// desplegado dentro) y, si no, `content`.
+fn gemini_texto_tuyo(m: &Value) -> String {
+    let visto = gemini_texto(&m["displayContent"]);
+    if visto.is_empty() {
+        gemini_texto(&m["content"])
+    } else {
+        visto
+    }
+}
+
+/// Lo que Gemini no cuenta como mensaje tuyo (`isIgnoredUserContent`): vacío,
+/// una orden con barra, la ayuda con `?` y los bloques que se mete él mismo
+/// (`<session_context>` es el primer mensaje de TODAS sus sesiones).
+fn gemini_ignorado(t: &str) -> bool {
+    let t = t.trim();
+    t.is_empty()
+        || t.starts_with('/')
+        || t.starts_with('?')
+        || t.starts_with("<session_context>")
+        || t.starts_with("<hook_context>")
+}
+
+/// Una respuesta del modelo que hace retomable la sesión, con la vara de
+/// Gemini (`isResumableMessageRecord`): con texto, herramientas o pensamientos.
+fn gemini_retomable(m: &Value) -> bool {
+    m["type"].as_str() == Some("gemini")
+        && (!gemini_texto(&m["content"]).is_empty()
+            || m["toolCalls"].as_array().is_some_and(|a| !a.is_empty())
+            || m["thoughts"].as_array().is_some_and(|a| !a.is_empty()))
+}
+
+/// Pone un mensaje en su sitio: si su `id` ya estaba, lo SUSTITUYE donde
+/// estaba, y si no, va al final (como el `Map` de Gemini).
+fn poner_mensaje(orden: &mut Vec<Value>, donde: &mut HashMap<String, usize>, m: Value) {
+    let Some(id) = m["id"].as_str().map(str::to_owned) else {
+        return;
+    };
+    match donde.get(&id) {
+        Some(&i) => orden[i] = m,
+        None => {
+            donde.insert(id, orden.len());
+            orden.push(m);
+        }
+    }
+}
+
+/// Los mensajes que siguen vivos en unas líneas de un transcript de Gemini, en
+/// orden, aplicando sus registros como él al cargarlo (`loadConversationRecord`):
+///
+///  - un mensaje con un `id` ya visto sustituye al de antes: así guarda una
+///    respuesta que crece (primero sin nada, luego con sus herramientas), y
+///    sin esto salía dos veces;
+///  - `$set.messages` los cambia todos;
+///  - `$rewindTo` borra desde ese mensaje hasta el final, y si no lo encuentra,
+///    todos, que también es lo que hace él. Leyendo solo la cola es lo justo:
+///    si no está, es que era anterior, y todo lo leído iba detrás.
+fn gemini_mensajes<'a>(lineas: impl Iterator<Item = &'a str>) -> Vec<Value> {
+    let mut orden: Vec<Value> = Vec::new();
+    let mut donde: HashMap<String, usize> = HashMap::new();
+    for linea in lineas {
+        let Ok(v) = serde_json::from_str::<Value>(linea) else {
+            continue;
+        };
+        if let Some(hasta) = v["$rewindTo"].as_str() {
+            match donde.get(hasta) {
+                Some(&i) => {
+                    orden.truncate(i);
+                    donde.retain(|_, j| *j < i);
+                }
+                None => {
+                    orden.clear();
+                    donde.clear();
+                }
+            }
+        } else if v["id"].is_string() {
+            poner_mensaje(&mut orden, &mut donde, v);
+        } else if let Some(todos) = v["$set"]["messages"].as_array() {
+            orden.clear();
+            donde.clear();
+            for m in todos {
+                poner_mensaje(&mut orden, &mut donde, m.clone());
+            }
+        } else if v["sessionId"].is_string() && v["projectHash"].is_string() {
+            for m in v["messages"].as_array().into_iter().flatten() {
+                poner_mensaje(&mut orden, &mut donde, m.clone());
+            }
+        }
+    }
+    orden
+}
+
+/// Una llamada a herramienta de Gemini como paso del turno: su `displayName` es
+/// el nombre que enseña él («ReadFolder», «WriteFile») y su `description`, sobre
+/// qué la hizo. Las de un servidor MCP se llaman `mcp_<servidor>_<herramienta>`.
+fn paso_de_gemini(l: &Value) -> Option<Paso> {
+    let name = l["name"].as_str()?;
+    let nombre = l["displayName"].as_str().filter(|s| !s.is_empty()).unwrap_or(name);
+    Some(Paso {
+        clase: if name.starts_with("mcp_") { "mcp" } else { "herramienta" }.into(),
+        nombre: nombre.to_owned(),
+        detalle: recortado(l["description"].as_str().unwrap_or_default(), 48),
+    })
+}
+
+/// Los turnos de unas líneas de un transcript de Gemini, como `turnos_de` con
+/// los de Claude. `type` es `user` o `gemini` (y `info`, `error` o `warning`,
+/// que son avisos de su pantalla y no salen); las herramientas van en los
+/// `toolCalls` del mensaje del modelo, y sus resultados en un mensaje `user`
+/// hecho de `functionResponse`, que no escribió nadie y se salta.
+pub fn gemini_turnos_de(lineas: &[String], max: usize) -> Vec<Turno> {
+    let mut out: Vec<Turno> = Vec::new();
+    for m in gemini_mensajes(lineas.iter().map(String::as_str)) {
+        let hora = m["timestamp"].as_str().unwrap_or_default().to_owned();
+        let turno = match m["type"].as_str() {
+            Some("user") => {
+                let texto = gemini_texto_tuyo(&m);
+                if gemini_ignorado(&texto) {
+                    continue;
+                }
+                Turno { rol: "tu".into(), texto, hora, herramientas: Vec::new(), pasos: Vec::new() }
+            }
+            Some("gemini") => {
+                let llamadas: &[Value] = m["toolCalls"].as_array().map(Vec::as_slice).unwrap_or_default();
+                let herramientas: Vec<String> =
+                    llamadas.iter().filter_map(|l| l["name"].as_str()).map(str::to_owned).collect();
+                let texto = gemini_texto(&m["content"]);
+                if texto.is_empty() && herramientas.is_empty() {
+                    continue;
+                }
+                let pasos = llamadas.iter().filter_map(paso_de_gemini).collect();
+                Turno { rol: "agente".into(), texto, hora, herramientas, pasos }
+            }
+            _ => continue,
+        };
+        juntar_turno(&mut out, turno);
+    }
+    if out.len() > max {
+        out.drain(..out.len() - max);
+    }
+    out
+}
+
+/// El fichero de una sesión de Gemini, buscándolo por su id entero.
+///
+/// Como en Codex y Pi, la ruta no se compone: el nombre lleva delante la fecha
+/// (`session-<fecha>-<8 del id>.jsonl`) y cuelga del apodo del proyecto. Se
+/// miran solo los que acaban en esos ocho y, de ellos, la cabecera, porque ocho
+/// caracteres pueden repetirse (lo mismo hace Gemini en `sessionExists`).
+pub fn gemini_transcript(session_id: &str) -> Option<PathBuf> {
+    gemini_transcript_en(&gemini_dir()?.join("tmp"), session_id)
+}
+
+fn gemini_transcript_en(tmp: &Path, session_id: &str) -> Option<PathBuf> {
+    let corto: String = session_id.chars().take(8).collect();
+    if corto.len() < 8 || !corto.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+        return None;
+    }
+    let cola = format!("-{corto}.jsonl");
+    for proyecto in leer_dirs(tmp) {
+        for path in sesiones_gemini(&proyecto) {
+            if !path.file_name().is_some_and(|n| n.to_string_lossy().ends_with(&cola)) {
+                continue;
+            }
+            let Some(cabecera) = primera_linea(&path) else {
+                continue;
+            };
+            let Ok(v) = serde_json::from_str::<Value>(&cabecera) else {
+                continue;
+            };
+            if v["sessionId"].as_str() == Some(session_id) {
+                return Some(path);
             }
         }
     }
@@ -2399,7 +2842,7 @@ fn sumar_turnos<'a>(out: &mut Vec<Turno>, lineas: impl Iterator<Item = &'a str>)
         let content = &v["message"]["content"];
         let texto = texto_del_contenido(content);
         let herramientas = herramientas_del_contenido(content);
-        let mut pasos = pasos_del_contenido(content);
+        let pasos = pasos_del_contenido(content);
         if texto.is_empty() && herramientas.is_empty() {
             continue;
         }
@@ -2408,37 +2851,37 @@ fn sumar_turnos<'a>(out: &mut Vec<Turno>, lineas: impl Iterator<Item = &'a str>)
         }
         let rol = if kind == "assistant" { "agente" } else { "tu" };
         let hora = v["timestamp"].as_str().unwrap_or_default().to_owned();
+        juntar_turno(out, Turno { rol: rol.to_owned(), texto, hora, herramientas, pasos });
+    }
+}
 
-        // El CLI parte una respuesta larga en varios mensajes seguidos, y cada
-        // llamada a una herramienta abre otro. Pintados por separado saldrían
-        // veinte burbujas de la misma frase, así que los seguidos del mismo rol
-        // se juntan en uno.
-        match out.last_mut() {
-            Some(ult) if ult.rol == rol => {
-                if !texto.is_empty() {
-                    if !ult.texto.is_empty() {
-                        ult.texto.push_str("\n\n");
-                    }
-                    ult.texto.push_str(&texto);
+/// Añade un turno a `out`, o lo junta con el último si es del mismo rol.
+///
+/// El CLI parte una respuesta larga en varios mensajes seguidos, y cada llamada
+/// a una herramienta abre otro. Pintados por separado saldrían veinte burbujas
+/// de la misma frase, así que los seguidos del mismo rol se juntan en uno. Lo
+/// usan los transcripts de Claude (`sumar_turnos`) y los de Gemini
+/// (`gemini_turnos_de`).
+fn juntar_turno(out: &mut Vec<Turno>, mut t: Turno) {
+    match out.last_mut() {
+        Some(ult) if ult.rol == t.rol => {
+            if !t.texto.is_empty() {
+                if !ult.texto.is_empty() {
+                    ult.texto.push_str("\n\n");
                 }
-                ult.herramientas.extend(herramientas);
-                ult.pasos.append(&mut pasos);
-                if ult.pasos.len() > TOPE_PASOS {
-                    ult.pasos.drain(..ult.pasos.len() - TOPE_PASOS);
-                }
+                ult.texto.push_str(&t.texto);
             }
-            _ => {
-                if pasos.len() > TOPE_PASOS {
-                    pasos.drain(..pasos.len() - TOPE_PASOS);
-                }
-                out.push(Turno {
-                    rol: rol.to_owned(),
-                    texto,
-                    hora,
-                    herramientas,
-                    pasos,
-                })
+            ult.herramientas.append(&mut t.herramientas);
+            ult.pasos.append(&mut t.pasos);
+            if ult.pasos.len() > TOPE_PASOS {
+                ult.pasos.drain(..ult.pasos.len() - TOPE_PASOS);
             }
+        }
+        _ => {
+            if t.pasos.len() > TOPE_PASOS {
+                t.pasos.drain(..t.pasos.len() - TOPE_PASOS);
+            }
+            out.push(t);
         }
     }
 }
@@ -2544,12 +2987,65 @@ pub fn session_messages(
             return Err("id de sesión no válido".into());
         }
     }
-    let path = transcript_de(&cwd, session_id.as_deref()).ok_or(if session_id.is_some() {
+    let max = max.unwrap_or(60);
+    if let Some(path) = transcript_de(&cwd, session_id.as_deref()) {
+        return conversacion_de(&path, max).map_err(|e| e.to_string());
+    }
+    // Una de Gemini no vive en las carpetas de Claude: se busca por su id
+    // (`gemini_transcript`). Sin id no se adivina, que «la más reciente de esta
+    // carpeta» ya es la de Claude.
+    if let Some(path) = session_id.as_deref().filter(|i| !i.is_empty()).and_then(gemini_transcript) {
+        return conversacion_gemini(&path, max).map_err(|e| e.to_string());
+    }
+    Err(if session_id.is_some() {
         "esa conversación no está en el disco"
     } else {
         "ese proyecto no tiene conversaciones"
-    })?;
-    conversacion_de(&path, max.unwrap_or(60)).map_err(|e| e.to_string())
+    }
+    .into())
+}
+
+/// Las conversaciones de Gemini leídas hace poco, mientras su fichero no cambie
+/// de tamaño ni de fecha: el Chat pregunta cada tres segundos (el motivo de
+/// `COLAS`).
+type LeidaGemini = (PathBuf, u64, u64, usize, Vec<Turno>);
+static CONVERSACIONES_GEMINI: Mutex<Vec<LeidaGemini>> = Mutex::new(Vec::new());
+
+/// La conversación de un transcript de Gemini, leída hacia atrás a trozos cada
+/// vez mayores hasta tener `max` turnos, como `conversacion_de`. Sin su lectura
+/// de lo que crece: un registro de Gemini puede sustituir o deshacer mensajes
+/// de antes (`gemini_mensajes`), así que lo nuevo no se suma a lo leído, se
+/// vuelve a leer.
+fn conversacion_gemini(path: &Path, max: usize) -> std::io::Result<Vec<Turno>> {
+    let meta = std::fs::metadata(path)?;
+    let size = meta.len();
+    let mtime = meta
+        .modified()
+        .ok()
+        .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let mut leidas = CONVERSACIONES_GEMINI.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some((.., turnos)) = leidas
+        .iter()
+        .find(|(p, s, m, n, _)| p == path && *s == size && *m == mtime && *n == max)
+    {
+        return Ok(turnos.clone());
+    }
+    let mut trozo = TAIL_BYTES;
+    let turnos = loop {
+        let desde = size.saturating_sub(trozo);
+        let (lineas, _) = lineas_entre(path, desde, size, desde > 0)?;
+        let turnos = gemini_turnos_de(&lineas, max);
+        if turnos.len() >= max || desde == 0 || trozo >= TOPE_CONVERSACION {
+            break turnos;
+        }
+        trozo = (trozo * 4).min(TOPE_CONVERSACION);
+    };
+    leidas.retain(|(p, _, _, n, _)| p != path || *n != max);
+    leidas.insert(0, (path.to_owned(), size, mtime, max, turnos.clone()));
+    leidas.truncate(CONVERSACIONES_MAX);
+    Ok(turnos)
 }
 
 /* ── La actividad de una sesión: lo que pasa por detrás de la terminal ────
@@ -4151,6 +4647,214 @@ otra
         );
 
         let _ = std::fs::remove_dir_all(&raiz);
+    }
+
+    /// La cabecera de un transcript de Gemini, con la forma de su disco de
+    /// verdad (Gemini 0.52.0, leído el 2026-11-08).
+    fn cabecera_gemini(id: &str, kind: &str) -> String {
+        format!(
+            r#"{{"sessionId":"{id}","projectHash":"{h}","startTime":"2026-11-08T09:00:00.000Z","lastUpdated":"2026-11-08T09:00:00.000Z","kind":"{kind}"}}"#,
+            h = "0".repeat(64)
+        )
+    }
+
+    /// El primer mensaje de TODAS las sesiones de Gemini: el contexto que se
+    /// pone el CLI, dentro de un `$set.messages`. No lo escribió nadie.
+    const CONTEXTO_GEMINI: &str = r#"{"$set":{"messages":[{"id":"c0","timestamp":"2026-11-08T09:00:00.000Z","type":"user","content":[{"text":"<session_context>\nThis is the Gemini CLI.\n</session_context>"}]}],"lastUpdated":"2026-11-08T09:00:00.000Z"}}"#;
+
+    /// Gemini guarda cada sesión sola, aunque aquí se llegó a escribir que solo
+    /// guardaba con `/chat save`. Sale la que se puede retomar, con su primer
+    /// mensaje de verdad como título y el id ENTERO de la cabecera, que es el
+    /// que acepta `gemini --resume`; no salen la que se abrió sin escribirle,
+    /// los subagentes ni lo que no tiene `.project_root`.
+    #[test]
+    fn a_gemini_session_is_listed_with_its_first_real_message_and_its_whole_id() {
+        let tmp = std::env::temp_dir().join(format!("adeorq-gemini-scan-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        let viva = "aaaa1111-0000-4000-8000-000000000001";
+        let proyecto = tmp.join("demo");
+        let chats = proyecto.join("chats");
+        std::fs::create_dir_all(chats.join(viva)).unwrap();
+        std::fs::write(proyecto.join(".project_root"), "c:\\no-existe\\demo\n").unwrap();
+
+        let tuyo = r#"{"id":"u1","timestamp":"2026-11-08T09:00:05.000Z","type":"user","content":[{"text":"Arregla   el botón\nde guardar"}]}"#;
+        let suyo = r#"{"id":"g1","timestamp":"2026-11-08T09:00:09.000Z","type":"gemini","content":"Hecho.","thoughts":[],"model":"gemini-3-flash"}"#;
+        let fichero = |lineas: &[&str]| lineas.join("\n") + "\n";
+
+        let cab = cabecera_gemini(viva, "main");
+        std::fs::write(
+            chats.join("session-2026-11-08T09-00-aaaa1111.jsonl"),
+            fichero(&[cab.as_str(), CONTEXTO_GEMINI, tuyo, r#"{"$set":{"lastUpdated":"2026-11-08T09:00:05.000Z"}}"#, suyo]),
+        )
+        .unwrap();
+        // Abierta y cerrada sin escribirle: solo el contexto del CLI.
+        let vacia = cabecera_gemini("bbbb2222-0000-4000-8000-000000000002", "main");
+        std::fs::write(chats.join("session-2026-11-08T10-00-bbbb2222.jsonl"), fichero(&[vacia.as_str(), CONTEXTO_GEMINI])).unwrap();
+        // Un subagente en su subcarpeta, y otro suelto por si cambia de sitio.
+        let sub = cabecera_gemini("cccc3333-0000-4000-8000-000000000003", "subagent");
+        std::fs::write(chats.join(viva).join("cccc3333-0000-4000-8000-000000000003.jsonl"), fichero(&[sub.as_str(), tuyo])).unwrap();
+        std::fs::write(chats.join("session-2026-11-08T11-00-cccc3333.jsonl"), fichero(&[sub.as_str(), tuyo])).unwrap();
+        // Un proyecto sin `.project_root`: no hay carpeta donde retomarla.
+        let huerfano = tmp.join("huerfano").join("chats");
+        std::fs::create_dir_all(&huerfano).unwrap();
+        let otra = cabecera_gemini("dddd4444-0000-4000-8000-000000000004", "main");
+        std::fs::write(huerfano.join("session-2026-11-08T12-00-dddd4444.jsonl"), fichero(&[otra.as_str(), tuyo])).unwrap();
+
+        let todas = scan_gemini_en(&tmp);
+        assert_eq!(todas.len(), 1, "solo la que Gemini deja retomar: {:?}", todas.iter().map(|s| &s.id).collect::<Vec<_>>());
+        let s = &todas[0];
+        assert_eq!(s.fuente, "gemini");
+        assert_eq!(s.id, viva, "el id entero de la cabecera, no los ocho del nombre");
+        assert_eq!(s.title, "Arregla el botón de guardar", "el primer mensaje tuyo, no el <session_context>");
+        assert_eq!(s.cwd, "c:\\no-existe\\demo", "si la carpeta ya no existe, la ruta queda como la dejó Gemini");
+        assert_eq!(s.resume_cwd, s.cwd, "`gemini --resume` solo la encuentra desde su carpeta");
+        assert_eq!(s.folder, "", "no es de Claude: borrar y renombrar van por su rama");
+        assert_eq!(s.fresh, "activa");
+        assert!(!s.live);
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    /// `.project_root` viene en minúsculas en Windows (`c:\proyectos\adeorq`, en
+    /// su disco), y con esa ruta el proyecto saldría «adeorq»: la carpeta que
+    /// existe vuelve con las mayúsculas del disco.
+    #[cfg(windows)]
+    #[test]
+    fn a_gemini_project_root_in_lower_case_comes_back_as_the_disk_writes_it() {
+        let base = std::env::temp_dir().join(format!("adeorq-gemini-mayus-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        let carpeta = base.join("Proyecto Demo");
+        std::fs::create_dir_all(&carpeta).unwrap();
+        let real = std::fs::canonicalize(&carpeta).unwrap().to_string_lossy().into_owned();
+        let real = real.strip_prefix(r"\\?\").unwrap_or(&real).to_owned();
+
+        assert_eq!(como_en_el_disco(&real.to_lowercase()), real);
+        assert!(real.ends_with("Proyecto Demo"));
+
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// Un transcript de Gemini no se lee línea a línea como uno de Claude: un
+    /// mensaje que vuelve con el mismo `id` sustituye al de antes (así guarda la
+    /// respuesta que crece con sus herramientas), `$rewindTo` deshace desde un
+    /// mensaje, los resultados de herramienta van como mensajes `user` que no
+    /// escribió nadie, y lo que tecleaste está en `displayContent` cuando no es
+    /// lo que se mandó al modelo.
+    #[test]
+    fn a_gemini_transcript_reads_as_turns_with_its_rewrites_and_rewinds() {
+        let lineas: Vec<String> = [
+            cabecera_gemini("eeee5555-0000-4000-8000-000000000005", "main").as_str(),
+            CONTEXTO_GEMINI,
+            r#"{"id":"u1","timestamp":"2026-11-08T09:01:00.000Z","type":"user","content":[{"text":"Revisa @src/login.ts"},{"text":"\n--- src/login.ts ---\nexport const x = 1;"}],"displayContent":[{"text":"Revisa @src/login.ts"}]}"#,
+            r#"{"$set":{"lastUpdated":"2026-11-08T09:01:00.000Z"}}"#,
+            r#"{"id":"g1","timestamp":"2026-11-08T09:01:02.000Z","type":"gemini","content":"Voy a mirar el login.","thoughts":[{"subject":"Mirar","description":"…"}],"model":"gemini-3-flash"}"#,
+            r#"{"id":"g1","timestamp":"2026-11-08T09:01:02.000Z","type":"gemini","content":"Voy a mirar el login.","thoughts":[{"subject":"Mirar","description":"…"}],"model":"gemini-3-flash","toolCalls":[{"id":"t1","name":"read_file","args":{"file_path":"src/login.ts"},"status":"success","displayName":"ReadFile","description":"src/login.ts"}]}"#,
+            r#"{"id":"r1","timestamp":"2026-11-08T09:01:03.000Z","type":"user","content":[{"functionResponse":{"id":"t1","name":"read_file","response":{"output":"export const x = 1;"}}}]}"#,
+            r#"{"id":"g2","timestamp":"2026-11-08T09:01:05.000Z","type":"gemini","content":"El fallo está en la línea 12.","thoughts":[],"model":"gemini-3-flash"}"#,
+            r#"{"id":"i1","timestamp":"2026-11-08T09:01:06.000Z","type":"info","content":"Modelo cambiado"}"#,
+            r#"{"id":"u2","timestamp":"2026-11-08T09:02:00.000Z","type":"user","content":[{"text":"¿Y el registro?"}]}"#,
+            r#"{"id":"g3","timestamp":"2026-11-08T09:02:04.000Z","type":"gemini","content":"Lo miro.","thoughts":[],"model":"gemini-3-flash"}"#,
+            r#"{"$rewindTo":"u2"}"#,
+            r#"{"id":"u3","timestamp":"2026-11-08T09:03:00.000Z","type":"user","content":[{"text":"/model"}]}"#,
+            r#"{"id":"u4","timestamp":"2026-11-08T09:03:10.000Z","type":"user","content":[{"text":"Gracias"}]}"#,
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+
+        let t = gemini_turnos_de(&lineas, 60);
+        let vistos: Vec<(&str, &str)> = t.iter().map(|x| (x.rol.as_str(), x.texto.as_str())).collect();
+        assert_eq!(
+            vistos,
+            vec![
+                ("tu", "Revisa @src/login.ts"),
+                ("agente", "Voy a mirar el login.\n\nEl fallo está en la línea 12."),
+                ("tu", "Gracias"),
+            ],
+            "sin el contexto del CLI, sin el resultado de la herramienta, sin el aviso, sin lo deshecho y sin la orden con barra",
+        );
+        assert_eq!(t[0].hora, "2026-11-08T09:01:00.000Z");
+        assert_eq!(t[1].herramientas, vec!["read_file"], "el mensaje reescrito cuenta UNA vez");
+        assert_eq!(t[1].pasos.len(), 1);
+        assert_eq!(t[1].pasos[0].nombre, "ReadFile");
+        assert_eq!(t[1].pasos[0].detalle, "src/login.ts");
+        assert_eq!(t[1].pasos[0].clase, "herramienta");
+
+        let ultimos = gemini_turnos_de(&lineas, 1);
+        assert_eq!(ultimos.len(), 1);
+        assert_eq!(ultimos[0].texto, "Gracias", "con tope, los últimos");
+
+        // Leyendo solo la cola, un `$rewindTo` a un mensaje que no está es que
+        // era anterior: todo lo leído iba detrás y se va.
+        let cola: Vec<String> = [lineas[7].as_str(), r#"{"$rewindTo":"u0"}"#, lineas[13].as_str()]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        let t = gemini_turnos_de(&cola, 60);
+        assert_eq!(t.len(), 1);
+        assert_eq!(t[0].texto, "Gracias");
+    }
+
+    /// El Chat relee cada tres segundos: lo leído se guarda mientras el fichero
+    /// no cambie, y en cuanto Gemini escribe (aquí, deshaciendo el último
+    /// intercambio) se vuelve a leer entero.
+    #[test]
+    fn a_gemini_conversation_is_read_again_when_its_file_changes() {
+        let dir = std::env::temp_dir().join(format!("adeorq-gemini-conv-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("session-2026-11-08T09-00-ffff6666.jsonl");
+        let cab = cabecera_gemini("ffff6666-0000-4000-8000-000000000006", "main");
+        let mut texto = [
+            cab.as_str(),
+            CONTEXTO_GEMINI,
+            r#"{"id":"u1","timestamp":"2026-11-08T09:01:00.000Z","type":"user","content":[{"text":"Hola"}]}"#,
+            r#"{"id":"g1","timestamp":"2026-11-08T09:01:02.000Z","type":"gemini","content":"Hola, dime.","thoughts":[]}"#,
+            r#"{"id":"u2","timestamp":"2026-11-08T09:02:00.000Z","type":"user","content":[{"text":"Otra cosa"}]}"#,
+        ]
+        .join("\n")
+            + "\n";
+        std::fs::write(&path, &texto).unwrap();
+        assert_eq!(conversacion_gemini(&path, 60).unwrap().len(), 3);
+        assert_eq!(conversacion_gemini(&path, 60).unwrap().len(), 3, "la segunda vez, de lo guardado");
+
+        texto.push_str("{\"$rewindTo\":\"u2\"}\n");
+        std::fs::write(&path, &texto).unwrap();
+        let t = conversacion_gemini(&path, 60).unwrap();
+        assert_eq!(t.len(), 2, "el fichero cambió de tamaño: se relee y lo deshecho no sale");
+        assert_eq!(t[1].texto, "Hola, dime.");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Para borrar una sesión de Gemini hay que encontrar su fichero, y el
+    /// nombre solo lleva los ocho primeros del id, que pueden repetirse: manda
+    /// la cabecera.
+    #[test]
+    fn a_gemini_session_is_found_by_its_whole_id_not_by_the_eight_in_its_file_name() {
+        let tmp = std::env::temp_dir().join(format!("adeorq-gemini-busca-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        let uno = "abcd1234-1111-4000-8000-000000000001";
+        let dos = "abcd1234-2222-4000-8000-000000000002";
+        for (apodo, id, hora) in [("demo", uno, "09-00"), ("demo-1", dos, "11-00")] {
+            let chats = tmp.join(apodo).join("chats");
+            std::fs::create_dir_all(&chats).unwrap();
+            std::fs::write(
+                chats.join(format!("session-2026-11-08T{hora}-abcd1234.jsonl")),
+                cabecera_gemini(id, "main") + "\n",
+            )
+            .unwrap();
+        }
+
+        let p = gemini_transcript_en(&tmp, dos).expect("tendría que encontrarla");
+        assert!(p.ends_with(Path::new("demo-1").join("chats").join("session-2026-11-08T11-00-abcd1234.jsonl")));
+        let p = gemini_transcript_en(&tmp, uno).expect("y la otra");
+        assert!(p.ends_with(Path::new("demo").join("chats").join("session-2026-11-08T09-00-abcd1234.jsonl")));
+        assert!(gemini_transcript_en(&tmp, "abcd1234-3333-4000-8000-000000000003").is_none(), "mismos ocho, otro id: nada");
+        assert!(gemini_transcript_en(&tmp, "abcd").is_none());
+        assert!(gemini_transcript_en(&tmp, "../../x/y").is_none());
+
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 
     /// Munir pega capturas a menudo, y ese turno llega sin una palabra: solo

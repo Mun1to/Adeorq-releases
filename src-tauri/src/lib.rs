@@ -769,6 +769,7 @@ pub fn run() {
             foreman::foreman_mapa,
             foreman::parar_mapa,
             conserje::conserje_lista,
+            conserje::conserje_cuenta,
             conserje::conserje_leer,
             conserje::conserje_router,
             conserje::conserje_cerebro,

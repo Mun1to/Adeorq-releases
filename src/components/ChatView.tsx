@@ -21,12 +21,14 @@
 //     pastilla que enseña un estado que no ha comprobado miente. Vuelve cuando
 //     el CLI lo publique.
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { useT } from "../lib/i18n";
 import Espera from "./Espera";
 import { latido } from "../lib/latido";
 import { aHtml } from "../lib/markdown";
 import {
+  MAIN_ACCOUNT,
+  nombreDeCuenta,
   planInfo,
   projectDirty,
   scanSessions,
@@ -34,6 +36,7 @@ import {
   type Account,
   type ContextInfo,
   type DirtyReport,
+  type PlanInfo,
   type SessionInfo,
 } from "../lib/pty";
 import { encaja } from "../lib/buscar";
@@ -47,7 +50,6 @@ import {
 import type { ModelAlias } from "../lib/models";
 import { comoPeso, PESO, type Esfuerzo } from "../lib/router";
 import { PROVIDERS, providerOf, sabe } from "../lib/providers";
-import { hueOf } from "../lib/colors";
 import ProjectAvatar from "./ProjectAvatar";
 import ProviderMark from "./ProviderMark";
 import SkillsPanel from "./SkillsPanel";
@@ -56,13 +58,15 @@ import ArchivosPanel from "./ArchivosPanel";
 import PanelDerecho, { type Cara } from "./PanelDerecho";
 import {
   HiloConserje,
-  ListaConserje,
   PestanasConserje,
+  subtituloFicha,
   useArranque,
   useConversacion,
+  useFichasConserje,
   type ConserjeExec,
 } from "./Conserje";
-import { claveDe, conserjeSesion, conserjeSoltar, nuevoId, paneDe, pedidoPendiente, type Trabajo } from "../lib/conserje";
+import Mascota from "./Mascota";
+import { claveDe, conserjeSesion, conserjeSoltar, nuevoId, paneDe, pedidoPendiente, type Ficha, type Trabajo } from "../lib/conserje";
 import { abrirEnlacesFuera } from "../lib/enlacesFuera";
 import {
   ChatIcon,
@@ -108,6 +112,10 @@ interface Props {
   /** Lo que el conserje necesita para abrir sesiones y escribir en ellas. Sin
       esto (la instancia que no es la principal) no se enseña el conserje. */
   conserjeExec?: ConserjeExec;
+  /** La cuenta predeterminada de Claude, que es con la que piensa Adeo, y
+      cómo cambiarla desde el pie de la lista. */
+  cuentaAdeo?: string;
+  onCuentaAdeo?: (id: string) => void;
 }
 
 /** Cada cuánto se relee la conversación abierta. El transcript lo escribe el
@@ -154,6 +162,34 @@ const CEREBROS: Array<{ id: ModelAlias; para: string }> = [
  * cuesta **30,6 ms medidos**, mientras que convertir solo el que ha cambiado
  * cuesta **0,43 ms**: setenta veces menos por el mismo resultado en pantalla.
  */
+/** The projects root comes as «C:\proyectos (raíz)»: in a 288 px column the
+    path says nothing the word does not. */
+function proyectoCorto(p: string, t: (s: string) => string): string {
+  return /\((raíz|root)\)$/.test(p) ? t("Raíz") : p;
+}
+
+/** «max» → «Max»: the plan as it reads on Claude's own page. */
+function nombreDePlan(p: PlanInfo | null): string {
+  const s = p?.subscription || p?.tier || "";
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : "";
+}
+
+/** Groups anything by the day boxes of the list (Hoy, Ayer, Esta semana…),
+    keeping the order it comes in. */
+function porCajones<T>(cosas: T[], horas: (x: T) => number, t: (s: string) => string): Array<[string, T[]]> {
+  const cajones = new Map<string, T[]>();
+  for (const x of cosas) {
+    const c = cajonDe(horas(x), t);
+    const l = cajones.get(c) ?? [];
+    l.push(x);
+    cajones.set(c, l);
+  }
+  return [...cajones];
+}
+
+/** Hours since an Adeo conversation was last touched. */
+const horasDeFicha = (f: Ficha) => Math.max(0, (Date.now() / 1000 - f.cuando) / 3600);
+
 /** Los turnos en bloques: cada pregunta tuya con lo que le contestaron. */
 function enPares(turnos: Turno[]): Turno[][] {
   const pares: Turno[][] = [];
@@ -201,8 +237,10 @@ export default function ChatView({
   onWeb,
   onUsage,
   conserjeExec,
+  cuentaAdeo,
+  onCuentaAdeo,
 }: Props) {
-  const { t } = useT();
+  const { t, lang } = useT();
   const [sesiones, setSesiones] = useState<SessionInfo[]>([]);
   /** La conversación del conserje que está abierta, si lo está. Si vienes de
       la caja del Panel, la nueva con lo que pediste (`dejarPedido`). */
@@ -211,6 +249,8 @@ export default function ChatView({
   const [mirando, setMirando] = useState<string | null>(null);
   const [versionLista, setVersionLista] = useState(0);
   const [conv, recargarConv] = useConversacion(conserjeId);
+  const fichas = useFichasConserje(versionLista);
+  const [pestana, setPestana] = useState<"adeo" | "sesiones">(conserjeExec ? "adeo" : "sesiones");
   const arranque = useArranque();
   const [cliente, setCliente] = useState<string>("claude");
   const [abierta, setAbierta] = useState<SessionInfo | null>(null);
@@ -224,7 +264,15 @@ export default function ChatView({
   const [eligiendo, setEligiendo] = useState(false);
   const [ctx, setCtx] = useState<ContextInfo | null>(null);
   const [git, setGit] = useState<DirtyReport | null>(null);
-  const [plan, setPlan] = useState<string>("");
+  /** Las cuentas de Claude con su plan, para el pie: la de Adeo y las demás. */
+  const cuentasClaude = useMemo(() => {
+    const suyas = cuentas.filter((a) => a.provider === MAIN_ACCOUNT.provider);
+    return suyas.some((a) => a.id === MAIN_ACCOUNT.id) ? suyas : [MAIN_ACCOUNT, ...suyas];
+  }, [cuentas]);
+  const cuentaDeAdeo = cuentasClaude.find((a) => a.id === cuentaAdeo) ?? cuentasClaude[0];
+  const [planes, setPlanes] = useState<Record<string, string>>({});
+  const [eligeCuenta, setEligeCuenta] = useState(false);
+  const yoRef = useRef<HTMLDivElement>(null);
   const [plegados, setPlegados] = useState<Set<string>>(new Set());
   /** Lo que se dice justo encima de la caja cuando el envío no llegó. */
   const [seCayo, setSeCayo] = useState(false);
@@ -250,12 +298,34 @@ export default function ChatView({
     releer();
   }, [releer]);
 
-  // Tu plan, para el pie. Se lee de tus credenciales sin tocar los tokens.
+  // El plan de cada cuenta, para el pie. Se lee de sus credenciales sin tocar
+  // los tokens.
   useEffect(() => {
-    planInfo()
-      .then((p) => p && setPlan(p.subscription || p.tier))
-      .catch(() => {});
-  }, []);
+    let vivo = true;
+    for (const a of cuentasClaude) {
+      planInfo(a.dir || undefined)
+        .then((p) => vivo && setPlanes((antes) => ({ ...antes, [a.id]: nombreDePlan(p) })))
+        .catch(() => {});
+    }
+    return () => {
+      vivo = false;
+    };
+  }, [cuentasClaude]);
+
+  // El menú de cuentas se cierra al pulsar fuera o con Escape.
+  useEffect(() => {
+    if (!eligeCuenta) return;
+    const fuera = (e: MouseEvent) => {
+      if (!yoRef.current?.contains(e.target as Node)) setEligeCuenta(false);
+    };
+    const tecla = (e: KeyboardEvent) => e.key === "Escape" && setEligeCuenta(false);
+    document.addEventListener("mousedown", fuera);
+    document.addEventListener("keydown", tecla);
+    return () => {
+      document.removeEventListener("mousedown", fuera);
+      document.removeEventListener("keydown", tecla);
+    };
+  }, [eligeCuenta]);
 
   // La conversación abierta, y al ritmo del CLI: mientras el agente escribe, su
   // transcript crece, así que releerlo es lo que hace que la respuesta aparezca
@@ -344,16 +414,17 @@ export default function ChatView({
     const filtradas = filtro.trim()
       ? suyas.filter((s) => encaja(`${s.title} ${s.project}`, filtro))
       : suyas;
-    // Por cajones de tiempo, como en las capturas: Hoy, Ayer, Esta semana. El
-    // orden dentro es el que ya trae el escaneo (lo más reciente primero).
-    const cajones = new Map<string, SessionInfo[]>();
+    // Por proyecto, cada uno una sola vez de cabecera y sus conversaciones
+    // debajo con cuánto hace (Munir, 2026-11-08: «que sea más sencillo de
+    // ver»; antes iba por días, con el proyecto repetido en cada fila). El
+    // escaneo trae lo más reciente primero, así que arriba queda el proyecto
+    // que tocaste último.
+    const grupos = new Map<string, SessionInfo[]>();
     for (const s of filtradas) {
-      const c = cajonDe(s.hours, t);
-      const l = cajones.get(c) ?? [];
-      l.push(s);
-      cajones.set(c, l);
+      const p = proyectoCorto(s.project, t);
+      grupos.set(p, [...(grupos.get(p) ?? []), s]);
     }
-    return [...cajones];
+    return [...grupos];
   }, [sesiones, cliente, filtro, t]);
 
   /** Está trabajando ahora mismo: es lo que enciende el haz sobre la caja. */
@@ -709,106 +780,142 @@ ${v}` : txt));
     </>
   );
 
+  // ── La barra de la izquierda: Adeo y Sesiones, en dos pestañas ────────────
+  // Munir eligió esta forma el 2026-11-08 entre tres: una sola lista a la vez,
+  // entera, en vez de las conversaciones de Adeo cortadas en cinco encima de
+  // las sesiones.
+  const abrirSesion = (s: SessionInfo) => {
+    // Una sesión de la lista se abre FUERA del conserje: es la vista de
+    // siempre, sin sus pestañas encima.
+    setConserjeId(null);
+    setMirando(null);
+    setAbierta(s);
+  };
+  const tituloDe = (s: SessionInfo) => (s.title === "(sin título)" ? t("(sin título)") : s.title || t("sin título"));
+  // One line per conversation: its title, and on the right how long ago (or
+  // «abierta» when it is running in a terminal). The full line in the tooltip.
+  const filaSesion = (s: SessionInfo) => (
+    <button
+      key={`s-${s.id}`}
+      className="chat-fila"
+      data-on={!conserjeId && abierta?.id === s.id}
+      data-tip={`${tituloDe(s)}\n${s.project}`}
+      onClick={() => abrirSesion(s)}
+    >
+      <span className="chat-fila-tit">{tituloDe(s)}</span>
+      <span className="chat-fila-der" data-viva={s.live}>
+        {s.live ? t("abierta") : s.ago}
+      </span>
+    </button>
+  );
+  const filaAdeo = (f: Ficha) => (
+    <button
+      key={`a-${f.id}`}
+      className="chat-fila"
+      data-on={conserjeId === f.id}
+      data-tip={`${f.titulo || t("Conversación nueva")}\n${subtituloFicha(f, t, lang)}`}
+      onClick={() => abrirConserje(f.id)}
+    >
+      <span className="chat-fila-tit">{f.titulo || t("Conversación nueva")}</span>
+      <span className="chat-fila-der">{subtituloFicha(f, t, lang).split(" · ")[0]}</span>
+    </button>
+  );
+  const cajones = (grupos: Array<[string, ReactElement[]]>, vacio: string) => (
+    <div className="chat-cajones">
+      {grupos.map(([cajon, filas]) => (
+        <section key={cajon} className="chat-cajon">
+          <button className="chat-cajon-tit" onClick={() => pliega(cajon)}>
+            <span>{cajon}</span>
+            <ChevronIcon size={12} up={!plegados.has(cajon)} />
+          </button>
+          {!plegados.has(cajon) && filas}
+        </section>
+      ))}
+      {!grupos.length && <p className="chat-vacio">{vacio}</p>}
+    </div>
+  );
+  const buscador = (
+    <label className="chat-buscar">
+      <SearchIcon size={14} />
+      <input
+        className="finder"
+        value={filtro}
+        placeholder={t("Buscar conversaciones…")}
+        onChange={(e) => setFiltro(e.currentTarget.value)}
+      />
+    </label>
+  );
+  const q = filtro.trim();
+  const sinPalabras = t("Ninguna conversación con esas palabras.");
+  const enAdeo = !!conserjeExec && pestana === "adeo";
+  const fichasVistas = q ? fichas.filter((f) => encaja(f.titulo, filtro)) : fichas;
+
   return (
     <div className="chat-view">
       {/* ── Izquierda: las conversaciones ─────────────────────────────── */}
       <aside className="chat-lista">
-        {/* El conserje, arriba del todo: es el chat principal, el que lo
-            conecta todo, y lo de debajo son las sesiones de siempre. */}
         {conserjeExec && (
-          <ListaConserje
-            abierta={conserjeId}
-            onAbrir={abrirConserje}
-            onNueva={() => abrirConserje(nuevoId())}
-            version={versionLista}
-          />
-        )}
-
-        {/* Solo las marcas, en fila. El nombre lo dice el tooltip: con nueve
-            clientes posibles, escribirlos se come la columna y además obliga a
-            elegir cuáles caben. */}
-        {clientes.length > 1 && (
-          <div className="chat-clientes">
-            {clientes.map((id) => (
-              <button
-                key={id}
-                className="chat-cliente"
-                data-on={cliente === id}
-                data-tip={providerOf(id).label}
-                style={{ ["--c" as string]: providerOf(id).hue }}
-                onClick={() => {
-                  setCliente(id);
-                  setAbierta(null);
-                  setConserjeId(null);
-                }}
-              >
-                <ProviderMark id={id} />
-              </button>
-            ))}
+          <div className="chat-pestanas" role="tablist">
+            <button className="chat-pestana" role="tab" data-on={enAdeo} onClick={() => setPestana("adeo")}>
+              <Mascota animo="quieta" alto={16} />
+              Adeo
+            </button>
+            <button className="chat-pestana" role="tab" data-on={!enAdeo} onClick={() => setPestana("sesiones")}>
+              {t("Sesiones")}
+            </button>
           </div>
         )}
-
-        <button className="chat-nueva" onClick={onNueva}>
-          <PencilIcon size={14} /> {t("Nueva conversación")}
-        </button>
-
-        <label className="chat-buscar">
-          <SearchIcon size={14} />
-          <input
-            className="finder"
-            value={filtro}
-            placeholder={t("Buscar conversaciones…")}
-            onChange={(e) => setFiltro(e.currentTarget.value)}
-          />
-        </label>
-
-        <div className="chat-cajones">
-          {lista.map(([cajon, ss]) => (
-            <section key={cajon} className="chat-cajon">
-              <button className="chat-cajon-tit" onClick={() => pliega(cajon)}>
-                <span>{cajon}</span>
-                <ChevronIcon size={12} up={!plegados.has(cajon)} />
-              </button>
-              {!plegados.has(cajon) &&
-                ss.map((s) => (
+        {enAdeo ? (
+          <>
+            <button className="cj-nueva" onClick={() => abrirConserje(nuevoId())}>
+              <Mascota animo="quieta" alto={16} />
+              {t("Hablar con Adeo")}
+            </button>
+            {buscador}
+            {cajones(
+              porCajones(fichasVistas, horasDeFicha, t).map(([c, fs]) => [c, fs.map(filaAdeo)]),
+              q ? sinPalabras : t("Todavía no has hablado con Adeo."),
+            )}
+          </>
+        ) : (
+          <>
+            {/* Solo las marcas, en fila. El nombre lo dice el tooltip: con
+                nueve clientes posibles, escribirlos se come la columna. */}
+            {clientes.length > 1 && (
+              <div className="chat-clientes">
+                {clientes.map((id) => (
                   <button
-                    key={s.id}
-                    className="chat-fila"
-                    data-on={!conserjeId && abierta?.id === s.id}
-                    style={{ ["--c" as string]: hueOf(s.project) }}
+                    key={id}
+                    className="chat-cliente"
+                    data-on={cliente === id}
+                    data-tip={providerOf(id).label}
+                    style={{ ["--c" as string]: providerOf(id).hue }}
                     onClick={() => {
-                      // Una sesión de la lista se abre FUERA del conserje: es
-                      // la vista de siempre, sin sus pestañas encima.
+                      setCliente(id);
+                      setAbierta(null);
                       setConserjeId(null);
-                      setMirando(null);
-                      setAbierta(s);
                     }}
                   >
-                    <span className="chat-fila-txt">
-                      <span className="chat-fila-tit">{s.title === "(sin título)" ? t("(sin título)") : s.title || t("sin título")}</span>
-                      <span className="chat-fila-sub">
-                        {s.project}
-                        {s.live && <span className="live-dot" />}
-                      </span>
-                    </span>
+                    <ProviderMark id={id} />
                   </button>
                 ))}
-            </section>
-          ))}
-          {!lista.length && (
-            <p className="chat-vacio">
-              {filtro.trim()
-                ? t("Ninguna conversación con esas palabras.")
-                : // «Conversaciones» a secas contradecía a las del conserje, que
-                  // van justo encima: lo que falta aquí son sesiones.
-                  t("Todavía no tienes sesiones. Empieza una con «Nueva conversación».")}
-            </p>
-          )}
-        </div>
+              </div>
+            )}
+            <button className="chat-nueva" onClick={onNueva}>
+              <PencilIcon size={14} /> {t("Nueva conversación")}
+            </button>
+            {buscador}
+            {cajones(
+              lista.map(([p, ss]) => [p, ss.map(filaSesion)]),
+              q ? sinPalabras : t("Todavía no tienes sesiones. Empieza una con «Nueva conversación»."),
+            )}
+          </>
+        )}
 
-        {/* El pie de la referencia: cómo está el repo de lo que estás tocando,
-            y quién eres. Los dos datos son de verdad: el primero es un `git
-            status` y el segundo sale de tus credenciales, sin tocar el token. */}
+        {/* El pie: cómo está el repo de lo que estás tocando, y con qué cuenta
+            piensa Adeo, que es la predeterminada y se cambia aquí mismo
+            (Munir, 2026-11-08). Los dos datos son de verdad: un `git status`
+            y tus credenciales, sin tocar el token. */}
         {git?.isRepo && (
           <div className="chat-git">
             <GitBranchIcon size={14} />
@@ -822,13 +929,45 @@ ${v}` : txt));
             </span>
           </div>
         )}
-        <footer className="chat-yo">
-          <ProjectAvatar name={plan || "Adeorq"} className="pavatar-mini" />
-          <span className="chat-yo-txt">
-            <strong>{providerOf(cliente).label}</strong>
-            <em>{plan || t("sin plan detectado")}</em>
-          </span>
-        </footer>
+        <div className="chat-yo-sitio" ref={yoRef}>
+          {eligeCuenta && (
+            <div className="chat-cuentas" role="menu">
+              <p className="chat-cuentas-tit">{t("Adeo piensa con esta cuenta")}</p>
+              {cuentasClaude.map((a) => (
+                <button
+                  key={a.id}
+                  className="chat-cuenta"
+                  role="menuitemradio"
+                  aria-checked={a.id === cuentaDeAdeo.id}
+                  data-on={a.id === cuentaDeAdeo.id}
+                  onClick={() => {
+                    onCuentaAdeo?.(a.id);
+                    setEligeCuenta(false);
+                  }}
+                >
+                  <strong>{nombreDeCuenta(a.label, t)}</strong>
+                  <em>{planes[a.id] || t("sin plan detectado")}</em>
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            className="chat-yo"
+            data-abierto={eligeCuenta}
+            disabled={cuentasClaude.length < 2}
+            data-tip={cuentasClaude.length < 2 ? undefined : t("Cambiar la cuenta con la que piensa Adeo")}
+            onClick={() => setEligeCuenta((v) => !v)}
+          >
+            <span className="chat-yo-marca" style={{ color: providerOf("claude").hue }}>
+              <ProviderMark id="claude" />
+            </span>
+            <span className="chat-yo-txt">
+              <strong>{nombreDeCuenta(cuentaDeAdeo.label, t)}</strong>
+              <em>{[planes[cuentaDeAdeo.id], t("la usa Adeo")].filter(Boolean).join(" · ")}</em>
+            </span>
+            {cuentasClaude.length > 1 && <ChevronIcon size={12} up={!eligeCuenta} />}
+          </button>
+        </div>
         {error && <p className="side-error">{error}</p>}
       </aside>
 

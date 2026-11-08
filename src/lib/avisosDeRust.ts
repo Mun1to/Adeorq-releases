@@ -48,6 +48,7 @@ export const REGLAS_DE_RUST: Regla[] = [
   [/^(.+) no está instalado en este equipo$/, (t, m) => t("{x} no está instalado en este equipo", { x: m[1] })],
   [/^no sé dónde estoy: (.*)$/s, (t, m) => t("no sé dónde estoy: {e}", { e: m[1] })],
   [/^no pude escribir los ajustes de Gemini: (.*)$/s, (t, m) => t("no pude escribir los ajustes de Gemini: {e}", { e: m[1] })],
+  [/^no sé dónde guardar la cuenta de Adeo$/, (t) => t("no sé dónde guardar la cuenta de Adeo")],
 ];
 
 /** Un `Err` de Rust sin ninguna regla suya, que sale como llegó. */

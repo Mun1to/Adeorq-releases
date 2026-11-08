@@ -407,10 +407,11 @@ pub fn rename_session(
     if title.is_empty() {
         return Err("El título está vacío".into());
     }
-    // Codex y Pi: su fichero es de su programa y no lleva carpeta de Claude,
-    // así que el título se guarda en Adeorq (ver `sessions::titulos_propios`).
-    // La misma rama por CLI que tiene `delete_session` más abajo.
-    if matches!(fuente.as_deref(), Some("codex") | Some("pi")) {
+    // Codex, Pi y Gemini: su fichero es de su programa y no lleva carpeta de
+    // Claude, así que el título se guarda en Adeorq (ver
+    // `sessions::titulos_propios`). La misma rama por CLI que tiene
+    // `delete_session` más abajo.
+    if matches!(fuente.as_deref(), Some("codex") | Some("pi") | Some("gemini")) {
         return crate::sessions::guardar_titulo_propio(&session_id, title);
     }
     let path = transcript_path(&folder, &session_id)?;
@@ -468,6 +469,15 @@ pub fn delete_session(
     if fuente.as_deref() == Some("pi") {
         let path = crate::sessions::pi_transcript(&session_id)
             .ok_or("No encuentro el archivo de esa sesión de Pi")?;
+        return to_recycle_bin(&path);
+    }
+    // Gemini, lo mismo: guarda en `~/.gemini/tmp/<apodo>/chats/` con la fecha
+    // delante del id (`sessions::gemini_transcript`). Va su conversación; lo
+    // que deja al lado (`logs`, `tool-outputs`) no es la sesión y Gemini no la
+    // lista sin ella.
+    if fuente.as_deref() == Some("gemini") {
+        let path = crate::sessions::gemini_transcript(&session_id)
+            .ok_or("No encuentro el archivo de esa sesión de Gemini")?;
         return to_recycle_bin(&path);
     }
     // agy tampoco: una base de SQLite por conversación más lo que deja

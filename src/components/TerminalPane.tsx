@@ -563,21 +563,12 @@ export default function TerminalPane({
       });
   };
 
+  // Only a terminal born in shadow has the button, so this only ever opens the
+  // proposals. Shadow cannot be switched on mid-run: the CLI already lives in
+  // the project folder and cannot be moved into the worktree without killing it.
   const handleToggleShadow = () => {
-    if (shadowActive) {
-      setShowDiff(true);
-      refreshShadowStatus();
-      return;
-    }
-    // A mitad NO se puede. El espejo es un DIRECTORIO aparte, y el CLI que ya
-    // está corriendo nació dentro de esta carpeta: no hay forma de mudarlo sin
-    // matarlo. Antes esto montaba el espejo igualmente y anunciaba «escrituras
-    // aisladas» mientras el agente seguía escribiendo en tu proyecto, que es la
-    // peor de las dos opciones: creerte protegido sin estarlo.
-    setNote(
-      t("El Modo Espejo se elige al ABRIR la terminal, no después: esta ya está corriendo dentro de tu carpeta. Ciérrala y ábrela en espejo, o pídeselo a Adeo."),
-    );
-    setTimeout(() => setNote(null), 9000);
+    setShowDiff(true);
+    refreshShadowStatus();
   };
 
   const handleAcceptShadow = () => {
@@ -2534,21 +2525,19 @@ export default function TerminalPane({
           </div>
         )}
         <div className="ph-acts">
-          {/* Shadow Mode Button */}
-          <button
-            className={`pane-btn pane-shadow-toggle ${shadowActive ? "is-active" : ""}`}
-            data-tip={
-              shadowActive
-                ? `${t("Modo Espejo (SVFS) activo · Rama: {r}", { r: shadowSession?.shadowBranch ?? "" })}\n${t("{n} archivos propuestos. Clic para ver diffs.", { n: shadowFiles.length })}`
-                : t("Activar Modo Espejo (Shadow Git): aísla escrituras de la IA en una rama espejo")
-            }
-            onClick={handleToggleShadow}
-          >
-            <GitBranchIcon />
-            {shadowActive && shadowFiles.length > 0 && (
-              <span className="shadow-badge">{shadowFiles.length}</span>
-            )}
-          </button>
+          {/* Only on a terminal born in shadow, to reach its proposals. On every
+              other terminal it did nothing but explain that shadow is chosen when
+              the terminal opens, and nobody used it (Munir, 2026-11-08). */}
+          {shadowActive && (
+            <button
+              className="pane-btn pane-shadow-toggle is-active"
+              data-tip={`${t("Modo Espejo (SVFS) activo · Rama: {r}", { r: shadowSession?.shadowBranch ?? "" })}\n${t("{n} archivos propuestos. Clic para ver diffs.", { n: shadowFiles.length })}`}
+              onClick={handleToggleShadow}
+            >
+              <GitBranchIcon />
+              {shadowFiles.length > 0 && <span className="shadow-badge">{shadowFiles.length}</span>}
+            </button>
+          )}
           <button
             className="pane-btn"
             data-tip={t(blurred ? "Mostrar esta terminal" : "Tapar esta terminal (para emitir)")}

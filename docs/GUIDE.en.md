@@ -406,15 +406,19 @@ not show.
 
 ## 6. Chat
 
-Chat (in beta) has two parts:
+Chat (in beta) has two tabs in its list on the left, **Adeo** and **Sessions**,
+and at the very bottom the account Adeo thinks with (its name and its plan): click
+it to pick another of your Claude accounts, which becomes the default one.
 
-- **At the top, Adeo.** "Talk to Adeo" opens a chat with it: you
+- **Adeo.** "Talk to Adeo" opens a chat with it: you
   tell it what you want, it splits it into jobs and opens a session for each one.
   The sessions show up as tabs above the thread (green dot: working; amber: asking
   you; orange: finished) and a click enters them. Each session it opens leaves a
   card with its program, its model, what it was asked to do and, if the router
   chose it, why.
-- **Below, your usual sessions**, by day, with **New conversation** and a search
+- **Sessions, your usual ones**, by project (each on one line with how long ago,
+  or "open" if it runs in a terminal), with the marks of the programs that have
+  conversations (Claude, Codex, Gemini, Pi), **New conversation** and a search
   box. Each session is read as a conversation (**Clean**) or opened raw
   (**Terminal**), and what you type below goes down to the same terminal. The box
   carries pills for the model ("Automatic" lets the router choose it), for the
@@ -652,9 +656,10 @@ The three pieces of data (context, model and memory) can be hidden so that the b
 only carries project and name: **Settings › Terminals › Show the model, context and
 memory in each terminal's bar**.
 
-**The buttons**: *Shadow Mode* (a separate branch, see section 10), the eye to cover
-only this terminal on a live stream, minimise, pop out into its own window, maximise
-or restore, delete the session (it goes to the recycle bin) and close. Splitting to
+**The buttons**: the eye to cover only this terminal on a live stream, minimise, pop
+out into its own window, maximise or restore, delete the session (it goes to the
+recycle bin) and close. A terminal born in *Shadow Mode* has one more in front, for
+its changes on the separate branch (see section 10). Splitting to
 the right or down are no longer buttons: they are in the right click and in
 Ctrl+Shift+→ and Ctrl+Shift+↓. The ✕ closes the terminal; the conversation is not
 deleted and stays in the sidebar.

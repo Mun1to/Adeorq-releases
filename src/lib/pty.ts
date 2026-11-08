@@ -299,7 +299,7 @@ export function ollamaLine(model: string, prompt: string): Promise<string> {
 }
 
 /** Qué cliente escribió una sesión. El Sidebar pinta su marca con esto. */
-export type FuenteSesion = "claude" | "codex" | "pi";
+export type FuenteSesion = "claude" | "codex" | "pi" | "gemini";
 
 export interface ContextInfo {
   model: string;

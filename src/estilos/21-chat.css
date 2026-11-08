@@ -34,47 +34,95 @@
   backdrop-filter: blur(18px) saturate(1.1);
 }
 
-/* Los clientes: solo sus marcas, en fila. Nació con los nombres escritos
-   («Claude Code», «Codex») y Munir lo cortó al verlo: en esta casa hay nueve
-   clientes, y dos nombres largos ocupando la columna entera dicen que solo
-   existen esos dos. El nombre lo pone el tooltip. */
+/* Adeo and Sessions as two text tabs with the 3 px line under the chosen one,
+   one whole list at a time (Munir picked it among three on 2026-11-08). */
+.chat-pestanas {
+  display: flex;
+  gap: 20px;
+  padding: 0 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.chat-pestana {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 2px 10px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color var(--t-media) ease;
+}
+
+.chat-pestana:hover,
+.chat-pestana[data-on="true"] {
+  color: var(--text);
+}
+
+.chat-pestana[data-on="true"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+/* The clients: only their marks, loose, with the line of their own colour
+   under the chosen one. It was born with «Claude Code» and «Codex» written and
+   Munir cut it: with nine possible clients the names eat the column. The name
+   is in the tooltip. No capsule around them (2026-11-08). */
 .chat-clientes {
   display: flex;
-  gap: 4px;
-  padding: 3px;
-  border-radius: var(--r-pastilla);
-  background: rgba(0, 0, 0, 0.26);
+  gap: 8px;
+  padding: 0 4px;
 }
 
 .chat-cliente {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 30px;
-  height: 28px;
-  border: 1px solid transparent;
-  border-radius: var(--r-pastilla);
+  height: 32px;
+  border: none;
   background: none;
   color: var(--muted);
+  opacity: 0.5;
   cursor: pointer;
+  transition: opacity var(--t-media) ease;
 }
 
 .chat-cliente:hover {
-  color: var(--text);
-  background: var(--row);
+  opacity: 0.85;
 }
 
-/* El activo se tiñe del color de SU marca, no del azul de la app: en una fila
-   de logos, lo que distingue es la marca. */
+/* The chosen one takes the colour of ITS brand, not the app's blue: in a row
+   of logos, what tells them apart is the brand. */
 .chat-cliente[data-on="true"] {
-  background: color-mix(in srgb, var(--c, var(--accent)) 22%, transparent);
-  border-color: color-mix(in srgb, var(--c, var(--accent)) 55%, transparent);
   color: var(--c, var(--accent));
+  opacity: 1;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--c, var(--accent)) 55%, transparent));
 }
 
-/* «Nueva conversación»: ancho entero y con relieve, que es el único botón de
-   esta columna que crea algo. El relieve son tres capas sobre el mismo
-   elemento (cuerpo, bisel y luz de arriba), como el CSS que mandó Munir. */
+.chat-cliente[data-on="true"]::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  bottom: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--c, var(--accent));
+}
+
+/* «Nueva conversación»: full width, a flat button of its own. */
 .chat-nueva {
   display: flex;
   align-items: center;
@@ -84,21 +132,24 @@
   padding: 9px 12px;
   border: 1px solid var(--border);
   border-radius: var(--r-btn);
-  background: linear-gradient(180deg, var(--row-hover), var(--row));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  background: var(--row);
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
+  transition: background var(--t-media) ease, border-color var(--t-media) ease;
 }
 
 .chat-nueva:hover {
   border-color: var(--border-strong);
-  filter: brightness(1.1);
+  background: var(--row-hover);
 }
 
 .chat-nueva:active {
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.chat-lista .cj-nueva {
+  font-size: 14px;
 }
 
 .chat-buscar {
@@ -134,98 +185,77 @@
   gap: 2px;
 }
 
-/* La cabecera del cajón se pliega, como en la referencia: con veinte
-   conversaciones de hoy, «Esta semana» queda fuera de la pantalla. */
+/* The heading of a group (a project in Sessions, a day in Adeo) folds: with
+   twenty conversations in one, the next ones fall off the screen. In normal
+   case and with the text colour, never small spaced capitals. */
 .chat-cajon-tit {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
   margin: 0 0 2px;
-  padding: 4px 6px;
+  padding: 6px 8px 3px;
   border: none;
   background: none;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 650;
   cursor: pointer;
 }
 
-.chat-cajon-tit:hover {
-  color: var(--text);
+.chat-cajon-tit > svg {
+  opacity: 0.45;
 }
 
-/* La fila lleva el color de su proyecto en una barra fina a la izquierda: es
-   lo que deja distinguir de qué es cada conversación sin leer el subtítulo. */
+/* One line per conversation: the title, and how long ago on the right. «Que
+   sea más sencillo de ver» (Munir, 2026-11-08): the project is the heading
+   now, not a second line repeated under every title. */
 .chat-fila {
-  position: relative;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 12px;
   width: 100%;
-  padding: 7px 9px 7px 12px;
+  padding: 8px 10px;
   border: none;
   border-radius: var(--r-btn);
   background: none;
   color: var(--text);
   text-align: left;
   cursor: pointer;
-}
-
-.chat-fila::before {
-  content: "";
-  position: absolute;
-  left: 4px;
-  top: 9px;
-  bottom: 9px;
-  width: 2px;
-  border-radius: 2px;
-  background: var(--c, var(--accent));
-  opacity: 0;
+  transition: background var(--t-media) ease;
 }
 
 .chat-fila:hover {
   background: var(--row);
 }
 
-.chat-fila:hover::before,
-.chat-fila[data-on="true"]::before {
-  opacity: 0.85;
-}
-
 .chat-fila[data-on="true"] {
   background: color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-.chat-fila-txt {
+.chat-fila-tit {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-/* Los dos renglones se cortan en seco: una columna de 288px con títulos de dos
-   líneas deja de ser una lista y pasa a ser un muro. */
-.chat-fila-tit,
-.chat-fila-sub {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 14px;
 }
 
-.chat-fila-tit {
-  font-size: 13px;
-}
-
-.chat-fila-sub {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.chat-fila-der {
+  flex: none;
+  max-width: 42%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
+}
+
+/* Running in a terminal right now: the word, in the green of «alive». */
+.chat-fila-der[data-viva="true"] {
+  color: var(--cj-vivo);
+  font-weight: 600;
 }
 
 /* El pie: cómo está el repo de lo que tocas y quién eres. Los dos datos son
@@ -261,7 +291,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -269,13 +299,26 @@
 .chat-yo-txt em {
   color: var(--muted);
   font-style: normal;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .chat-yo {
   border: none;
   background: none;
   padding: 4px 6px;
+}
+
+/* The mark of the account's client, in its own colour, with no box. */
+.chat-yo-marca {
+  display: inline-flex;
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+
+.chat-yo-marca .prov-mark {
+  width: 22px;
+  height: 22px;
 }
 
 /* ── Centro: el hilo ──────────────────────────────────────────────────────
@@ -921,3 +964,85 @@
   line-height: 1.55;
 }
 
+
+/* The footer: the account Adeo thinks with, and the menu to change it. */
+.chat-yo-sitio {
+  position: relative;
+}
+button.chat-yo {
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: var(--r-btn);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--t-media) ease;
+}
+button.chat-yo:hover:not(:disabled),
+button.chat-yo[data-abierto="true"] {
+  background: var(--row);
+}
+button.chat-yo:disabled {
+  cursor: default;
+}
+button.chat-yo > svg:last-child {
+  flex: none;
+  color: var(--muted);
+}
+.chat-cuentas {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-btn);
+  background: var(--popover);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--sombra-2);
+  animation: chat-cuentas-entra var(--t-media) ease;
+}
+@keyframes chat-cuentas-entra {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.chat-cuentas-tit {
+  margin: 2px 8px 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.chat-cuenta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--r-btn);
+  background: none;
+  color: var(--text);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.chat-cuenta:hover {
+  background: var(--row);
+}
+.chat-cuenta[data-on="true"] {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.chat-cuenta strong {
+  font-weight: 600;
+}
+.chat-cuenta em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+}

@@ -120,15 +120,17 @@ async function leer(f) {
             r.porClase.memoria++;
             continue;
           }
-          // G2: a rule document with the editor, from a clean terminal, with no link or download in it
-          if (o.suave && !manchada && !args.includes("--reglas-siempre")) {
+          // G3 (the default): a rule document with the editor, with no link or download in it and, after
+          // outside text, no words about keys or permissions. `--reglas-manchada` measures G2 (any write
+          // after outside text asks).
+          if (o.suave && !args.includes("--reglas-siempre") && (!manchada || !args.includes("--reglas-manchada"))) {
             // by command: denied without asking, the agent is sent to the editor
             if (!o.editor && /^(bash|powershell)$/i.test(name)) {
               r.porClase.reglasAlEditor = (r.porClase.reglasAlEditor ?? 0) + 1;
               continue;
             }
             const d = diffDeLaLlamada(name, input, o.ruta);
-            if (d && !riesgoEnLoNuevo(d.puestas)) {
+            if (d && !riesgoEnLoNuevo(d.puestas, manchada)) {
               r.porClase.reglasLimpias = (r.porClase.reglasLimpias ?? 0) + 1;
               continue;
             }

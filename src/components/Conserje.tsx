@@ -6,11 +6,10 @@
 // envías.» La forma se eligió en una maqueta con el CSS de la app sobre su foto
 // (`scratchpad/conserje`), antes de construirla aquí.
 //
-// Tres piezas, las tres fuera de `ChatView` (un componente declarado dentro de
+// Dos piezas, las dos fuera de `ChatView` (un componente declarado dentro de
 // otro se remonta en cada render y pierde el foco del teclado, ver
 // `scripts/anidado-check.mjs`):
 //
-//   ListaConserje     la sección de la izquierda, encima de las sesiones;
 //   PestanasConserje  la tira de pestañas: el conserje y lo que trabaja;
 //   HiloConserje      la conversación con él y su caja, con Mejorar y el router.
 //
@@ -132,25 +131,10 @@ function subtitulo(f: Ficha, t: (s: string, v?: Record<string, string | number>)
   return `${cuando} · ${f.trabajos === 1 ? t("1 sesión") : t("{n} sesiones", { n: f.trabajos })}`;
 }
 
-export function ListaConserje({
-  abierta,
-  onAbrir,
-  onNueva,
-  version,
-}: {
-  abierta: string | null;
-  onAbrir: (id: string) => void;
-  onNueva: () => void;
-  /** Sube cuando algo cambió y hay que releer la lista. */
-  version: number;
-}) {
-  const { t, lang } = useT();
+/** Las conversaciones con Adeo, releídas cuando algo cambia aquí (`version`) o
+    cuando el móvil cambia una (una nueva tiene que salir en la lista). */
+export function useFichasConserje(version: number): Ficha[] {
   const [fichas, setFichas] = useState<Ficha[]>([]);
-  /** Cinco a la vista y las demás a un clic: la sección va encima de las
-      sesiones de siempre, y con veinte conversaciones las empujaría fuera. Antes
-      se cortaba en seis sin decirlo, y las viejas no se podían abrir. */
-  const [todas, setTodas] = useState(false);
-  /** Sube cuando el móvil cambia una conversación: una nueva tiene que salir aquí. */
   const [fuera, setFuera] = useState(0);
   useEffect(() => {
     const alCambiar = () => setFuera((v) => v + 1);
@@ -162,36 +146,10 @@ export function ListaConserje({
       .then(setFichas)
       .catch(() => setFichas([]));
   }, [version, fuera]);
-  const VISIBLES = 5;
-  const vistas = todas ? fichas : fichas.slice(0, VISIBLES);
-  // La abierta se ve siempre, aunque sea vieja: si no, al abrirla desde «ver
-  // todas» y plegar, desaparecería la que estás mirando.
-  const abiertaFuera = !todas && abierta && !vistas.some((f) => f.id === abierta);
-  const lista = abiertaFuera ? [...vistas, ...fichas.filter((f) => f.id === abierta)] : vistas;
-
-  return (
-    <section className="cj-lista">
-      <button className="cj-nueva" onClick={onNueva}>
-        <Mascota animo="quieta" alto={16} />
-        {t("Hablar con Adeo")}
-      </button>
-      {lista.map((f) => (
-        <button key={f.id} className="chat-fila" data-on={abierta === f.id} onClick={() => onAbrir(f.id)}>
-          <span className="chat-fila-txt">
-            <span className="chat-fila-tit">{f.titulo || t("Conversación nueva")}</span>
-            <span className="chat-fila-sub">{subtitulo(f, t, lang)}</span>
-          </span>
-        </button>
-      ))}
-      {fichas.length > VISIBLES && (
-        <button className="cj-ver-todas" onClick={() => setTodas((v) => !v)}>
-          {todas ? t("Ver menos") : t("Ver todas ({n})", { n: fichas.length })}
-          <ChevronIcon size={11} up={todas} />
-        </button>
-      )}
-    </section>
-  );
+  return fichas;
 }
+
+export { subtitulo as subtituloFicha };
 
 // ─── Las pestañas ─────────────────────────────────────────────────────────────
 

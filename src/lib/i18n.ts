@@ -1980,8 +1980,6 @@ const EN: Record<string, string> = {
 
   // Los avisos flotantes de una terminal (setNote), que llegan a t() por
   // variable (t(note)): mismo motivo que arriba, a mano.
-  "El Modo Espejo se elige al ABRIR la terminal, no después: esta ya está corriendo dentro de tu carpeta. Ciérrala y ábrela en espejo, o pídeselo a Adeo.":
-    "Mirror Mode is chosen when you OPEN the terminal, not after: this one is already running inside your folder. Close it and reopen it in mirror, or ask Adeo.",
   "Cambios descartados y rama en la sombra eliminada.":
     "Changes discarded and the shadow branch deleted.",
   "Ruta escrita en el prompt. Escribe al lado qué quieres que haga con ella.":
@@ -2549,6 +2547,13 @@ const EN: Record<string, string> = {
   // Adeo en el chat (`Conserje.tsx`).
   "Hablar con Adeo": "Talk to Adeo",
   "Conversación nueva": "New conversation",
+  // The Chat's list (`ChatView.tsx`): its Adeo tab, the projects root and the account in the footer.
+  "Todavía no has hablado con Adeo.": "You have not talked to Adeo yet.",
+  Raíz: "Root",
+  abierta: "open",
+  "Adeo piensa con esta cuenta": "Adeo thinks with this account",
+  "Cambiar la cuenta con la que piensa Adeo": "Change the account Adeo thinks with",
+  "la usa Adeo": "Adeo uses it",
   "1 sesión": "1 session",
   "nada en marcha": "nothing running",
   "1 sesión en marcha": "1 session running",
@@ -2968,8 +2973,6 @@ const EN: Record<string, string> = {
   // (pistas montadas con plantillas, el cuadro de archivar, fechas sueltas).
   "A este nivel, compactar cuesta más que abrir una terminal nueva.":
     "At this level, compacting costs more than opening a new terminal.",
-  "Activar Modo Espejo (Shadow Git): aísla escrituras de la IA en una rama espejo":
-    "Turn on Shadow Mode (Shadow Git): keeps the AI's writes in a shadow branch",
   "Adeorq no los toca. Pero si esta sesión era la que trabajaba en ellos, guárdalos (commit) antes de despedirla. La app oficial de Claude, al archivar, los borraría sin avisar; aquí están a salvo.":
     "Adeorq does not touch them. But if this session was the one working on them, save them (commit) before letting it go. The official Claude app would delete them without warning when archiving; here they are safe.",
   "Adeorq {v} disponible": "Adeorq {v} is available",
@@ -3265,6 +3268,7 @@ const EN: Record<string, string> = {
   "{x} no está instalado en este equipo": "{x} is not installed on this computer",
   "no sé dónde estoy: {e}": "I don't know where I am: {e}",
   "no pude escribir los ajustes de Gemini: {e}": "could not write Gemini's settings: {e}",
+  "no sé dónde guardar la cuenta de Adeo": "I don't know where to save Adeo's account",
 
   // Lo que el Capataz marca en rojo junto a una acción de su plan que no se puede hacer (`checkActions`).
   "sesión desconocida": "unknown session",

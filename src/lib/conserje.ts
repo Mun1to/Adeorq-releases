@@ -158,6 +158,8 @@ export interface Respuesta {
 }
 
 export const conserjeLista = () => invoke<Ficha[]>("conserje_lista");
+/** Tells Rust which Claude login Adeo thinks with: its folder, or "" for the main one. */
+export const conserjeCuenta = (dir: string) => invoke<void>("conserje_cuenta", { dir });
 export const conserjeLeer = (id: string) => invoke<Conversacion>("conserje_leer", { id });
 export const conserjeRouter = (id: string, encendido: boolean) =>
   invoke<void>("conserje_router", { id, encendido });

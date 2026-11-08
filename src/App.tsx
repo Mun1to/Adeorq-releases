@@ -20,7 +20,7 @@ import PedirSecreto from "./components/PedirSecreto";
 import EscudoVentana from "./components/EscudoVentana";
 import PedirAbrir from "./components/PedirAbrir";
 import PuenteMovil from "./components/PuenteMovil";
-import type { ConserjeExec } from "./lib/conserje";
+import { conserjeCuenta, type ConserjeExec } from "./lib/conserje";
 import Vigia from "./components/Vigia";
 import WebAuto from "./components/WebAuto";
 import Copiloto from "./components/Copiloto";
@@ -714,6 +714,12 @@ function App() {
   const agyExe = useRef<string | null>(null);
   // Read by addPane, which must keep stable identity (half the app depends on
   // it), so the accounts reach it through a ref instead of its deps.
+  // Adeo thinks with the default Claude account; Rust keeps it on disk so the
+  // phone uses the same one (`conserje::cuenta_de_adeo`).
+  useEffect(() => {
+    const a = accounts.find((x) => x.id === defaultAccount);
+    conserjeCuenta(a && a.provider === MAIN_ACCOUNT.provider ? a.dir : "").catch(() => {});
+  }, [accounts, defaultAccount]);
   const accountsRef = useRef({ list: accounts, def: defaultAccount });
   accountsRef.current = { list: accounts, def: defaultAccount };
 
@@ -3350,6 +3356,8 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           onWeb={abrirWeb}
           onUsage={usageDeSesion}
           conserjeExec={conserjeExec}
+          cuentaAdeo={defaultAccount}
+          onCuentaAdeo={(id) => mutateAccounts((prev) => ({ ...prev, def: id }))}
         />
       )}
       {view === "decisiones" && <DecisionesView decisiones={decisiones} />}

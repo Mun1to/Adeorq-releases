@@ -363,9 +363,10 @@ async function recorrido(idioma, n) {
     const rects = JSON.parse(await js(`JSON.stringify([...document.querySelectorAll("[data-pane-id]")].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 40 && r.height > 40 && r.left >= 280).map((r) => ({ x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) })))`));
     dice(rects.length >= 2 && new Set(rects.map((r) => r.x)).size >= 2, "y están una al lado de la otra, no apiladas", JSON.stringify(rects));
 
-    // ── Modo Espejo: un botón en la cabecera de cada terminal (con Git) ────
-    const espejo = JSON.parse(await js(`JSON.stringify([...document.querySelectorAll("[data-tip]")].map((x) => x.getAttribute("data-tip")).filter((t) => /Shadow Mode|Modo Espejo/.test(t)).slice(0, 3))`));
-    dice(espejo.length > 0, "las terminales de la Cabina traen el botón del Modo Espejo / Shadow Mode (el proyecto de Documents tiene Git)", espejo.join(" | "));
+    // ── Modo Espejo: su botón solo va en una terminal nacida en espejo ─────
+    // (Munir, 2026-11-08: en las demás no hacía nada y nadie lo usaba.)
+    const espejo = JSON.parse(await js(`JSON.stringify([...document.querySelectorAll(".pane-shadow-toggle")].map((x) => x.getAttribute("data-tip")).slice(0, 3))`));
+    dice(espejo.length === 0, "las terminales normales de la Cabina ya no traen el botón del Modo Espejo", espejo.join(" | ") || "ninguno");
 
     // ── Archivos: buscar dentro; el asistente de sesiones ──────────────────
     const botonesArchivos = JSON.parse(await js(`JSON.stringify([...document.querySelectorAll("button, input")].filter((b) => b.getBoundingClientRect().left > 1600 && b.getBoundingClientRect().width > 0).map((b) => (b.getAttribute("data-tip") || b.title || b.getAttribute("aria-label") || b.placeholder || b.textContent.trim())).filter(Boolean))`));

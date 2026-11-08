@@ -118,6 +118,20 @@ const FAMILIA: Record<string, string> = {
   WebSearch: "buscó en la web",
   TodoWrite: "apuntó tareas",
   AskUserQuestion: "te preguntó",
+  // Las de Gemini CLI, con sus nombres de su 0.52.0 (`*_TOOL_NAME` en su código).
+  read_file: "leyó",
+  read_many_files: "leyó",
+  list_directory: "buscó",
+  glob: "buscó",
+  grep_search: "buscó",
+  replace: "editó",
+  write_file: "escribió",
+  run_shell_command: "ejecutó",
+  invoke_agent: "mandó un subagente",
+  web_fetch: "miró en la web",
+  google_web_search: "buscó en la web",
+  write_todos: "apuntó tareas",
+  ask_user: "te preguntó",
 };
 
 /** «Hoy», «Ayer», «Esta semana» o el mes: los cajones de la lista. */

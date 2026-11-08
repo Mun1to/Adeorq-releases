@@ -393,15 +393,19 @@ que dice git. Las ediciones de un subagente no salen.
 
 ## 6. Chat
 
-El Chat (en beta) tiene dos partes:
+El Chat (en beta) tiene dos pestañas en su lista de la izquierda, **Adeo** y
+**Sesiones**, y abajo del todo la cuenta con la que piensa Adeo (su nombre y su plan):
+púlsala para elegir otra de tus cuentas de Claude, que pasa a ser la predeterminada.
 
-- **Arriba, Adeo.** «Hablar con Adeo» abre un chat con él: le dices lo
+- **Adeo.** «Hablar con Adeo» abre un chat con él: le dices lo
   que quieres, y lo parte en trabajos y abre una sesión por cada uno. Las sesiones
   salen como pestañas encima del hilo (punto verde: trabajando; ámbar: te pregunta;
   naranja: terminó) y un clic entra en ellas. Cada sesión que abre deja una
   tarjeta con su programa, su modelo, qué se le encargó y, si lo eligió el router,
   por qué.
-- **Debajo, tus sesiones de siempre**, por días, con **Nueva conversación** y un
+- **Sesiones, las de siempre**, por proyecto (cada una en una línea con cuánto
+  hace, o «abierta» si corre en una terminal), con las marcas de los programas que
+  tienen conversaciones (Claude, Codex, Gemini, Pi), **Nueva conversación** y un
   buscador. Cada sesión se lee como una conversación (**Limpio**) o se abre en crudo
   (**Terminal**), y lo que escribes abajo baja a la misma terminal. La caja lleva
   pastillas de modelo («Automático» deja que lo elija el router), de esfuerzo y un
@@ -631,9 +635,10 @@ Los tres datos de contexto, modelo y memoria se pueden esconder para que la barr
 solo lleve proyecto y nombre: **Ajustes › Terminales › Ver el modelo, el contexto y
 la memoria en la barra de cada terminal**.
 
-**Los botones**: el *Modo Espejo* (rama aparte, ver el punto 10), el ojo para tapar
-solo esta terminal en un directo, minimizar, sacar a su propia ventana, maximizar o
-restaurar, borrar la sesión (va a la papelera) y cerrar. Partir a la derecha o abajo
+**Los botones**: el ojo para tapar solo esta terminal en un directo, minimizar,
+sacar a su propia ventana, maximizar o restaurar, borrar la sesión (va a la
+papelera) y cerrar. Una terminal nacida en *Modo Espejo* lleva uno más delante, el
+de sus cambios en la rama aparte (ver el punto 10). Partir a la derecha o abajo
 ya no son botones: están en el clic derecho y en Ctrl+Mayús+→ y Ctrl+Mayús+↓. La ✕
 cierra la terminal; la conversación no se borra y sigue en la barra.
 

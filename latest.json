@@ -1,11 +1,11 @@
 {
-  "version": "0.9.248",
-  "notes": "La ventana roja del escudo pide solo tu PIN de Windows: la contrasena de Adeorq ya no existe y la pregunta es un paso que puedes poner en Ajustes Escudo; y en emision se tapan tambien las rutas en minusculas",
-  "pub_date": "2026-11-08T20:03:23Z",
+  "version": "0.9.249",
+  "notes": "El Chat va en dos pestanas, Adeo y Sesiones, con las sesiones por proyecto en una linea y abajo la cuenta con la que piensa Adeo, que se cambia ahi mismo. El Chat lee tambien las conversaciones de Gemini. El boton del Modo Espejo solo sale en una terminal nacida en espejo.",
+  "pub_date": "2026-11-08T23:19:46Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLytqdWxldktEVEVDMWEwc29RT0RMUEdVcnFabmRhaWN5ekI4TzkxL3RDeklkcGxqS0taTXIxTVFrYzM4QzNYOHFLVzVTbnZlV01WRnExK1duS0JqWndJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0MTY4MTg4CWZpbGU6QWRlb3JxXzAuOS4yNDhfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNDgKREZxMTFjRDc2bjJKSE1jN04rQmNGUm9DNkFCRUgwWi9uUk1OY2kza2oxbmM0ckJYWmkxcWRZV0kvT2pxWVBIanhVQlU5M1lUY2FaNlluSFZyWFdOQ0E9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.248/Adeorq_0.9.248_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3luaGhRbTFzeDB2bWlYWnhPWkMxcHpQdnpsd3Fpb21FTmVLSFBLMjgxUU0za2VhaGlrNXI2dTZJN1RCMnF5TlJ6Z0h4d0hXNGJOalZyN2FsTE1jaXdrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0MTc5OTc3CWZpbGU6QWRlb3JxXzAuOS4yNDlfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNDkKUkU0bTBjbE5qVXVDaTkxYW90UnphcEd1MVhDaXBseG9lQzg4NUdEYThqVmdmVTAySEg2TW1IRzNnbW1tS1JCRFZoMS90cUFTSmVZSjRxSDhqNVVxQ0E9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.249/Adeorq_0.9.249_x64-setup.exe"
     }
   }
 }

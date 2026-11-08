@@ -1461,6 +1461,46 @@ pub async fn conserje_enviar(
 /// contexto de una conversación larga (24.000) más un mensaje largo del móvil
 /// (16.000) la pasaban. Lo que se veía era «no pude lanzar claude».
 fn orden_claude(modelo: &str, cfg: Option<&std::path::Path>, sesion: &str) -> std::process::Command {
+    con_cuenta(orden_claude_sin_cuenta(modelo, cfg, sesion), cuenta_de_adeo().as_deref())
+}
+
+/// Where the account Adeo thinks with is written: the folder of that Claude
+/// login, or nothing for the main one.
+fn ruta_cuenta() -> Option<std::path::PathBuf> {
+    crate::dir_datos().ok().map(|d| d.join("conserje").join("cuenta.txt"))
+}
+
+/// The account Adeo thinks with, which is the default Claude account of
+/// Settings › Accounts (Munir, 2026-11-08: «la cuenta predeterminada es la
+/// que se usa para Adeo»). It lives on disk and not only in the window so the
+/// phone, which talks to Adeo without the window, uses the same one.
+fn cuenta_de_adeo() -> Option<std::path::PathBuf> {
+    let dir = std::fs::read_to_string(ruta_cuenta()?).ok()?;
+    let dir = std::path::PathBuf::from(dir.trim());
+    // A folder that is gone (an account removed by hand) falls back to the
+    // main login instead of a `claude` that cannot find its credentials.
+    (!dir.as_os_str().is_empty() && dir.is_dir()).then_some(dir)
+}
+
+fn con_cuenta(mut cmd: std::process::Command, cuenta: Option<&std::path::Path>) -> std::process::Command {
+    if let Some(dir) = cuenta {
+        cmd.env("CLAUDE_CONFIG_DIR", dir);
+    }
+    cmd
+}
+
+/// The window says which account Adeo uses whenever the default changes;
+/// empty is the main one.
+#[tauri::command(async)]
+pub fn conserje_cuenta(dir: String) -> Result<(), String> {
+    let ruta = ruta_cuenta().ok_or("no sé dónde guardar la cuenta de Adeo")?;
+    if let Some(padre) = ruta.parent() {
+        std::fs::create_dir_all(padre).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(&ruta, dir.trim()).map_err(|e| e.to_string())
+}
+
+fn orden_claude_sin_cuenta(modelo: &str, cfg: Option<&std::path::Path>, sesion: &str) -> std::process::Command {
     let mut cmd = std::process::Command::new(crate::foreman::claude_exe());
     cmd.args(["-p", "--model", modelo, "--output-format", "stream-json", "--verbose"])
         .args(["--session-id", sesion])
@@ -1957,6 +1997,21 @@ mod tests {
         let lleva = |c: &std::process::Command| c.get_envs().any(|(k, v)| k == crate::mcp::VARIABLE_DE_CASA && v.is_some());
         assert!(lleva(&cmd), "con manos lleva la contraseña de casa");
         assert!(!lleva(&orden_claude("sonnet", None, "id")), "sin manos no hay puente que la necesite");
+    }
+
+    /// Adeo thinks with the default account: its folder goes in
+    /// CLAUDE_CONFIG_DIR, and the main one leaves the variable alone.
+    #[test]
+    fn adeo_piensa_con_la_cuenta_que_le_toca() {
+        let dir_de = |c: &std::process::Command| {
+            c.get_envs()
+                .find(|(k, _)| *k == "CLAUDE_CONFIG_DIR")
+                .and_then(|(_, v)| v.map(|v| v.to_string_lossy().into_owned()))
+        };
+        let otra = con_cuenta(orden_claude_sin_cuenta("sonnet", None, "id"), Some(std::path::Path::new("C:/cuentas/segunda")));
+        assert_eq!(dir_de(&otra).as_deref(), Some("C:/cuentas/segunda"));
+        let principal = con_cuenta(orden_claude_sin_cuenta("sonnet", None, "id"), None);
+        assert_eq!(dir_de(&principal), None, "la principal usa la carpeta de siempre");
     }
 
     #[test]

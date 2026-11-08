@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="web/assets/adeorq.svg" width="78" alt="">
+<img src="web/assets/adeorq.svg" alt="Adeorq" height="88">
 
 # Adeorq
 
-### Nueve agentes trabajando. Una sola pantalla.
+**Nueve agentes trabajando. Una sola pantalla.**
 
 Panel de escritorio para Windows y Linux que abre tus proyectos en **terminales de verdad**
 (las mismas ConPTY que usa el sistema, no una caja de chat que las imita), te enseña tus
@@ -12,120 +12,81 @@ sesiones de Claude Code con su estado real y te deja dirigir a varios agentes a 
 perder de vista a ninguno. Y se viene contigo: **desde el móvil o cualquier navegador**,
 estés donde estés.
 
-<br>
+<a href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-setup.exe"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/readme/download-windows-dark.es.svg"><img src=".github/readme/download-windows-light.es.svg" alt="Descargar Adeorq para Windows"></picture></a>
+<a href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-x86_64.AppImage"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/readme/download-linux-dark.es.svg"><img src=".github/readme/download-linux-light.es.svg" alt="Descargar Adeorq para Linux"></picture></a>
 
-<!-- Botones en HTML `<img>` con ancho explícito (en markdown salían con otro
-     tamaño). Y una lección escrita con sangre: el botón de Windows estuvo ROTO
-     en GitHub nueve días por un guion doble dentro de un comentario XML del
-     propio SVG; un SVG servido como image/svg+xml se parsea en estricto y
-     muere entero. Ahora `pnpm svg` vigila todos los SVG del repo. -->
-<a href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-setup.exe"><img src="web/assets/descargar-windows.svg" width="330" alt="Descargar Adeorq para Windows"></a>
-<a href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-x86_64.AppImage"><img src="web/assets/descargar-linux.svg" width="330" alt="Descargar Adeorq para Linux"></a>
+Gratis · sin cuenta · sin API keys · se actualiza sola · [PolyForm Shield License 1.0.0](LICENSE)
 
-**Gratis · sin cuenta · sin API keys · se actualiza sola**
-
-[![Última versión](https://img.shields.io/github/v/release/Mun1to/Adeorq-releases?label=&color=1C66DE&style=flat-square)](https://github.com/Mun1to/Adeorq-releases/releases/latest)
-&nbsp;
-[Todas las versiones](https://github.com/Mun1to/Adeorq-releases/releases) ·
-[La web](https://adeorq.com) ·
-[La guía](https://adeorq.com/guia) ·
-[English](README.md)
-
-<br>
-
-<img src="web/assets/screens/es/cockpit.png" alt="La Cabina con cuatro agentes a la vez, cada uno en su proyecto: una sesión de Claude Code que ya terminó, Codex trabajando, otra de Claude Code pidiendo permiso con los botones de respuesta encima de su terminal, y otra más a mitad de un cambio">
-
-<sub>Cuatro agentes, cuatro proyectos. Uno ha terminado, dos trabajan y otro pide permiso, con la respuesta a un clic.</sub>
+[Todas las versiones](https://github.com/Mun1to/Adeorq-releases/releases) · [La web](https://adeorq.com) · [La guía](https://adeorq.com/guia) · [Última versión](https://github.com/Mun1to/Adeorq/releases/latest) · [English](README.md)
 
 </div>
 
----
+<p align="center"><img src="web/assets/screens/es/cockpit.png" alt="La Cabina con cuatro agentes a la vez, cada uno en su proyecto: una sesión de Claude Code que ya terminó, Codex trabajando, otra de Claude Code pidiendo permiso con los botones de respuesta encima de su terminal, y otra más a mitad de un cambio"></p>
 
-## En marcha en un minuto
+<p align="center">Cuatro agentes, cuatro proyectos. Uno ha terminado, dos trabajan y otro pide permiso, con la respuesta a un clic.</p>
 
-1. **Descárgala y ábrela.** No hay cuenta que crear ni clave que pegar.
-2. **Dile dónde viven tus proyectos.** Cada carpeta de ahí dentro pasa a ser un proyecto en la
-   barra lateral, con las sesiones que ya tenías en cada uno.
-3. **Haz clic en un proyecto.** Se abre una sesión de tu CLI de siempre en una terminal de
-   verdad, en esa carpeta (Claude Code, de fábrica). Haz clic en otro y ya tienes dos.
+## Cómo funciona
 
-## Funciona con TU cuenta
-
-Adeorq no vende ni incluye acceso a ningún modelo. **Usa las suscripciones que ya pagas** y
-los CLI que ya tienes instalados, veintidós a día de hoy: Claude Code, Codex, Gemini CLI,
-Antigravity, Copilot, Cursor, Qwen, Grok, Kimi Code, Kiro, pi, opencode, Crush, Amp, Aider,
-Goose, Droid, Jules, Auggie, Codebuff, Cody y CodeWhale. Si tienes varias cuentas, cada
-terminal puede nacer con la suya.
-
-Ese es el motivo de existir: **las novedades de los modelos llegan antes a la línea de
-comandos que a las aplicaciones de escritorio**. Adeorq monta la experiencia encima de esos
-programas en lugar de sustituirlos, así que el día que salga algo nuevo, lo tienes.
+<p align="center"><picture>
+<source media="(prefers-color-scheme: dark) and (max-width: 600px)" srcset=".github/readme/how-it-works-dark-narrow.es.svg">
+<source media="(max-width: 600px)" srcset=".github/readme/how-it-works-light-narrow.es.svg">
+<source media="(prefers-color-scheme: dark)" srcset=".github/readme/how-it-works-dark.es.svg">
+<img src=".github/readme/how-it-works-light.es.svg" alt="Descárgala y ábrela.: No hay cuenta que crear ni clave que pegar. Dile dónde viven tus proyectos.: Cada carpeta de ahí dentro pasa a ser un proyecto en la barra lateral, con las sesiones que ya tenías en cada uno. Haz clic en un proyecto.: Se abre una sesión de tu CLI de siempre en una terminal de verdad, en esa carpeta (Claude Code, de fábrica). Haz clic en otro y ya tienes dos.">
+</picture></p>
 
 ## Qué hay dentro
 
-| | |
+|  |  |
 |---|---|
 | **El inicio** | Adeo y una caja para pedirle lo que quieras con tus palabras: lo reparte en sesiones y el router elige el modelo. Al lado, tus proyectos por quién te espera y quién trabaja, y tu uso del mes. |
-| **La Cabina** | Un mosaico de terminales reales. Se parten, se mueven, se apartan sin cerrarse y vuelven donde estaban al reabrir. Y si quieres, sobreviven a la propia Adeorq: con **Ajustes → Terminales → Que las terminales aguanten si Adeorq se cae** (en pruebas), tus agentes siguen trabajando aunque se cierre de golpe y se reenganchan al volver a abrirla. |
+| **La Cabina** | Un mosaico de terminales reales. Se parten, se mueven, se apartan sin cerrarse y vuelven donde estaban al reabrir. Y si quieres, sobreviven a la propia Adeorq: con **Ajustes > Terminales > Que las terminales aguanten si Adeorq se cae** (en pruebas), tus agentes siguen trabajando aunque se cierre de golpe y se reenganchan al volver a abrirla. |
 | **Tus sesiones** | Lee `~/.claude`, y el `~/.codex` de Codex, sin API ninguna: título, estado real (te pregunta / terminó / a medias), cuándo fue y cuáles siguen vivas. Un clic las retoma dentro del panel. |
 | **El plan de Adeo** | Le pides el tablero hablando y te propone un plan. Nada se ejecuta sin tu OK, y el plan pasa por una verja determinista antes de que lo veas. |
 | **El Lienzo** | Tablero infinito con las terminales dentro, notas, imágenes, kanban y flechas que encadenan a un agente con el siguiente. Una nota con título y pasos se **guarda como ficha** en `docs/fichas` del proyecto, lista para repetirla. |
 | **Enjambres** | Junta sesiones que ya tienes abiertas en el lienzo en un solo chat de grupo: suelta una terminal encima de otra, o **Añadir › Enjambre**. Lo que escribes va a Adeo, que elige a qué sesión le toca, le reescribe el encargo y se lo manda; lo que contesta cada sesión vuelve al chat con su nombre. |
 | **El panel web** | Tu localhost al lado del agente que lo está construyendo: un navegador pequeño con pestañas, atrás y adelante, y un clic para meter TU navegador de verdad, con sus extensiones. |
-| **Archivos** | El árbol del proyecto al lado de las terminales. Creas archivos y carpetas, los renombras o los mandas a la papelera desde el clic derecho; abres uno en el editor, donde las imágenes y los PDF se ven como son. Y **Ctrl+K → Buscar en los archivos** encuentra un texto dentro del proyecto y abre el resultado en su línea. Y enseña **lo que toca tu agente**: lo último que hizo la sesión de esa terminal y los archivos que leyó, editó o metió en un commit. |
+| **Archivos** | El árbol del proyecto al lado de las terminales. Creas archivos y carpetas, los renombras o los mandas a la papelera desde el clic derecho; abres uno en el editor, donde las imágenes y los PDF se ven como son. Y **Ctrl+K > Buscar en los archivos** encuentra un texto dentro del proyecto y abre el resultado en su línea. Y enseña **lo que toca tu agente**: lo último que hizo la sesión de esa terminal y los archivos que leyó, editó o metió en un commit. |
 | **Modo Espejo** | Cada agente en su propio worktree de git. Ves el diff y decides si entra o se descarta. |
 | **Decisiones** | Cuando un agente necesita que elijas, te lo pregunta con opciones numeradas y te dice cuál cogería él. Contestas en su pestaña, o desde el móvil, y la respuesta vuelve a la terminal que preguntó. |
 | **La Agenda** | Lo que se te viene encima, tus objetivos del día y las ideas que los agentes te dejan por el camino. Y encargos que se lanzan solos, los días y a la hora que digas, con un freno que para uno cuando falla tres veces seguidas. |
 | **Tu perfil y tu uso** | Tu nombre, tu @ y tu foto, y dentro tus Cuentas, tu Agenda, tu Memoria y tus Comandos, cada una con su resumen. Debajo, tu uso: los tokens del mes por proveedor, modelo o proyecto, el año en casillas y una tarjeta para compartirlo como imagen o como vídeo. |
 | **Cuentas** | Varios logins del mismo CLI uno al lado del otro, cada uno con su plan y con lo que lleva gastado de su límite. Eliges con cuál nacen las terminales nuevas, o abres una terminal con una en concreto. |
 | **Comandos** | Todo lo que puedes escribir dentro de cada agente, buscando por lo que quieres hacer y no por cómo se llama, y enviado a la terminal con un clic. |
-| **Tus agentes y bots** | Un botón conecta tu Claude Code con Adeorq, en la bienvenida y en **Ajustes → Terminales**, y quita la entrada igual de limpio. **Ajustes → Bots** conecta Hermes u OpenClaw con un clic, cada uno con su permiso. Un programa de fuera de Adeorq ve la lista de terminales y el uso, y puede abrir terminales nuevas; para que lea más, se sube en **Ajustes → Terminales**. |
+| **Tus agentes y bots** | Un botón conecta tu Claude Code con Adeorq, en la bienvenida y en **Ajustes > Terminales**, y quita la entrada igual de limpio. **Ajustes > Bots** conecta Hermes u OpenClaw con un clic, cada uno con su permiso. Un programa de fuera de Adeorq ve la lista de terminales y el uso, y puede abrir terminales nuevas; para que lea más, se sube en **Ajustes > Terminales**. |
 | **La Memoria** | Tu bóveda de Obsidian dentro del panel, con búsqueda por contenido y el mapa de lo que enlaza con qué. |
 | **Adeo en el Chat** | Un solo chat donde Adeo te abre sesiones como pestañas, con un router que elige qué modelo o qué cliente coge cada encargo. |
 | **En el móvil** | Adeo, tus sesiones y cada terminal, desde cualquier navegador y estés donde estés. Adjuntas fotos y te avisa cuando un agente te pregunta. |
 | **Adeo** | La A de cuadritos de la barra de arriba es la campana. Teclea cuando tus agentes trabajan, te llama cuando uno te espera, salta cuando uno termina y se duerme si no hay ninguno, y te sigue el ratón con el ojo. |
 
-<div align="center">
-<img src="web/assets/screens/es/canvas.png" width="49%" alt="El Lienzo: tres terminales dentro del tablero, un enjambre que junta a dos de ellas en un solo chat, dos notas y el tablero de qué hace cada agente">
-<img src="web/assets/screens/es/files.png" width="49%" alt="Archivos: el árbol del proyecto a la derecha, un archivo abierto en el editor y dos terminales con las pruebas en verde y el diff">
-<img src="web/assets/screens/es/dashboard.png" width="49%" alt="El inicio: Adeo con la caja para pedirle lo que quieras, tus proyectos por quién trabaja y tu uso en casillas">
-<img src="web/assets/screens/es/profile.png" width="49%" alt="Tu perfil: tu nombre, los resúmenes de Cuentas, Agenda, Memoria y Comandos, y tu uso con el mes, el año y el reparto por proyecto">
-<img src="web/assets/screens/es/decisions.png" width="49%" alt="Decisiones: una pregunta de un agente con sus opciones numeradas, la recomendada marcada y la respuesta a medio rellenar">
-<img src="web/assets/screens/es/agenda.png" width="49%" alt="La Agenda: el mes con los objetivos de cada día, lo que proponen tus agentes y los objetivos de hoy en un panel flotante">
-<img src="web/assets/screens/es/accounts.png" width="49%" alt="Cuentas: dos logins de Claude Code y uno de Codex, cada uno con su plan y con lo que lleva gastado de su límite">
-</div>
+## Capturas
 
-<sub>Todas las capturas son la app de verdad, abierta sobre un taller de demostración y no sobre los proyectos de
-nadie. Los agentes de las terminales son sesiones reales, grabadas en esos proyectos de demostración y reproducidas;
-las cuentas, sus límites y el uso son datos de ejemplo.</sub>
+<table>
+<tr>
+<td width="50%" valign="top"><img src="web/assets/screens/es/canvas.png" alt="El Lienzo: tres terminales dentro del tablero, un enjambre que junta a dos de ellas en un solo chat, dos notas y el tablero de qué hace cada agente"><br>El Lienzo: tres terminales dentro del tablero, un enjambre que junta a dos de ellas en un solo chat, dos notas y el tablero de qué hace cada agente</td>
+<td width="50%" valign="top"><img src="web/assets/screens/es/files.png" alt="Archivos: el árbol del proyecto a la derecha, un archivo abierto en el editor y dos terminales con las pruebas en verde y el diff"><br>Archivos: el árbol del proyecto a la derecha, un archivo abierto en el editor y dos terminales con las pruebas en verde y el diff</td>
+</tr>
+</table>
 
-## Desde el móvil, o desde cualquier navegador
+<table>
+<tr>
+<td width="50%" valign="top"><img src="web/assets/screens/es/dashboard.png" alt="El inicio: Adeo con la caja para pedirle lo que quieras, tus proyectos por quién trabaja y tu uso en casillas"><br>El inicio: Adeo con la caja para pedirle lo que quieras, tus proyectos por quién trabaja y tu uso en casillas</td>
+<td width="50%" valign="top"><img src="web/assets/screens/es/profile.png" alt="Tu perfil: tu nombre, los resúmenes de Cuentas, Agenda, Memoria y Comandos, y tu uso con el mes, el año y el reparto por proyecto"><br>Tu perfil: tu nombre, los resúmenes de Cuentas, Agenda, Memoria y Comandos, y tu uso con el mes, el año y el reparto por proyecto</td>
+</tr>
+</table>
 
-Adeorq se viene contigo: desde el móvil, una tablet u otro ordenador hablas con Adeo,
-lees tus sesiones, escribes en cualquier terminal y te llega un aviso cuando un agente termina
-o te pregunta. Lo que ves es **tu PC**, no una copia en la nube, así que tiene que estar
-encendido y con Adeorq abierto. Se prepara una vez:
+<table>
+<tr>
+<td width="50%" valign="top"><img src="web/assets/screens/es/decisions.png" alt="Decisiones: una pregunta de un agente con sus opciones numeradas, la recomendada marcada y la respuesta a medio rellenar"><br>Decisiones: una pregunta de un agente con sus opciones numeradas, la recomendada marcada y la respuesta a medio rellenar</td>
+<td width="50%" valign="top"><img src="web/assets/screens/es/agenda.png" alt="La Agenda: el mes con los objetivos de cada día, lo que proponen tus agentes y los objetivos de hoy en un panel flotante"><br>La Agenda: el mes con los objetivos de cada día, lo que proponen tus agentes y los objetivos de hoy en un panel flotante</td>
+</tr>
+</table>
 
-1. Instala [Tailscale](https://tailscale.com/download) en el PC y en el móvil, y entra con la
-   misma cuenta en los dos. Es una red privada entre tus aparatos, gratis para uso personal.
-2. En Adeorq, abre **Ajustes → Móvil** y activa **Adeo en el móvil**.
-3. Pulsa **Llevar a Adeo a Tailscale**. La primera vez Tailscale puede pedirte activar
-   HTTPS en tu cuenta: si sale un enlace, ábrelo, actívalo y vuelve a pulsar.
-4. Pulsa **Emparejar un móvil**. Sale un QR con tu dirección
-   (`https://tu-pc.tu-red.ts.net:8443`) y un código de seis cifras que vale diez minutos.
-5. En el móvil, con Tailscale encendido, escanea el QR, escribe el código y pulsa
-   **Emparejar**. Cada navegador se empareja una vez. La página habla el idioma en que tengas Adeorq.
-
-Cuando un agente necesita que elijas algo, te lo pregunta con sus opciones numeradas y la
-pregunta te llega al móvil, a **Decisiones**; tu respuesta vuelve sola a la terminal que
-preguntó. Y un **botón de modo** hace lo que Mayús+Tab en el PC con Claude Code.
-
-En Android la página se instala como una app con su icono; en iPhone, Safari → Compartir →
-Añadir a la pantalla de inicio. **Por qué se puede dejar encendido:** Adeorq solo escucha
-dentro de tu PC y Tailscale lo lleva a tus aparatos por un túnel cifrado, así que desde
-internet no se ve; aun así, cada petición necesita la clave de un aparato emparejado, y en el
-disco solo queda la huella de cada clave. Todos los pasos, en
-[la guía](https://adeorq.com/guia#movil).
+<table>
+<tr>
+<td width="50%" valign="top"><img src="web/assets/screens/es/accounts.png" alt="Cuentas: dos logins de Claude Code y uno de Codex, cada uno con su plan y con lo que lleva gastado de su límite"><br>Cuentas: dos logins de Claude Code y uno de Codex, cada uno con su plan y con lo que lleva gastado de su límite</td>
+<td width="50%"></td>
+</tr>
+</table>
 
 ## Al instalar: Windows te va a avisar
 
@@ -133,7 +94,7 @@ disco solo queda la huella de cada clave. Todos los pasos, en
 cuesta unos 200 € al año, y aun firmado el aviso sigue hasta que el instalador gana reputación
 ante Microsoft), así que SmartScreen enseña *«Windows protegió su PC»* la primera vez.
 
-Para seguir: **Más información → Ejecutar de todas formas**.
+Para seguir: **Más información > Ejecutar de todas formas**.
 
 Descárgalo siempre desde
 [la página de releases de este repositorio](https://github.com/Mun1to/Adeorq-releases/releases/latest)
@@ -141,7 +102,8 @@ y de ningún otro sitio. Y una vez instalado, **las actualizaciones sí van firm
 verifica la firma criptográfica de cada una antes de aplicarla, así que ese aviso solo sale
 la primera vez.
 
-## En Linux
+<details>
+<summary><b>En Linux</b></summary>
 
 Descarga
 **[Adeorq-x86_64.AppImage](https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-x86_64.AppImage)**,
@@ -172,21 +134,62 @@ Fedora (`sudo dnf install ./Adeorq-*.rpm`).
 Se compila sobre **Ubuntu 22.04**, así que hace falta glibc 2.35 o posterior (Ubuntu 22.04+,
 Debian 12+, Fedora 36+, Arch).
 
-## Compilarlo tú
+</details>
 
-```bash
-pnpm install
-pnpm tauri dev      # ventana de desarrollo
-pnpm tauri build    # instalador
-```
+## Funciona con TU cuenta
 
-Hace falta [Rust](https://rustup.rs). En Windows, además, las herramientas de compilación de
-Visual Studio; en Linux, las de Tauri 2:
+Adeorq no vende ni incluye acceso a ningún modelo. **Usa las suscripciones que ya pagas** y
+los CLI que ya tienes instalados, veintidós a día de hoy: Claude Code, Codex, Gemini CLI,
+Antigravity, Copilot, Cursor, Qwen, Grok, Kimi Code, Kiro, pi, opencode, Crush, Amp, Aider,
+Goose, Droid, Jules, Auggie, Codebuff, Cody y CodeWhale. Si tienes varias cuentas, cada
+terminal puede nacer con la suya.
 
-```bash
-sudo apt install build-essential pkg-config libssl-dev \
-  libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
-```
+Ese es el motivo de existir: **las novedades de los modelos llegan antes a la línea de
+comandos que a las aplicaciones de escritorio**. Adeorq monta la experiencia encima de esos
+programas en lugar de sustituirlos, así que el día que salga algo nuevo, lo tienes.
+
+<sub>Todas las capturas son la app de verdad, abierta sobre un taller de demostración y no sobre los proyectos de
+nadie. Los agentes de las terminales son sesiones reales, grabadas en esos proyectos de demostración y reproducidas;
+las cuentas, sus límites y el uso son datos de ejemplo.</sub>
+
+## Desde el móvil, o desde cualquier navegador
+
+Adeorq se viene contigo: desde el móvil, una tablet u otro ordenador hablas con Adeo,
+lees tus sesiones, escribes en cualquier terminal y te llega un aviso cuando un agente termina
+o te pregunta. Lo que ves es **tu PC**, no una copia en la nube, así que tiene que estar
+encendido y con Adeorq abierto. Se prepara una vez:
+
+1. Instala [Tailscale](https://tailscale.com/download) en el PC y en el móvil, y entra con la
+   misma cuenta en los dos. Es una red privada entre tus aparatos, gratis para uso personal.
+2. En Adeorq, abre **Ajustes > Móvil** y activa **Adeo en el móvil**.
+3. Pulsa **Llevar a Adeo a Tailscale**. La primera vez Tailscale puede pedirte activar
+   HTTPS en tu cuenta: si sale un enlace, ábrelo, actívalo y vuelve a pulsar.
+4. Pulsa **Emparejar un móvil**. Sale un QR con tu dirección
+   (`https://tu-pc.tu-red.ts.net:8443`) y un código de seis cifras que vale diez minutos.
+5. En el móvil, con Tailscale encendido, escanea el QR, escribe el código y pulsa
+   **Emparejar**. Cada navegador se empareja una vez. La página habla el idioma en que tengas Adeorq.
+
+Cuando un agente necesita que elijas algo, te lo pregunta con sus opciones numeradas y la
+pregunta te llega al móvil, a **Decisiones**; tu respuesta vuelve sola a la terminal que
+preguntó. Y un **botón de modo** hace lo que Mayús+Tab en el PC con Claude Code.
+
+En Android la página se instala como una app con su icono; en iPhone, Safari > Compartir >
+Añadir a la pantalla de inicio. **Por qué se puede dejar encendido:** Adeorq solo escucha
+dentro de tu PC y Tailscale lo lleva a tus aparatos por un túnel cifrado, así que desde
+internet no se ve; aun así, cada petición necesita la clave de un aparato emparejado, y en el
+disco solo queda la huella de cada clave. Todos los pasos, en
+[la guía](https://adeorq.com/guia#movil).
+
+Sin estos proyectos Adeorq no existiría. Todos con licencias permisivas, todos acreditados
+uno a uno con su copyright en [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
+
+## Avisos
+
+No afiliado a Anthropic, OpenAI, Google ni Microsoft. Sus nombres y logotipos son marcas de
+sus respectivos titulares y aquí solo sirven para identificar con qué herramienta estás
+trabajando.
+
+¿Algo va mal? [Abre una incidencia](https://github.com/Mun1to/Adeorq-releases/issues).
 
 ## Don't trust it, check it
 
@@ -202,9 +205,28 @@ whatever you use. It is the same prompt in every public repository here, so you 
 > y te dirá en tu idioma qué hace este programa de verdad: qué envía por internet, qué toca
 > en tu ordenador y qué ejecuta al instalarse.
 
+<details>
+<summary><b>Compilarlo tú</b></summary>
+
+```bash
+pnpm install
+pnpm tauri dev      # ventana de desarrollo
+pnpm tauri build    # instalador
+```
+
+Hace falta [Rust](https://rustup.rs). En Windows, además, las herramientas de compilación de
+Visual Studio; en Linux, las de Tauri 2:
+
+```bash
+sudo apt install build-essential pkg-config libssl-dev \
+  libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+```
+
+</details>
+
 ## Licencia
 
-**[PolyForm Shield License 1.0.0](LICENSE)** — una licencia de catálogo escrita
+**[PolyForm Shield License 1.0.0](LICENSE)**, una licencia de catálogo escrita
 por abogados, no un EULA a medida.
 
 Puedes hacer **cualquier cosa** con Adeorq, incluido usarlo para tu trabajo y el
@@ -223,25 +245,20 @@ Los avisos sobre marcas y sobre las cuentas de los proveedores de IA están en
 licencias, con sus avisos de copyright recogidos en
 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
+<details>
+<summary><b>Construido sobre</b></summary>
 
-## Construido sobre
-
-Sin estos proyectos Adeorq no existiría. Todos con licencias permisivas, todos acreditados
-uno a uno con su copyright en [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
-
-| | |
+|  |  |
 |---|---|
 | [**Tauri**](https://tauri.app) | La ventana y el puente a Rust. Un binario de 5 MB en vez de 150. |
 | [**xterm.js**](https://xtermjs.org) | El emulador de terminal, con su renderizador WebGL. |
-| [**portable-pty**](https://github.com/wezterm/wezterm/tree/main/pty) (WezTerm) | Los ConPTY de verdad, desde Rust. |
-| [**React**](https://react.dev) + [**Vite**](https://vite.dev) | La interfaz. |
+| [**portable-pty (WezTerm)**](https://github.com/wezterm/wezterm/tree/main/pty) | Los ConPTY de verdad, desde Rust. |
+| [**React + Vite**](https://react.dev) | La interfaz. |
 | [**React Flow**](https://reactflow.dev) | El lienzo infinito. |
-| [**Ollama**](https://ollama.com) · [**whisper.cpp**](https://github.com/ggml-org/whisper.cpp) | Lo que corre en tu máquina: resúmenes y dictado, sin salir de casa. |
+| [**Ollama · whisper.cpp**](https://ollama.com) | Lo que corre en tu máquina: resúmenes y dictado, sin salir de casa. |
 
-## Avisos
+</details>
 
-No afiliado a Anthropic, OpenAI, Google ni Microsoft. Sus nombres y logotipos son marcas de
-sus respectivos titulares y aquí solo sirven para identificar con qué herramienta estás
-trabajando.
+<br>
 
-¿Algo va mal? [Abre una incidencia](https://github.com/Mun1to/Adeorq-releases/issues).
+<p align="center">Hecho por <a href="https://munito.dev"><b>Munir Torres</b></a>. También suyo: <a href="https://vocript.app">VoCript</a> · <a href="https://winshotx.com">winshotx</a> · <a href="https://github.com/Mun1to/Expoal">Expoal</a> · <a href="https://github.com/Mun1to/hotkeyconfig">hotkeyconfig</a> · <a href="https://github.com/Mun1to/froede">froede</a></p>

@@ -2678,7 +2678,7 @@ function App() {
           de cuota: se abre sola desde Rust, no cuelga de ninguna pantalla. */}
       <PedirSecreto />
       {/* La del escudo, igual: sale sola cuando un agente pide tu verificación. */}
-      <EscudoVentana panes={panes} />
+      <EscudoVentana panes={panes} stream={stream} />
       <PedirAbrir />
       <Paleta panes={panes} delLienzo={canvasPanes} irA={setView} abrirProyecto={openClaude} irATerminal={irATerminal} raiz={raizArchivos} abrirArchivo={abrirArchivo} />
       <AlCerrar />

@@ -84,6 +84,9 @@ const FUERA = [
   // `escudo/` sí sale: escudo.rs y sus pruebas leen `lista.json` y
   // `pruebas/vector.json`, también en el Linux del repo público.
   "escudo/gancho.mjs",
+  // Sus pruebas solo corren contra el gancho, que no sale, y nombran los mismos
+  // archivos de la casa (0.9.247: «Reglas_de_los_proyectos» en una de G2).
+  "escudo/pruebas/pruebas.mjs",
 ];
 
 /**

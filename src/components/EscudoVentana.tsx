@@ -16,6 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useT } from "../lib/i18n";
+import { redact } from "../lib/redact";
 import type { Pane } from "../lib/tablero";
 
 interface Pedido {
@@ -42,8 +43,12 @@ type Paso = "inicio" | "pin" | "contrasena" | "pregunta";
 
 const FALLOS_MAX = 3;
 
-export default function EscudoVentana({ panes }: { panes: Pane[] }) {
+/** `stream`: el modo emisión (Munir, 2026-11-08: «espero que cuando esté en el modo stream se censuren
+ *  las respuestas»). Lo que escribe va tapado, su pregunta no sale y el resto pasa por `redact`, como el
+ *  texto de las terminales. */
+export default function EscudoVentana({ panes, stream = false }: { panes: Pane[]; stream?: boolean }) {
   const { t } = useT();
+  const tapar = (s: string) => (stream ? redact(s).text : s);
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [paso, setPaso] = useState<Paso>("inicio");
   const [texto, setTexto] = useState("");
@@ -148,7 +153,7 @@ export default function EscudoVentana({ panes }: { panes: Pane[] }) {
       ? t("Lo pide la terminal «{n}».", { n: nombre })
       : t("Lo pide la terminal {n}.", { n: pedido.panel ?? "?" });
 
-  const lineas = pedido.diff ? pedido.diff.split("\n") : [];
+  const lineas = pedido.diff ? tapar(pedido.diff).split("\n") : [];
 
   return (
     <div className="modal-overlay escudo-velo" data-sin-mods="">
@@ -165,17 +170,17 @@ export default function EscudoVentana({ panes }: { panes: Pane[] }) {
       >
         <p className="escudo-quien">{quien}</p>
         <h3 className="modal-title escudo-titulo" id="escudo-titulo">
-          {pedido.titulo}
+          {tapar(pedido.titulo)}
         </h3>
         {pedido.explicacion.map((l, i) => (
           <p className="modal-text" key={i}>
-            {l}
+            {tapar(l)}
           </p>
         ))}
 
         {pedido.archivo && (
           <p className="modal-text escudo-que">
-            {pedido.esCarpeta ? t("La carpeta:") : t("El archivo:")} <code>{pedido.archivo}</code>
+            {pedido.esCarpeta ? t("La carpeta:") : t("El archivo:")} <code>{tapar(pedido.archivo)}</code>
           </p>
         )}
 
@@ -228,12 +233,14 @@ export default function EscudoVentana({ panes }: { panes: Pane[] }) {
             <span className="escudo-paso">
               {paso === "contrasena"
                 ? t("Paso 2 de 3: tu contraseña de Adeorq.")
-                : t("Paso 3 de 3: {p}", { p: pedido.pregunta ?? "" })}
+                : stream
+                  ? t("Paso 3 de 3: la respuesta a tu pregunta de seguridad (en emisión no se enseña).")
+                  : t("Paso 3 de 3: {p}", { p: pedido.pregunta ?? "" })}
             </span>
             <input
               ref={caja}
               className="secreto-caja"
-              type={paso === "contrasena" ? "password" : "text"}
+              type={paso === "contrasena" || stream ? "password" : "text"}
               value={texto}
               spellCheck={false}
               autoComplete="off"

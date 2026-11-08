@@ -10,7 +10,7 @@ import os from "node:os";
 import path from "node:path";
 import readline from "node:readline";
 import { fileURLToPath } from "node:url";
-import { cargarAjustes, compilarLista, objetivos, esPublicar, deFuera, detectarOrdenes } from "../gancho.mjs";
+import { cargarAjustes, compilarLista, objetivos, esPublicar, deFuera, detectarOrdenes, diffDeLaLlamada, riesgoEnLoNuevo } from "../gancho.mjs";
 
 const args = process.argv.slice(2);
 const opt = (n, d) => {
@@ -119,6 +119,19 @@ async function leer(f) {
           if (o.clase === "memoria" && (!manchada || args.includes("--memoria-nunca"))) {
             r.porClase.memoria++;
             continue;
+          }
+          // G2: a rule document with the editor, from a clean terminal, with no link or download in it
+          if (o.suave && !manchada && !args.includes("--reglas-siempre")) {
+            // by command: denied without asking, the agent is sent to the editor
+            if (!o.editor && /^(bash|powershell)$/i.test(name)) {
+              r.porClase.reglasAlEditor = (r.porClase.reglasAlEditor ?? 0) + 1;
+              continue;
+            }
+            const d = diffDeLaLlamada(name, input, o.ruta);
+            if (d && !riesgoEnLoNuevo(d.puestas)) {
+              r.porClase.reglasLimpias = (r.porClase.reglasLimpias ?? 0) + 1;
+              continue;
+            }
           }
           if (o.clase === "memoria") r.porClase.memoriaManchada++;
           else r.porClase[o.clase]++;

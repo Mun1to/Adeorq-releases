@@ -3443,6 +3443,8 @@ const EN: Record<string, string> = {
   "Pon tu PIN de Windows en el cuadro que acaba de salir.": "Enter your Windows PIN in the box that just appeared.",
   "Paso 2 de 3: tu contraseña de Adeorq.": "Step 2 of 3: your Adeorq password.",
   "Paso 3 de 3: {p}": "Step 3 of 3: {p}",
+  "Paso 3 de 3: la respuesta a tu pregunta de seguridad (en emisión no se enseña).":
+    "Step 3 of 3: the answer to your security question (not shown while streaming).",
   "Esa no es tu contraseña. Te quedan {n} intentos.": "That is not your password. You have {n} tries left.",
   "Esa no es la respuesta. Te quedan {n} intentos.": "That is not the answer. You have {n} tries left.",
   "No lo dejes": "Don't allow it",
@@ -3454,7 +3456,7 @@ const EN: Record<string, string> = {
     "Before an agent may change an important file, the red window asks you for three things: ",
   "tu PIN de Windows, esta contraseña y la respuesta a esta pregunta": "your Windows PIN, this password and the answer to this question",
   ". Adeorq no guarda el texto, solo lo justo para saber si aciertas.": ". Adeorq does not keep the text, only enough to know whether you get it right.",
-  "Ya están guardadas. Tu pregunta es: «{p}»": "They are saved. Your question is: «{p}»",
+  "Ya están guardadas. Tu pregunta es:": "They are saved. Your question is:",
   Contraseña: "Password",
   "8 caracteres o más": "8 characters or more",
   "Otra vez": "Again",

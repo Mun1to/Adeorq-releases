@@ -144,7 +144,8 @@ export default function AjustesEscudo() {
     if (c.como === "Deshacer") return t("Lo deshiciste tú desde aquí");
     const quien = c.panel != null ? t("La terminal {n}", { n: c.panel }) : t("Un agente");
     if (c.verificado) return t("{q}, con tus tres pasos", { q: quien });
-    if (c.porque === "memoria-limpia") return t("{q}, sin preguntarte: no había leído nada de fuera", { q: quien });
+    // «reglas-limpia»: un AGENTS.md o CLAUDE.md con el editor, sin nada de fuera ni enlaces (decisión G2).
+    if (c.porque === "memoria-limpia" || c.porque === "reglas-limpia") return t("{q}, sin preguntarte: no había leído nada de fuera", { q: quien });
     if (c.porque === "memoria-manchada") return t("{q}, sin preguntarte, justo después de leer algo de fuera: míralo", { q: quien });
     return t("{q}, sin verificación", { q: quien });
   };
@@ -163,7 +164,10 @@ export default function AjustesEscudo() {
           {t(". Adeorq no guarda el texto, solo lo justo para saber si aciertas.")}
         </p>
         {preparada ? (
-          <p className="setting-line setting-good">{t("Ya están guardadas. Tu pregunta es: «{p}»", { p: est.pregunta ?? "" })}</p>
+          // `stream-hide`: en emisión la pregunta va tapada (se ve con Alt), como las rutas de abajo.
+          <p className="setting-line setting-good">
+            {t("Ya están guardadas. Tu pregunta es:")} <span className="stream-hide">«{est.pregunta ?? ""}»</span>
+          </p>
         ) : (
           <div className="escudo-formulario">
             <label className="setting-row escudo-fila">
@@ -190,7 +194,7 @@ export default function AjustesEscudo() {
             <label className="setting-row escudo-fila">
               <span>{t("Pregunta")}</span>
               <input
-                className="finder setting-input"
+                className="finder setting-input stream-hide"
                 value={pregunta}
                 placeholder={t("Una que solo sepas tú")}
                 spellCheck={false}
@@ -202,6 +206,7 @@ export default function AjustesEscudo() {
               <span>{t("Respuesta")}</span>
               <input
                 className="finder setting-input"
+                type="password"
                 value={respuesta}
                 placeholder={t("Dan igual las mayúsculas y las tildes")}
                 spellCheck={false}
@@ -290,7 +295,7 @@ export default function AjustesEscudo() {
                 <div className="escudo-cambio" data-rojo={rojo || undefined} key={`${c.ruta}-${c.cuando}-${i}`}>
                   <div className="escudo-cambio-que">
                     <b>{nombre}</b>
-                    <span className="escudo-cambio-donde">{carpeta}</span>
+                    <span className="escudo-cambio-donde stream-hide">{carpeta}</span>
                     <span>
                       {como(c)} · {cuando(c.cuando)}
                       {c.deshecho && ` · ${t("deshecho")}`}

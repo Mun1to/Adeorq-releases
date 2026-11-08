@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "adeorq"
-version = "0.9.246"
+version = "0.9.247"
 dependencies = [
  "aes-gcm",
  "argon2",

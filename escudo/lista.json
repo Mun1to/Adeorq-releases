@@ -7,6 +7,7 @@
     "nombres: la ruta acaba en /<nombre> (puede llevar carpeta, como .claude/settings.json), este donde este. carpetas: todo lo que cuelga de ella. archivos: esa ruta exacta.",
     "Si una ruta cae en varias clases, manda la mas dura: escudo, luego rojo, luego memoria.",
     "vigilar: false quita una entrada del vigilante (la cambia un programa por su cuenta, no un agente) pero el gancho la sigue parando.",
+    "solo_si_leyo_fuera: true (decision G2 de Munir, 2026-11-08, para los documentos de reglas de cada proyecto) deja pasar sin preguntar una escritura con el editor si esa terminal no leyo nada de fuera en la ultima hora y lo nuevo no trae un enlace ni una descarga; queda en la lista de cambios. Por comando se pregunta siempre, porque no se sabe que escribe. Si la ruta cae tambien en una entrada roja sin la marca, manda esa. El vigilante no la usa.",
     "fuera: lo que mancha una terminal durante una hora (decisiones A1 y B1). herramientas: nombres de herramienta, con * para cualquier cosa. carpetas y trozos: un Read de ahi dentro, o de una ruta que lleve ese trozo, es de fuera. Las webs que baja un comando (curl, wget, Invoke-WebRequest, gh issue view) las reconoce el gancho."
   ],
   "clases": {
@@ -17,15 +18,18 @@
   "nombres": [
     {
       "clase": "rojo",
-      "nombre": "agents.md"
+      "nombre": "agents.md",
+      "solo_si_leyo_fuera": true
     },
     {
       "clase": "rojo",
-      "nombre": "claude.md"
+      "nombre": "claude.md",
+      "solo_si_leyo_fuera": true
     },
     {
       "clase": "rojo",
-      "nombre": "gemini.md"
+      "nombre": "gemini.md",
+      "solo_si_leyo_fuera": true
     },
     {
       "clase": "rojo",
@@ -33,11 +37,13 @@
     },
     {
       "clase": "rojo",
-      "nombre": "prioridades.md"
+      "nombre": "prioridades.md",
+      "solo_si_leyo_fuera": true
     },
     {
       "clase": "rojo",
-      "nombre": "copilot-instructions.md"
+      "nombre": "copilot-instructions.md",
+      "solo_si_leyo_fuera": true
     },
     {
       "clase": "rojo",
@@ -72,7 +78,8 @@
     },
     {
       "clase": "rojo",
-      "carpeta": "{proyectos}/*/.cursor/rules"
+      "carpeta": "{proyectos}/*/.cursor/rules",
+      "solo_si_leyo_fuera": true
     },
     {
       "clase": "rojo",

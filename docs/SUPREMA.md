@@ -114,8 +114,9 @@ a un reloj (cerrarla a la media hora), a una tira de «delegadas» y a un botón
 - **`close_pane` pide su `rastro`** para una que abrió un agente: qué hizo, dónde dejó su parte y
   qué falta, de 40 a 8.000 caracteres. Sin él, o si no se puede guardar, no la cierra. Se guarda
   en `%LOCALAPPDATA%\Adeorq\rastros\<fecha UTC>-<nombre>.md` con su carpeta, la conversación que
-  corría (`claude --resume <id>`) y quién la abrió y la cerró (`rastros.rs`). La conversación NO se
-  borra: es de Claude Code, y con ese id se retoma.
+  corría (`claude --resume <id>`) y quién la abrió y la cerró (`rastros.rs`). Su conversación va a
+  la papelera unos minutos después (ver «a la papelera» abajo), así que el rastro y el traspaso al
+  que apunta son lo que queda.
 - **Se va entera**: el cierre por MCP no deja el aviso de «cerrada» ni el Ctrl+Z de la X
   (`quitarPane(id, false)` en `App.tsx`). La X de Munir sigue igual.
 - **Lleva el color de su proyecto** (2026-10-21, Munir: *«que les cambie de color el header de la
@@ -147,6 +148,21 @@ a un reloj (cerrarla a la media hora), a una tira de «delegadas» y a un botón
   (`cargo test --lib la_edad_no_se_congela`, rojo con «3 h»), y
   `scripts/laboratorio/barra-edad-con-la-app-abierta.mjs` deja la app aislada abierta nueve
   minutos antes de mirar, que es lo que ningún laboratorio de la barra hacía.
+- **Y desde el 2026-11-08 va a la papelera, no a «Archivadas».** Munir, con la barra llena:
+  *«quiero que se eliminen y ya no se archiven, y estén las sesiones supremas y ya está»*, que era
+  lo que pidió el 15-oct. `rastros/papelera.rs` da una vuelta cada dos minutos (no en la ventana de
+  desarrollo, que no ve los paneles de la de verdad; `ADEORQ_PAPELERA=1` la enciende ahí) y tira a
+  la papelera de Windows, con la carpeta de al lado (subagentes), la conversación de un rastro **de
+  agente** («La abrió el panel N», «un agente sin panel» o la X sobre una delegada), con tres
+  minutos desde el rastro, sin nada escrito más de dos minutos después de él, y que no esté abierta
+  en un panel, fijada ni traída. Luego apunta «- A la papelera: …» en el rastro: sacarla de la
+  papelera la devuelve a «Archivadas» y no se vuelve a tirar. No toca el relevo, los rastros
+  escritos a mano ni una terminal tuya que cerró un agente, que desde ese día dice «No la abrió un
+  agente» (antes salía «La abrió un agente sin panel», igual que una delegada huérfana). Lo que
+  trabajó sigue contando en tu uso (`idos_de` en `uso_historia.rs`). Lo que queda en «Archivadas»
+  son las tuyas. `cargo test --lib rastros::` y `uso_historia::`.
+  **Las de la segunda cuenta de antes del 3-nov** no se tiran solas: su comando no nombraba la
+  conversación y su rastro dice «su comando no la nombraba». Esas se tiraron a mano el 2026-11-08.
 - **Lo que no cubre:** una delegada cuyo agente se cerró antes que ella se queda sin dueño; esa la
   cierra Munir o la Suprema (con la X ya deja su rastro, ver abajo). Y el rastro no se ve todavía
   en la app: vive en esa carpeta.

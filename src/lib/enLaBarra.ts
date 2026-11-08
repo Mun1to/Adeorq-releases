@@ -133,8 +133,10 @@ export const MARGEN_DEL_CIERRE_MS = 10 * 60 * 1000;
  * archivan sin escribir nada en el estado de la barra, así que dejan de
  * archivarse solas en cuanto alguien las retoma (se escribe en ellas después
  * del rastro), las tienes abiertas en un panel o las desarchivas tú (van a
- * `traidas`, que es «esta la quiero a la vista»). Siguen en «Archivadas»,
- * y el rastro guarda cómo retomarlas.
+ * `traidas`, que es «esta la quiero a la vista»). Desde el 2026-11-08 las que
+ * abrió un agente solo pasan por aquí unos minutos: luego su conversación va a
+ * la papelera (`rastros/papelera.rs`, Munir: «que se eliminen y ya no se
+ * archiven»), y en «Archivadas» quedan las tuyas.
  *
  * Y las traídas a mano, cuando llevan un mes sin tocarse: ni escritas ni
  * traídas otra vez (`traidasEn`). Munir, 2026-10-22 (D5, «que se archiven

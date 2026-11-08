@@ -22,8 +22,11 @@ const nMuestras = Number(opt("--muestras", 25));
 const raices = args.filter((a, i) => !a.startsWith("--") && !args[i - 1]?.startsWith("--"));
 if (!raices.length) {
   raices.push(path.join(os.homedir(), ".claude", "projects"));
-  for (const d of fs.readdirSync(os.homedir())) if (/^claude-/.test(d) && fs.existsSync(path.join(os.homedir(), d, "projects"))) raices.push(path.join(os.homedir(), d, "projects"));
+  // Adeorq keeps every extra account in %LOCALAPPDATA%\Adeorq\accounts\claude-*
+  const cuentas = path.join(process.env.LOCALAPPDATA ?? path.join(os.homedir(), "AppData", "Local"), "Adeorq", "accounts");
+  if (fs.existsSync(cuentas)) for (const d of fs.readdirSync(cuentas)) if (/^claude-/.test(d) && fs.existsSync(path.join(cuentas, d, "projects"))) raices.push(path.join(cuentas, d, "projects"));
 }
+console.error(`banco: ${raices.join(" + ")}`);
 
 // The repo copy, with this user's real folders: the same list the installed hook will read.
 const aj = cargarAjustes(path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."));

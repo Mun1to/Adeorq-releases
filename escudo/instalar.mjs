@@ -117,7 +117,7 @@ export function ajustesGemini() {
 }
 
 function ajustesGancho() {
-  return { casa, proyectos, datos, programas, puerto: 3012, abrir_navegador: true, memoria: "manchada", mancha_min: 60, plazo_rojo_min: 30, reinicio_por_fuera: true };
+  return { casa, proyectos, datos, programas, puerto: 3012, abrir_navegador: true, memoria: "nunca", mancha_min: 60, plazo_rojo_min: 30, reinicio_por_fuera: true };
 }
 
 // ───────── the plan ─────────

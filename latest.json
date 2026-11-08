@@ -1,11 +1,11 @@
 {
-  "version": "0.9.245",
-  "notes": "Para ver en el movil: los agentes te ensenan imagenes, paginas y capturas de webs de tu PC. Las decisiones resueltas por otra via dejan de esperarte. Un doble toque en Enviar ya no cancela tu respuesta. Una clave que ya diste no se vuelve a pedir.",
-  "pub_date": "2026-11-07T13:14:05Z",
+  "version": "0.9.246",
+  "notes": "Las conversaciones de las terminales que abre un agente se van a la papelera unos minutos despues de cerrarlas con su rastro, en vez de amontonarse en Archivadas; tu uso del Perfil las sigue contando",
+  "pub_date": "2026-11-08T17:24:20Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzlLRG9KaXJya0pXT2ZTazE3N1l3S0gyQUtFQ3pXWmNjOHpqRG9kMUlhUlFzYzljeGVPeFVjT2hjaHJ6N3FJUm81eXo3ZE8yMU4renNhNVFqd2JDYXcwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0MDU3MjIyCWZpbGU6QWRlb3JxXzAuOS4yNDVfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNDUKbFp0NEpVVkFGLy9RRmNkVzg1eFV2LzI3UzVMWi9wMnA0R2YwcXpoNU1nZVNxZ1c2THZacXRtUGtxZjE2Q3hCUXo1U0NnanN2U3hTRXI2NTlaQkt4Q1E9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.245/Adeorq_0.9.245_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3dMVVdDaytXSlRFWXJIWUFvYi9GT25MM1U3M0ZPeXZOTXdtM2JVUmpyVlh0K0FNMzhYeEVEaU5pUGtJRjlCT2RnMm9TR2o3SCtnVUdzNlVYOHRtQXdnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0MTU4NjUwCWZpbGU6QWRlb3JxXzAuOS4yNDZfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNDYKdHRCTC9YTlNrZC9JM0R4YUNnWUhKMHc5eHBPTXlJMjlNRHYyZiszdXR6TmZ3SUYwN2t0Ly9ZWHNoWEpoM05hcWVwbE0zQ29WZndnNlpBa0Q0WWlXRHc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.246/Adeorq_0.9.246_x64-setup.exe"
     }
   }
 }

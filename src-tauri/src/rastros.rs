@@ -8,8 +8,10 @@
 // `close_pane` y le pasa ese rastro; aquí se guarda, un archivo por terminal en
 // `%LOCALAPPDATA%\Adeorq\rastros`, para que lo hecho no se vaya con el panel.
 //
-// La conversación no se borra: es de Claude Code, no de Adeorq, y con su id
-// apuntado aquí se retoma cuando haga falta.
+// Su conversación va a la papelera unos minutos después (`papelera.rs`), y el
+// rastro es lo que queda de ella.
+
+pub mod papelera;
 
 use std::path::{Path, PathBuf};
 
@@ -24,6 +26,9 @@ pub struct Rastro<'a> {
     pub carpeta: &'a str,
     /// La conversación que corría dentro, si su comando lo dice.
     pub sesion: Option<String>,
+    /// Si la abrió un agente (`open_pane`). Una tuya también puede llevar
+    /// rastro, si el agente que la cierra lo manda, y la suya no va a la papelera.
+    pub delegada: bool,
     /// Qué panel la abrió y cuál la cerró (números de ESE arranque de Adeorq).
     pub abierta_por: Option<u32>,
     pub cerrada_por: Option<u32>,
@@ -166,11 +171,20 @@ pub fn escribir(dir: &Path, r: &Rastro, ahora_ms: u64) -> Result<PathBuf, String
         Some(id) => md.push_str(&format!("- Conversación: `{id}` (se retoma con `claude --resume {id}` en esa carpeta)\n")),
         None => md.push_str("- Conversación: su comando no la nombraba\n"),
     }
-    md.push_str(&format!(
-        "- La abrió {} y la cerró {} (números de ese arranque de Adeorq)\n\n",
-        panel(r.abierta_por),
-        panel(r.cerrada_por)
-    ));
+    // «La abrió un agente sin panel» se escribía también para una tuya, y la
+    // papelera lee esta línea para saber si la abrió un agente.
+    if r.delegada {
+        md.push_str(&format!(
+            "- La abrió {} y la cerró {} (números de ese arranque de Adeorq)\n\n",
+            panel(r.abierta_por),
+            panel(r.cerrada_por)
+        ));
+    } else {
+        md.push_str(&format!(
+            "- No la abrió un agente; la cerró {} (números de ese arranque de Adeorq)\n\n",
+            panel(r.cerrada_por)
+        ));
+    }
     md.push_str("## Qué hizo, dónde dejó su parte y qué falta\n\n");
     md.push_str(r.texto.trim());
     md.push('\n');
@@ -200,7 +214,9 @@ fn sesion_del_rastro(md: &str) -> Option<String> {
 /// últimos treinta días, 22 eran terminales que un agente abrió, terminó y
 /// cerró, y `close_pane` se lleva el panel pero no la conversación, que es de
 /// Claude Code. La barra las archiva solas (`archivadasSolas` en
-/// `lib/enLaBarra.ts`) mientras nadie las retome.
+/// `lib/enLaBarra.ts`) mientras nadie las retome, y las que abrió un agente se
+/// van a la papelera unos minutos después (`papelera.rs`): lo que queda en
+/// «Archivadas» son las tuyas.
 pub fn cerradas(dir: &Path) -> Vec<Cerrada> {
     let mut ultimas: std::collections::HashMap<String, u64> = std::collections::HashMap::new();
     for e in std::fs::read_dir(dir).into_iter().flatten().flatten() {
@@ -307,6 +323,7 @@ mod tests {
             nombre,
             carpeta: r"C:\proyectos\Adeorq",
             sesion: sesion.map(str::to_string),
+            delegada: true,
             abierta_por: Some(3),
             cerrada_por: Some(3),
             texto: "Hizo los ajustes a lo ancho; su parte está en BUZON.md y d0edb65.",
@@ -416,6 +433,7 @@ mod tests {
             nombre: "web · Orquio: web y competencia",
             carpeta: r"C:\proyectos\Orquio\web",
             sesion: Some("0006490e-5bba".into()),
+            delegada: true,
             abierta_por: Some(7),
             cerrada_por: Some(7),
             texto: "Investigó ocho webs y dejó tres estructuras; su parte está en BUZON.md.",
@@ -428,6 +446,31 @@ mod tests {
         assert!(md.contains("claude --resume 0006490e-5bba"));
         assert!(md.contains("La abrió el panel 7 y la cerró el panel 7"));
         assert!(md.contains("su parte está en BUZON.md"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn una_tuya_que_cierra_un_agente_no_dice_que_la_abrio_un_agente() {
+        // Antes salía «La abrió un agente sin panel», igual que una delegada
+        // cuya madre ya no estaba, y la papelera no podría distinguirlas.
+        let dir = std::env::temp_dir().join(format!("adeorq-rastros-tuya-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let tuya = Rastro {
+            nombre: "Adeorq: sesiones y terminales",
+            carpeta: r"C:\proyectos\Adeorq",
+            sesion: Some("572c3eb8-4cba-4c56-8923-bddd346e5626".into()),
+            delegada: false,
+            abierta_por: None,
+            cerrada_por: Some(4),
+            texto: "La cerró la Suprema al ordenar; lo suyo está en BUZON.md y en sus commits.",
+        };
+        let md = std::fs::read_to_string(escribir(&dir, &tuya, 1_792_034_400_000).unwrap()).unwrap();
+        assert!(md.contains("- No la abrió un agente; la cerró el panel 4"), "{md}");
+        assert!(!papelera::es_de_agente(&md), "{md}");
+        let de_agente = Rastro { delegada: true, ..tuya };
+        let md = std::fs::read_to_string(escribir(&dir, &de_agente, 1_792_034_400_000).unwrap()).unwrap();
+        assert!(md.contains("- La abrió un agente sin panel y la cerró el panel 4"), "{md}");
+        assert!(papelera::es_de_agente(&md), "{md}");
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

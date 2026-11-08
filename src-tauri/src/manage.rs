@@ -619,6 +619,31 @@ fn state_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("adeorq-state.json"))
 }
 
+/// Las conversaciones que quieres a la vista en la barra: las fijadas y las
+/// traídas o desarchivadas a mano (`pinned` y `traidas` del estado). Lo que
+/// tira la papelera de rastros (`rastros::papelera`) nunca sale de aquí.
+/// `None` si el estado existe y no se deja leer: entonces no se sabe cuáles
+/// guardar, y no se tira nada.
+pub(crate) fn a_la_vista(app: &tauri::AppHandle) -> Option<Vec<String>> {
+    match std::fs::read_to_string(state_path(app).ok()?) {
+        Ok(texto) => a_la_vista_de(&texto),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Some(Vec::new()),
+        Err(_) => None,
+    }
+}
+
+pub(crate) fn a_la_vista_de(estado: &str) -> Option<Vec<String>> {
+    let v = serde_json::from_str::<serde_json::Value>(estado).ok()?;
+    Some(
+        ["pinned", "traidas"]
+            .iter()
+            .filter_map(|k| v[*k].as_array())
+            .flatten()
+            .filter_map(|id| id.as_str().map(str::to_string))
+            .collect(),
+    )
+}
+
 #[tauri::command(async)]
 pub fn load_ui_state(app: tauri::AppHandle) -> Result<String, String> {
     let path = state_path(&app)?;
@@ -638,6 +663,15 @@ pub fn save_ui_state(app: tauri::AppHandle, content: String) -> Result<(), Strin
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn lo_que_quieres_a_la_vista_sale_del_estado_y_si_no_se_lee_nada_se_tira() {
+        let mut v = a_la_vista_de(r#"{"pinned":["a"],"traidas":["b","c"],"archived":["d"]}"#).unwrap();
+        v.sort();
+        assert_eq!(v, ["a", "b", "c"]);
+        assert_eq!(a_la_vista_de("{}"), Some(vec![]));
+        assert_eq!(a_la_vista_de("{\"pinned\":[\"a\""), None, "a medio escribir no se sabe qué guardar");
+    }
 
     /// Tres sitios de la ventana guardan el estado de la interfaz sin esperarse
     /// unos a otros (`App.tsx` los grupos, `Sidebar.tsx` lo archivado). Dos

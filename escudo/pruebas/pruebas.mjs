@@ -143,6 +143,19 @@ await prueba("editar AGENTS.md con el editor: sin tu verificación no se escribe
   cierto(/No lo intentes por otro camino/.test(r.json.hookSpecificOutput.permissionDecisionReason), "el motivo no le dice que no insista");
 });
 
+await prueba("tu .claude.json y los ajustes de tu otra cuenta piden la verificación", async () => {
+  // Adeorq keeps each extra account in %LOCALAPPDATA%\Adeorq\accounts\claude-*, not in the home folder
+  modo = "rechazar";
+  const cuenta = path.join(DATOS, "Adeorq", "accounts", "claude-2da-main", "settings.json");
+  const r1 = await gancho("claude", pre(nuevaSesion(), "Write", { file_path: path.join(CASA, ".claude.json"), content: "{}" }));
+  cierto(denegado(r1), `.claude.json pasó: ${r1.out}`);
+  cierto(/programas que arranca cada sesión/.test(peticiones.at(-1)?.titulo ?? ""), `título: ${peticiones.at(-1)?.titulo}`);
+  const r2 = await gancho("claude", pre(nuevaSesion(), "Bash", { command: `echo '{"disableAllHooks":true}' > "${b(cuenta)}"` }));
+  cierto(denegado(r2), `la otra cuenta pasó: ${r2.out}`);
+  cierto(/tu otra cuenta/.test(peticiones.at(-1)?.titulo ?? ""), `título: ${peticiones.at(-1)?.titulo}`);
+  igual(peticiones.length, 2, "peticiones");
+});
+
 const sAprobada = nuevaSesion();
 await prueba("con tu verificación pasa, y queda la copia de antes para «Deshacer»", async () => {
   const r = await gancho("claude", pre(sAprobada, "Edit", { file_path: AGENTS, old_string: "a", new_string: "b" }));
@@ -525,6 +538,7 @@ await prueba("A3 en ajustes: la memoria no pide nada ni tras una web, pero queda
     igual(peticiones.length, 0, "peticiones");
     const c = fs.readFileSync(path.join(ESTADO, "cambios.jsonl"), "utf8").trim().split("\n").map(JSON.parse).findLast((x) => x.fase === "antes");
     igual(c.verificado, false, "verificado");
+    igual(c.porque, "memoria-manchada", "porque");
   } finally {
     fs.writeFileSync(path.join(COPIA, "ajustes.json"), JSON.stringify(ajustes));
   }

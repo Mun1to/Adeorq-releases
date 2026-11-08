@@ -319,7 +319,7 @@ fn clean(text: &str, max: usize) -> String {
 // C--proyectos-Layco). `claude --resume <id>` only finds the session when run
 // from that exact directory, so a session whose last message ran in a
 // subfolder must be resumed from the directory matching its transcript folder.
-fn encode_claude(path: &str) -> String {
+pub(crate) fn encode_claude(path: &str) -> String {
     path.chars()
         .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
         .collect()

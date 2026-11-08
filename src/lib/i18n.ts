@@ -3496,6 +3496,7 @@ const EN: Record<string, string> = {
   "Un agente": "An agent",
   "{q}, con tus tres pasos": "{q}, with your three steps",
   "{q}, sin preguntarte: no había leído nada de fuera": "{q}, without asking you: it had not read anything from outside",
+  "{q}, sin preguntarte, justo después de leer algo de fuera: míralo": "{q}, without asking you, right after reading something from outside: check it",
   "{q}, sin verificación": "{q}, without verification",
   deshecho: "undone",
   "lo cambiaste tú": "you changed it",

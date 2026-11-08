@@ -369,10 +369,10 @@ pub(super) mod pruebas {
         assert!(coincide("a*b*c", "a-x-b-y-c"));
         assert!(!coincide("a*b*c", "a-x-c"));
         let l = la_de_verdad();
-        // `{casa}/claude-*/hooks` no alcanza una carpeta dos niveles más abajo
-        // por el asterisco: el asterisco es UN trozo.
-        assert!(l.clasificar("c:/users/muni/claude-pro/hooks/x.mjs").is_some());
-        assert!(l.clasificar("c:/users/muni/a/claude-pro/hooks/x.mjs").is_none());
+        // `{datos}/adeorq/accounts/claude-*/hooks` no alcanza una carpeta dos
+        // niveles más abajo por el asterisco: el asterisco es UN trozo.
+        assert!(l.clasificar("c:/users/muni/appdata/local/adeorq/accounts/claude-pro/hooks/x.mjs").is_some());
+        assert!(l.clasificar("c:/users/muni/appdata/local/adeorq/accounts/a/claude-pro/hooks/x.mjs").is_none());
     }
 
     #[test]
@@ -393,7 +393,10 @@ pub(super) mod pruebas {
         assert_eq!(l.clasificar("c:/program files/adeorq escudo/agents.md").map(|c| c.0), Some(Clase::Escudo));
         // La memoria de cualquier proyecto, y la de otra cuenta.
         assert_eq!(l.clasificar("c:/users/muni/.claude/projects/c--proyectos/memory/x.md"), Some((Clase::Memoria, true)));
-        assert_eq!(l.clasificar("c:/users/muni/claude-pro/projects/c--x/memory/memory.md"), Some((Clase::Memoria, true)));
+        assert_eq!(
+            l.clasificar("c:/users/muni/appdata/local/adeorq/accounts/claude-pro/projects/c--x/memory/memory.md"),
+            Some((Clase::Memoria, true))
+        );
         // Una carpeta no se protege a sí misma, solo lo que cuelga de ella.
         assert_eq!(l.clasificar("c:/users/muni/.claude/skills"), None);
         assert_eq!(l.clasificar("c:/users/muni/.claude/skills/fin/skill.md").map(|c| c.0), Some(Clase::Rojo));

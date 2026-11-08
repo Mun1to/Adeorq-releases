@@ -127,15 +127,22 @@ fn raiz_de(cuenta: &CuentaUso) -> Option<(String, PathBuf)> {
 /// es la de siempre, y otra con `C:\Users\Muni\.claude`), y sin juntarlas se
 /// sumaba dos veces todo lo que hay dentro (lo cazó la sesión del Perfil el
 /// 2026-10-17). Se junta por la ruta canónica de la carpeta.
-fn archivos_de(cuentas: &[CuentaUso]) -> Vec<(String, PathBuf)> {
-    let mut raices = std::collections::HashSet::new();
+fn raices_de(cuentas: &[CuentaUso]) -> Vec<(String, PathBuf)> {
+    let mut vistas = std::collections::HashSet::new();
     let mut fuera = Vec::new();
     for cuenta in cuentas {
         let Some((cli, raiz)) = raiz_de(cuenta) else { continue };
         let raiz = std::fs::canonicalize(&raiz).unwrap_or(raiz);
-        if !raices.insert(raiz.clone()) {
-            continue;
+        if vistas.insert(raiz.clone()) {
+            fuera.push((cli, raiz));
         }
+    }
+    fuera
+}
+
+fn archivos_de(cuentas: &[CuentaUso]) -> Vec<(String, PathBuf)> {
+    let mut fuera = Vec::new();
+    for (cli, raiz) in raices_de(cuentas) {
         let mut archivos = Vec::new();
         jsonl_dentro(&raiz, &mut archivos);
         fuera.extend(archivos.into_iter().map(|p| (cli.clone(), p)));
@@ -433,6 +440,21 @@ fn al_proyecto<'a>(raiz: &str, proyectos: &'a [String]) -> Option<&'a str> {
 
 /// Lo recordado lleva la carpeta de cada respuesta desde el 2026-10-17: el
 /// archivo de antes no la tenía y se lee todo otra vez, una sola vez.
+/// Los archivos ya contados que se fueron del disco, de estas cuentas: lo que
+/// trabajaron sigue contando. Las conversaciones de las terminales de un agente
+/// van a la papelera al cerrarse (`rastros::papelera`, 2026-11-08), y tu uso no
+/// puede bajar por eso.
+fn idos_de<'a>(vistos: &[String], leidos: impl Iterator<Item = &'a String>, raices: &[(String, PathBuf)]) -> Vec<String> {
+    let presentes: std::collections::HashSet<&String> = vistos.iter().collect();
+    leidos
+        .filter(|k| {
+            let p = Path::new(k.as_str());
+            !presentes.contains(k) && raices.iter().any(|(_, r)| p.starts_with(r)) && !p.exists()
+        })
+        .cloned()
+        .collect()
+}
+
 fn guardado() -> Option<PathBuf> {
     crate::dir_datos().ok().map(|d| d.join("uso-historia-2.json"))
 }
@@ -463,6 +485,9 @@ pub fn uso_historia(cuentas: Vec<CuentaUso>, proyectos: Option<Vec<String>>) -> 
         let _ = leer_lo_nuevo(&path, &cli, l);
         vistos.push(clave);
     }
+    let archivos = vistos.len();
+    let idos = idos_de(&vistos, leidos.keys(), &raices_de(&cuentas));
+    vistos.extend(idos);
     // Cada carpeta se convierte en su proyecto una sola vez por llamada.
     let (temp, casa) = (std::env::temp_dir(), casa());
     let mut raices: HashMap<String, String> = HashMap::new();
@@ -504,7 +529,7 @@ pub fn uso_historia(cuentas: Vec<CuentaUso>, proyectos: Option<Vec<String>>) -> 
     }
     let mut cubos: Vec<Cubo> = todos.into_values().collect();
     cubos.sort_by(|a, b| a.hora.cmp(&b.hora).then(a.modelo.cmp(&b.modelo)).then(a.carpeta.cmp(&b.carpeta)));
-    Ok(Historia { cubos, sesiones, archivos: vistos.len() })
+    Ok(Historia { cubos, sesiones, archivos })
 }
 
 #[cfg(test)]
@@ -609,6 +634,26 @@ mod pruebas {
         let tal_cual = claude.to_string_lossy().into_owned();
         let cuentas = [cuenta(tal_cual.clone()), cuenta(format!("{tal_cual}{}", std::path::MAIN_SEPARATOR)), cuenta(base.join(".").join(".claude").to_string_lossy().into_owned())];
         assert_eq!(archivos_de(&cuentas).len(), 1);
+        std::fs::remove_dir_all(&base).ok();
+    }
+
+    /// Una conversación que se va a la papelera sigue contando; una de otra
+    /// cuenta, no.
+    #[test]
+    fn lo_contado_de_un_archivo_que_se_fue_sigue_contando() {
+        let base = carpeta("idos");
+        let claude = base.join(".claude");
+        let p = claude.join("projects").join("p");
+        std::fs::create_dir_all(&p).unwrap();
+        std::fs::write(p.join("sigue.jsonl"), "").unwrap();
+        let cuentas = [CuentaUso { provider: "claude".into(), dir: claude.to_string_lossy().into_owned() }];
+        let raices = raices_de(&cuentas);
+        let vistos: Vec<String> = archivos_de(&cuentas).into_iter().map(|(_, f)| f.to_string_lossy().into_owned()).collect();
+        let raiz = &raices[0].1;
+        let ida = raiz.join("p").join("a-la-papelera.jsonl").to_string_lossy().into_owned();
+        let de_otra = base.join("otra").join("projects").join("x.jsonl").to_string_lossy().into_owned();
+        let leidos = [vistos[0].clone(), ida.clone(), de_otra];
+        assert_eq!(idos_de(&vistos, leidos.iter(), &raices), vec![ida]);
         std::fs::remove_dir_all(&base).ok();
     }
 

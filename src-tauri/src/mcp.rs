@@ -2030,7 +2030,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                                         },
                                         "rastro": {
                                             "type": "string",
-                                            "description": "Its trace, REQUIRED for a pane an agent opened: in a few lines (40 to 8000 characters), what it did, where it left its handoff or result, and what is still pending. Adeorq saves it with the session id so the work can be found and resumed after the pane is gone. Write it in Munir's language (Spanish)."
+                                            "description": "Its trace, REQUIRED for a pane an agent opened: in a few lines (40 to 8000 characters), what it did, where it left its handoff or result, and what is still pending. Adeorq saves it with the session id, and a few minutes later the conversation of a pane an agent opened goes to the Windows recycle bin, so this trace and the handoff it points to are what remain of its work. Write it in Munir's language (Spanish)."
                                         }
                                     },
                                     "required": ["paneId"]
@@ -3245,6 +3245,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                     nombre: &nombre,
                     carpeta: ficha.as_ref().map(|f| f.cwd.as_str()).unwrap_or(""),
                     sesion: ficha.as_ref().and_then(|f| f.command.as_deref()).and_then(crate::rastros::sesion_del_comando),
+                    delegada: es_delegada.is_some(),
                     abierta_por: panel_de_la_madre,
                     cerrada_por: quien,
                     texto: &texto,

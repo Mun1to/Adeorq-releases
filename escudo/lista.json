@@ -92,11 +92,11 @@
     },
     {
       "clase": "rojo",
-      "carpeta": "{casa}/claude-*/hooks"
+      "carpeta": "{datos}/adeorq/accounts/claude-*/hooks"
     },
     {
       "clase": "rojo",
-      "carpeta": "{casa}/claude-*/skills"
+      "carpeta": "{datos}/adeorq/accounts/claude-*/skills"
     },
     {
       "clase": "rojo",
@@ -104,7 +104,7 @@
     },
     {
       "clase": "rojo",
-      "carpeta": "{casa}/codex-*/rules"
+      "carpeta": "{datos}/adeorq/accounts/codex-*/rules"
     },
     {
       "clase": "memoria",
@@ -112,17 +112,27 @@
     },
     {
       "clase": "memoria",
-      "carpeta": "{casa}/claude-*/projects/*/memory"
+      "carpeta": "{datos}/adeorq/accounts/claude-*/projects/*/memory"
     }
   ],
   "archivos": [
     {
       "clase": "rojo",
-      "archivo": "{casa}/claude-*/settings.json"
+      "archivo": "{datos}/adeorq/accounts/claude-*/settings.json"
     },
     {
       "clase": "rojo",
-      "archivo": "{casa}/claude-*/settings.local.json",
+      "archivo": "{datos}/adeorq/accounts/claude-*/settings.local.json",
+      "vigilar": false
+    },
+    {
+      "clase": "rojo",
+      "archivo": "{casa}/.claude.json",
+      "vigilar": false
+    },
+    {
+      "clase": "rojo",
+      "archivo": "{datos}/adeorq/accounts/claude-*/.claude.json",
       "vigilar": false
     },
     {
@@ -139,11 +149,11 @@
     },
     {
       "clase": "rojo",
-      "archivo": "{casa}/codex-*/config.toml"
+      "archivo": "{datos}/adeorq/accounts/codex-*/config.toml"
     },
     {
       "clase": "rojo",
-      "archivo": "{casa}/codex-*/hooks.json"
+      "archivo": "{datos}/adeorq/accounts/codex-*/hooks.json"
     },
     {
       "clase": "rojo",
@@ -159,7 +169,8 @@
       "{proyectos}",
       "{casa}/.claude",
       "{casa}/.codex",
-      "{casa}/.gemini"
+      "{casa}/.gemini",
+      "{datos}/adeorq/accounts"
     ],
     "profundidad": 5,
     "saltar": [

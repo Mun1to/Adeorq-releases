@@ -145,6 +145,7 @@ export default function AjustesEscudo() {
     const quien = c.panel != null ? t("La terminal {n}", { n: c.panel }) : t("Un agente");
     if (c.verificado) return t("{q}, con tus tres pasos", { q: quien });
     if (c.porque === "memoria-limpia") return t("{q}, sin preguntarte: no había leído nada de fuera", { q: quien });
+    if (c.porque === "memoria-manchada") return t("{q}, sin preguntarte, justo después de leer algo de fuera: míralo", { q: quien });
     return t("{q}, sin verificación", { q: quien });
   };
 

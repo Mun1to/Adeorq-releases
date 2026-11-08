@@ -499,6 +499,9 @@ pub fn run() {
             claves_caducan::arrancar(app.handle().clone());
             // El vigilante del escudo, si está instalado (`escudo.rs`).
             escudo::arrancar(app.handle().clone());
+            // Las conversaciones de las terminales que abrió y cerró un agente,
+            // a la papelera (`rastros/papelera.rs`). En la de desarrollo no arranca.
+            rastros::papelera::arrancar(app.handle().clone());
 
             // El significado de las notas de memoria, calculado por detrás.
             //

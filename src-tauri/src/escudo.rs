@@ -15,12 +15,14 @@
 //      a la vez; tres «no» seguidos de una terminal la callan diez minutos) y
 //      emite `escudo-pedido` para la ventana (`EscudoVentana.tsx`).
 //   3. Munir pone su PIN (`escudo_firmar`: firma Windows Hello, y la firma se
-//      queda aquí, no va al front) y, en el rojo, su contraseña y su respuesta
-//      (`escudo_comprobar`, contra sus huellas argon2id).
+//      queda aquí, no va al front) y, en el rojo y si tiene ese paso puesto, la
+//      respuesta a su pregunta (`escudo_comprobar`, contra su huella argon2id).
 //   4. Con todo bien, la firma vuelve por el socket: `{"ok":true,"firma":…}`.
 //
-// La contraseña y la pregunta son fricción contra aprobar sin mirar, no
-// criptografía: lo que un agente no puede falsificar es la firma del PIN.
+// La pregunta es fricción contra aprobar sin mirar, no criptografía: lo que un
+// agente no puede falsificar es la firma del PIN. Por eso el PIN va siempre y la
+// pregunta se enciende aparte (Munir, 2026-11-08: «quitar la contraseña de
+// Adeorq… yo solo quiero el del pin del sistema de momento»).
 
 pub mod hello;
 pub mod lista;
@@ -52,7 +54,7 @@ const PLAZO_PIN_MS: i64 = 10 * 60 * 1000;
 const RECHAZOS_PARA_CALLAR: usize = 3;
 const VENTANA_DE_RECHAZOS_MS: u64 = 10 * 60 * 1000;
 const CALLADA_MS: u64 = 10 * 60 * 1000;
-/// Fallos de contraseña o de respuesta en una misma ventana antes de cerrarla.
+/// Fallos de respuesta en una misma ventana antes de cerrarla.
 const FALLOS_MAX: u32 = 3;
 /// Lo más del cambio que se enseña. Lo demás se dice que sigue.
 const DIFF_MAX: usize = 20_000;
@@ -73,6 +75,12 @@ pub fn instalado() -> bool {
 
 fn ruta_verificacion() -> Result<PathBuf, String> {
     Ok(carpeta()?.join("verificacion.json"))
+}
+
+/// Los pasos de la roja además del PIN, que va siempre. En la carpeta del
+/// escudo, donde el gancho no deja escribir a ningún agente.
+fn ruta_pasos() -> Result<PathBuf, String> {
+    Ok(carpeta()?.join("pasos.json"))
 }
 
 fn ruta_publica() -> Result<PathBuf, String> {
@@ -245,7 +253,8 @@ struct Abierta {
     /// respuesta: el front nunca la ve.
     firma: Option<Vec<u8>>,
     firmando: bool,
-    contrasena_ok: bool,
+    /// Si esta roja pide también la respuesta (el paso está puesto).
+    pide_pregunta: bool,
     fallos: u32,
 }
 
@@ -277,8 +286,14 @@ impl Turno {
         self.nonces.insert(p.nonce.clone(), guardar_hasta.max(ahora + 60_000));
         self.siguiente += 1;
         let id = self.siguiente;
-        self.abierta = Some(Abierta { id, p, tx, firma: None, firmando: false, contrasena_ok: false, fallos: 0 });
+        self.abierta = Some(Abierta { id, p, tx, firma: None, firmando: false, pide_pregunta: false, fallos: 0 });
         Ok(id)
+    }
+
+    fn pedir_pregunta(&mut self, id: u64, si: bool) {
+        if let Some(a) = self.abierta.as_mut().filter(|a| a.id == id) {
+            a.pide_pregunta = si;
+        }
     }
 
     /// Se cerró la ventana `id`: con un sí, se olvidan los «no» de esa
@@ -354,8 +369,11 @@ fn atender_con(emitir: &dyn Fn(&str, Value) -> Result<(), String>, frente: &dyn 
     }
     let p: Peticion = serde_json::from_value(v.clone()).map_err(|e| format!("la petición no trae lo que pide el escudo: {e}"))?;
     validar(&p, ahora_ms())?;
+    // La roja pide la respuesta solo si ese paso está puesto; el PIN va siempre.
     let pregunta = match p.tipo.as_str() {
-        "rojo" => Some(leer_verificacion().ok_or("el escudo está a medio preparar: falta tu contraseña y tu pregunta en Ajustes › Escudo")?.pregunta),
+        "rojo" if leer_pasos().pregunta => {
+            Some(leer_verificacion().ok_or("el escudo pide tu pregunta y no la encuentro: guárdala otra vez en Ajustes › Escudo o quita ese paso")?.pregunta)
+        }
         _ => None,
     };
     if !ruta_publica()?.is_file() {
@@ -367,7 +385,12 @@ fn atender_con(emitir: &dyn Fn(&str, Value) -> Result<(), String>, frente: &dyn 
     };
     let clave_tope = panel.map_or_else(|| "fuera".to_string(), |n| format!("terminal {n}"));
     let (tx, rx) = channel();
-    let id = turno().entrar(p.clone(), &clave_tope, ahora_ms() as u64, tx)?;
+    let id = {
+        let mut t = turno();
+        let id = t.entrar(p.clone(), &clave_tope, ahora_ms() as u64, tx)?;
+        t.pedir_pregunta(id, pregunta.is_some());
+        id
+    };
 
     let (diff, cortado) = match p.diff.char_indices().nth(DIFF_MAX) {
         Some((i, _)) => (p.diff[..i].to_string(), true),
@@ -407,19 +430,42 @@ fn atender_con(emitir: &dyn Fn(&str, Value) -> Result<(), String>, frente: &dyn 
     r
 }
 
-// ── La contraseña y la pregunta ─────────────────────────────────────────────
+// ── La pregunta ─────────────────────────────────────────────────────────────
 
 #[derive(Serialize, Deserialize, Clone)]
 struct Verificacion {
     version: u32,
-    /// Huellas argon2id en formato PHC: el texto no se guarda nunca.
-    contrasena: String,
+    /// La contraseña de Adeorq, que se pedía hasta el 2026-11-08. Se lee para no
+    /// romper un archivo de antes, y ya no se pide ni se guarda.
+    #[serde(default, skip_serializing)]
+    #[allow(dead_code)]
+    contrasena: Option<String>,
     pregunta: String,
+    /// Huella argon2id en formato PHC: el texto no se guarda nunca.
     respuesta: String,
 }
 
 fn leer_verificacion() -> Option<Verificacion> {
     serde_json::from_str(&std::fs::read_to_string(ruta_verificacion().ok()?).ok()?).ok()
+}
+
+/// Los pasos de la roja además del PIN. Sin archivo, solo el PIN.
+#[derive(Serialize, Deserialize, Clone, Copy, Default)]
+struct Pasos {
+    #[serde(default)]
+    pregunta: bool,
+}
+
+fn leer_pasos() -> Pasos {
+    ruta_pasos()
+        .ok()
+        .and_then(|r| std::fs::read_to_string(r).ok())
+        .and_then(|t| serde_json::from_str(&t).ok())
+        .unwrap_or_default()
+}
+
+fn guardar_pasos(p: Pasos) -> Result<(), String> {
+    crate::escribir_entero(&ruta_pasos()?, &serde_json::to_vec_pretty(&p).map_err(|e| e.to_string())?)
 }
 
 fn huella_argon(texto: &str) -> Result<String, String> {
@@ -455,12 +501,12 @@ fn respuesta_comparable(r: &str) -> String {
 
 // ── Lo que llama la ventana ─────────────────────────────────────────────────
 
-/// El primer paso de las dos ventanas: el PIN de Windows. En la del PIN solo,
-/// con esto basta y la firma se entrega; en la roja se queda aquí esperando a
-/// la contraseña y a la respuesta.
+/// El primer paso de las dos ventanas: el PIN de Windows. Si no hay más pasos,
+/// con esto basta y la firma se entrega; con la pregunta puesta, se queda aquí
+/// esperando a la respuesta.
 #[tauri::command(async)]
 pub fn escudo_firmar(id: u64) -> Result<(), String> {
-    let (texto, tipo) = {
+    let (texto, pide_pregunta) = {
         let mut t = turno();
         let a = t.la_abierta(id)?;
         if a.firma.is_some() {
@@ -470,7 +516,7 @@ pub fn escudo_firmar(id: u64) -> Result<(), String> {
             return Err("Ya te está pidiendo el PIN.".into());
         }
         a.firmando = true;
-        (mensaje(&a.p), a.p.tipo.clone())
+        (mensaje(&a.p), a.p.tipo == "rojo" && a.pide_pregunta)
     };
     // Sin el cerrojo: el cuadro del PIN tarda lo que tarde Munir.
     let firmada = hello::firmar(texto.as_bytes()).and_then(|firma| {
@@ -487,45 +533,38 @@ pub fn escudo_firmar(id: u64) -> Result<(), String> {
     let a = t.la_abierta(id)?;
     a.firmando = false;
     let firma = firmada?;
-    if tipo == "pin" {
-        t.entregar(id, Ok(b64(&firma)));
-    } else {
+    if pide_pregunta {
         a.firma = Some(firma);
+    } else {
+        t.entregar(id, Ok(b64(&firma)));
     }
     Ok(())
 }
 
-/// Los pasos dos y tres de la roja: `paso` es `contrasena` o `respuesta`.
-/// Devuelve si era esa. Con tres fallos, la ventana se cierra con un «no».
+/// El paso de la pregunta, si está puesto: `paso` es `respuesta`. Devuelve si
+/// era esa. Con tres fallos, la ventana se cierra con un «no».
 #[tauri::command(async)]
 pub fn escudo_comprobar(id: u64, paso: String, texto: String) -> Result<bool, String> {
-    let ver = leer_verificacion().ok_or("No encuentro tu contraseña guardada.")?;
     let mut t = turno();
     let a = t.la_abierta(id)?;
-    if a.p.tipo != "rojo" {
+    if a.p.tipo != "rojo" || !a.pide_pregunta {
         return Err("Esta verificación solo pide el PIN.".into());
     }
     if a.firma.is_none() {
         return Err("Primero tu PIN de Windows.".into());
     }
-    let bien = match paso.as_str() {
-        "contrasena" => casa_con(&texto, &ver.contrasena),
-        "respuesta" if !a.contrasena_ok => return Err("Primero tu contraseña.".into()),
-        "respuesta" => casa_con(&respuesta_comparable(&texto), &ver.respuesta),
-        _ => return Err("Paso desconocido.".into()),
-    };
-    if bien {
-        if paso == "contrasena" {
-            a.contrasena_ok = true;
-        } else {
-            let firma = a.firma.clone().unwrap_or_default();
-            t.entregar(id, Ok(b64(&firma)));
-        }
+    if paso != "respuesta" {
+        return Err("Paso desconocido.".into());
+    }
+    let ver = leer_verificacion().ok_or("No encuentro tu pregunta guardada.")?;
+    if casa_con(&respuesta_comparable(&texto), &ver.respuesta) {
+        let firma = a.firma.clone().unwrap_or_default();
+        t.entregar(id, Ok(b64(&firma)));
         return Ok(true);
     }
     a.fallos += 1;
     if a.fallos >= FALLOS_MAX {
-        t.entregar(id, Err("has fallado la contraseña o la respuesta tres veces".into()));
+        t.entregar(id, Err("has fallado la respuesta tres veces".into()));
     }
     Ok(false)
 }
@@ -544,6 +583,8 @@ pub struct Estado {
     pub instalado: bool,
     /// La pregunta que guardaste (el texto, para enseñarla); `None` si aún no.
     pub pregunta: Option<String>,
+    /// Si la roja la pide además del PIN.
+    pub paso_pregunta: bool,
     /// Si esta Adeorq ya exportó su llave pública.
     pub llave: bool,
     /// Si la instalación ya la copió a Archivos de programa.
@@ -564,6 +605,7 @@ pub fn escudo_estado() -> Estado {
     let vacio = Estado {
         instalado: false,
         pregunta: None,
+        paso_pregunta: false,
         llave: false,
         llave_instalada: false,
         llave_coincide: None,
@@ -579,6 +621,7 @@ pub fn escudo_estado() -> Estado {
     Estado {
         instalado: true,
         pregunta: leer_verificacion().map(|v| v.pregunta),
+        paso_pregunta: leer_pasos().pregunta,
         llave: local.is_some(),
         llave_instalada: instalada.is_some(),
         llave_coincide: local.as_ref().zip(instalada.as_ref()).map(|(a, b)| a == b),
@@ -588,19 +631,16 @@ pub fn escudo_estado() -> Estado {
     }
 }
 
-/// La primera vez: la contraseña, la pregunta y su respuesta. Solo se guardan
-/// sus huellas. Una vez guardadas no se cambian desde aquí.
+/// La pregunta y su respuesta (de la respuesta, solo su huella), y con ellas se
+/// pone el paso. Una vez guardadas no se cambian desde aquí.
 #[tauri::command(async)]
-pub fn escudo_preparar(contrasena: String, pregunta: String, respuesta: String) -> Result<(), String> {
+pub fn escudo_preparar(pregunta: String, respuesta: String) -> Result<(), String> {
     if !instalado() {
         return Err("El escudo no está instalado en este equipo.".into());
     }
     let ruta = ruta_verificacion()?;
     if ruta.exists() {
-        return Err("Tu contraseña y tu pregunta ya estaban guardadas.".into());
-    }
-    if contrasena.chars().count() < 8 {
-        return Err("La contraseña tiene que tener 8 caracteres o más.".into());
+        return Err("Tu pregunta ya estaba guardada.".into());
     }
     let pregunta = pregunta.trim();
     if pregunta.is_empty() || pregunta.chars().count() > 200 {
@@ -610,10 +650,26 @@ pub fn escudo_preparar(contrasena: String, pregunta: String, respuesta: String) 
     if respuesta.is_empty() {
         return Err("Escribe la respuesta.".into());
     }
-    let v = Verificacion { version: 1, contrasena: huella_argon(&contrasena)?, pregunta: pregunta.to_string(), respuesta: huella_argon(&respuesta)? };
+    let v = Verificacion { version: 1, contrasena: None, pregunta: pregunta.to_string(), respuesta: huella_argon(&respuesta)? };
     let txt = serde_json::to_vec_pretty(&v).map_err(|e| e.to_string())?;
     crate::escribir_entero(&ruta, &txt)?;
-    crate::anotar("escudo: guardadas la contraseña y la pregunta (solo sus huellas)");
+    guardar_pasos(Pasos { pregunta: true })?;
+    crate::anotar("escudo: guardada la pregunta (de la respuesta, solo su huella) y puesto su paso");
+    Ok(())
+}
+
+/// Poner o quitar la pregunta de la roja. El PIN no se quita: es lo único que un
+/// agente no puede falsificar.
+#[tauri::command(async)]
+pub fn escudo_paso_pregunta(si: bool) -> Result<(), String> {
+    if !instalado() {
+        return Err("El escudo no está instalado en este equipo.".into());
+    }
+    if si && leer_verificacion().is_none() {
+        return Err("Primero guarda tu pregunta y su respuesta.".into());
+    }
+    guardar_pasos(Pasos { pregunta: si })?;
+    crate::anotar(if si { "escudo: la roja pide también la pregunta" } else { "escudo: la roja pide solo el PIN" });
     Ok(())
 }
 
@@ -1055,8 +1111,10 @@ mod pruebas {
         };
         let nada = |_: &str, _: Value| Ok(());
         let e = atender_con(&nada, &|| {}, &pide(&peticion("rojo", ahora)), QuienPide::Terminal(9), Duration::from_secs(1)).unwrap_err();
-        assert!(e.contains("contraseña y tu pregunta"), "{e}");
-        escudo_preparar("una contraseña".into(), "¿Dónde naciste?".into(), "Málaga".into()).unwrap();
+        assert!(e.contains("llave"), "sin pregunta no se pide la pregunta, pero sí la llave: {e}");
+        // Guardar la pregunta pone su paso.
+        escudo_preparar("¿Dónde naciste?".into(), "Málaga".into()).unwrap();
+        assert!(leer_pasos().pregunta);
         let e = atender_con(&nada, &|| {}, &pide(&peticion("rojo", ahora)), QuienPide::Terminal(9), Duration::from_secs(1)).unwrap_err();
         assert!(e.contains("llave"), "{e}");
         escudo_crear_llave().unwrap();
@@ -1089,15 +1147,14 @@ mod pruebas {
                             assert_eq!(carga["diff"], "git push");
                         }
                         std::thread::spawn(move || {
-                            // Antes del PIN no hay contraseña que valga.
+                            // Antes del PIN no hay respuesta que valga.
                             if rojo {
-                                assert!(escudo_comprobar(id, "contrasena".into(), "una contraseña".into()).unwrap_err().contains("PIN"));
+                                assert!(escudo_comprobar(id, "respuesta".into(), "malaga".into()).unwrap_err().contains("PIN"));
                             }
                             escudo_firmar(id).unwrap();
                             if rojo {
-                                assert!(!escudo_comprobar(id, "contrasena".into(), "otra".into()).unwrap());
-                                assert!(escudo_comprobar(id, "respuesta".into(), "malaga".into()).unwrap_err().contains("contraseña"));
-                                assert!(escudo_comprobar(id, "contrasena".into(), "una contraseña".into()).unwrap());
+                                assert!(escudo_comprobar(id, "contrasena".into(), "x".into()).is_err(), "la contraseña ya no es un paso");
+                                assert!(!escudo_comprobar(id, "respuesta".into(), "otra".into()).unwrap());
                                 assert!(escudo_comprobar(id, "respuesta".into(), "  MALAGA ".into()).unwrap());
                             }
                         });
@@ -1125,6 +1182,54 @@ mod pruebas {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
+    /// Lo de fábrica desde el 2026-11-08: la roja solo con el PIN. La firma sale
+    /// en cuanto se pone, la ventana no recibe pregunta, y no hay respuesta que
+    /// valga. Quitar la pregunta la vuelve a dejar así.
+    #[cfg(windows)]
+    #[test]
+    fn la_roja_solo_con_el_pin() {
+        let _f = en_fila();
+        std::env::set_var("ADEORQ_ESCUDO_FIRMA_DE_PRUEBA", "1");
+        let dir = std::env::temp_dir().join(format!("adeorq-escudo-solo-pin-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        *CARPETA.lock().unwrap() = Some(dir.clone());
+        escudo_crear_llave().unwrap();
+        assert!(escudo_paso_pregunta(true).unwrap_err().contains("Primero guarda"), "sin pregunta no se pone su paso");
+        let pide = |p: &Peticion| {
+            json!({
+                "adeorq": "escudo", "tipo": p.tipo, "panel": p.panel, "clave": null, "cli": p.cli, "sesion": p.sesion, "objeto": p.objeto,
+                "titulo": p.titulo, "explicacion": p.explicacion, "diff": p.diff, "desde": p.desde, "hasta": p.hasta, "nonce": p.nonce,
+            })
+        };
+        let ventana = |evento: &str, carga: Value| {
+            if evento == "escudo-pedido" {
+                assert!(carga["pregunta"].is_null(), "solo con el PIN no se enseña la pregunta: {carga}");
+                let id = carga["id"].as_u64().unwrap();
+                std::thread::spawn(move || {
+                    escudo_firmar(id).unwrap();
+                    assert!(escudo_comprobar(id, "respuesta".into(), "x".into()).is_err());
+                });
+            }
+            Ok(())
+        };
+        let publica = std::fs::read(dir.join("llave-publica-de-prueba.der")).unwrap();
+        for (n, antes) in [("A", None), ("B", Some(("¿Dónde?", "aquí")))] {
+            if let Some((q, r)) = antes {
+                // Guardar la pregunta pone su paso; quitarlo deja la roja como antes.
+                escudo_preparar(q.into(), r.into()).unwrap();
+                escudo_paso_pregunta(false).unwrap();
+            }
+            let p = Peticion { nonce: n.repeat(43), ..peticion("rojo", ahora_ms()) };
+            let firma = atender_con(&ventana, &|| {}, &pide(&p), QuienPide::Terminal(9), Duration::from_secs(20)).unwrap();
+            let firma = base64::engine::general_purpose::STANDARD.decode(firma).unwrap();
+            assert!(hello::comprobar(&publica, mensaje(&p).as_bytes(), &firma).unwrap());
+        }
+        std::env::remove_var("ADEORQ_ESCUDO_FIRMA_DE_PRUEBA");
+        *CARPETA.lock().unwrap() = None;
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     /// «No lo dejes», y el tiempo que se acaba: los dos acaban en error, y los
     /// tres «no» callan a la terminal.
     #[cfg(windows)]
@@ -1136,7 +1241,7 @@ mod pruebas {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         *CARPETA.lock().unwrap() = Some(dir.clone());
-        escudo_preparar("una contraseña".into(), "¿Dónde?".into(), "aquí".into()).unwrap();
+        escudo_preparar("¿Dónde?".into(), "aquí".into()).unwrap();
         escudo_crear_llave().unwrap();
         let v = |n: &str| {
             let p = Peticion { nonce: n.repeat(43), ..peticion("pin", ahora_ms()) };

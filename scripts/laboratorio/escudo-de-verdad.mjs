@@ -8,10 +8,13 @@
 // Lo que comprueba, por el puerto del MCP como lo haría el gancho y por la
 // pantalla como lo haría Munir:
 //   1. Ajustes › Escudo sale (hay carpeta del escudo) y se prepara desde ahí:
-//      la contraseña, la pregunta y la llave.
-//   2. La ventana roja: sus tres pasos, con un fallo de contraseña por medio, y
-//      la firma que vuelve casa con la llave Y con el mensaje que construye el
-//      propio gancho (`mensajeAFirmar` de `escudo/gancho.mjs`).
+//      la pregunta (que pone su paso) y la llave. Sin contraseña desde el
+//      2026-11-08.
+//   2. La ventana roja con la pregunta: PIN y respuesta, con un fallo por medio,
+//      y la firma que vuelve casa con la llave Y con el mensaje que construye el
+//      propio gancho (`mensajeAFirmar` de `escudo/gancho.mjs`). Luego, con la
+//      pregunta quitada en Ajustes, la roja solo con el PIN; y en emisión, que
+//      no enseña ni la ruta ni la pregunta y la respuesta va tapada.
 //   3. La del PIN solo, con «Sí, con mi PIN», y otra con «No».
 //   4. El vigilante: un AGENTS.md cambiado a mano sale en rojo en la lista y
 //      «Deshacer» lo deja como estaba.
@@ -135,17 +138,16 @@ try {
   await dormir(900);
   await a.foto(null, "escudo-1-ajustes-sin-preparar.png");
   await sinCarceles("Ajustes › Escudo la primera vez");
-  const campos4 = await v.js(`document.querySelectorAll(".escudo-formulario input").length`);
-  bien(campos4 === 4, "la primera vez pide contraseña, repetirla, pregunta y respuesta");
+  const campos2 = await v.js(`document.querySelectorAll(".escudo-formulario input").length`);
+  bien(campos2 === 2, `la primera vez pide la pregunta y la respuesta, sin contraseña (${campos2} campos)`);
   await v.js(`(() => { const c = document.querySelectorAll(".escudo-formulario input");
-    __teclear(c[0], "contraseña de prueba"); __teclear(c[1], "contraseña de prueba");
-    __teclear(c[2], "¿En qué ciudad naciste?"); __teclear(c[3], "Málaga"); return true; })()`);
+    __teclear(c[0], "¿En qué ciudad naciste?"); __teclear(c[1], "Málaga"); return true; })()`);
   await dormir(300);
-  bien(await pulsar(".escudo-formulario .np-btn"), "«Guardar mi contraseña y mi pregunta» se puede pulsar");
-  const guardada = await hasta(() => v.js(`!!document.querySelector(".panel-card .setting-good")`), 15_000);
-  bien(!!guardada, "Ajustes dice que ya están guardadas");
+  bien(await pulsar(".escudo-formulario .np-btn"), "«Guardar mi pregunta y pedirla» se puede pulsar");
+  const marcada = await hasta(() => v.js(`document.querySelector('.escudo-fila input[type="checkbox"]')?.checked || null`), 15_000);
+  bien(!!marcada, "guardada la pregunta, su paso queda puesto");
   const ver = JSON.parse(fs.readFileSync(path.join(ESCUDO(), "verificacion.json"), "utf8"));
-  bien(ver.contrasena.startsWith("$argon2id$") && !JSON.stringify(ver).includes("contraseña de prueba") && !/m[aá]laga/i.test(JSON.stringify(ver)), "verificacion.json guarda huellas argon2id, nunca el texto");
+  bien(ver.respuesta.startsWith("$argon2id$") && !("contrasena" in ver) && !/m[aá]laga/i.test(JSON.stringify(ver)), "verificacion.json guarda la huella de la respuesta, ni su texto ni contraseña");
   bien(await pulsar(".np-btn", "Crear la llave"), "«Crear la llave con mi PIN» se puede pulsar");
   await hasta(() => fs.existsSync(path.join(ESCUDO(), "llave-publica-de-prueba.der")), 15_000);
   const publica = crypto.createPublicKey({ key: fs.readFileSync(path.join(ESCUDO(), "llave-publica-de-prueba.der")), format: "der", type: "spki" });
@@ -153,7 +155,7 @@ try {
   await dormir(800);
   await a.foto(null, "escudo-2-ajustes-preparado.png");
 
-  // ── 2. La ventana roja, con sus tres pasos ────────────────────────────────
+  // ── 2. La ventana roja, con el PIN y la pregunta ──────────────────────────
   const objeto = agents.replace(/\\/g, "/").toLowerCase();
   const rojo = campos("rojo", objeto, 30);
   const enCamino = pedir({
@@ -174,20 +176,17 @@ try {
   bien(textos.includes("Lo pide un programa que no es una terminal de Adeorq"), "dice quién lo pide, y que no es una terminal de Adeorq (sin contraseña de terminal)");
   bien(textos.includes(objeto), "enseña el archivo firmado");
   bien(textos.includes("archivo entero durante media hora"), "dice que vale para el archivo entero, media hora");
+  bien(textos.includes("Aprobar con mis dos pasos"), "con la pregunta puesta, son dos pasos");
   await pulsar(".escudo-si");
-  const paso2 = await hasta(() => v.js(`!!document.querySelector('.escudo-campo input[type="password"]')`), 15_000);
-  bien(!!paso2, "tras el PIN pide la contraseña (paso 2 de 3)");
+  const paso2 = await hasta(() => v.js(`document.querySelector(".escudo-campo .escudo-paso")?.textContent?.includes("ciudad") || null`), 15_000);
+  bien(!!paso2, "tras el PIN, el paso 2 de 2 enseña tu pregunta");
+  bien(!(await v.js(`!!document.querySelector('.escudo-campo input[type="password"]')`)), "fuera de emisión, la respuesta se ve al escribirla");
   await v.js(`__teclear(document.querySelector(".escudo-campo input"), "otra cosa"); true`);
-  await pulsar(".escudo-modal .np-btn", "Seguir");
+  await pulsar(".escudo-modal .np-btn", "Aprobar");
   const fallo = await hasta(() => v.js(`document.querySelector(".escudo-error")?.textContent ?? null`), 10_000);
-  bien(/Te quedan 2 intentos/.test(fallo ?? ""), `una contraseña mala lo dice: «${fallo}»`);
-  await fotoDe(".escudo-modal", "escudo-4-roja-contrasena-mal.png");
-  await v.js(`__teclear(document.querySelector(".escudo-campo input"), "contraseña de prueba"); true`);
-  await pulsar(".escudo-modal .np-btn", "Seguir");
-  const paso3 = await hasta(() => v.js(`document.querySelector(".escudo-campo .escudo-paso")?.textContent?.includes("ciudad") || null`), 10_000);
-  bien(!!paso3, "el paso 3 enseña tu pregunta");
+  bien(/Te quedan 2 intentos/.test(fallo ?? ""), `una respuesta mala lo dice: «${fallo}»`);
   await fotoDe(".escudo-modal", "escudo-5-roja-pregunta.png");
-  await sinCarceles("la ventana roja en el paso 3");
+  await sinCarceles("la ventana roja en el paso de la pregunta");
   await v.js(`__teclear(document.querySelector(".escudo-campo input"), "  MALAGA "); true`);
   await pulsar(".escudo-modal .np-btn", "Aprobar");
   const r1 = await Promise.race([enCamino, dormir(20_000).then(() => ({ error: "sin respuesta en 20 s" }))]);
@@ -197,6 +196,50 @@ try {
     bien(vale, "la firma casa con la llave y con el mensaje que construye el gancho");
   }
   bien(!(await v.js(`!!document.querySelector(".escudo-modal")`)), "la ventana se cierra al aprobar");
+
+  // ── 2b. Pregunta quitada en Ajustes: la roja solo con el PIN ──────────────
+  bien(await v.js(`(() => { const c = document.querySelector('.escudo-fila input[type="checkbox"]'); if (!c) return false; c.click(); return true; })()`), "el paso de la pregunta se quita en Ajustes");
+  await hasta(() => v.js(`document.querySelector('.escudo-fila input[type="checkbox"]')?.checked === false || null`), 10_000);
+  bien(JSON.parse(fs.readFileSync(path.join(ESCUDO(), "pasos.json"), "utf8")).pregunta === false, "pasos.json dice que solo el PIN");
+  const soloPin = campos("rojo", objeto, 30);
+  const enCaminoSolo = pedir({ ...soloPin, panel: null, clave: null, cli: "claude", titulo: "Un agente quiere cambiar las reglas de demo (AGENTS.md)", explicacion: ["Añade 1 línea y no quita nada."], diff: "+ - Algo nuevo." });
+  await hasta(() => v.js(`!!document.querySelector('.escudo-modal[data-tipo="rojo"]')`), 15_000);
+  const textoSolo = await v.js(`document.querySelector(".escudo-modal").innerText`);
+  bien(textoSolo.includes("Aprobar con mi PIN"), "solo con el PIN, el botón lo dice");
+  await fotoDe(".escudo-modal", "escudo-5b-roja-solo-pin.png");
+  await pulsar(".escudo-si");
+  const r1b = await Promise.race([enCaminoSolo, dormir(20_000).then(() => ({ error: "sin respuesta en 20 s" }))]);
+  bien(r1b.ok === true, `con el PIN basta y vuelve la firma (${r1b.error ?? "ok"})`);
+  bien(!(await v.js(`!!document.querySelector(".escudo-modal")`)), "la ventana se cierra tras el PIN, sin pregunta");
+
+  // ── 2c. En emisión: ni la ruta ni la pregunta, y la respuesta tapada ──────
+  await v.js(`(() => { const c = document.querySelector('.escudo-fila input[type="checkbox"]'); c?.click(); return true; })()`);
+  await hasta(() => v.js(`document.querySelector('.escudo-fila input[type="checkbox"]')?.checked || null`), 10_000);
+  await v.js(`localStorage.setItem("adeorq-stream", "1"); location.reload(); true`).catch(() => {});
+  await hasta(() => v.js(`document.querySelector(".app")?.dataset.stream === "true" || null`), 30_000);
+  await v.js(TECLEAR);
+  const enEmision = campos("rojo", objeto, 30);
+  const enCaminoEm = pedir({ ...enEmision, panel: null, clave: null, cli: "claude", titulo: "Un agente quiere cambiar las reglas de demo (AGENTS.md)", explicacion: [`Toca ${agents}.`], diff: `+ ver ${agents}` });
+  await hasta(() => v.js(`!!document.querySelector('.escudo-modal[data-tipo="rojo"]')`), 15_000);
+  const textoEm = await v.js(`document.querySelector(".escudo-modal").innerText`);
+  bien(!textoEm.toLowerCase().includes(objeto) && !textoEm.includes(agents), "en emisión la ventana no enseña la ruta");
+  await pulsar(".escudo-si");
+  const pasoEm = await hasta(() => v.js(`document.querySelector(".escudo-campo .escudo-paso")?.textContent ?? null`), 15_000);
+  bien(!!pasoEm && !pasoEm.includes("ciudad") && pasoEm.includes("no se enseña"), `en emisión no se enseña la pregunta («${pasoEm}»)`);
+  bien(await v.js(`!!document.querySelector('.escudo-campo input[type="password"]')`), "en emisión la respuesta se escribe tapada");
+  await fotoDe(".escudo-modal", "escudo-5c-roja-en-emision.png");
+  await v.js(`__teclear(document.querySelector(".escudo-campo input"), "malaga"); true`);
+  await pulsar(".escudo-modal .np-btn", "Aprobar");
+  const r1c = await Promise.race([enCaminoEm, dormir(20_000).then(() => ({ error: "sin respuesta en 20 s" }))]);
+  bien(r1c.ok === true, `en emisión también se aprueba (${r1c.error ?? "ok"})`);
+  // Fuera de emisión otra vez, y de vuelta en Ajustes › Escudo para lo que sigue.
+  await v.js(`localStorage.removeItem("adeorq-stream"); location.reload(); true`).catch(() => {});
+  await hasta(() => v.js(`document.querySelector(".app")?.dataset.stream === "false" || null`), 30_000);
+  await v.js(TECLEAR);
+  await v.js(`document.querySelector('.topbar .tab[data-tab="ajustes"]')?.click(); "ok"`);
+  await dormir(1200);
+  await pulsar(".set-tab", "Escudo");
+  await dormir(900);
 
   // ── 3. La del PIN solo: un sí y un no ─────────────────────────────────────
   const pin = campos("pin", `accion:${huella("publicar\ndemo")}`, 5);

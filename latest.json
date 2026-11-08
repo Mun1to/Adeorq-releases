@@ -1,11 +1,11 @@
 {
-  "version": "0.9.247",
-  "notes": "En modo emision la ventana del escudo tapa el texto, la ruta y el cambio, no ensena tu pregunta y la respuesta se escribe oculta; Ajustes Escudo tapa la pregunta y las carpetas; y la ventana roja resume en tres lineas que hace el cambio",
-  "pub_date": "2026-11-08T19:27:52Z",
+  "version": "0.9.248",
+  "notes": "La ventana roja del escudo pide solo tu PIN de Windows: la contrasena de Adeorq ya no existe y la pregunta es un paso que puedes poner en Ajustes Escudo; y en emision se tapan tambien las rutas en minusculas",
+  "pub_date": "2026-11-08T20:03:23Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzRlOWZRcGRmSlpJUzBJWWVkWE1YNXRuOTNYR0w0UXJScUhSRlFwM3lHTSt0aWM1YXE3QlVTNlFCUDBTRGYrU2JDVU9zZUNuZmVsREhwNEhHWUVWQkEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0MTY2MDYzCWZpbGU6QWRlb3JxXzAuOS4yNDdfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNDcKWGthaWhpalhBSG5PQjZsR2Uva2xMdmVmaVZEeSszNDJGNTlhOFlUdFpmNUZoclFnMGFQeGpoaVRqUTN3cnV4cklEVFNVSmovcWNyN21IUkN5a0ZuQ0E9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.247/Adeorq_0.9.247_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLytqdWxldktEVEVDMWEwc29RT0RMUEdVcnFabmRhaWN5ekI4TzkxL3RDeklkcGxqS0taTXIxTVFrYzM4QzNYOHFLVzVTbnZlV01WRnExK1duS0JqWndJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0MTY4MTg4CWZpbGU6QWRlb3JxXzAuOS4yNDhfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNDgKREZxMTFjRDc2bjJKSE1jN04rQmNGUm9DNkFCRUgwWi9uUk1OY2kza2oxbmM0ckJYWmkxcWRZV0kvT2pxWVBIanhVQlU5M1lUY2FaNlluSFZyWFdOQ0E9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.248/Adeorq_0.9.248_x64-setup.exe"
     }
   }
 }

@@ -130,8 +130,10 @@ const RULES: Rule[] = [
     severity: "baja",
     advice:
       "Solo dejaba ver el nombre de tu cuenta de Windows, y ya está tapado. Una carpeta no se rota: no hay nada que hacer.",
-    // Keeps the drive and the folder, drops the account name.
-    re: /\b([A-Za-z]:[\\/]Users[\\/])([^\\/\s"'<>|]+)/g,
+    // Keeps the drive and the folder, drops the account name. Without caring
+    // about capitals: Windows does not, and the shield sends its paths in lower
+    // case (`c:/users/munir/…`), which got through on a stream (2026-11-08).
+    re: /\b([A-Za-z]:[\\/]Users[\\/])([^\\/\s"'<>|]+)/gi,
     mask: (_m, head, user) => `${head}${dots(user)}`,
   },
   {

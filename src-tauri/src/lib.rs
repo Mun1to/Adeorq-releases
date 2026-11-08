@@ -830,6 +830,7 @@ pub fn run() {
             escudo::escudo_rechazar,
             escudo::escudo_estado,
             escudo::escudo_preparar,
+            escudo::escudo_paso_pregunta,
             escudo::escudo_crear_llave,
             escudo::escudo_cambios,
             escudo::escudo_deshacer,

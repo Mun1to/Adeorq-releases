@@ -64,6 +64,8 @@ es("en passwd, solo el nombre", tapa("/home/munir:/bin/bash"), "/home/●●●�
 es("una web con esa carpeta no es una ruta tuya", tapa("https://ejemplo.com/home/portada y https://ejemplo.com/Users/lista"), "https://ejemplo.com/home/portada y https://ejemplo.com/Users/lista");
 es("ni otra carpeta que se le parece", tapa("/homes/munir y src/home/portada"), "/homes/munir y src/home/portada");
 es("la de Windows con barras al revés no se tapa dos veces", tapa("C:/Users/Muni/x"), "C:/Users/●●●●/x");
+// Como la manda el escudo, normalizada en minúsculas: se escapaba en emisión (2026-11-08).
+es("la de Windows en minúsculas también", tapa("c:/users/muni/appdata/x"), "c:/users/●●●●/appdata/x");
 
 console.log(fallos ? `\n${fallos} FALLOS` : "\nTODO BIEN");
 process.exit(fallos ? 1 : 0);

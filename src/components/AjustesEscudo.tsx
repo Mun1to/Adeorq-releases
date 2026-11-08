@@ -1,6 +1,6 @@
-// Ajustes › Escudo: preparar la verificación la primera vez (la contraseña, la
-// pregunta y la llave de Windows Hello), ver lo que ha cambiado en los archivos
-// importantes y deshacerlo, y cómo va el vigilante.
+// Ajustes › Escudo: preparar la verificación (la llave de Windows Hello, que va
+// siempre, y la pregunta, que es un paso que se pone o se quita), ver lo que ha
+// cambiado en los archivos importantes y deshacerlo, y cómo va el vigilante.
 //
 // Solo existe en el equipo donde se instaló el escudo (decisión F1): sin la
 // carpeta `%LOCALAPPDATA%\Adeorq\escudo\`, que crea `node escudo/instalar.mjs --preparar`,
@@ -17,6 +17,8 @@ import { Ocupado } from "./Espera";
 export interface EstadoEscudo {
   instalado: boolean;
   pregunta: string | null;
+  /** Si la ventana roja pide también la pregunta, además del PIN. */
+  pasoPregunta: boolean;
   llave: boolean;
   llaveInstalada: boolean;
   llaveCoincide: boolean | null;
@@ -58,8 +60,6 @@ export default function AjustesEscudo() {
   const [est, setEst] = useState<EstadoEscudo | null>(null);
   const [cambios, setCambios] = useState<Cambio[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [contrasena, setContrasena] = useState("");
-  const [otraVez, setOtraVez] = useState("");
   const [pregunta, setPregunta] = useState("");
   const [respuesta, setRespuesta] = useState("");
   const [guardando, setGuardando] = useState(false);
@@ -91,21 +91,22 @@ export default function AjustesEscudo() {
   if (!est?.instalado) return null;
 
   const preparar = () => {
-    if (contrasena !== otraVez) {
-      setError(t("Las dos contraseñas no son iguales."));
-      return;
-    }
     setGuardando(true);
     setError(null);
-    invoke("escudo_preparar", { contrasena, pregunta, respuesta })
+    invoke("escudo_preparar", { pregunta, respuesta })
       .then(() => {
-        setContrasena("");
-        setOtraVez("");
         setRespuesta("");
         leer();
       })
       .catch((e) => setError(t(String(e))))
       .finally(() => setGuardando(false));
+  };
+
+  const pasoPregunta = (si: boolean) => {
+    setError(null);
+    invoke("escudo_paso_pregunta", { si })
+      .then(leer)
+      .catch((e) => setError(t(String(e))));
   };
 
   const crearLlave = () => {
@@ -143,7 +144,7 @@ export default function AjustesEscudo() {
     }
     if (c.como === "Deshacer") return t("Lo deshiciste tú desde aquí");
     const quien = c.panel != null ? t("La terminal {n}", { n: c.panel }) : t("Un agente");
-    if (c.verificado) return t("{q}, con tus tres pasos", { q: quien });
+    if (c.verificado) return t("{q}, con tu verificación", { q: quien });
     // «reglas-limpia»: un AGENTS.md o CLAUDE.md con el editor, sin nada de fuera ni enlaces (decisión G2).
     if (c.porque === "memoria-limpia" || c.porque === "reglas-limpia") return t("{q}, sin preguntarte: no había leído nada de fuera", { q: quien });
     if (c.porque === "memoria-manchada") return t("{q}, sin preguntarte, justo después de leer algo de fuera: míralo", { q: quien });
@@ -152,45 +153,29 @@ export default function AjustesEscudo() {
 
   const v = est.vigilante;
   const preparada = est.pregunta != null;
-  const puedeGuardar = contrasena.length >= 8 && otraVez.length > 0 && pregunta.trim() !== "" && respuesta.trim() !== "";
+  const puedeGuardar = pregunta.trim() !== "" && respuesta.trim() !== "";
 
   return (
     <>
       <section className="panel-card" data-sin-mods="">
-        <h2>{t("Tu contraseña y tu pregunta")}</h2>
+        <h2>{t("Los pasos de la ventana roja")}</h2>
         <p className="card-hint">
-          {t("Antes de dejar que un agente cambie un archivo importante, la ventana roja te pide tres cosas: ")}
-          <b>{t("tu PIN de Windows, esta contraseña y la respuesta a esta pregunta")}</b>
-          {t(". Adeorq no guarda el texto, solo lo justo para saber si aciertas.")}
+          {t("Antes de dejar que un agente cambie un archivo importante, la ventana roja te pide ")}
+          <b>{t("siempre tu PIN de Windows")}</b>
+          {t(": es lo único que un agente no puede falsificar. La pregunta es un paso más, por si quieres pararte a mirar antes de aprobar.")}
         </p>
         {preparada ? (
-          // `stream-hide`: en emisión la pregunta va tapada (se ve con Alt), como las rutas de abajo.
-          <p className="setting-line setting-good">
-            {t("Ya están guardadas. Tu pregunta es:")} <span className="stream-hide">«{est.pregunta ?? ""}»</span>
-          </p>
+          <>
+            {/* `stream-hide`: en emisión la pregunta va tapada (se ve con Alt), como las rutas de abajo. */}
+            <label className="setting-row escudo-fila">
+              <span>
+                {t("Pedir también tu pregunta:")} <span className="stream-hide">«{est.pregunta ?? ""}»</span>
+              </span>
+              <input type="checkbox" checked={est.pasoPregunta} aria-label={t("Pedir también tu pregunta")} onChange={(e) => pasoPregunta(e.currentTarget.checked)} />
+            </label>
+          </>
         ) : (
           <div className="escudo-formulario">
-            <label className="setting-row escudo-fila">
-              <span>{t("Contraseña")}</span>
-              <input
-                className="finder setting-input"
-                type="password"
-                value={contrasena}
-                placeholder={t("8 caracteres o más")}
-                autoComplete="new-password"
-                onChange={(e) => setContrasena(e.currentTarget.value)}
-              />
-            </label>
-            <label className="setting-row escudo-fila">
-              <span>{t("Otra vez")}</span>
-              <input
-                className="finder setting-input"
-                type="password"
-                value={otraVez}
-                autoComplete="new-password"
-                onChange={(e) => setOtraVez(e.currentTarget.value)}
-              />
-            </label>
             <label className="setting-row escudo-fila">
               <span>{t("Pregunta")}</span>
               <input
@@ -217,7 +202,7 @@ export default function AjustesEscudo() {
             <div className="escudo-acciones">
               <button className="np-btn" disabled={!puedeGuardar || guardando} onClick={() => preparar()}>
                 <Ocupado activo={guardando} mientras={t("Guardando…")}>
-                  {t("Guardar mi contraseña y mi pregunta")}
+                  {t("Guardar mi pregunta y pedirla")}
                 </Ocupado>
               </button>
             </div>

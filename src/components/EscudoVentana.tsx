@@ -1,11 +1,11 @@
 // La ventana del escudo: lo que sale cuando un agente quiere cambiar un archivo
-// importante (la roja: PIN de Windows, contraseña y pregunta) o hacer algo
-// posiblemente grave, como publicar (la del PIN solo).
+// importante (la roja: PIN de Windows y, si tienes ese paso puesto, tu pregunta)
+// o hacer algo posiblemente grave, como publicar (la del PIN solo).
 //
 // Sale sola, montada siempre en `App` como la de pegar un token, cuando Rust
 // emite `escudo-pedido` (`src-tauri/src/escudo.rs`). La firma del PIN no pasa
-// por aquí: la hace Windows Hello en Rust y se queda allí hasta que llegan la
-// contraseña y la respuesta. Esta ventana solo enseña y pregunta.
+// por aquí: la hace Windows Hello en Rust y se queda allí hasta que llega la
+// respuesta, si se pide. Esta ventana solo enseña y pregunta.
 //
 // De lo que enseña, solo el archivo va firmado: es la ruta que quedará abierta.
 // El título, la explicación y el cambio (o el comando, en la del PIN) los
@@ -35,11 +35,12 @@ interface Pedido {
   /** Si esa ruta es una carpeta (la memoria se abre entera). */
   esCarpeta: boolean;
   hasta: string;
-  /** En la roja, la pregunta de seguridad que guardaste. */
+  /** En la roja con ese paso puesto, la pregunta de seguridad que guardaste;
+   *  `null` si basta con el PIN. */
   pregunta: string | null;
 }
 
-type Paso = "inicio" | "pin" | "contrasena" | "pregunta";
+type Paso = "inicio" | "pin" | "pregunta";
 
 const FALLOS_MAX = 3;
 
@@ -81,11 +82,13 @@ export default function EscudoVentana({ panes, stream = false }: { panes: Pane[]
   }, []);
 
   useEffect(() => {
-    if (paso === "contrasena" || paso === "pregunta") caja.current?.focus();
+    if (paso === "pregunta") caja.current?.focus();
   }, [paso]);
 
   if (!pedido) return null;
   const rojo = pedido.tipo === "rojo";
+  /** La roja con la pregunta puesta: dos pasos. Si no, basta el PIN. */
+  const conPregunta = rojo && pedido.pregunta != null;
 
   const cerrar = () => {
     abierto.current = null;
@@ -98,14 +101,14 @@ export default function EscudoVentana({ panes, stream = false }: { panes: Pane[]
     void invoke("escudo_rechazar", { id }).catch(() => {});
   };
 
-  /* El PIN: Windows saca su cuadro y Rust se queda la firma. En la del PIN
-     solo, con esto ya está. */
+  /* El PIN: Windows saca su cuadro y Rust se queda la firma. Sin la pregunta,
+     con esto ya está. */
   const pin = () => {
     setError(null);
     setPaso("pin");
     void invoke("escudo_firmar", { id: pedido.id })
       .then(() => {
-        if (rojo) setPaso("contrasena");
+        if (conPregunta) setPaso("pregunta");
         else cerrar();
       })
       .catch((e) => {
@@ -116,16 +119,14 @@ export default function EscudoVentana({ panes, stream = false }: { panes: Pane[]
 
   const comprobar = () => {
     if (!texto.trim() || ocupado) return;
-    const esPaso = paso === "contrasena" ? "contrasena" : "respuesta";
     setOcupado(true);
-    void invoke<boolean>("escudo_comprobar", { id: pedido.id, paso: esPaso, texto })
+    void invoke<boolean>("escudo_comprobar", { id: pedido.id, paso: "respuesta", texto })
       .then((bien) => {
         setOcupado(false);
         setTexto("");
         if (bien) {
           setError(null);
-          if (esPaso === "contrasena") setPaso("pregunta");
-          else cerrar();
+          cerrar();
           return;
         }
         const n = fallos + 1;
@@ -134,11 +135,7 @@ export default function EscudoVentana({ panes, stream = false }: { panes: Pane[]
           cerrar();
           return;
         }
-        setError(
-          esPaso === "contrasena"
-            ? t("Esa no es tu contraseña. Te quedan {n} intentos.", { n: FALLOS_MAX - n })
-            : t("Esa no es la respuesta. Te quedan {n} intentos.", { n: FALLOS_MAX - n }),
-        );
+        setError(t("Esa no es la respuesta. Te quedan {n} intentos.", { n: FALLOS_MAX - n }));
       })
       .catch((e) => {
         setOcupado(false);
@@ -222,25 +219,23 @@ export default function EscudoVentana({ panes, stream = false }: { panes: Pane[]
 
         {paso === "pin" && (
           <p className="modal-text escudo-paso">
-            {rojo
-              ? t("Paso 1 de 3: pon tu PIN de Windows en el cuadro que acaba de salir.")
+            {conPregunta
+              ? t("Paso 1 de 2: pon tu PIN de Windows en el cuadro que acaba de salir.")
               : t("Pon tu PIN de Windows en el cuadro que acaba de salir.")}
           </p>
         )}
 
-        {(paso === "contrasena" || paso === "pregunta") && (
+        {paso === "pregunta" && (
           <label className="escudo-campo">
             <span className="escudo-paso">
-              {paso === "contrasena"
-                ? t("Paso 2 de 3: tu contraseña de Adeorq.")
-                : stream
-                  ? t("Paso 3 de 3: la respuesta a tu pregunta de seguridad (en emisión no se enseña).")
-                  : t("Paso 3 de 3: {p}", { p: pedido.pregunta ?? "" })}
+              {stream
+                ? t("Paso 2 de 2: la respuesta a tu pregunta de seguridad (en emisión no se enseña).")
+                : t("Paso 2 de 2: {p}", { p: pedido.pregunta ?? "" })}
             </span>
             <input
               ref={caja}
               className="secreto-caja"
-              type={paso === "contrasena" || stream ? "password" : "text"}
+              type={stream ? "password" : "text"}
               value={texto}
               spellCheck={false}
               autoComplete="off"
@@ -261,12 +256,7 @@ export default function EscudoVentana({ panes, stream = false }: { panes: Pane[]
           </button>
           {paso === "inicio" && (
             <button className="np-btn escudo-si" onClick={() => pin()}>
-              {rojo ? t("Aprobar con mis tres pasos") : t("Sí, con mi PIN")}
-            </button>
-          )}
-          {paso === "contrasena" && (
-            <button className="np-btn" disabled={!texto.trim() || ocupado} onClick={() => comprobar()}>
-              {t("Seguir")}
+              {conPregunta ? t("Aprobar con mis dos pasos") : rojo ? t("Aprobar con mi PIN") : t("Sí, con mi PIN")}
             </button>
           )}
           {paso === "pregunta" && (

@@ -101,7 +101,7 @@ Free · no account · no API keys · updates itself · [PolyForm Shield License 
 <table>
 <tr>
 <td width="50%" valign="top"><img src="web/assets/screens/en/phone-concierge.png" alt="Adeo on a phone: one message split into two sessions in two projects, each with the model the router picked and why"><br>Adeo on a phone: one message split into two sessions in two projects, each with the model the router picked and why</td>
-<td width="50%"></td>
+<td width="50%" valign="top"><img src="web/assets/screens/en/phone-menu.png" alt="The menu on a phone: Adeo, Terminals, Decisions, To look at, Scheduled and Usage on top, and below them your projects with their sessions and conversations, the one you used last first"><br>The menu on a phone: Adeo, Terminals, Decisions, To look at, Scheduled and Usage on top, and below them your projects with their sessions and conversations, the one you used last first</td>
 </tr>
 </table>
 

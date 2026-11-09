@@ -84,7 +84,28 @@ Gratis · sin cuenta · sin API keys · se actualiza sola · [PolyForm Shield Li
 <table>
 <tr>
 <td width="50%" valign="top"><img src="web/assets/screens/es/accounts.png" alt="Cuentas: dos logins de Claude Code y uno de Codex, cada uno con su plan y con lo que lleva gastado de su límite"><br>Cuentas: dos logins de Claude Code y uno de Codex, cada uno con su plan y con lo que lleva gastado de su límite</td>
-<td width="50%"></td>
+<td width="50%" valign="top"><img src="web/assets/screens/es/swarm.png" alt="Un enjambre: dos sesiones juntas en un solo chat, Adeo repartiendo el encargo entre ellas y la respuesta de cada una volviendo con su nombre"><br>Un enjambre: dos sesiones juntas en un solo chat, Adeo repartiendo el encargo entre ellas y la respuesta de cada una volviendo con su nombre</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td width="50%" valign="top"><img src="web/assets/screens/es/board.png" alt="El tablero de lo que hacen los agentes: por hacer, trabajando, esperándote y hecho, con el proyecto, el estado y el contexto usado de cada sesión"><br>El tablero de lo que hacen los agentes: por hacer, trabajando, esperándote y hecho, con el proyecto, el estado y el contexto usado de cada sesión</td>
+<td width="50%" valign="top"><img src="web/assets/screens/es/commands.png" alt="Comandos: todo lo que puedes escribir dentro de Claude Code y Antigravity, con un buscador para encontrarlos por lo que quieres hacer"><br>Comandos: todo lo que puedes escribir dentro de Claude Code y Antigravity, con un buscador para encontrarlos por lo que quieres hacer</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td width="50%" valign="top"><img src="web/assets/screens/es/settings.png" alt="Ajustes: el selector con todos los temas de la casa, y debajo el color de las terminales"><br>Ajustes: el selector con todos los temas de la casa, y debajo el color de las terminales</td>
+<td width="50%" valign="top"><img src="web/assets/screens/es/phone-home.png" alt="Adeorq en el móvil: lo que te espera, el agente que está trabajando, tus conversaciones y la caja para decirle a Adeo qué hacer"><br>Adeorq en el móvil: lo que te espera, el agente que está trabajando, tus conversaciones y la caja para decirle a Adeo qué hacer</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td width="50%" valign="top"><img src="web/assets/screens/es/phone-concierge.png" alt="Adeo en el móvil: un mensaje repartido en dos sesiones de dos proyectos, cada una con el modelo que eligió el router y por qué"><br>Adeo en el móvil: un mensaje repartido en dos sesiones de dos proyectos, cada una con el modelo que eligió el router y por qué</td>
+<td width="50%" valign="top"><img src="web/assets/screens/es/phone-menu.png" alt="El menú del móvil: Adeo, Terminales, Decisiones, Para ver, Programados y Uso arriba, y debajo tus proyectos con sus sesiones y conversaciones, lo último que usaste primero"><br>El menú del móvil: Adeo, Terminales, Decisiones, Para ver, Programados y Uso arriba, y debajo tus proyectos con sus sesiones y conversaciones, lo último que usaste primero</td>
 </tr>
 </table>
 

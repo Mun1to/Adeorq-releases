@@ -100,9 +100,11 @@ ffmpeg -f lavfi -i color=c=black:s=1920x1080 -filter_script:v fondo.filtro -fram
 A la web van con `ffmpeg -i salida/en/x.png -compression_level 9 -pred mixed web/assets/screens/en/x.png`.
 El vídeo de `promo/` las coge de ahí con `pnpm capturas`.
 
-**Las dos del móvil** (`phone-home.png` y `phone-concierge.png`, la sección «En tu móvil» de la
-portada) no necesitan la casa de pruebas: son la página del móvil servida por un doble con el taller
-de Sam. Un comando las rehace en los dos idiomas, directas a `web/assets/screens`:
+**Las tres del móvil** (`phone-home.png` y `phone-concierge.png`, la sección «En tu móvil» de la
+portada, y `phone-menu.png`, el cajón de la izquierda abierto, que solo sale en los README) no
+necesitan la casa de pruebas: son la página del móvil servida por un doble con el taller de Sam. Un
+comando las rehace en los dos idiomas, directas a `web/assets/screens` (con nombres detrás, solo
+esas: `fotos-movil.mjs phone-menu`):
 
 ```powershell
 node scripts/laboratorio/capturas/movil/fotos-movil.mjs

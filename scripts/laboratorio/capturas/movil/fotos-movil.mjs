@@ -1,12 +1,13 @@
-// Las dos fotos del móvil de la portada de adeorq.com («En tu móvil»), en los
-// dos idiomas: la portada con lo que te espera y el conserje después de pedirle
-// dos trabajos. Es la página de verdad (`src-tauri/src/movil.html`) servida por
+// Las fotos del móvil, en los dos idiomas: la portada con lo que te espera y el
+// conserje después de pedirle dos trabajos (las dos de «En tu móvil» en
+// adeorq.com), y el cajón de la izquierda abierto (la tercera del README). Es la página de verdad (`src-tauri/src/movil.html`) servida por
 // `doble-sam.mjs` con el taller de Sam, a 390 × 844 y escala 1,5, que es justo
 // el 585 × 1266 que pide `web/index.html`.
 //
 //   node scripts/laboratorio/capturas/movil/fotos-movil.mjs
 //
-// Escribe en `web/assets/screens/<es|en>/phone-home.png` y `phone-concierge.png`.
+// Escribe en `web/assets/screens/<es|en>/phone-home.png`, `phone-concierge.png`
+// y `phone-menu.png`.
 // Lanza y para él mismo un doble por idioma (4392 y 4393): con `node … &` y el
 // `kill` de Git Bash el doble seguía vivo horas después y la foto siguiente
 // salía contra uno viejo. Usa Brave sin ventana y un perfil de usar y tirar,
@@ -26,6 +27,9 @@ const npx = join(process.env.LOCALAPPDATA ?? "", "npm-cache", "_npx");
 const core = readdirSync(npx).map((d) => join(npx, d, "node_modules", "playwright-core")).find((p) => existsSync(join(p, "package.json")));
 if (!core) throw new Error(`No hay playwright-core en ${npx}: lanza una vez «npx playwright --version».`);
 const { chromium } = createRequire(import.meta.url)(core);
+
+// Con nombres detrás solo hace esas fotos: `fotos-movil.mjs phone-menu`.
+const SOLO = process.argv.slice(2);
 
 const PEDIDO = {
   es: "Antes del viernes: que el descuento redondee bien y que la portada tenga modo oscuro.",
@@ -76,17 +80,26 @@ for (const [idioma, puerto] of [["es", 4392], ["en", 4393]]) {
     // El doble contesta a los tres segundos y abre las dos sesiones.
     await page.waitForTimeout(3600);
 
-    const foto = async (hash, espera, nombre) => {
+    const foto = async (hash, espera, nombre, antes) => {
+      if (SOLO.length && !SOLO.includes(nombre.replace(/\.png$/, ""))) return;
       await page.goto("about:blank");
       await page.goto(`${B}/${hash}`);
       await page.waitForSelector(espera, { timeout: 10000 });
       // Las vistas entran con movimiento: se espera a que acabe.
       await page.waitForTimeout(1600);
+      if (antes) await antes();
       await page.screenshot({ path: join(salida, nombre) });
       console.log(`${idioma}/${nombre}`);
     };
     await foto("", "#portada-term .fila-t", "phone-home.png");
     await foto("#conv=c1", "#hilo .turno", "phone-concierge.png");
+    // El cajón de la izquierda abierto encima de esa conversación, que sale
+    // marcada en su proyecto: lo que ves al tocar el botón de arriba.
+    await foto("#conv=c1", "#hilo .turno", "phone-menu.png", async () => {
+      await page.click("#abrir-cajon");
+      await page.waitForSelector(".cajon .recientes .proyecto", { timeout: 10000 });
+      await page.waitForTimeout(1200);
+    });
     if (errores.length) throw new Error(`La página dio errores (${idioma}): ${errores.join(" | ")}`);
   } finally {
     await ctx.close();

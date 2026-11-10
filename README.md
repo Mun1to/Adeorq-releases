@@ -6,14 +6,15 @@
 
 **Nine agents working. One screen.**
 
-A desktop panel for Windows and Linux that opens your projects in **real terminals** (the same ConPTY the system uses, not a chat box imitating one), shows your Claude Code sessions with their actual state, and lets you run several agents at once without losing track of any of them. And it comes with you: **from your phone or any browser**, wherever you are.
+A desktop panel for Windows, Linux and Mac that opens your projects in **real terminals** (the same ConPTY the system uses, not a chat box imitating one), shows your Claude Code sessions with their actual state, and lets you run several agents at once without losing track of any of them. And it comes with you: **from your phone or any browser**, wherever you are.
 
 <a href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-setup.exe"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/readme/download-windows-dark.svg"><img src=".github/readme/download-windows-light.svg" alt="Download Adeorq for Windows"></picture></a>
+<a href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-arm64.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/readme/download-mac-dark.svg"><img src=".github/readme/download-mac-light.svg" alt="Download Adeorq for Mac"></picture></a>
 <a href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-x86_64.AppImage"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/readme/download-linux-dark.svg"><img src=".github/readme/download-linux-light.svg" alt="Download Adeorq for Linux"></picture></a>
 
 Free · no account · no API keys · updates itself · [PolyForm Shield License 1.0.0](LICENSE)
 
-[All releases](https://github.com/Mun1to/Adeorq-releases/releases) · [Website](https://adeorq.com) · [Guide](https://adeorq.com/guia) · [Latest version](https://github.com/Mun1to/Adeorq/releases/latest) · [Español](README.es.md)
+[All releases](https://github.com/Mun1to/Adeorq-releases/releases) · [Website](https://adeorq.com) · [Guide](https://adeorq.com/guia) · [Latest version](https://github.com/Mun1to/Adeorq-releases/releases/latest) · [Español](README.es.md)
 
 </div>
 
@@ -39,7 +40,7 @@ Free · no account · no API keys · updates itself · [PolyForm Shield License 
 | **Your sessions** | Reads `~/.claude`, and Codex's `~/.codex`, with no API at all: title, real state (asking you / finished / halfway), how long ago, and which ones are still alive. One click resumes any of them inside the panel. |
 | **Adeo's plan** | Tell Adeo what you want out loud and he proposes a board. Nothing runs without your OK, and the plan goes through a deterministic gate before you even see it. |
 | **The Canvas** | An infinite board with the terminals living inside it, plus notes, images, a kanban, and arrows that hand one agent's output to the next. A note with a title and steps can be **saved as a runbook** in the project's `docs/fichas`, ready to repeat. |
-| **Swarms** | Join sessions that are already open on the canvas into one group chat: drop a terminal on another, or **Add › Swarm**. What you type goes to Adeo, who picks the session it belongs to, rewrites the task and sends it; what each session answers comes back to the chat under its name. |
+| **Swarms** | Join sessions that are already open on the canvas into one group chat: drop a terminal on another, or **Add > Swarm**. What you type goes to Adeo, who picks the session it belongs to, rewrites the task and sends it; what each session answers comes back to the chat under its name. |
 | **The web pane** | Your localhost right beside the agent building it: a small browser with tabs, back and forward, and one click to swap in YOUR real browser, extensions and all. |
 | **Files** | The project's tree beside the terminals. Create files and folders, rename them or move them to the recycle bin from the right-click menu; open one in the editor, where images and PDFs show as themselves. And **Ctrl+K > Search in the files** finds text inside the project and opens the hit at its line. It also shows **what your agent touches**: the latest thing that terminal's session did, and the files it read, edited or committed. |
 | **Shadow Mode** | Each agent in its own git worktree. You read the diff and decide whether it lands or gets thrown away. |
@@ -48,10 +49,10 @@ Free · no account · no API keys · updates itself · [PolyForm Shield License 
 | **Your profile and usage** | Your name, your @ and your photo, with your Accounts, Agenda, Memory and Commands inside, each with its summary. Below, your usage: this month's tokens by provider, model or project, the year in squares, and a card to share it as an image or a video. |
 | **Accounts** | Several logins of the same CLI side by side, each with its plan and how much of its limit is left. You choose which one new terminals are born with, or open a terminal on a specific one. |
 | **Commands** | Everything you can type inside each agent, searchable by what you want to do rather than by its name, and sent to the terminal with one click. |
-| **Your agents and bots** | One button connects your Claude Code to Adeorq, in the welcome and in **Settings > Terminals**, and takes the entry out again just as cleanly. **Settings > Bots** connects Hermes or OpenClaw with one click, each with its own permission. A program from outside Adeorq sees the list of terminals and the usage, and can open new ones; to let it read more, raise it in **Settings > Terminals**. |
+| **Your agents and bots** | One button connects your Claude Code to Adeorq, in the welcome and in **Settings > Terminals**, and takes the entry out again just as cleanly. **Settings > Bots** connects Hermes or OpenClaw with one click, each with its own permission, and tells them (and your Grok Bot) when a terminal finishes or is waiting for you, sending only its name, its project and its state. A program from outside Adeorq sees the list of terminals and the usage, and can open new ones; to let it read more, raise it in **Settings > Terminals**. |
 | **Memory** | Your Obsidian vault inside the panel, searchable by what the notes say, with a map of what links to what. |
-| **Adeo in the Chat** | One chat where Adeo opens sessions for you as tabs, with a router that picks which model or client takes each job. |
-| **On your phone** | Adeo, your sessions and every terminal, from any browser and wherever you are. Attach photos, get a notification when an agent asks you something. |
+| **Adeo in the Chat** | One chat with two tabs. In **Adeo**, he opens sessions for you as tabs, with a router that picks which model or client takes each job, and at the bottom you choose which of your Claude accounts he thinks with. In **Sessions**, your usual ones by project, from Claude Code, Codex, Gemini and Pi, read as a conversation or opened raw in their terminal. |
+| **On your phone** | Adeo, your sessions and every terminal, from any browser and wherever you are. Attach photos, get a notification when an agent asks you something, and see what an agent shares with you under **To look at**: an image, a page or a phone-sized capture of the web it is building on your PC. |
 | **Adeo** | The little pixel A in the top bar is the bell. He types when your agents are working, waves when one is waiting for you, jumps when one finishes and sleeps when there are none, and follows your mouse with his eye. |
 
 ## Screenshots
@@ -119,6 +120,39 @@ and nowhere else. And once installed, **updates are signed**: Adeorq verifies ea
 cryptographic signature before applying it, so that warning only ever appears once.
 
 <details>
+<summary><b>On a Mac</b></summary>
+
+Download
+**[Adeorq-arm64.dmg](https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-arm64.dmg)**,
+open it and drag Adeorq to Applications. It is for **Apple Silicon** only (arm64, M1 and
+newer) with macOS 12 or later; Macs with Intel are not supported.
+
+**It opens like any other app.** The app and its disk image are signed with an Apple
+Developer ID and notarized by Apple, so Gatekeeper does not stop it with the warning that
+Apple cannot check it. Its updates are signed too, and install themselves.
+
+The first time an agent in one of your terminals reads your Desktop, Documents or Downloads
+folder, macOS asks once per folder whether Adeorq may: it puts down to Adeorq whatever the
+programs in its terminals read. Voice dictation asks for the microphone.
+
+It is built and started on an automatic Mac, but **it has not yet been used daily on a real
+Mac**, so if something fails, [tell us](https://github.com/Mun1to/Adeorq-releases/issues).
+
+**What works differently:**
+
+- **Keys** go to the login **Keychain** (service "Adeorq"), and the ones that were in a
+  file move there on their own.
+- The **title bar** follows Adeorq's theme (light or dark) instead of the system mode.
+- Data lives in `~/Library/Application Support/Adeorq`. Consoles use zsh, and an app opened
+  from the Finder inherits the PATH of your user shell, so it finds your programs.
+- Shortcuts use the **Control** key, not Command (⌘).
+- As on Linux: no music controls, a simpler browser in the web pane and terminals without a
+  separate process by default. Closing the window closes Adeorq and takes its terminals
+  with it.
+
+</details>
+
+<details>
 <summary><b>On Linux</b></summary>
 
 Download
@@ -129,6 +163,9 @@ make it executable and run it. There is nothing to install:
 chmod +x Adeorq-x86_64.AppImage
 ./Adeorq-x86_64.AppImage
 ```
+
+If it says "Cannot mount AppImage, please check your FUSE setup", install `fuse3`
+(`sudo apt install fuse3`, `sudo dnf install fuse3`) or open it with `--appimage-extract-and-run`.
 
 The [releases page](https://github.com/Mun1to/Adeorq-releases/releases/latest) also carries a
 `.deb` for Debian and Ubuntu (`sudo apt install ./Adeorq_*.deb`) and an `.rpm` for Fedora
@@ -202,11 +239,14 @@ their copyright in [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
 ## Notices
 
-Not affiliated with Anthropic, OpenAI, Google or Microsoft. Their names and logos are
-trademarks of their respective owners and appear here only to identify which tool you are
-working with.
+Not affiliated with Anthropic, OpenAI, Google, Microsoft or Apple. Their names and logos are
+trademarks of their respective owners and appear here only to identify which tool or system
+you are working with.
 
-Something wrong? [Open an issue](https://github.com/Mun1to/Adeorq-releases/issues).
+Something wrong? [Open an issue](https://github.com/Mun1to/Adeorq-releases/issues). If the
+window froze, look in `rastro.log`, in Adeorq's data folder (`%LOCALAPPDATA%\Adeorq` on
+Windows): every stall of the window is written there with its culprit, and those lines help
+in the issue.
 
 ## Don't trust it, check it
 

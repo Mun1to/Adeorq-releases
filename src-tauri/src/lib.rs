@@ -19,6 +19,7 @@ mod hilo;
 mod icons;
 mod mac;
 mod pulso;
+mod vigia_ventana;
 mod inbox;
 mod manage;
 mod media;
@@ -440,6 +441,8 @@ pub fn run() {
             // de que la ventana pida su primera terminal, o unas irían dentro de
             // la app y otras fuera.
             terminales::arrancar(app.handle());
+            // Quien mira si la página deja de latir (`vigia_ventana.rs`).
+            vigia_ventana::vigilar(app.handle().clone());
             // La carpeta de datos del paquete no es la de `$APPLOCALDATA`, que es
             // lo único que el protocolo `asset` sirve de fábrica (las capturas
             // pegadas, las imágenes de las notas).
@@ -799,6 +802,7 @@ pub fn run() {
             notes::note_delete,
             pulso::pulso,
             pulso::pulso_panes,
+            vigia_ventana::latido_ventana,
             memoria::memoria_scan,
             memoria::memoria_vaults,
             memoria::memoria_read,

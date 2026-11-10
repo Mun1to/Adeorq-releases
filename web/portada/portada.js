@@ -13,7 +13,13 @@
    que es lo que hace que el efecto degrade en vez de romperse.
    ========================================================================= */
 
+import { ponerModoLigero } from './ligero.js';
+
 const $ = (s, d = document) => d.querySelector(s);
+
+// Sin tarjeta gráfica, la portada va ligera (ligero.js): se mira una vez, ya
+// pintada la primera pantalla.
+requestAnimationFrame(() => setTimeout(ponerModoLigero, 0));
 
 const GAIN = parseFloat(
   getComputedStyle(document.documentElement).getPropertyValue('--motion-gain')

@@ -314,11 +314,15 @@ export default function Navegador({ visible, tabs, activa, pedida, onEstado, onC
      Un bucle de fotogramas mientras el panel se ve: el hueco se mueve sin
      cambiar de tamaño (abrir Archivos al lado lo empuja) y eso no lo ve un
      ResizeObserver. Solo se habla con Rust cuando algo cambió. Y cada diez
-     fotogramas se mira si algo de la interfaz pisa el hueco. */
+     fotogramas se mira si algo de la interfaz pisa el hueco.
+     SOLO mientras se ve: el panel está montado siempre, y con el bucle andando
+     también cerrado, la app quieta despertaba a la ventana en cada fotograma de
+     la pantalla para nada (2026-11-10, «se congela a veces»). Cerrado, lo
+     esconde todo el efecto de abajo. */
   const ultimo = useRef<{ clave: number; hueco: Hueco; ver: boolean } | null>(null);
   const tapado = useRef(false);
   useEffect(() => {
-    if (!nativo) return;
+    if (!nativo || !visible) return;
     let raf = 0;
     let n = 0;
     const paso = () => {

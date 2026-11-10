@@ -1,11 +1,11 @@
 {
-  "version": "0.9.249",
-  "notes": "El Chat va en dos pestanas, Adeo y Sesiones, con las sesiones por proyecto en una linea y abajo la cuenta con la que piensa Adeo, que se cambia ahi mismo. El Chat lee tambien las conversaciones de Gemini. El boton del Modo Espejo solo sale en una terminal nacida en espejo.",
-  "pub_date": "2026-11-08T23:19:46Z",
+  "version": "0.9.250",
+  "notes": "MEDIDO: la ventana quieta gasta mucho menos, el orbe y el navegador cerrado ya no pintan en cada fotograma, y cada paron de la ventana queda escrito en el rastro con su culpable",
+  "pub_date": "2026-11-10T21:05:29Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3luaGhRbTFzeDB2bWlYWnhPWkMxcHpQdnpsd3Fpb21FTmVLSFBLMjgxUU0za2VhaGlrNXI2dTZJN1RCMnF5TlJ6Z0h4d0hXNGJOalZyN2FsTE1jaXdrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0MTc5OTc3CWZpbGU6QWRlb3JxXzAuOS4yNDlfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNDkKUkU0bTBjbE5qVXVDaTkxYW90UnphcEd1MVhDaXBseG9lQzg4NUdEYThqVmdmVTAySEg2TW1IRzNnbW1tS1JCRFZoMS90cUFTSmVZSjRxSDhqNVVxQ0E9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.249/Adeorq_0.9.249_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzlIaEpxNDJVMGtDdmJQVXFiU2tBQUw0L1BNQlhlRzl5UFlTTkVIbkZxT05SRmJFMG9tSVY0b3B6TkhZUExXMnQrRnIxbkV3bkc3YjY5UFdhNDFhekEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0MzQ0NzEzCWZpbGU6QWRlb3JxXzAuOS4yNTBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNTAKdVB4aDM4dGtWRjJsM2luN1d4ZVArQkZ6U243YkFid09Ob0N1Q0pzVXplUUhVRk1qZ0JCV1V4eC9xVGpXWW5kcWgrQitHeEZJa0hNY1RVeERYVVJMQ0E9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.250/Adeorq_0.9.250_x64-setup.exe"
     }
   }
 }

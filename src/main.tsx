@@ -4,6 +4,7 @@ import VentanaSuelta from "./components/VentanaSuelta";
 import { leerPerfil, raizPorDefecto, tocarPerfil } from "./lib/perfil";
 import Salvavidas, { vigilarErrores } from "./components/Salvavidas";
 import { vigilarMods } from "./lib/mods";
+import { vigilarParones } from "./lib/parones";
 import "./App.css";
 
 // La carpeta de proyectos se resuelve ANTES de montar nada. Media app la usa
@@ -64,6 +65,9 @@ async function arrancar() {
       // decide: se pierde el ajuste, no el arranque.
     }
   }
+  // Los parones, solo en la ventana principal: el latido hacia Rust es uno, y
+  // una terminal suelta escondida le diría que no se ve la que sí se ve.
+  vigilarParones();
   // No StrictMode: its dev-only double-mount would spawn and kill every PTY twice.
   ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <Salvavidas>

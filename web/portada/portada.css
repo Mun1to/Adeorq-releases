@@ -235,6 +235,29 @@ body {
   background: radial-gradient(circle, rgba(24, 52, 108, .20), transparent 68%);
 }
 
+/* SIN TARJETA GRÁFICA (<html data-ligero>, lo pone ligero.js; 9-nov-2026): sin
+   desenfoques ni mezclas, que por software se vuelven a calcular en cada
+   fotograma (lo medido, en ligero.js). Las
+   nubes ya eran degradados; sin el blur de 90 px se ajustan a su caja (antes
+   se cortaban en el borde y el blur lo escondía) y crecen con `scale`, que no
+   pisa el transform del parallax: se ven casi igual y se siguen moviendo. */
+html[data-ligero] *,
+html[data-ligero] *::before,
+html[data-ligero] *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html[data-ligero] .haz__nube { filter: none; scale: 1.25; }
+/* Y el grano, con la mezcla normal y menos opacidad: el `overlay` obliga a
+   mezclar con todo lo de detrás en cada fotograma. Sigue rompiendo las bandas. */
+html[data-ligero] .haz__grano { mix-blend-mode: normal; opacity: .05; }
+html[data-ligero] .haz__nube--a {
+  background: radial-gradient(closest-side, rgba(38, 74, 140, .24), rgba(38, 74, 140, .10) 55%, transparent);
+}
+html[data-ligero] .haz__nube--b {
+  background: radial-gradient(closest-side, rgba(24, 52, 108, .20), rgba(24, 52, 108, .08) 55%, transparent);
+}
+
 /* El grano. Sin el, un degradado tan grande se ve a bandas en cualquier
    pantalla de 8 bits, y eso delata una web hecha con prisa. */
 .haz__grano {

@@ -3,7 +3,7 @@
    ===========================================================================
    Un planeta azul y un satélite blanco dando vueltas. Tres formas, y solo una
    se mueve: ver `Orbe.tsx` para el porqué, y también para QUIÉN la mueve, que
-   es un `<animateMotion>` del propio SVG y no esta hoja.
+   es un reloj del propio componente y no esta hoja.
    =========================================================================== */
 
 .orbe {
@@ -36,14 +36,14 @@
    su propio planeta justo cuando pasa por delante, que es donde el movimiento
    se tiene que leer.
 
-   Quién lo mueve NO está aquí: lo mueve el propio componente, frame a frame
+   Quién lo mueve NO está aquí: lo mueve el propio componente, paso a paso
    (ver `Orbe.tsx`). Se probaron `offset-path` de CSS y `<animateMotion>` de
-   SVG y en este WebView no movió nada ninguno. Aquí solo queda cómo se ve, y
-   la transición de opacidad, que es lo que hace que aparecer y desaparecer
-   detrás del planeta no sea un parpadeo. */
+   SVG y en este WebView no movió nada ninguno. Aquí solo queda cómo se ve.
+   Sin transición de opacidad: el brillo al pasar por detrás lo pone el mismo
+   paso, en rampa, y una transición aquí pintaba en cada fotograma de la
+   pantalla mientras duraba, que pensando era siempre. */
 .orbe-satelite {
   fill: #ffffff;
-  transition: opacity var(--t-rapida) linear;
 }
 
 /* Escuchando: has empezado a escribir. */

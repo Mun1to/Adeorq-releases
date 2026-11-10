@@ -76,6 +76,18 @@ html[data-quieta] .demo-rueda { overflow: hidden !important; }
    volcada. `scripts/censo-demo.js` no lo veía; lo mide `scripts/rueda-demo.js`. */
 html, body, #root, #root * { overscroll-behavior: auto !important; }
 
+/* SIN TARJETA GRÁFICA (<html data-ligero>, lo pone vivo.js con
+   portada/ligero.js; 9-nov-2026): sin cristal. Por software, cada
+   `backdrop-filter` se recalcula en cada fotograma, también mientras la
+   portada baja con la demo a la vista (medido, en ligero.js). Los paneles
+   quedan con su fondo semitransparente de siempre. Con gráfica, nada cambia. */
+html[data-ligero] *,
+html[data-ligero] *::before,
+html[data-ligero] *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 /* ------------------------------ NADA LATE SOLO -----------------------------
    La app tiene cosas que laten sin parar: el hilo que da vueltas a la sesión
    que trabaja (un degradado cónico que cambia de ángulo) y el aviso rojo de «te

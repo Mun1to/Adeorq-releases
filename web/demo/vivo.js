@@ -22,8 +22,14 @@
    globo de ayuda.
    ========================================================================= */
 
+import { ponerModoLigero } from '../portada/ligero.js';
+
 const $ = (s, d = document) => d.querySelector(s);
 const $$ = (s, d = document) => [...d.querySelectorAll(s)];
+
+// Sin tarjeta gráfica, sin cristal (portada/ligero.js y demo.css): se mira una
+// vez, ya pintada la primera pantalla.
+requestAnimationFrame(() => setTimeout(ponerModoLigero, 0));
 
 const consulta = new URLSearchParams(location.search);
 const EN = consulta.get('lang') === 'en';

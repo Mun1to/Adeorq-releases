@@ -47,6 +47,10 @@ export interface PedidoMcp {
    *  (`close_pane`). Rust ya comprobó que existe, pero llega de un modelo
    *  igual que el resto: aquí tampoco se da por bueno sin mirar. */
   paneId?: number;
+  /** `compactarme`: lo que se pega detrás de `/compact` (Rust ya lo limpió
+   *  de teclas) y lo que se le escribe al acabar (`null`, el de la casa). */
+  mensaje?: string;
+  seguir?: string | null;
 }
 
 /** Lo que se le devuelve a Rust, que se lo devuelve al agente. */

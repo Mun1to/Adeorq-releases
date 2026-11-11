@@ -40,6 +40,8 @@ import {
   nivelDeContexto,
   trabajaEnPantalla,
   turnoAcabado,
+  SEGUIR_HASTA_MS,
+  VIGILA_COMPACTAR_MS,
   type ModoSolo,
 } from "../src/lib/contexto";
 import type { ContextInfo, WorkState } from "../src/lib/pty";
@@ -104,8 +106,12 @@ function panel(o: Partial<{
         resuelva, con lo que decía el transcript al pedirla: una campana que
         lee y tarda en volver. */
     retener: null as Promise<void> | null,
+    /** Las vueltas de `vigilar` (las esperas de VIGILA_COMPACTAR_MS) no corren
+        solas: cada una espera a que el banco la suelte con `vuelta()`. */
+    manual: false,
     ...o,
   };
+  const vueltas: Array<() => void> = [];
   const mandado: string[] = [];
   /** Con qué primer mensaje nació cada terminal nueva (null: el de la casa). */
   const nuevas: Array<string | null> = [];
@@ -143,11 +149,20 @@ function panel(o: Partial<{
     alSugerir: (p) => sugerencias.push(p),
     // El reloj corre lo que se espera: el asiento tras la campana pasa de verdad.
     esperar: async (ms) => {
+      if (s.manual && ms === VIGILA_COMPACTAR_MS) await new Promise<void>((r) => vueltas.push(r));
       s.reloj += ms;
     },
     ahora: () => s.reloj,
   });
-  return { s, tr, mandado, nuevas, archivadas, sugerencias };
+  /** Que corra todo lo que está en marcha hasta la próxima espera. */
+  const asentar = () => new Promise<void>((r) => setTimeout(r, 0));
+  /** Suelta una vuelta de `vigilar` y deja que llegue a la siguiente. */
+  const vuelta = async () => {
+    await asentar();
+    vueltas.shift()?.();
+    await asentar();
+  };
+  return { s, tr, mandado, nuevas, archivadas, sugerencias, asentar, vuelta };
 }
 
 /** Lo que contesta un /fin de verdad, recortado: sus dos bloques del final. */
@@ -467,6 +482,125 @@ async function main() {
     await p.tr.pedirDeAgente();
     await p.tr.alSonar();
     es("en un panel que no es de Claude Code no teclea nada", p.mandado, []);
+  }
+
+  // ── compactarme: la sesión se compacta a sí misma y sigue (2026-11-11) ───
+  // Munir, por «Orquio General»: «que puedas tú coger el mensaje de
+  // compactación y compactar por tu cuenta en Adeorq y retomar la sesión».
+  const BLOQUE = "# COMPACTACIÓN, Sesión prueba\n## Pendiente\n- la tienda";
+  {
+    const p = panel({ estado: "a_medias", manual: true });
+    const r = p.tr.pedirPropia(BLOQUE, "Sigue.");
+    await p.asentar();
+    es("compactarme a mitad de su turno: lo acepta", r, "aceptado");
+    es("y no teclea nada mientras trabaja", p.mandado, []);
+    es("espera a que acabe su turno", p.tr.fase(), "esperando");
+    p.s.estado = "lista";
+    await p.tr.alSonar();
+    es("al acabar su turno, /compact con su mensaje entero y sin /fin delante", p.mandado, [`/compact ${BLOQUE}`]);
+    es("mientras compacta, cerrando", p.tr.fase(), "cerrando");
+    await p.vuelta();
+    await p.vuelta();
+    es("mientras no acaba de compactar no le escribe nada más", p.mandado.length, 1);
+    p.s.veces = 1;
+    await p.vuelta();
+    es("compactada y parada en su caja: le escribe que siga", p.mandado, [`/compact ${BLOQUE}`, "Sigue."]);
+    es("y el traspaso se acaba", p.tr.fase(), "nada");
+    await p.tr.alSonar();
+    es("la raya no la vuelve a compactar con el número viejo del transcript", p.mandado.length, 2);
+  }
+  {
+    const p = panel({ manual: true });
+    p.tr.pedirPropia(BLOQUE, "Sigue.");
+    await p.asentar();
+    es("con la lectura del momento en «lista», no teclea: espera a una lectura asentada", p.mandado, []);
+  }
+  {
+    // Un Claude Code que no toca la campana al acabar (medido con la 2.1.322).
+    const p = panel({ estado: "a_medias", manual: true });
+    p.tr.pedirPropia(BLOQUE, "Sigue.");
+    await p.asentar();
+    await p.vuelta();
+    es("sin campana y trabajando, mirar cada poco no teclea nada", p.mandado, []);
+    p.s.estado = "lista";
+    await p.vuelta();
+    es("sin campana, al verla parada manda el /compact igual", p.mandado, [`/compact ${BLOQUE}`]);
+    p.s.veces = 1;
+    await p.vuelta();
+    es("y al acabar de compactar, el «sigue»", p.mandado, [`/compact ${BLOQUE}`, "Sigue."]);
+  }
+  {
+    // La raya roja manda `/fin sin commits`, y la skill acaba llamando a compactarme.
+    const p = panel({ manual: true });
+    await p.tr.alSonar();
+    es("la raya empieza con /fin sin commits", p.mandado, ["/fin sin commits"]);
+    p.s.estado = "a_medias";
+    p.tr.pedirPropia(BLOQUE, null);
+    await p.asentar();
+    p.s.estado = "lista";
+    await p.tr.alSonar();
+    es("el /fin que acaba en compactarme: un solo /compact, el suyo, y no el de la casa", p.mandado, ["/fin sin commits", `/compact ${BLOQUE}`]);
+    p.s.veces = 1;
+    p.s.k = 30;
+    // La primera vuelta es la de mirar su turno, que ya no tiene nada que hacer.
+    await p.vuelta();
+    await p.vuelta();
+    es("con seguir a null, compactada y sin escribirle nada", p.mandado.length, 2);
+    es("y se acaba igual", p.tr.fase(), "nada");
+  }
+  {
+    const p = panel({ estado: "a_medias", manual: true });
+    await p.tr.pedir("nueva");
+    es("si ya va a seguir en una terminal nueva, compactarme no la compacta", p.tr.pedirPropia(BLOQUE, "Sigue."), "nueva");
+    await p.asentar();
+    p.s.estado = "lista";
+    await p.tr.alSonar();
+    es("y el baile de la nueva sigue con su /fin", p.mandado, ["/fin"]);
+  }
+  {
+    const p = panel({ estado: "a_medias", manual: true });
+    p.tr.pedirPropia(BLOQUE, "Sigue.");
+    await p.asentar();
+    p.s.estado = "lista";
+    await p.tr.alSonar();
+    p.s.veces = 1;
+    p.s.estado = "a_medias"; // Munir ya le escribió algo detrás
+    for (let i = 0; i <= SEGUIR_HASTA_MS / VIGILA_COMPACTAR_MS + 2; i++) await p.vuelta();
+    p.s.estado = "lista";
+    await p.vuelta();
+    es("si tras compactar otro siguió con ella, el «sigue» no le cae encima después", p.mandado, [`/compact ${BLOQUE}`]);
+    es("y se olvida", p.tr.fase(), "nada");
+  }
+  {
+    const p = panel({ estado: "a_medias", manual: true });
+    p.tr.pedirPropia(BLOQUE, "Sigue.");
+    await p.asentar();
+    p.s.estado = "lista";
+    await p.tr.alSonar();
+    p.tr.cancelar();
+    p.s.veces = 1;
+    await p.vuelta();
+    es("«Ahora no» mientras compacta: no le escribe que siga", p.mandado, [`/compact ${BLOQUE}`]);
+  }
+  {
+    const p = panel({ estado: "a_medias", manual: true });
+    p.tr.pedirPropia(BLOQUE, "Sigue.");
+    await p.asentar();
+    p.s.estado = "lista";
+    await p.tr.alSonar();
+    p.s.reloj += CADUCA_MS + 1;
+    await p.vuelta();
+    await p.vuelta();
+    es("si el /compact no acaba nunca, caduca y suelta el panel", p.tr.fase(), "nada");
+  }
+  {
+    const p = panel({ estado: "a_medias", manual: true });
+    p.tr.pedirPropia(BLOQUE, "Sigue.");
+    await p.asentar();
+    p.s.estado = "lista";
+    p.s.caja = false; // un menú suyo, o el CLI cerrado
+    await p.tr.alSonar();
+    es("sin su caja a la vista no teclea el /compact", p.mandado, []);
   }
 
   // ── Un /fin que la terminal no conoce (SESIÓN SUPREMA, 2026-11-09) ───────

@@ -216,7 +216,9 @@ pub fn escalon_de(herramienta: &str) -> Option<Nivel> {
         // su respuesta vuelve a la del que pregunta.
         // Y darla por resuelta solo deja de esperar a Munir: tampoco toca terminales.
         // Enseñarle algo en el móvil tampoco: lo ve él, y solo lo que se nombra.
-        "open_pane" | "link_panes" | "ask_decision" | "close_decision" | "compartir_en_el_movil" => Some(Nivel::Plan),
+        // Y compactarse a sí misma solo teclea en la terminal de quien lo pide
+        // (`mcp/compactarme.rs`), con su turno ya acabado.
+        "open_pane" | "link_panes" | "ask_decision" | "close_decision" | "compartir_en_el_movil" | "compactarme" => Some(Nivel::Plan),
         // Compactar es teclear `/fin` y `/compact` en una terminal viva.
         "send_command" | "send_keys" | "close_pane" | "compactar_terminal" => Some(Nivel::Auto),
         _ => None,
@@ -526,7 +528,7 @@ mod tests {
             .filter(|n| escalon_de(n).is_none())
             .collect();
         assert!(sin.is_empty(), "sin escalón: {sin:?}");
-        assert_eq!(crate::mcp::lista_de_herramientas().len(), 20, "si cambió el número, revisa la tabla");
+        assert_eq!(crate::mcp::lista_de_herramientas().len(), 21, "si cambió el número, revisa la tabla");
     }
 
     #[test]
@@ -654,7 +656,7 @@ mod tests {
         for h in ["read_pane_screen", "read_pane_transcript", "close_pane"] {
             assert!(ve(h) && suyo(h), "{h} solo de lo suyo");
         }
-        for h in ["leer_memoria", "buscar_memoria", "leer_turno", "get_agenda", "get_decision", "ask_decision", "get_mods", "link_panes", "send_command", "send_keys", "compactar_terminal", "inventada"] {
+        for h in ["leer_memoria", "buscar_memoria", "leer_turno", "get_agenda", "get_decision", "ask_decision", "get_mods", "link_panes", "send_command", "send_keys", "compactar_terminal", "compactarme", "inventada"] {
             assert!(!ve(h), "{h} no le llega");
         }
     }

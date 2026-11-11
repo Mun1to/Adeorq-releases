@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::{Emitter, Manager};
 
+mod compactarme;
 mod delegadas;
 pub(crate) mod preguntar;
 mod quien_conecta;
@@ -2060,6 +2061,24 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                                     },
                                     "required": ["paneId"]
                                 }
+                            },
+                            {
+                                "name": "compactarme",
+                                "description": "Compacts YOUR OWN Claude Code session and then lets you carry on by yourself. Call it as the last step of a turn (for example after writing the compaction block of /fin): when your turn ends, Adeorq types '/compact <mensaje>' into your terminal, waits until compacting finishes, and then types 'seguir' so you continue from the summary. Only works from inside an Adeorq terminal (it uses your ADEORQ_PANE_ID); it never touches another terminal. Do not call it mid-task: finish what you are doing first, and put in mensaje everything the summary must keep (exact paths, decisions, git state, what is pending).",
+                                "inputSchema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "mensaje": {
+                                            "type": "string",
+                                            "description": "What the summary must keep, typed after /compact (the compaction block of /fin). Up to 20,000 characters; line breaks are fine."
+                                        },
+                                        "seguir": {
+                                            "type": "string",
+                                            "description": "Optional. What Adeorq types once compacting finishes. Leave it out for the default (carry on with what is pending in the summary); pass an empty string to stay idle and wait for Munir."
+                                        }
+                                    },
+                                    "required": ["mensaje"]
+                                }
                             }
     ]);
     let mut todas = v.as_array().cloned().unwrap_or_default();
@@ -3334,6 +3353,36 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             let veces = carga.as_ref().map(|c| tope_contexto::compactaciones(&ficha.cwd, c)).unwrap_or(0);
             let antes = r.parte.unwrap_or_else(|| "nada".to_string());
             Ok(json!({ "content": [{ "type": "text", "text": tope_contexto::parte_de_compactar(pane_id, carga.as_ref(), &antes, veces) }] }))
+        }
+        // Una sesión que se compacta a sí misma (Munir, 2026-11-11: «que puedas
+        // tú coger el mensaje de compactación y compactar por tu cuenta en
+        // Adeorq y retomar la sesión»). Solo su terminal, presentada con su
+        // contraseña: ver `mcp/compactarme.rs` y `pedirPropia` en `lib/contexto.ts`.
+        "compactarme" => {
+            let ficha = quien.and_then(|id| crate::pty::ficha(app, id));
+            let mensaje = compactarme::limpio(args["mensaje"].as_str().unwrap_or_default());
+            let q = compactarme::Quien {
+                panel: quien,
+                existe: ficha.is_some(),
+                con_clave: ficha.as_ref().is_some_and(|f| f.clave.is_some()),
+                es_claude: ficha.as_ref().and_then(|f| f.command.as_deref()).is_some_and(crate::rastros::es_claude),
+            };
+            if let Some(porque) = compactarme::por_que_no(&q, &mensaje) {
+                return Err(porque);
+            }
+            let (pane_id, ficha) = (quien.unwrap_or_default(), ficha.unwrap());
+            // Sin `seguir`, el de la casa; vacío, se queda parada.
+            let seguir = args["seguir"].as_str().map(compactarme::limpio);
+            let r = pedir_a_la_ventana_con(
+                app,
+                "compactarme",
+                json!({ "paneId": pane_id, "mensaje": mensaje, "seguir": seguir }),
+                Duration::from_secs(4),
+            )?;
+            let carga = tope_contexto::carga_de(&ficha.cwd, ficha.command.as_deref(), None);
+            let veces = carga.as_ref().map(|c| tope_contexto::compactaciones(&ficha.cwd, c)).unwrap_or(0);
+            let texto = compactarme::respuesta(r.parte.as_deref().unwrap_or("aceptado"), &mensaje, seguir.as_deref(), veces)?;
+            Ok(json!({ "content": [{ "type": "text", "text": texto }] }))
         }
         _ => Err(format!("Unknown tool: {}", name))
     }

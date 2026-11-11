@@ -58,6 +58,7 @@ export const COMPROBADORES = [
   "publicar-check.mjs",
   "cuentas-check.mjs",
   "privacidad-web-check.mjs",
+  "resumen-web-check.mjs",
   "guia-anclas-check.mjs",
   "comprobar-check.mjs",
 ];

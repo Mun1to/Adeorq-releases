@@ -2153,6 +2153,8 @@ const EN: Record<string, string> = {
     "You pick up the previous session's work, which ran out of context: read the project's BUZON.md and its living docs, and carry on from what is pending.",
   "Conserva el estado real del repo, lo hecho con sus rutas exactas, lo pendiente y las trampas de hoy; lo demás, resumido.":
     "Keep the real state of the repo, what was done with its exact paths, what is pending and today's traps; summarise the rest.",
+  "Ya estás compactada. Sigue con lo pendiente del resumen, sin repetir lo hecho; lo que solo puede decidir Munir, déjalo dicho y espera.":
+    "You are compacted now. Carry on with what is pending in the summary, without redoing what is done; anything only Munir can decide, say it and wait.",
   "Antes de compactar, deja al día el traspaso: el BUZON.md del proyecto y sus docs vivos, con lo hecho (rutas exactas), lo pendiente y las trampas de hoy. Sin commits. Cuando acabes, te compacto yo.":
     "Before compacting, bring the handoff up to date: the project's BUZON.md and its living docs, with what was done (exact paths), what is pending and today's traps. No commits. When you finish, I will compact you.",
   "Encajar todo en la pantalla": "Fit everything on screen",

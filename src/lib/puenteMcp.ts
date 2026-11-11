@@ -16,7 +16,7 @@
 // le manda doce pedidos a la ventana y devuelve una huella de lo que contestó.
 
 import { useEffect } from "react";
-import { marcarDelegada, type FaseTraspaso } from "./contexto";
+import { marcarDelegada, type DetalleTraspaso, type FaseTraspaso } from "./contexto";
 import { apuntarDelegada, olvidarDelegada } from "./delegadas";
 import { confiarCarpeta, listProjects, mainAccount, mcpReply, onPedidoMcp, type Account, type PaneStatus } from "./pty";
 import { pantallaDe } from "./terminales";
@@ -205,6 +205,20 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
           };
           window.dispatchEvent(new CustomEvent("adeorq:traspaso", { detail }));
           responder(detail.hecho ? { parte: detail.fase ?? "nada" } : { error: `No tengo pintada la terminal ${p.paneId}.` });
+          return;
+        }
+        // `compactarme`: la sesión de esa terminal se compacta a sí misma.
+        // Rust ya comprobó que la pide ella, con su contraseña, y que es
+        // Claude Code; el panel espera a su turno (`pedirPropia`).
+        if (p.clase === "compactarme") {
+          const detail: DetalleTraspaso = {
+            id: Number(p.paneId),
+            que: "propia",
+            hecho: false,
+            propia: { mensaje: String(p.mensaje ?? ""), seguir: typeof p.seguir === "string" ? p.seguir : null },
+          };
+          window.dispatchEvent(new CustomEvent("adeorq:traspaso", { detail }));
+          responder(detail.hecho ? { parte: detail.parte ?? "aceptado" } : { error: `No tengo pintada la terminal ${p.paneId}.` });
           return;
         }
         if (p.clase === "uso") {

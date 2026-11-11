@@ -111,6 +111,9 @@ export function cleanNotes(body) {
  */
 export const LANG_MARK = /^<!--\s*lang:en\s*-->$/im
 
+/** The first line every release note has to open with (`scripts/prueba-check.mjs`). */
+const ESCALON = /^>\s*(PROBADO|MEDIDO|NO PROBADO)\b/
+
 /**
  * Release notes split by language: `{ es, en }`, with `en` null when the author
  * wrote only one version.
@@ -122,7 +125,17 @@ export const LANG_MARK = /^<!--\s*lang:en\s*-->$/im
 export function splitLanguages(body) {
   const text = cleanNotes(body)
   const lines = text.split('\n')
-  const at = lines.findIndex((line) => LANG_MARK.test(line.trim()))
+  let at = lines.findIndex((line) => LANG_MARK.test(line.trim()))
+  // The notes `pnpm publicar-version` takes carry no mark: Spanish, a `---` rule,
+  // and English, each half opening with its PROBADO/MEDIDO/NO PROBADO quote
+  // (`scripts/prueba-check.mjs`). Without this, the English page showed the
+  // Spanish summary for every one of them. A rule counts as the split only when
+  // both halves open with that quote, so a rule inside the notes stays a rule.
+  if (at === -1 && ESCALON.test(text.split('\n')[0] || '')) {
+    at = lines.findIndex(
+      (line, i) => /^-{3,}$/.test(line.trim()) && ESCALON.test((lines.slice(i + 1).find((l) => l.trim()) || '').trim()),
+    )
+  }
   if (at === -1) return { es: text, en: null }
 
   const es = lines.slice(0, at).join('\n').replace(/\n*-{3,}\n*$/, '').trim()
@@ -221,6 +234,9 @@ export function headingsFrom(notes) {
  * `scripts/prueba-check.mjs` demands: it says how the release was tested, for
  * whoever reviews it, and the front page was showing it as the news. With no
  * paragraph at all (notes that are only a list), the first bullet stands in.
+ * A lone `---` is not prose either: it is the rule between the Spanish and the
+ * English notes, and from 0.9.249 to 0.9.251 the front page printed it as the
+ * summary of every release.
  */
 export function summaryFrom(notes, maxLength = 220) {
   const blocks = cleanNotes(notes)
@@ -231,7 +247,9 @@ export function summaryFrom(notes, maxLength = 220) {
     .map((line) => line.trim())
     .find((line) => /^[-*]\s/.test(line))
   const paragraph =
-    blocks.find((block) => block && !/^#{1,6}\s/.test(block) && !/^[-*]\s/.test(block) && !/^>/.test(block)) ||
+    blocks.find(
+      (block) => block && !/^#{1,6}\s/.test(block) && !/^[-*]\s/.test(block) && !/^>/.test(block) && !/^[-*_]{3,}$/.test(block),
+    ) ||
     (firstBullet && firstBullet.replace(/^[-*]\s+/, ''))
 
   if (!paragraph) return ''

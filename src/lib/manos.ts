@@ -67,6 +67,10 @@ export const MANOS = {
       commits` y `/compact` (espera a que pare, pero teclea), así que va con
       `teclear`. */
   compactar: "mcp__adeorq__compactar_terminal",
+  /** Compactarse a sí misma con su mensaje y seguir sola. Solo teclea en la
+      terminal de quien lo pide, así que va con montar trabajo, como en el
+      escalón del MCP. Adeo no vive en una terminal: a él le contesta que no. */
+  compactarme: "mcp__adeorq__compactarme",
   /* Las de las decisiones (0.9.177, src-tauri/src/decisiones.rs). Preguntarle
      algo a Munir no pisa ninguna terminal, así que va con montar trabajo, como
      en el escalón del MCP (`mcp_clientes.rs`); leer la respuesta, con mirar. */
@@ -110,7 +114,7 @@ const LECTURA = [
   MANOS.decision,
   MANOS.mods,
 ];
-const MONTAR = [MANOS.abrir, MANOS.enlazar, MANOS.decidir, MANOS.resolver, MANOS.compartir];
+const MONTAR = [MANOS.abrir, MANOS.enlazar, MANOS.decidir, MANOS.resolver, MANOS.compartir, MANOS.compactarme];
 /** Lo que puede pisar el trabajo de otro: escribirle, mandarle teclas o cerrarlo. */
 const PISAR = [MANOS.teclear, MANOS.teclas, MANOS.cerrar, MANOS.compactar];
 

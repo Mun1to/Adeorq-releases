@@ -223,6 +223,37 @@ sin su clic no (D8). Las rayas son las de la D7 (300k aviso, 400k compacta, 600k
     pregunta (un permiso, el «Type something», un «no» en prosa) pasa sin `confirm`
     (`tope_contexto::retiene`). El paso R4 del laboratorio, rojo antes y verde después.
 
+## Una sesión se compacta a sí misma y sigue: `compactarme` (2026-11-11)
+
+Munir, por «Orquio General» (BUZON, 11-nov): *«que puedas tú coger el mensaje de compactación y
+compactar por tu cuenta en Adeorq y retomar la sesión»*, y luego en esta sesión: *«que una sesión
+se autocompacte con el skill de fin mensaje de compactación + que se retome automáticamente»*.
+
+- **`compactarme({ mensaje, seguir? })`** (escalón «plan», `mcp/compactarme.rs`): solo la terminal
+  de quien llama, la que presenta su puente con SU contraseña (`ADEORQ_PANE_ID` +
+  `ADEORQ_PANE_CLAVE`). Sin terminal, con una de antes de las contraseñas o con otra que no es
+  Claude Code, contesta que no. El mensaje se limpia de teclas (un ESC cerraría el pegado entre
+  corchetes) y como mucho lleva 20.000 caracteres. Vale también en las terminales de Munir: lo
+  pide la propia sesión.
+- **Lo hace el panel** (`pedirPropia` en `lib/contexto.ts`): espera a que acabe el turno en que la
+  pidió, teclea `/compact <mensaje>`, mira cada 3 s hasta ver una compactación más en el
+  transcript con Claude Code parado en su caja, y le escribe `seguir` (sin él, el de la casa:
+  `seguirTrasCompactar`; vacío, nada). Si en el minuto siguiente a compactar no se queda parada,
+  alguien siguió con ella y el «sigue» no se le echa encima. Si ya iba a seguir en una terminal
+  nueva, contesta `nueva` y no compacta; si había un `/fin sin commits` de la raya o de
+  `compactar_terminal`, lo sustituye y no hay dos `/compact`.
+- **Sin campana:** Claude Code 2.1.322 sin `preferredNotifChannel` no toca la campana al acabar un
+  turno, así que esto mira cada 3 s además de oírla. OJO: el `/compact` de la raya roja y de
+  `compactar_terminal` sigue esperando a la campana; con la skill `/fin` nueva da igual, porque
+  el `/fin` acaba llamando a `compactarme`.
+- **La skill `/fin`** (`~/.claude/skills/fin/SKILL.md`, §5): dentro de Adeorq llama a
+  `compactarme` con su bloque y lo dice en una línea; `/fin sin compactar` se lo salta.
+- **Medido:** `pnpm bancos contexto` (los casos de `compactarme`; sin la lectura asentada o sin el
+  minuto de gracia, en rojo), `cargo test --lib compactarme` y
+  `node scripts/laboratorio/compactarme-de-verdad.mjs`, con un Claude Code 2.1.322 de verdad
+  contra una API de mentira: 13 de 13; antes de mirar sin campana, 6 en rojo (el `/compact` no
+  llegaba nunca). NO PROBADO con una sesión de Munir y su modelo de verdad.
+
 ## Quién la abrió sobrevive a reiniciar, y las que ya no están se dicen (2026-10-30)
 
 La Suprema, ese día: tras reiniciar Adeorq, sus delegadas salían sin «Abierta por» y en

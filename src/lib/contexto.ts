@@ -391,6 +391,29 @@ export function ordenDeCompactar(t: Translate): string {
   );
 }
 
+/**
+ * Lo que se le escribe a una sesión que se compactó a sí misma
+ * (`compactarme`) cuando acaba de compactar, si no pidió otra cosa: Munir,
+ * 2026-11-11, «compactar por tu cuenta en Adeorq y retomar la sesión».
+ */
+export function seguirTrasCompactar(t: Translate): string {
+  return t(
+    "Ya estás compactada. Sigue con lo pendiente del resumen, sin repetir lo hecho; lo que solo puede decidir Munir, déjalo dicho y espera.",
+  );
+}
+
+/** Cada cuánto se mira si ya acabó de compactar, para escribirle que siga.
+    Claude Code no toca la campana al acabar un `/compact`. */
+export const VIGILA_COMPACTAR_MS = 3000;
+/** Compactada y sin quedarse parada en este rato: otro siguió con ella, y el
+    «sigue» ya no toca. */
+export const SEGUIR_HASTA_MS = 60_000;
+
+/** Lo que contesta el panel a `compactarme`: lo acepta, ya iba a seguir en
+    una terminal nueva, o no sabe qué conversación es la suya y no vería
+    cuándo acaba de compactar. */
+export type RespuestaPropia = "aceptado" | "nueva" | "sin-conversacion";
+
 /** Lo pendiente caduca: no se compacta a destiempo encima de otro trabajo. */
 export const CADUCA_MS = 30 * 60_000;
 /** Lo que se deja asentar el transcript tras la campana antes de leerlo: el
@@ -472,12 +495,18 @@ export function crearTraspaso(d: DepsTraspaso) {
   const esperar = d.esperar ?? ((ms: number) => new Promise<void>((r) => window.setTimeout(r, ms)));
   /** `solo`: no lo pulsó nadie, así que sin transcript no se va a ciegas.
       `sinCommits`: el traspaso es `/fin sin commits` y no el entero. */
+  /** `propia`: la pidió la sesión para sí misma (`compactarme`), con su
+      `mensaje` para el `/compact` y lo que se le escribe después (`seguir`,
+      `null` para nada). `antes`: sus compactaciones al mandar el `/compact`. */
   let pendiente: {
-    que: "compactar" | "nueva";
+    que: "compactar" | "nueva" | "propia";
     paso: Exclude<FaseTraspaso, "nada">;
     solo: boolean;
     sinCommits: boolean;
     desde: number;
+    mensaje?: string;
+    seguir?: string | null;
+    antes?: number;
   } | null = null;
   /** Ya compactó en esta subida: no repetir hasta verlo bajar. */
   let hecho = false;
@@ -536,6 +565,21 @@ export function crearTraspaso(d: DepsTraspaso) {
     // Y en Claude Code, con su caja a la vista: si no, el CLI se cerró (o
     // tiene un menú abierto) y lo tecleado iría a otro sitio.
     if (d.esClaude() && !(d.enSuCaja?.() ?? true)) return;
+    if (p.que === "propia") {
+      // El traspaso ya lo hizo ella (es su mensaje): solo el `/compact`, y
+      // lo que viene después lo mira `vigilar`, no la campana.
+      if (p.paso !== "esperando") return;
+      // Lo pide a mitad de su propio turno: solo con una lectura asentada de
+      // DESPUÉS de pedirlo (la de su campana), nunca con la del momento.
+      if (en - p.desde < ASIENTO_MS) return;
+      const antes = await d.compactaciones().catch(() => 0);
+      if (pendiente !== p) return;
+      const cerrando = { ...p, paso: "cerrando" as const, desde: ahora(), antes };
+      poner(cerrando);
+      await d.mandar(`/compact ${p.mensaje ?? ""}`.trimEnd());
+      void vigilar(cerrando);
+      return;
+    }
     if (p.paso === "esperando") {
       const texto = await traspaso(p.que, p.sinCommits);
       if (pendiente !== p) return; // «Ahora no» mientras se miraba la skill
@@ -588,6 +632,77 @@ export function crearTraspaso(d: DepsTraspaso) {
       await avanzar(c, en);
     }, "esperar");
 
+  /**
+   * Tras el `/compact` de una sesión que se compactó a sí misma: mira cada
+   * poco si ya hay una compactación más en su transcript y vuelve a estar
+   * parada en su caja, y entonces le escribe que siga. Fuera del candado, para
+   * que el botón no espere minutos a que acabe un resumen; el último paso sí
+   * lo coge. «Ahora no» o caducar lo paran.
+   */
+  const vigilar = async (p: NonNullable<typeof pendiente>) => {
+    /** Cuándo se vio la compactación hecha. Si para entonces ya no está
+        parada, alguien (Munir) siguió con ella: no se le escribe encima. */
+    let compactada: number | null = null;
+    while (pendiente === p) {
+      await esperar(VIGILA_COMPACTAR_MS);
+      if (pendiente !== p) return;
+      if (ahora() - p.desde > CADUCA_MS) return poner(null);
+      if (compactada == null) {
+        if ((await d.compactaciones().catch(() => 0)) <= (p.antes ?? 0)) continue;
+        compactada = ahora();
+      }
+      const { c } = await leerAhora();
+      const parada = !!c && turnoAcabado(c, d.hayPregunta()) && !d.hayBorrador() && !d.trabajando();
+      if (!parada || (d.esClaude() && !(d.enSuCaja?.() ?? true))) {
+        if (ahora() - compactada > SEGUIR_HASTA_MS) return poner(null);
+        continue;
+      }
+      await conCandado(async () => {
+        if (pendiente !== p) return;
+        poner(null);
+        // Recién compactada: que la raya no la vuelva a compactar con el
+        // número viejo hasta verla bajar.
+        hecho = true;
+        if (p.seguir) await d.mandar(p.seguir);
+      }, "esperar");
+      return;
+    }
+  };
+
+  /** Lo pide la sesión para sí misma por el MCP (`compactarme`). Si ya iba a
+      seguir en una terminal nueva no se compacta; si había otro traspaso en
+      marcha (el `/fin sin commits` de la raya o de `compactar_terminal`, que
+      ahora acaba llamando aquí) lo sustituye, para no compactar dos veces. */
+  const pedirPropia = (mensaje: string, seguir: string | null): RespuestaPropia => {
+    if (pendiente?.que === "nueva") return "nueva";
+    void conCandado(async () => {
+      if (pendiente?.que === "nueva") return;
+      const p = { que: "propia" as const, paso: "esperando" as const, solo: true, sinCommits: true, desde: ahora(), mensaje, seguir };
+      poner(p);
+      const { c, en } = await leerAhora();
+      await avanzar(c, en);
+      if (pendiente === p) void esperarSuTurno(p);
+    }, "esperar").catch(() => {});
+    return "aceptado";
+  };
+
+  /** Hasta que acabe el turno en que la pidió: cada poco, además de su
+      campana. Un Claude Code sin la campana puesta (`preferredNotifChannel`)
+      no la toca al acabar, y medido el 2026-11-11 con la 2.1.322: el
+      `/compact` no llegaba nunca. Cuando `avanzar` lo manda, el pedido ya es
+      otro y esto se acaba. */
+  const esperarSuTurno = async (p: NonNullable<typeof pendiente>) => {
+    while (pendiente === p) {
+      await esperar(VIGILA_COMPACTAR_MS);
+      if (pendiente !== p) return;
+      await conCandado(async () => {
+        if (pendiente !== p) return;
+        const { c, en } = await leerAhora();
+        await avanzar(c, en);
+      }, "soltar");
+    }
+  };
+
   const alSonar = () =>
     conCandado(async () => {
       await esperar(ASIENTO_MS);
@@ -612,7 +727,7 @@ export function crearTraspaso(d: DepsTraspaso) {
       await avanzar(c, en);
     }, "soltar");
 
-  return { pedir, pedirDeAgente, alSonar, cancelar: () => poner(null), fase };
+  return { pedir, pedirDeAgente, pedirPropia, alSonar, cancelar: () => poner(null), fase };
 }
 
 /**
@@ -709,6 +824,15 @@ export function useTraspaso(m: {
       void traspaso.pedirDeAgente().catch(() => {});
       return antes;
     },
+    /** `compactarme`: la sesión se compacta a sí misma. Sin su conversación
+        sabida no se vería cuándo acaba, y no se acepta. `seguir` sin dar es
+        el de la casa; vacío, nada. */
+    propia: (mensaje: string, seguir: string | null | undefined): RespuestaPropia => {
+      const u = ultimo.current;
+      if (!u.esClaude || !u.sesion) return "sin-conversacion";
+      setSugerencia(null);
+      return traspaso.pedirPropia(mensaje, seguir == null ? seguirTrasCompactar(u.t) : seguir || null);
+    },
     alSonarCampana: () => void traspaso.alSonar().catch(() => {}),
     /** Nada solo en este nivel, y fuera lo que estuviera esperando. */
     ahoraNo: () => {
@@ -724,6 +848,19 @@ export function useTraspaso(m: {
   };
 }
 
+/** El evento `adeorq:traspaso`: quien lo lanza mira `hecho` (y `fase` o
+    `parte`) al volver, porque el panel contesta en el mismo momento. */
+export interface DetalleTraspaso {
+  id: number;
+  que: string;
+  hecho: boolean;
+  deAgente?: boolean;
+  fase?: FaseTraspaso;
+  /** `compactarme`: su mensaje y lo que se le escribe al acabar. */
+  propia?: { mensaje: string; seguir?: string | null };
+  parte?: RespuestaPropia;
+}
+
 /**
  * Los mismos dos botones, pedidos desde el móvil (`traspaso` en lib/movil.ts),
  * y el compactar de un agente por el MCP (`compactar_terminal`, con `deAgente`
@@ -733,16 +870,22 @@ export function useTraspaso(m: {
  */
 export function useTraspasoDelMovil(
   id: number,
-  traspaso: { compactar: () => void; nueva: () => void; deAgente: () => FaseTraspaso },
+  traspaso: {
+    compactar: () => void;
+    nueva: () => void;
+    deAgente: () => FaseTraspaso;
+    propia: (mensaje: string, seguir: string | null | undefined) => RespuestaPropia;
+  },
 ): void {
   const ultimo = useRef(traspaso);
   ultimo.current = traspaso;
   useEffect(() => {
     const oir = (ev: Event) => {
-      const d = (ev as CustomEvent<{ id: number; que: string; hecho: boolean; deAgente?: boolean; fase?: FaseTraspaso }>).detail;
+      const d = (ev as CustomEvent<DetalleTraspaso>).detail;
       if (d?.id !== id) return;
       d.hecho = true;
-      if (d.deAgente) d.fase = ultimo.current.deAgente();
+      if (d.propia) d.parte = ultimo.current.propia(d.propia.mensaje, d.propia.seguir);
+      else if (d.deAgente) d.fase = ultimo.current.deAgente();
       else if (d.que === "nueva") ultimo.current.nueva();
       else ultimo.current.compactar();
     };

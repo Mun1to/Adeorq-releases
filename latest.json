@@ -1,11 +1,11 @@
 {
-  "version": "0.9.251",
-  "notes": "Adeorq ya no repinta el hilo de las sesiones en cada fotograma, tapar una terminal la desenfoca, compactar no se queda a medias y el movil marca lo que escribes y elige bien",
-  "pub_date": "2026-11-11T13:24:01Z",
+  "version": "0.9.252",
+  "notes": "Una sesion de Claude Code puede compactarse sola con su mensaje y seguir: herramienta compactarme, pensada para fin",
+  "pub_date": "2026-11-11T15:51:48Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzVYTHJZemJRQXJhcGNodUloekQvWWdZTDRaNVA1T1FWVjFuOS9NbTlRTHZuK3RxR2pLSUxaNlBRYVF1d1NyUllYM1I5dk1LV2prWlJpSVFEZTgzYmdJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0NDAzNDMyCWZpbGU6QWRlb3JxXzAuOS4yNTFfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNTEKQitCMG1PVHZBQ1c1elQyQXdHSmlkdzYzL0t6S09kUXVKamhIeE1YZVV3bzRtK0RteDg3enNMSGNNWFV5VCt2dllXVzNZb2RBQjFOTHhCUEJ6QmpJRHc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.251/Adeorq_0.9.251_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3lnUm9ZSEdGUUtCek5kQVh5V3ZlRVNpYncvdTA3aXZGOVk3NnZKVFA2OEh0cFRZMDRrN3drNGl6bEQvSC81Y24wRnJKdnZpcDVudDljeUZkbTYrSndJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0NDEyMjk4CWZpbGU6QWRlb3JxXzAuOS4yNTJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNTIKbm1TZlZRUElpUkFjQjlRekNTbG02eUlCSW5PRmwwZENGcmdwbWdxSWtWR0EySUxWY1h2ZHhYRkhiUk1RaFZQMHpFWXlBRGJMRmFyRDQ3VHJVeSt6QWc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.252/Adeorq_0.9.252_x64-setup.exe"
     }
   }
 }

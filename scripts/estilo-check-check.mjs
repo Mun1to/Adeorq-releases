@@ -8,6 +8,7 @@
 
 import fs from "node:fs";
 import {
+  animacionesSinFin,
   arreglar,
   arreglarTiempos,
   capas,
@@ -18,11 +19,13 @@ import {
   escalon,
   esNeutro,
   esquinaNueva,
+  fotogramasConVariable,
   juzgarColor,
   juzgarEsquina,
   juzgarSombra,
   juzgarTiempo,
   revisar,
+  revisarBucles,
   revisarCodigo,
   revisarColoresYTiempos,
   sinComentarios,
@@ -170,6 +173,35 @@ const at = arreglarTiempos(COLORES);
 es("--arreglar pasa la velocidad y deja el color, que se decide a mano", at.css.includes("color var(--t-media) ease") && at.css.includes("color: #7ee08a"), true);
 es("y arreglar dos veces no cambia nada la segunda", arreglarTiempos(at.css).cambiadas, 0);
 
+/* ── Los bucles sin fin que animan una variable ──────────────────────────── */
+
+const BUCLES = {
+  ruta: "a.css",
+  css: `
+@property --ang { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+/* @keyframes de-comentario { to { --ang: 1turn; } } no cuenta */
+@keyframes gira-variable { to { --ang: 360deg; } }
+@keyframes gira-pieza { to { transform: rotate(1turn); } }
+@keyframes entra-variable { from { --ang: 0deg; } to { --ang: 90deg; } }
+.a { animation: gira-variable 6s linear infinite; }
+.b { animation: gira-pieza 6s linear infinite; }
+.c { animation: entra-variable var(--t-lenta) ease; }
+.d { animation: fade 1s ease infinite, gira-variable 3s linear infinite; }
+.e {
+  animation-name: gira-variable;
+  animation-duration: 2s;
+  animation-iteration-count: infinite;
+}
+.f { animation-name: gira-variable; }
+`,
+};
+es("encuentra los @keyframes que animan una variable, y no el del comentario ni el de transform", fotogramasConVariable(BUCLES.css).map((k) => `${k.nombre}:${k.variable}`).join(" "), "gira-variable:--ang entra-variable:--ang");
+const bucles = revisarBucles([BUCLES]);
+es("caza el bucle sin fin con variable, en el atajo, en una capa de varias y por nombre + infinite; no el de transform, el de una vez ni el que no se repite", bucles.map((f) => `${f.linea}:${f.propiedad}`).join(" "), "7:animation 10:animation 12:animation-name");
+ok("y dice por qué y dónde mirar", /hilo principal en cada fotograma/.test(bucles[0]?.por ?? "") && /estilo\.md/.test(bucles[0]?.por ?? "") && /gira-variable, a\.css:4/.test(bucles[0]?.por ?? ""));
+es("cruza las hojas: el @keyframes en una y el bucle en otra", revisarBucles([{ ruta: "k.css", css: "@keyframes filo { to { --ang: 1turn; } }" }, { ruta: "u.css", css: ".x::before { animation: filo 6s linear infinite; }" }]).map((f) => `${f.ruta}:${f.linea}`).join(" "), "u.css:1");
+es("una animación sin fin sin @keyframes con variable no es un bucle de los malos", animacionesSinFin(".x { animation: espera-gira 0.7s linear infinite; }").length === 1 && revisarBucles([{ ruta: "x.css", css: ".x { animation: espera-gira 0.7s linear infinite; }" }]).length === 0, true);
+
 /* ── Lo escrito dentro del código ────────────────────────────────────────── */
 
 const TSX = [
@@ -191,8 +223,10 @@ ok("en el código de la app no hay ninguna esquina ni sombra a mano", enLinea ==
 let sueltas = 0;
 let miradas = 0;
 let coloresYTiempos = 0;
+const hojas = [];
 for (const t of tramos()) {
   const css = fs.readFileSync(t.entera, "utf8");
+  hojas.push({ ruta: t.ruta, css });
   miradas += declaraciones(css).length;
   sueltas += revisar(css).length;
   coloresYTiempos += revisarColoresYTiempos(css).length;
@@ -200,6 +234,8 @@ for (const t of tramos()) {
 ok("la hoja de la app tiene esquinas y sombras que mirar", miradas > 400, `${miradas}`);
 ok("y ninguna se sale de la escala", sueltas === 0, `${sueltas} sueltas: \`node scripts/estilo-check.mjs\` dice cuáles`);
 ok("ni un color con matiz ni una velocidad a mano en la hoja", coloresYTiempos === 0, `${coloresYTiempos}: \`node scripts/estilo-check.mjs\` dice cuáles`);
+const buclesDeVerdad = revisarBucles(hojas);
+ok("ni un bucle sin fin que anime una variable", buclesDeVerdad.length === 0, `${buclesDeVerdad.length}: \`node scripts/estilo-check.mjs\` dice cuáles`);
 
 console.log(fallos === 0 ? "\nTODO BIEN." : `\n${fallos} FALLOS`);
 process.exit(fallos ? 1 : 0);

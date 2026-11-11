@@ -570,16 +570,26 @@
 
 /* La luz de las cajas de Adeo, la del chat y la del Panel (`34-inicio.css`).
    Munir eligió entre cuatro el 2026-10-21: un halo del acento quieto, y cuando
-   Adeo trabaja, un filo de luz que da la vuelta al borde. Se declara en cada
-   caja y no en `:root` para que el acento sea el del tema que la pinta. Lo que
-   gira es un ángulo dentro de una máscara de 1,5 px, no la sombra: animar la
-   sombra repintaría el cristal en cada fotograma. */
-@property --adeo-ang {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
+   Adeo trabaja, un filo de luz en el borde. Se declara en cada caja y no en
+   `:root` para que el acento sea el del tema que la pinta. El filo es un cono
+   de luz dentro de una máscara de 1,5 px, no la sombra.
 
+   QUIETO, y es lo que se ha visto siempre. Hasta el 2026-11-11 llevaba una
+   animación que debía darle la vuelta (un `@property --adeo-ang` animado en el
+   `::before`) y no giró nunca: el cono se declaraba aquí, en la caja, como
+   `from var(--adeo-ang)`, y una variable dentro de otra se sustituye donde se
+   declara, o sea en la caja, a 0deg; el `::before` heredaba el cono ya
+   sustituido. Lo que hacía la animación era recalcular el estilo 238 veces por
+   segundo para nada: con la caja del Panel y el modo rendimiento apagado
+   (`ADEO=1 RENDIMIENTO=nunca scripts/laboratorio/pintado-su-estado.mjs`), 10-11%
+   de un núcleo en el proceso de gráficos y 27-30% en la página, frente a 4-6% y
+   10-14% sin él. Sin la animación cuesta lo mismo que sin filo, y se ve igual
+   (comparado píxel a píxel con `FOTOS`).
+   Que gire DE VERDAD está probado y cuesta: girando el cono entero con
+   `transform` en un anillo propio, como el hilo de la barra
+   (`03-barra-lateral.css`), son 56-67% de gráficos mientras Adeo piensa, por
+   sacar 144 fotogramas por segundo con el cristal de 22 px debajo. Eso lo decide
+   Munir; y un bucle sin fin que anime una variable ya no pasa `pnpm estilo`. */
 .cj-caja,
 .inicio-caja {
   --adeo-halo:
@@ -591,33 +601,12 @@
     0 0 26px color-mix(in srgb, var(--accent) 60%, transparent),
     0 0 72px color-mix(in srgb, var(--accent) 36%, transparent);
   --adeo-filo: conic-gradient(
-    from var(--adeo-ang),
     transparent 0 62%,
     color-mix(in srgb, var(--accent) 70%, transparent) 76%,
     #fff 82%,
     color-mix(in srgb, var(--accent) 70%, transparent) 88%,
     transparent 100%
   );
-}
-
-@keyframes adeo-filo {
-  to {
-    --adeo-ang: 360deg;
-  }
-}
-
-/* Con el modo rendimiento o «reducir movimiento», el filo se queda quieto
-   donde esté: se pierde la vuelta, no el aviso de que trabaja. */
-:root[data-rendimiento="1"] :is(.cj-caja, .inicio-caja)[data-trabajando="true"]::before {
-  animation: none;
-  --adeo-ang: 300deg;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :is(.cj-caja, .inicio-caja)[data-trabajando="true"]::before {
-    animation: none;
-    --adeo-ang: 300deg;
-  }
 }
 
 .chat-caja {
@@ -657,7 +646,6 @@
     linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: adeo-filo 6s linear infinite;
 }
 
 /* La etiqueta de «va después»: la referencia la llama Live Ask, y lo que dice

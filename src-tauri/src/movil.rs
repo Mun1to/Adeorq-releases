@@ -761,6 +761,28 @@ pub fn guardar_trozo(
 /// varias: en Claude Code el número solo marca la casilla, y esa flecha lleva
 /// al repaso que la envía (medido con la v2.1.302, 2026-10-17).
 pub const TECLAS_DEL_MOVIL: &[&str] = &["esc", "shift+tab", "right"];
+/// La marca de lo que se escribe desde el móvil. Munir, 2026-11-10, ya en el
+/// PC y harto de que una terminal le siguiera hablando como si estuviera en
+/// clase: «¿Y Adeorq no sabes si te escribo desde el móvil o el pc?». Lo que se
+/// teclea en el PC va directo al xterm y no se puede marcar, así que la regla
+/// es esta: con la marca viene del móvil, sin ella del PC. La explican las
+/// instrucciones del MCP (`instrucciones` en mcp.rs) a cada agente conectado.
+pub const MARCA_DEL_MOVIL: &str = "[móvil] ";
+
+/// Un mensaje que sale del móvil hacia una terminal o hacia Adeo, con la marca
+/// delante. Las respuestas a un menú no pasan por aquí (las teclas van por
+/// `/api/terminal/tecla` y los números y «la tuya» de un menú llevan `menu`):
+/// con la marca, un número dejaría de elegir. Tampoco la llevan una orden de
+/// barra (`/compact …`) o de consola (`!…`), que dejarían de serlo, ni lo que
+/// ya la trae (un reintento manda lo mismo otra vez).
+pub fn con_marca_del_movil(texto: &str) -> String {
+    let t = texto.trim_start();
+    if t.is_empty() || t.starts_with(['/', '!']) || t.starts_with(MARCA_DEL_MOVIL.trim_end()) {
+        return texto.to_string();
+    }
+    format!("{MARCA_DEL_MOVIL}{texto}")
+}
+
 /// Los modelos que el móvil puede pedirle a una terminal: los nombres de la
 /// casa, que la ventana traduce al programa de cada una.
 pub const MODELOS_DEL_MOVIL: &[&str] = &["haiku", "sonnet", "opus", "fable"];
@@ -1066,7 +1088,7 @@ pub fn atender(
             if texto.chars().count() > TOPE_TEXTO {
                 return Respuesta::error(413, "Es demasiado largo para mandarlo de una vez.");
             }
-            match casa.ventana("enviar", json!({ "id": id, "texto": texto })) {
+            match casa.ventana("enviar", json!({ "id": id, "texto": con_marca_del_movil(texto) })) {
                 Ok(_) => Respuesta::json(202, json!({ "ok": true })),
                 Err(e) => Respuesta::error(502, &e),
             }
@@ -1195,7 +1217,7 @@ pub fn atender(
             if texto.chars().count() > TOPE_TEXTO {
                 return Respuesta::error(413, "Es demasiado largo para mandarlo de una vez.");
             }
-            match casa.ventana("abrir", json!({ "carpeta": carpeta, "cli": cli, "texto": texto })) {
+            match casa.ventana("abrir", json!({ "carpeta": carpeta, "cli": cli, "texto": con_marca_del_movil(texto) })) {
                 // Con el arranque: es lo que el móvil necesita para entrar en ella.
                 Ok(v) => Respuesta::json(200, json!({ "panel": v["panel"], "arranque": casa.arranque() })),
                 Err(e) => Respuesta::error(502, &e),
@@ -1311,7 +1333,15 @@ pub fn atender(
             if let Err(r) = mismo_arranque(cuerpo["arranque"].as_u64(), casa) {
                 return r;
             }
-            match casa.ventana("escribir", json!({ "panel": panel, "texto": texto })) {
+            // Lo que contesta a un menú del programa (su número, o «la tuya» en
+            // «Type something.») va tal cual: es una respuesta al menú, no un
+            // mensaje. Lo demás es un mensaje, también un número suelto escrito
+            // en la caja: con la marca deja de parecer una tecla de menú y se
+            // manda con su Intro (sin ella se quedaba escrito en su caja). Que
+            // no haya un menú en pantalla al mandarlo lo mira la ventana.
+            let menu = cuerpo["menu"].as_bool() == Some(true);
+            let texto = if menu { texto.to_string() } else { con_marca_del_movil(texto) };
+            match casa.ventana("escribir", json!({ "panel": panel, "texto": texto, "menu": menu })) {
                 Ok(_) => {
                     // Escribirle a una terminal es hablar con ella: lo que te
                     // hubiera preguntado deja de esperarte (`Vigencia::Hablada`).
@@ -1478,7 +1508,7 @@ pub fn atender(
                     // agente se queda esperando una respuesta que no va a llegar.
                     let mut avisada = false;
                     if let Some((panel, texto)) = crate::decisiones::aviso_de_descarte(&d, antes) {
-                        avisada = casa.ventana("escribir", json!({ "panel": panel, "texto": texto })).is_ok_and(|v| v.get("error").is_none());
+                        avisada = casa.ventana("escribir", json!({ "panel": panel, "texto": con_marca_del_movil(&texto) })).is_ok_and(|v| v.get("error").is_none());
                     }
                     casa.decisiones_cambian();
                     Respuesta::json(200, json!({ "ok": true, "avisada": avisada, "panel": d.panel }))
@@ -1511,7 +1541,8 @@ pub fn atender(
                 Ok(d) => {
                     let mut entregada = false;
                     if let Some((panel, texto)) = crate::decisiones::a_teclear(&d, casa.arranque()) {
-                        entregada = casa.ventana("escribir", json!({ "panel": panel, "texto": texto })).is_ok_and(|v| v.get("error").is_none());
+                        // Contestada desde el móvil: como todo lo que se teclea desde aquí, con su marca.
+                        entregada = casa.ventana("escribir", json!({ "panel": panel, "texto": con_marca_del_movil(&texto) })).is_ok_and(|v| v.get("error").is_none());
                         if entregada {
                             crate::decisiones::marcar_entregada(&dir, &d.id);
                         }
@@ -2475,7 +2506,7 @@ mod tests {
             if id == "abc" { Ok(json!({ "id": "abc", "turnos": [] })) } else { Err("no existe".into()) }
         }
         fn ventana(&self, clase: &str, datos: Value) -> Result<Value, String> {
-            if clase == "enviar" || clase == "escribir" || clase == "abrir" || clase == "seguir" {
+            if clase == "enviar" || clase == "escribir" || clase == "tecla" || clase == "abrir" || clase == "seguir" {
                 self.enviados.borrow_mut().push(datos.clone());
             }
             if clase == "seguir" {
@@ -2628,6 +2659,7 @@ mod tests {
         let escrito = casa.enviados.borrow().last().cloned().unwrap();
         assert_eq!(escrito["panel"], 4);
         assert!(escrito["texto"].as_str().unwrap().contains("opción 2, «La de la portada»"));
+        assert!(escrito["texto"].as_str().unwrap().starts_with("[móvil] Munir ha contestado"), "contestada desde el móvil, con su marca: {escrito}");
         assert_eq!(responde(&d.id, 1).estado, 409, "contestada no se vuelve a contestar");
         // La de otro arranque se guarda, pero no se teclea en el panel 4 de hoy.
         let antes = casa.enviados.borrow().len();
@@ -2972,6 +3004,43 @@ mod tests {
         assert_eq!(atender(&pedir("GET", "/api/terminal/escribir", c, ""), &g, &casa, &nada, reloj).estado, 405, "con el método que no es, 405 y no 404");
     }
 
+    /// De dónde escribe Munir (2026-11-10): lo que manda el móvil como mensaje,
+    /// a una terminal o a Adeo, llega con la marca; lo que contesta a un menú y
+    /// las teclas, tal cual, que con la marca un número dejaría de elegir.
+    #[test]
+    fn lo_que_escribe_el_movil_llega_con_su_marca_y_lo_de_un_menu_no() {
+        assert_eq!(con_marca_del_movil("sigue con el radar"), "[móvil] sigue con el radar");
+        assert_eq!(con_marca_del_movil("2"), "[móvil] 2", "un número escrito en la caja es un mensaje");
+        assert_eq!(con_marca_del_movil("/compact el resumen"), "/compact el resumen", "una orden de barra sigue siendo una orden");
+        assert_eq!(con_marca_del_movil("!git status"), "!git status", "y una de consola también");
+        assert_eq!(con_marca_del_movil("[móvil] otra vez"), "[móvil] otra vez", "un reintento no la lleva dos veces");
+        assert_eq!(con_marca_del_movil(""), "");
+
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 10);
+        let c = Some(clave.as_str());
+        let manda = |ruta: &str, cuerpo: &str| {
+            assert_eq!(atender(&pedir("POST", ruta, c, cuerpo), &g, &casa, &nada, reloj).estado, 202, "{cuerpo}");
+            casa.enviados.borrow().last().cloned().unwrap()
+        };
+        let m = manda("/api/terminal/escribir", r#"{"panel":1,"texto":"  dale  ","arranque":77}"#);
+        assert_eq!((m["texto"].as_str(), m["menu"].as_bool()), (Some("[móvil] dale"), Some(false)));
+        assert_eq!(manda("/api/terminal/escribir", r#"{"panel":1,"texto":"2","arranque":77}"#)["texto"], "[móvil] 2");
+        // El número de un menú y «la tuya» en «Type something.», tal cual.
+        let n = manda("/api/terminal/escribir", r#"{"panel":1,"texto":"2","arranque":77,"menu":true}"#);
+        assert_eq!((n["texto"].as_str(), n["menu"].as_bool()), (Some("2"), Some(true)));
+        assert_eq!(manda("/api/terminal/escribir", r#"{"panel":1,"texto":"Estela de lunes","arranque":77,"menu":true}"#)["texto"], "Estela de lunes");
+        // Las teclas no llevan texto: a la ventana le llega la tecla sola.
+        for t in TECLAS_DEL_MOVIL {
+            let k = manda("/api/terminal/tecla", &format!(r#"{{"panel":1,"tecla":"{t}","arranque":77}}"#));
+            assert_eq!(k, json!({ "panel": 1, "tecla": t }));
+        }
+        // A Adeo, también con la marca.
+        assert_eq!(manda("/api/enviar", r#"{"id":"abc","texto":"abre una sesión en el radar"}"#)["texto"], "[móvil] abre una sesión en el radar");
+    }
+
     /// El «panel 3» de anoche es hoy otra terminal: lo que el móvil pide con el
     /// arranque de otro día, o sin ninguno (una página de antes de actualizar),
     /// ni se lee ni se escribe, y a la ventana no le llega nada.
@@ -3176,7 +3245,7 @@ mod tests {
         let reloj = (Instant::now(), 0);
         let r = atender(&pedir("POST", "/api/enviar", Some(&clave), r#"{"id":"abc","texto":"  abre el radar  "}"#), &g, &casa, &nada, reloj);
         assert_eq!(r.estado, 202);
-        assert_eq!(casa.enviados.borrow()[0]["texto"], "abre el radar");
+        assert_eq!(casa.enviados.borrow()[0]["texto"], "[móvil] abre el radar", "a Adeo le llega con la marca del móvil");
         assert_eq!(atender(&pedir("POST", "/api/enviar", Some(&clave), r#"{"id":"abc","texto":"  "}"#), &g, &casa, &nada, reloj).estado, 400);
         assert_eq!(atender(&pedir("POST", "/api/enviar", Some(&clave), r#"{"id":"../x","texto":"hola"}"#), &g, &casa, &nada, reloj).estado, 400);
         assert_eq!(atender(&pedir("GET", "/api/enviar", Some(&clave), ""), &g, &casa, &nada, reloj).estado, 405);
@@ -3236,7 +3305,10 @@ mod tests {
         let v: Value = serde_json::from_slice(&abierta.cuerpo).unwrap();
         assert_eq!((v["panel"].as_u64(), v["arranque"].as_u64()), (Some(9), Some(77)), "con el arranque, para entrar en ella: {v}");
         let pedido = casa.enviados.borrow().last().cloned().unwrap();
-        assert_eq!(pedido, json!({ "carpeta": "C:\\p\\uno", "cli": "codex", "texto": "mira el radar" }));
+        assert_eq!(pedido, json!({ "carpeta": "C:\\p\\uno", "cli": "codex", "texto": "[móvil] mira el radar" }), "el primer mensaje, con la marca del móvil");
+        // Sin primer mensaje no se le inventa uno con la marca sola.
+        assert_eq!(pide("POST", "/api/abrir", Some(&clave), r#"{"carpeta":"C:\\p\\uno","cli":"codex"}"#).estado, 200);
+        assert_eq!(casa.enviados.borrow().last().cloned().unwrap()["texto"], "");
 
         // Lo que no es uno de tus proyectos lo dice la ventana, y el móvil lo lee.
         let fuera = pide("POST", "/api/abrir", Some(&clave), r#"{"carpeta":"C:\\Windows","cli":"codex"}"#);

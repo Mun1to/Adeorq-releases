@@ -83,10 +83,10 @@
 }
 
 /* La caja de pedir: un campo, así que sí lleva su superficie. Y su halo del
-   acento, quieto, más vivo mientras escribes; cuando Adeo trabaja le da la
-   vuelta un filo de luz (Munir, 2026-10-21, entre cuatro: «halo quieto pero
+   acento, quieto, más vivo mientras escribes; cuando Adeo trabaja se le
+   enciende un filo de luz en el borde (Munir, 2026-10-21, entre cuatro: «halo quieto pero
    cuando empieza a trabajar la de filo de luz»). El halo y el filo son los de
-   la caja del chat (`21-chat.css`). */
+   la caja del chat (`21-chat.css`), quieto como allí se explica. */
 .inicio-caja {
   position: relative;
   isolation: isolate;
@@ -123,7 +123,6 @@
     linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: adeo-filo 6s linear infinite;
 }
 
 .inicio-texto {

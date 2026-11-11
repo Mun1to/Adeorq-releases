@@ -33,6 +33,7 @@ import {
   crearTraspaso,
   esDelegada,
   esperaEnSuCaja,
+  finDesconocidoEnPantalla,
   leerDelPanel,
   leerModoSolo,
   marcarDelegada,
@@ -96,6 +97,8 @@ function panel(o: Partial<{
     respuesta: null as string | null,
     delegada: false,
     caja: true,
+    /** La pantalla dice «Unknown command: /fin» (una terminal de otra cuenta). */
+    finNo: false,
     reloj: 1_000_000,
     /** Si está, la PRÓXIMA lectura del transcript se queda esperando a que se
         resuelva, con lo que decía el transcript al pedirla: una campana que
@@ -124,6 +127,7 @@ function panel(o: Partial<{
     hayBorrador: () => s.borrador,
     trabajando: () => s.trabajando,
     enSuCaja: () => s.caja,
+    finDesconocido: () => s.finNo,
     visto: () => s.visto,
     modo: () => s.modo,
     delegada: () => s.delegada,
@@ -464,6 +468,34 @@ async function main() {
     await p.tr.alSonar();
     es("en un panel que no es de Claude Code no teclea nada", p.mandado, []);
   }
+
+  // ── Un /fin que la terminal no conoce (SESIÓN SUPREMA, 2026-11-09) ───────
+  // `compactar_terminal` sobre una terminal de otra cuenta: «Unknown command:
+  // /fin», sin turno ni campana, y el /compact no llegaba nunca.
+  {
+    const p = panel({ finNo: true });
+    await p.tr.pedirDeAgente();
+    ok(
+      "si contesta que no conoce /fin, va el texto de traspaso de la casa",
+      p.mandado.length === 2 && p.mandado[0] === "/fin sin commits" && p.mandado[1].startsWith("Antes de compactar"),
+      JSON.stringify(p.mandado),
+    );
+    es("y sigue esperando para el /compact", p.tr.fase(), "cerrando");
+    await p.tr.alSonar();
+    ok("y a la campana de ese turno, el /compact", p.mandado.length === 3 && p.mandado[2].startsWith("/compact "), JSON.stringify(p.mandado));
+  }
+  {
+    const p = panel({ modo: "no", finNo: true });
+    await p.tr.pedir("compactar");
+    ok("lo mismo con el botón de Munir", p.mandado.length === 2 && p.mandado[1].startsWith("Antes de compactar"), JSON.stringify(p.mandado));
+  }
+  {
+    const p = panel();
+    await p.tr.pedirDeAgente();
+    es("con /fin conocido no se manda nada más", p.mandado, ["/fin sin commits"]);
+  }
+  ok("la pantalla de 2026-11-09 se reconoce", finDesconocidoEnPantalla((i) => ["❯ /fin sin commits", "  ⎿  Unknown command: /fin. Did you mean /run?"][i] ?? "", 2));
+  ok("y una pantalla normal no", !finDesconocidoEnPantalla((i) => ["❯ ", "  ? for shortcuts"][i] ?? "", 2));
 
   // ── Lo que vio la revisión de 1954cf0 (2026-10-30) ──────────────────────
   // Caminos por los que Adeorq tecleaba donde no debía.

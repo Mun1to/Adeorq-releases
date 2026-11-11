@@ -549,6 +549,7 @@ const EN: Record<string, string> = {
     "How to resume the session: the summary uses less quota than the full one.",
   "La terminal te pregunta algo: elige una opción (Esc en el teclado cancela).":
     "The terminal is asking something: pick an option (Esc on the keyboard cancels).",
+  "El agente te pregunta: elige una opción.": "The agent is asking you: pick an option.",
   "✦ Claude": "✦ Claude",
   "Cerrar terminal": "Close terminal",
   "Adeorq se ha tropezado": "Adeorq tripped",

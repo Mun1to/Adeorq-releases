@@ -1751,12 +1751,19 @@ fn respuesta_initialize(id: &Value, instrucciones: Option<String>) -> Value {
 ///
 /// Se arma con lo que VE este cliente (`herramientas_visibles`): a un Codex en
 /// «plan», que abre pero no escribe ni cierra, no se le manda cerrar, y sin
-/// `open_pane` no hay nada que decir. Cabe en 2.048 caracteres, que era el tope
+/// `open_pane` solo se le dice de dónde escribe Munir. Cabe en 2.048 caracteres, que era el tope
 /// de Claude Code antes de la 2.1.302 (ahora 4.096) y el de quien no lo haya subido.
 fn instrucciones(visibles: &[Value]) -> Option<String> {
     let ve = |n: &str| visibles.iter().any(|h| h["name"].as_str() == Some(n));
+    // De dónde escribe Munir (2026-11-10: «¿Y Adeorq no sabes si te escribo desde
+    // el móvil o el pc?»): lo del móvil llega con `movil::MARCA_DEL_MOVIL`. Va a
+    // todo agente conectado, pueda abrir terminales o no.
+    let de_donde = format!(
+        "- What the person sends from Adeorq's phone starts with `{}`; without it, they typed it at the PC. Go by their latest message, and keep the prefix when you relay their words.",
+        crate::movil::MARCA_DEL_MOVIL.trim_end()
+    );
     if !ve("open_pane") {
-        return None;
+        return Some(de_donde);
     }
     let mut t = String::from(
         "You are running inside Adeorq, a desktop app of real terminals, and this server lets you open more of them, each with its own agent. Use that to finish big work sooner:\n\
@@ -1786,6 +1793,10 @@ fn instrucciones(visibles: &[Value]) -> Option<String> {
     // saberlo de entrada que probar herramientas ajenas una a una.
     if !ve("get_agenda") {
         t.push_str("\n- This client is outside Adeorq, so it only sees the list of terminals and the usage, and it reads and closes only the terminals it opened. The person can raise that in Adeorq, Settings > Terminals.");
+    } else {
+        // Lo de fuera no está en ninguna terminal de Adeorq: el móvil no le escribe.
+        t.push('\n');
+        t.push_str(&de_donde);
     }
     Some(t)
 }
@@ -3856,8 +3867,18 @@ mod tests {
         assert!(fuera.contains("outside Adeorq") && fuera.contains("Settings > Terminals") && !fuera.contains("send_command"), "{fuera}");
         assert!(fuera.chars().count() <= 2048, "{} caracteres", fuera.chars().count());
 
-        // Sin open_pane no hay nada que repartir.
-        assert_eq!(instrucciones(&de_escalon(Nivel::Mirar)), None);
+        // Sin open_pane no hay nada que repartir, pero sí de dónde escribe Munir.
+        let mirar = instrucciones(&de_escalon(Nivel::Mirar)).expect("a todos se les dice de dónde escribe");
+        assert!(!mirar.contains("open_pane") && mirar.contains("`[móvil]`"), "{mirar}");
+
+        // Y a todos los de dentro, que lo que llega del móvil empieza por la marca
+        // y lo del PC no. Lo de fuera no está en ninguna terminal: el móvil no le escribe.
+        assert!(!fuera.contains("phone"), "{fuera}");
+        for texto in [&todo, &plan, &mirar] {
+            assert!(texto.contains(&format!("starts with `{}`", crate::movil::MARCA_DEL_MOVIL.trim_end())), "{texto}");
+            assert!(texto.contains("typed it at the PC") && texto.contains("keep the prefix"), "{texto}");
+        }
+        println!("{} caracteres con todas las manos:\n{todo}", todo.chars().count());
     }
 
     /// `open_pane` ofrece la cuenta, y su descripción dice que sin ella ya elige.

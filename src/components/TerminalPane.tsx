@@ -89,7 +89,7 @@ import { sessionIdOf } from "../lib/comandos";
 import { propsDeVelo } from "../lib/velo";
 import { proveedorDe, sabe } from "../lib/providers";
 import { olvidarTerminal, registrarTerminal } from "../lib/terminales";
-import { enPantalla, esperaEnSuCaja, nivelDeContexto, trabajaEnPantalla, useContextoDeSesion, useTraspaso, useTraspasoDelMovil } from "../lib/contexto";
+import { enPantalla, esperaEnSuCaja, finDesconocidoEnPantalla, nivelDeContexto, trabajaEnPantalla, useContextoDeSesion, useTraspaso, useTraspasoDelMovil } from "../lib/contexto";
 import AvisoContexto from "./AvisoContexto";
 import { useNombreSolo } from "../lib/nombreSolo";
 import { useDatosCabecera } from "../lib/cabeceraTerminal";
@@ -2168,6 +2168,7 @@ export default function TerminalPane({
     hayBorrador: () => borradorRef.current,
     trabajando: () => enPantalla(termRef.current, trabajaEnPantalla),
     enSuCaja: () => enPantalla(termRef.current, esperaEnSuCaja),
+    finDesconocido: () => enPantalla(termRef.current, finDesconocidoEnPantalla),
   });
   /** El aviso se ve con el nivel por encima de lo visto, con un traspaso en
    *  marcha (que dice por dónde va) o con la sugerencia de una tarea grande. */
@@ -2241,6 +2242,8 @@ export default function TerminalPane({
       data-drop={dropTarget}
       data-focused={focused}
       data-blurred={blurred}
+      // El letrero de encima lo pinta el CSS, y un `content` fijo no se traduce.
+      data-tapada={blurred ? t("terminal tapada") : undefined}
       data-done={done && !focused && !alone}
       onMouseDownCapture={() => onFocusPane(id)}
       onContextMenu={(e) => {
@@ -2711,7 +2714,10 @@ export default function TerminalPane({
           onCerrar={() => setBuscando(false)}
         />
       )}
-      <div className="pane-term" ref={holder} style={{ display: showDiff ? "none" : (blurred ? "none" : "block") }} />
+      {/* Tapada, la terminal se sigue viendo, pero desenfocada (`07-ajustes.css`):
+          Munir quiere un cristal, no un apagón. Con `display: none` ese desenfoque
+          no tenía nada que desenfocar y salía un panel negro. */}
+      <div className="pane-term" ref={holder} style={{ display: showDiff ? "none" : "block" }} />
       {/* Leer en paz: mientras miras hacia arriba la terminal se queda quieta y
           lo que llega espera. Esto lo dice y te devuelve al día de un clic. Sin
           este aviso, una terminal parada se lee como una terminal colgada. */}

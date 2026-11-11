@@ -772,63 +772,138 @@
    reojo QUIÉN está trabajando sin leer nada, que en una lista de treinta filas
    es la única forma de enterarse sin repasarlas una a una.
 
-   Cómo funciona: dos fondos a la vez. Uno relleno del color de siempre
-   recortado al `padding-box`, y debajo un cono de color recortado al
-   `border-box`, o sea que solo asoma por el marco de un píxel. Girando el
-   ángulo del cono, el trocito de color da la vuelta al contorno.
+   Cómo se ve: el relleno de siempre dentro y, en el marco de un píxel, un
+   trocito de color (un cono) que da la vuelta al contorno.
 
-   `@property` es lo que permite ANIMAR ese ángulo: sin registrarlo, un
-   `--giro` es texto para el navegador y de un `0turn` a un `1turn` saltaría de
-   golpe en vez de recorrer el camino.
+   Cómo se pinta, desde el 2026-11-11: el cono va QUIETO en una pieza suya
+   (`.hilo`, en `Sidebar.tsx`) y lo que gira es la pieza entera, con
+   `transform`. Hasta entonces el cono era el fondo de la fila y lo que giraba
+   era su ángulo, un `@property` animado. Se ve igual, pero un fondo que cambia
+   hay que volver a pintarlo: era el hilo principal recalculando y repintando la
+   fila en CADA fotograma de la pantalla (la de Munir va a 144 Hz) y la barra de
+   cristal recomponiéndose detrás. Medido con su estado
+   (`scripts/laboratorio/pintado-su-estado.mjs`, tres filas trabajando): con el
+   hilo de antes, 130% de un núcleo en el proceso de gráficos y 74% en la página;
+   sin hilo, 20% y 15%; con este, 51% y 27%. Girar algo ya pintado lo hace la
+   tarjeta gráfica sola: el cono se pinta una vez y nada más. Lo que queda es
+   sacar un fotograma nuevo 144 veces por segundo mientras algo se mueve, que
+   cuesta casi lo mismo sin ningún cristal.
 
-   Y el fondo de dentro sigue siendo `--panel-solid` OPACO, que es la razón por
-   la que este efecto se puede permitir aquí: sobre un fondo con alfa, Windows
-   apaga el ClearType y el título de la sesión se emborrona. */
-@property --hilo-giro {
-  syntax: "<angle>";
-  initial-value: 0turn;
-  inherits: false;
-}
+   Lo que hace que se vea EXACTAMENTE igual:
+   - girar el cono alrededor del centro de la fila es lo mismo que girar su
+     ángulo de salida. El cuadrado que gira mide vez y media el ancho de la fila,
+     más que su diagonal, así que la cubre entera en cualquier momento de la vuelta;
+   - la pieza va DETRÁS de la fila (`z-index: -1`; la fila no hace de contexto
+     propio): su relleno opaco tapa el cono por dentro y su borde se pinta
+     encima, como cuando el cono era su fondo (en los temas claros ese borde
+     lleva color). Con el ratón encima la fila se pinta opaca hasta el borde y
+     lo tapa, igual que antes;
+   - y una máscara la deja en el anillo de un píxel por si la fila SÍ hace de
+     contexto (apartándose en un arrastre lleva `transform`, y la copia que va
+     en la mano es `position: fixed`): sin ella el cono asomaría por dentro.
+   Se comprueba con las fotos de ese mismo laboratorio (`FOTOS=<carpeta>`, el
+   hilo parado en ocho momentos de su vuelta) frente a las de antes del cambio.
 
+   Y el fondo de dentro sigue siendo `--panel-solid` OPACO: sobre un fondo con
+   alfa, Windows apaga el ClearType y el título de la sesión se emborrona. */
 .session-row[data-trabajando] {
   border-color: transparent;
-  background:
-    linear-gradient(var(--panel-solid), var(--panel-solid)) padding-box,
-    conic-gradient(
-        from var(--hilo-giro),
-        transparent 0 66%,
-        color-mix(in srgb, var(--accent) 85%, transparent) 78%,
-        transparent 90%
-      )
-      border-box;
+  background: linear-gradient(var(--panel-solid), var(--panel-solid)) padding-box;
+}
+
+.session-row[data-trabajando] > .hilo {
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* La máscara, SOLO donde hace falta: con la fila haciendo de contexto propio.
+   Puesta siempre, su borde de dentro suavizado se sumaba al del relleno de la
+   fila y el anillo salía más fino en las esquinas (medido con las fotos: hasta
+   26 de 255). */
+.session-row[data-apartada] > .hilo,
+.fantasma > .hilo {
+  padding: 1px;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+
+.session-row[data-trabajando] > .hilo::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 150%;
+  aspect-ratio: 1;
+  /* Centrado con márgenes y no con un `translate(-50%)` en la animación: lo que
+     se anima con porcentajes depende del tamaño de la caja y puede dejar de ir
+     en la tarjeta gráfica. Un margen en % es del ANCHO del contenedor, también
+     el de arriba, que es justo la mitad del cuadrado. */
+  margin: -75% 0 0 -75%;
+  background: conic-gradient(
+    transparent 0 66%,
+    color-mix(in srgb, var(--accent) 85%, transparent) 78%,
+    transparent 90%
+  );
   animation: hilo-vuelta 3.2s linear infinite;
 }
 
 @keyframes hilo-vuelta {
   to {
-    --hilo-giro: 1turn;
+    transform: rotate(1turn);
   }
+}
+
+/* Las filas de una cuadrilla llevan el borde izquierdo de tres píxeles en el
+   color del grupo (`04-sesiones.css`): el cono asomaba por debajo de ese borde
+   entero, así que la pieza llega hasta él. */
+.sgroup[data-cuadrilla="true"] .sgroup-list .session-row[data-trabajando] > .hilo {
+  left: -3px;
+  padding-left: 3px;
+}
+
+/* La copia que llevas en la mano para todo lo que late por dentro
+   (`23-encuadre-arrastre-repaso.css`), pero el hilo lo llevaba la fila misma,
+   no algo de dentro, y en la copia seguía girando: así sigue. */
+.fantasma > .hilo::before {
+  animation: hilo-vuelta 3.2s linear infinite !important;
+}
+
+/* Con el ratón encima, o con otra sesión encima para soltarla, la fila cambia
+   de fondo, y antes ese fondo SUSTITUÍA al cono: no se veía nada de él. Detrás,
+   el tinte de soltar no lo taparía y el del ratón lo dejaba asomar por el
+   suavizado de las esquinas. Escondido y no quitado: la vuelta sigue por donde
+   iba, como cuando seguía girando debajo. */
+.session-row:hover > .hilo,
+.session-row[data-suelta] > .hilo {
+  visibility: hidden;
 }
 
 /* EL HILO NO SE APAGA CON EL MODO RENDIMIENTO (Munir, 2026-08-21: «me gusta
    bastante, sácalo del modo rendimiento y que siempre esté disponible»).
-   Se apagaba con lo demás que respira, y era una precaución teórica que el
-   propio commit que lo trajo ya desmentía: 144,5 fps sin nada y 144,1 con DOCE
-   filas girando. Cuatro décimas de fotograma no son un motivo para quitar la
-   única señal que distingue quién está escribiendo de quién está abierto y
-   quieto, que es lo que ese modo dejaba sin respuesta.
-   El motivo por el que es tan barato: la animación son cuatro capas de fondo
-   girando un ángulo registrado con @property, sin tocar el layout ni pedirle
-   nada al hilo principal.
+   Se apagaba con lo demás que respira. Aquella vez se midieron fotogramas
+   (144,5 por segundo sin nada y 144,1 con DOCE filas girando) y no lo que
+   costaba sacarlos: el ángulo animado sí iba en el hilo principal y repintaba
+   cada fila en cada fotograma, que en su portátil era casi núcleo y medio
+   (ver arriba). Girando la pieza en la tarjeta gráfica cuesta un tercio de
+   aquello, y es la única señal que distingue quién está escribiendo de quién
+   está abierto y quieto.
 
    `prefers-reduced-motion` SÍ se respeta, y no es lo mismo: aquello lo pide el
    sistema por accesibilidad y no es una preferencia nuestra que negociar. Ahí
    se queda el borde azul fijo, que sigue diciendo lo mismo sin moverse. */
 @media (prefers-reduced-motion: reduce) {
   .session-row[data-trabajando] {
-    animation: none;
     border-color: color-mix(in srgb, var(--accent) 45%, transparent);
     background: var(--panel-solid);
+  }
+
+  .session-row[data-trabajando] > .hilo {
+    display: none;
   }
 }
 

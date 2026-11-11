@@ -1,11 +1,11 @@
 {
-  "version": "0.9.250",
-  "notes": "MEDIDO: la ventana quieta gasta mucho menos, el orbe y el navegador cerrado ya no pintan en cada fotograma, y cada paron de la ventana queda escrito en el rastro con su culpable",
-  "pub_date": "2026-11-10T21:05:29Z",
+  "version": "0.9.251",
+  "notes": "Adeorq ya no repinta el hilo de las sesiones en cada fotograma, tapar una terminal la desenfoca, compactar no se queda a medias y el movil marca lo que escribes y elige bien",
+  "pub_date": "2026-11-11T13:24:01Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzlIaEpxNDJVMGtDdmJQVXFiU2tBQUw0L1BNQlhlRzl5UFlTTkVIbkZxT05SRmJFMG9tSVY0b3B6TkhZUExXMnQrRnIxbkV3bkc3YjY5UFdhNDFhekEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0MzQ0NzEzCWZpbGU6QWRlb3JxXzAuOS4yNTBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNTAKdVB4aDM4dGtWRjJsM2luN1d4ZVArQkZ6U243YkFid09Ob0N1Q0pzVXplUUhVRk1qZ0JCV1V4eC9xVGpXWW5kcWgrQitHeEZJa0hNY1RVeERYVVJMQ0E9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.250/Adeorq_0.9.250_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzVYTHJZemJRQXJhcGNodUloekQvWWdZTDRaNVA1T1FWVjFuOS9NbTlRTHZuK3RxR2pLSUxaNlBRYVF1d1NyUllYM1I5dk1LV2prWlJpSVFEZTgzYmdJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0NDAzNDMyCWZpbGU6QWRlb3JxXzAuOS4yNTFfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNTEKQitCMG1PVHZBQ1c1elQyQXdHSmlkdzYzL0t6S09kUXVKamhIeE1YZVV3bzRtK0RteDg3enNMSGNNWFV5VCt2dllXVzNZb2RBQjFOTHhCUEJ6QmpJRHc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.251/Adeorq_0.9.251_x64-setup.exe"
     }
   }
 }

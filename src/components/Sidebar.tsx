@@ -2517,6 +2517,10 @@ export default function Sidebar({
         >
           <TrashIcon size={15} />
         </button>
+        {/* El hilo de luz, en una pieza suya que gira entera en la tarjeta
+            gráfica (`03-barra-lateral.css`). Antes era el fondo de la fila y
+            se repintaba en cada fotograma. */}
+        {s.state === "a_medias" && <span className="hilo" aria-hidden="true" />}
       </li>
     );
   };

@@ -803,7 +803,9 @@
 }
 
 .pane[data-blurred="true"]::after {
-  content: "terminal tapada";
+  /* The label comes translated from `TerminalPane.tsx`; a fixed string here
+     said «terminal tapada» with the app in English. */
+  content: attr(data-tapada);
   position: absolute;
   inset: 36px 0 0 0;
   display: grid;

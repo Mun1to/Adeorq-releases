@@ -10,6 +10,29 @@ import { codexContext, lastReply, listSkills, rastroDeRelevo, sendPty, sessionCo
 /** Cada cuánto se relee la sesión de un panel: deprisa mientras trabaja. */
 const RELEER_MS = 20_000;
 const RELEER_TRABAJANDO_MS = 6_000;
+/** Y mientras te pregunta con un menú (AskUserQuestion): contestada, desde el
+    PC o desde el móvil, lo que dice el transcript se quedaba hasta 20 s en «te
+    pregunta», y el móvil seguía diciendo «Es tu turno» con la respuesta ya dada
+    (medido el 2026-11-11 en `movil-elegir-de-verdad.mjs`: de 9 a 17 s). Releer
+    con la conversación quieta sale barato: `read_tail` la guarda por tamaño y
+    fecha. Solo con menú: una que acaba en una pregunta en prosa («ofrece») puede
+    quedarse así horas, y para esa basta `releerSesion` cuando se le escribe. */
+const RELEER_PREGUNTA_MS = 3_000;
+/** Lo que se espera tras escribirle, para que el transcript ya lo tenga. */
+const RELEER_TRAS_ESCRIBIR_MS = 1_200;
+/** Un Claude recién abierto no tiene transcript hasta su primer mensaje, y
+    hasta leerlo el panel no sabe su sesión: el móvil no le abría el chat (ni
+    los botones de lo que pregunta) hasta 20 s después (medido el 2026-11-11).
+    Mirar si ya existe es casi gratis: sin transcript no se lee nada más. */
+const RELEER_SIN_TRANSCRIPT_MS = 3_000;
+/** El evento con que se pide releer las sesiones de una carpeta. */
+const EVENTO_RELEER_SESION = "adeorq:releer-sesion";
+
+/** Que los paneles de `cwd` relean su sesión en seguida: se les acaba de
+    escribir (desde el móvil), y lo que digan de ella ya no vale. */
+export function releerSesion(cwd: string): void {
+  window.dispatchEvent(new CustomEvent(EVENTO_RELEER_SESION, { detail: { cwd } }));
+}
 
 /**
  * Lo que el transcript dice de la sesión de un panel, releído cada poco: el
@@ -61,21 +84,43 @@ export function useContextoDeSesion(
     const sid = sessionIdOf(joined);
     let timer = 0;
     let stop = false;
+    let enVuelo = false;
+    let prisa = false;
     const look = () => {
+      enVuelo = true;
       sessionContext(cwd, sid)
         .then((c) => {
+          enVuelo = false;
           if (stop) return;
           setCtx(c);
-          timer = window.setTimeout(look, c && c.agentsLive > 0 ? 6_000 : 20_000);
+          const luego = prisa ? RELEER_TRAS_ESCRIBIR_MS : !c ? RELEER_SIN_TRANSCRIPT_MS : c.state === "pregunta" ? RELEER_PREGUNTA_MS : c.agentsLive > 0 ? 6_000 : 20_000;
+          prisa = false;
+          timer = window.setTimeout(look, luego);
         })
         .catch(() => {
+          enVuelo = false;
           if (!stop) timer = window.setTimeout(look, 20_000);
         });
     };
+    // Lo que le escribe el móvil la cambia: se relee en seguida, sin esperar a
+    // la vuelta siguiente. Si hay una lectura en marcha, puede ser de antes de
+    // escribir: la siguiente va deprisa. Siempre una sola cadena de lecturas.
+    const alEscribir = (ev: Event) => {
+      const d = (ev as CustomEvent<{ cwd?: string }>).detail;
+      if (stop || !d?.cwd || d.cwd.toLowerCase() !== cwd.toLowerCase()) return;
+      if (enVuelo) {
+        prisa = true;
+        return;
+      }
+      window.clearTimeout(timer);
+      timer = window.setTimeout(look, RELEER_TRAS_ESCRIBIR_MS);
+    };
+    window.addEventListener(EVENTO_RELEER_SESION, alEscribir);
     look();
     return () => {
       stop = true;
       window.clearTimeout(timer);
+      window.removeEventListener(EVENTO_RELEER_SESION, alEscribir);
     };
   }, [cwd, joined, kind]);
   return ctx;
@@ -193,6 +238,21 @@ export function enPantalla(
 }
 
 export { esperaEnSuCaja } from "./cajaClaude";
+
+/**
+ * Claude Code dice en pantalla que no conoce `/fin`. Pasó el 2026-11-09 con
+ * `compactar_terminal` sobre una terminal de otra cuenta: su `CLAUDE_CONFIG_DIR`
+ * no tiene la skill (la lista de skills se mira en la de Munir), contestó
+ * «Unknown command: /fin» y «Args from unknown skill: sin commits», no hubo
+ * turno, no sonó la campana y el `/compact` no llegó nunca.
+ */
+export function finDesconocidoEnPantalla(linea: (i: number) => string, filas: number): boolean {
+  for (let i = 0; i < filas; i++) {
+    const l = linea(i);
+    if (/Unknown (command|skill):?\s*\/?fin\b/i.test(l) || l.includes("Args from unknown skill")) return true;
+  }
+  return false;
+}
 
 /**
  * Lo que dice el transcript de la conversación de un panel, para decidir si
@@ -366,6 +426,8 @@ export interface DepsTraspaso {
   /** Claude Code parado en su caja vacía (`esperaEnSuCaja`). Solo se mira en
       un panel de Claude Code; sin ella, como si estuviera. */
   enSuCaja?: () => boolean;
+  /** Claude Code contestó que no conoce `/fin` (`finDesconocidoEnPantalla`). */
+  finDesconocido?: () => boolean;
   /** El nivel de aviso que ya se despachó con × o «Ahora no». */
   visto: () => number;
   modo: () => ModoSolo;
@@ -477,8 +539,20 @@ export function crearTraspaso(d: DepsTraspaso) {
     if (p.paso === "esperando") {
       const texto = await traspaso(p.que, p.sinCommits);
       if (pendiente !== p) return; // «Ahora no» mientras se miraba la skill
-      poner({ ...p, paso: "cerrando", desde: ahora() });
+      const cerrando = { ...p, paso: "cerrando" as const, desde: ahora() };
+      poner(cerrando);
       await d.mandar(texto);
+      // Un `/fin` que esa terminal no conoce no abre turno ni toca la campana,
+      // así que el `/compact` esperaría para siempre: va el texto de la casa,
+      // que sí abre turno, y a su campana sigue el baile de siempre.
+      if (texto.startsWith("/fin")) {
+        await esperar(ASIENTO_MS);
+        if (pendiente === cerrando && d.finDesconocido?.()) {
+          const casa = p.que === "nueva" ? traspasoAntesDeNueva(d.t) : traspasoAntesDeCompactar(d.t);
+          poner({ ...cerrando, desde: ahora() });
+          await d.mandar(casa);
+        }
+      }
       return;
     }
     // El `/compact` (o la nueva) solo con una lectura de DESPUÉS del `/fin`, y
@@ -567,6 +641,7 @@ export function useTraspaso(m: {
   hayBorrador: () => boolean;
   trabajando: () => boolean;
   enSuCaja: () => boolean;
+  finDesconocido: () => boolean;
 }) {
   const [fase, setFase] = useState<FaseTraspaso>("nada");
   const [sugerencia, setSugerencia] = useState<number | null>(null);
@@ -596,6 +671,7 @@ export function useTraspaso(m: {
     hayBorrador: () => ultimo.current.hayBorrador(),
     trabajando: () => ultimo.current.trabajando(),
     enSuCaja: () => ultimo.current.enSuCaja(),
+    finDesconocido: () => ultimo.current.finDesconocido(),
     visto: () => ultimo.current.visto,
     modo: leerModoSolo,
     delegada: () => esDelegada(ultimo.current.id),

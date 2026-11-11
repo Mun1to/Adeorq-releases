@@ -20,7 +20,7 @@ export default {
   /* ── Cabecera ──────────────────────────────────────────────────────────── */
   'meta.titulo': 'Adeorq · the panel where your agents work',
   'meta.desc':
-    'Desktop panel for Windows and Linux: Claude Code, Codex, Gemini and the other CLIs at once, ' +
+    'Desktop panel for Windows, Linux and Mac: Claude Code, Codex, Gemini and the other CLIs at once, ' +
     'in real terminals, and from your phone too.',
 
   /* ── La barra ──────────────────────────────────────────────────────────── */
@@ -52,7 +52,7 @@ export default {
   'descarga.windows': 'Download for Windows',
   'descarga.gratis': 'free, no account',
   'hero.verComo': 'See how it works',
-  'hero.nota1': 'Windows and Linux · 64-bit',
+  'hero.nota1': 'Windows, Linux and Mac · 64-bit',
   'hero.nota2': 'Signed updates',
   'hero.nota3': 'Uses the session you already have',
   'hero.demo': 'Adeorq running, you can use it',
@@ -226,12 +226,13 @@ export default {
   'descarga.etiqueta': PUNTO + 'Download',
   'descarga.tit': 'Set up your cockpit in two minutes',
   'descarga.entrada':
-    'For 64-bit Windows and Linux. You need the CLI you already use installed, because Adeorq works ' +
+    'For 64-bit Windows and Linux, and for Mac with Apple Silicon. You need the CLI you already use ' +
+    'installed, because Adeorq works ' +
     'with it.',
   'descarga.btnWindows': 'Download for Windows <em>free, no account</em>',
   'descarga.btnLinux': 'Download for Linux <em>AppImage, .deb or .rpm</em>',
   'descarga.btnMac': 'Download for Mac <em>Apple Silicon, .dmg</em>',
-  'descarga.requisitos': 'Windows 10 and 11 · Linux with glibc 2.35 or newer',
+  'descarga.requisitos': 'Windows 10 and 11 · Linux with glibc 2.35 or newer · macOS 12 or newer on Apple Silicon',
   'descarga.precio': 'Free. No account, no 14-day trial, no card.',
   'descarga.nota':
     'Windows may warn you that the installer comes from an unknown publisher. It is SmartScreen’s ' +
@@ -271,7 +272,10 @@ export default {
     'default anything that has been downloaded little. Updates are signed and the app verifies ' +
     'them. Before running anything, check that the file comes from our releases page on GitHub.',
   'faq.q5': 'Is there a version for macOS or Linux?',
-  'faq.r5': 'Linux, yes: every release publishes an AppImage, a .deb and an .rpm. macOS, not yet.',
+  'faq.r5':
+    'Yes, both. Linux: every release publishes an AppImage, a .deb and an .rpm. Mac: a .dmg for Apple ' +
+    'Silicon (M1 and newer) with macOS 12 or newer, signed and notarized by Apple; Intel Macs are not ' +
+    'supported. It has not yet been used daily on a real Mac: if something fails, tell us.',
   'faq.q6': 'Can I use it from my phone?',
   'faq.r6':
     'Yes, from any browser and wherever you are, with Tailscale: a private network between your ' +
@@ -293,7 +297,7 @@ export default {
     'read them. Nothing else.',
 
   /* ── El pie ────────────────────────────────────────────────────────────── */
-  'pie.lema': 'The panel where all your agents work. On Windows and Linux, and with you on your phone.',
+  'pie.lema': 'The panel where all your agents work. On Windows, Linux and Mac, and with you on your phone.',
   'pie.estado': '<span class="pie__punto" aria-hidden="true"></span>Free, and running.',
   'pie.aria': 'Footer',
   'pie.producto': 'Product',

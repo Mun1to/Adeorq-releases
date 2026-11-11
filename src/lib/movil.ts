@@ -40,7 +40,9 @@ import { confiarCarpeta, listProjects, scanSessions, sendPty, teclearOrden, writ
 import { aliasDeLaLinea, nivelDeLaLinea } from "./selectorDeModelo";
 import { shellCommand } from "./comandos";
 import { claudeCommand, withEffort } from "./lanzar";
-import { historiaConColor, historiaDe } from "./terminales";
+import { historiaConColor, historiaDe, pantallaDe as filasDePantalla } from "./terminales";
+import { parseAsk } from "./reglasPantalla";
+import { releerSesion } from "./contexto";
 import {
   arranqueDeAhora,
   avisarCambio,
@@ -131,6 +133,8 @@ export interface PedidoMovil {
   que?: unknown;
   carpeta?: unknown;
   cli?: unknown;
+  /** Al escribir: es la respuesta a un menú del programa, no un mensaje. */
+  menu?: unknown;
 }
 
 /** Las teclas sueltas que el móvil puede mandar, y sus bytes. Como
@@ -260,12 +264,20 @@ async function atenderTerminal(p: PedidoMovil, exec: ConserjeExec): Promise<Reco
   if (p.clase === "escribir") {
     const texto = typeof p.texto === "string" ? p.texto.trim() : "";
     if (!texto) return { error: "No hay nada que mandar." };
+    // Un mensaje (no la respuesta a un menú) con un menú del programa en
+    // pantalla: el menú no hace caso a lo pegado y el Intro de detrás elegiría
+    // la opción marcada, sea cual sea (el «2» que salió «1» del 2026-10-08).
+    // El móvil lo ve con unos segundos de retraso; esto mira la pantalla de ahora.
+    const menu = p.menu !== true ? parseAsk((filasDePantalla(panel) ?? []).join("\n")) : null;
+    if (menu) return { error: "La terminal te está preguntando con un menú: elige una de sus opciones." };
     await sendPty(panel, texto);
+    releerSesion(st.cwd);
     return { ok: true };
   }
   const bytes = TECLAS[String(p.tecla)];
   if (!bytes) return { error: "Esa tecla no se manda desde el móvil." };
   await writePty(panel, bytes);
+  releerSesion(st.cwd);
   return { ok: true };
 }
 

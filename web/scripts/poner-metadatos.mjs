@@ -77,7 +77,7 @@ const PAGINAS = [
     alternos: PORTADAS,
     titulo: 'Adeorq · todos tus agentes en una sola pantalla',
     descripcion:
-      'Panel de escritorio para Windows y Linux: Claude Code, Codex, Gemini y 19 clientes mas ' +
+      'Panel de escritorio para Windows, Linux y Mac: Claude Code, Codex, Gemini y 19 clientes mas ' +
       'trabajando a la vez en terminales de verdad, con tus proyectos a un clic. Gratis, sin cuenta y sin claves de API.',
     prioridad: '1.0',
     frecuencia: 'weekly',
@@ -91,7 +91,7 @@ const PAGINAS = [
     alternos: PORTADAS,
     titulo: 'Adeorq · all your agents on one single screen',
     descripcion:
-      'Desktop panel for Windows and Linux: Claude Code, Codex, Gemini and 19 more clients working ' +
+      'Desktop panel for Windows, Linux and Mac: Claude Code, Codex, Gemini and 19 more clients working ' +
       'at once in real terminals, with your projects one click away. Free, no account and no API keys.',
     prioridad: '0.9',
     frecuencia: 'weekly',
@@ -235,7 +235,7 @@ function jsonLdPortada(preguntas, pagina) {
       '@id': `${SITIO}/#app`,
       name: 'Adeorq',
       applicationCategory: 'DeveloperApplication',
-      operatingSystem: 'Windows, Linux',
+      operatingSystem: 'Windows, Linux, macOS',
       url: `${SITIO}/`,
       author: { '@id': `${SITIO}/#autor` },
       downloadUrl: 'https://github.com/Mun1to/Adeorq-releases/releases/latest',

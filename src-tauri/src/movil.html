@@ -1054,6 +1054,10 @@ matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => apl
 
 const app = document.getElementById("app");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+/* Lo que se manda desde aquí le llega al agente con «[móvil] » delante
+   (`MARCA_DEL_MOVIL` en movil.rs): así sabe de dónde escribes. Aquí, en tus
+   propios mensajes, sobra. */
+const sinMarca = (t) => String(t ?? "").replace(/^\[m.vil\] /, "");
 const LLAVE = "adeorq-movil-clave";
 
 let clave = null;
@@ -1532,6 +1536,7 @@ const DEL_PC = {
   "No hay nada que mejorar.": "There is nothing to improve.",
   "Falta qué terminal.": "The terminal is missing.",
   "Esa tecla no se manda desde el móvil.": "That key cannot be sent from the phone.",
+  "La terminal te está preguntando con un menú: elige una de sus opciones.": "The terminal is asking you with a menu: pick one of its options.",
   "Esta página es de antes de actualizar Adeorq: recárgala.": "This page is from before Adeorq was updated: reload it.",
   "Esa terminal era de antes de reiniciar Adeorq: ese número ya es de otra o de ninguna.":
     "That terminal was from before Adeorq restarted: its number now belongs to another one, or to none.",
@@ -3332,7 +3337,7 @@ async function cargarHilo() {
   e.conv = v.conversacion;
   e.vivo = v.vivo || {};
   e.enCurso = e.vivo.en_curso || null;
-  if (e.pendiente && e.conv.turnos.some((t) => t.rol === "tu" && t.texto === e.pendiente)) {
+  if (e.pendiente && e.conv.turnos.some((t) => t.rol === "tu" && sinMarca(t.texto) === e.pendiente)) {
     if (!e.enCurso || !e.enCurso.pensando) e.pendiente = null;
   }
   pintarHilo();
@@ -3374,17 +3379,17 @@ function pintarHilo() {
   // reconoce por su texto: así el mensaje que acabas de mandar (pendiente) y
   // el mismo ya apuntado por el PC son uno, y no entra dos veces.
   const ent = (e.ent ||= entradas());
-  const claveDeTurno = (t) => (t.rol === "tu" ? `tu:${t.texto}` : `c${t.n}`);
+  const claveDeTurno = (t) => (t.rol === "tu" ? `tu:${sinMarca(t.texto)}` : `c${t.n}`);
   for (const t of conv?.turnos || []) {
     // Cada respuesta de Adeo lleva su enlace de informar de un problema.
     const informe = t.rol === "conserje";
-    html += `<div class="turno${ent.de(claveDeTurno(t))}${informe ? " con-informe" : ""}" data-rol="${t.rol === "tu" ? "tu" : "agente"}"><div class="burbuja">${md(t.texto)}</div>${informe ? enlaceInformar("") : ""}</div>`;
+    html += `<div class="turno${ent.de(claveDeTurno(t))}${informe ? " con-informe" : ""}" data-rol="${t.rol === "tu" ? "tu" : "agente"}"><div class="burbuja">${md(t.rol === "tu" ? sinMarca(t.texto) : t.texto)}</div>${informe ? enlaceInformar("") : ""}</div>`;
     if (t.rol === "conserje") {
       for (const w of conv.trabajos.filter((x) => x.turno === t.n)) { html += tarjeta(w, ent); colocadas.add(claveDe(w)); }
     }
   }
   for (const w of (conv?.trabajos || []).filter((x) => !colocadas.has(claveDe(x)))) html += tarjeta(w, ent);
-  if (e.pendiente && !(conv?.turnos || []).some((t) => t.rol === "tu" && t.texto === e.pendiente)) {
+  if (e.pendiente && !(conv?.turnos || []).some((t) => t.rol === "tu" && sinMarca(t.texto) === e.pendiente)) {
     html += `<div class="turno${ent.de(`tu:${e.pendiente}`)}" data-rol="tu"><div class="burbuja">${md(e.pendiente)}</div></div>`;
   }
   // Solo cuenta como «ya estaba» lo pintado con la conversación delante.
@@ -3540,7 +3545,8 @@ async function enviar(repetir) {
   const txt = repetir === undefined ? conRutas(escrito, e.adj?.rutas() || []) : escrito;
   if (!txt || (repetir === undefined && e.adj?.subiendo())) return;
   if (repetir === undefined) { texto.value = ""; e.antes = null; e.crecer?.(); e.guardarBorrador?.(); e.adj?.vaciar(); }
-  e.pendiente = txt;
+  // Un reintento trae lo que guardó el PC, ya con la marca: se compara sin ella.
+  e.pendiente = sinMarca(txt);
   e.fallo = null;
   e.enCurso = { pensando: true, paso: tr("Mandándolo a tu PC…") };
   pintarHilo();
@@ -4837,6 +4843,14 @@ function menuDe(filas) {
   });
   if (opciones.length < 2) return null;
   const primera = opciones[0].fila;
+  const ultima = opciones[opciones.length - 1].fila;
+  // Un menú del programa lleva su cursor («❯») en una de las opciones; una
+  // lista numerada en un mensaje del agente («1. Arreglarlo ya…  ¿Cuál
+  // prefieres?»), no. Esa no se contesta con el número solo, que el programa
+  // tomaría por una tecla de menú y dejaría escrito en su caja sin mandarlo
+  // (medido el 2026-11-11 con `movil-elegir-de-verdad.mjs`): con un mensaje
+  // que dice la opción.
+  const prosa = !opciones.some((o) => o.sel);
   // Hasta dónde llega el texto del cuadro: la línea más larga desde la raya
   // de encima. No es la raya: un permiso parte sus líneas antes del borde (a
   // 82 columnas en un panel de 89, medido).
@@ -4888,6 +4902,20 @@ function menuDe(filas) {
     deLaPregunta.unshift(f);
   }
   const pregunta = parrafos(deLaPregunta).join(" ");
+  if (prosa) {
+    // En un mensaje la pregunta suele ir DEBAJO de la lista, tras su hueco; lo
+    // de encima es lo que dijo antes, sin rayas que lo corten: no se enseña.
+    let j = ultima + 1;
+    while (j < abajo.length && abajo[j].trim()) j++;
+    while (j < abajo.length && !abajo[j].trim()) j++;
+    const debajo = [];
+    for (; j < abajo.length && abajo[j].trim() && !RAYA_LLENA.test(abajo[j]) && !/^\s*[❯✻✳✢✶✽·*•●⏺]\s/.test(abajo[j]); j++) debajo.push(abajo[j]);
+    const trasLaLista = parrafos(debajo).join(" ");
+    return {
+      pregunta: /\?/.test(trasLaLista) ? trasLaLista : pregunta.replace(/^[●⏺]\s*/, ""),
+      opciones, multi: false, pasos: [], contexto: [], comando: "", prosa: true,
+    };
+  }
   // Lo de encima: desde la última raya entera hasta la pregunta. Ahí están las
   // pestañas de una con varias preguntas, de qué es un permiso y su comando
   // (entre dos rayas de puntos), o el repaso de lo contestado.
@@ -4929,7 +4957,8 @@ function menuHtml(a, claseDeLaPregunta) {
   const contexto = a.contexto?.length
     ? `<div class="menu-ctx">${a.contexto.map((x, i) => (i === 0 && a.comando ? `<b>${esc(x)}</b>` : `<span>${esc(x)}</span>`)).join("")}</div>` : "";
   const comando = a.comando ? `<pre class="menu-cmd">${esc(a.comando)}</pre>` : "";
-  const opcion = (o) => `<button data-num="${o.n}"${o.escribir ? ' data-escribir="true"' : ""}${o.marcada !== undefined ? ` aria-pressed="${o.marcada}"` : ""}><span class="num">${o.n}</span><span class="op-txt"><span>${esc(o.texto)}</span>${o.desc ? `<small>${esc(o.desc)}</small>` : ""}</span></button>`;
+  // Las de una lista en un mensaje llevan la frase con que se contestan.
+  const opcion = (o) => `<button data-num="${o.n}"${a.prosa ? ` data-mensaje="${esc(`${o.n}. ${o.texto}`)}"` : ""}${o.escribir ? ' data-escribir="true"' : ""}${o.marcada !== undefined ? ` aria-pressed="${o.marcada}"` : ""}><span class="num">${o.n}</span><span class="op-txt"><span>${esc(o.texto)}</span>${o.desc ? `<small>${esc(o.desc)}</small>` : ""}</span></button>`;
   return `${pasos}${contexto}${comando}${a.pregunta ? `<div class="${claseDeLaPregunta}">${esc(a.pregunta)}</div>` : ""}
     ${a.multi ? `<p class="menu-nota">${tr("Marca las que quieras y pulsa «Listo».")}</p>` : ""}
     <div class="opciones-menu"${a.multi ? ' data-multi="true"' : ""}>${a.opciones.map(opcion).join("")}</div>
@@ -4943,7 +4972,9 @@ function menuHtml(a, claseDeLaPregunta) {
    repaso («Review your answers»), que se envía con su 1; en «Type something.»
    el número deja la opción escribiendo, y el texto con Intro la contesta (las
    dos cosas las hace `mandar_texto`: un número suelto es una tecla, un texto
-   va pegado y con su Intro). Devuelve qué pasó, o null si aún no se mandó nada. */
+   va pegado y con su Intro). Todo eso va con `menu`: es la respuesta a un menú
+   y no un mensaje, así que no lleva la marca del móvil. Devuelve qué pasó, o
+   null si aún no se mandó nada. */
 async function contestarMenu(caja, panel, arranque, ev) {
   if (ev.target.closest(".menu-escribir textarea")) return null;
   const tecla = ev.target.closest("button[data-tecla]");
@@ -4955,13 +4986,18 @@ async function contestarMenu(caja, panel, arranque, ev) {
   if (ev.target.closest(".menu-mandar")) {
     const texto = area.querySelector("textarea").value.trim();
     if (!texto) return null;
-    await api("POST", "/api/terminal/escribir", { panel, arranque, texto: area.dataset.num });
+    await api("POST", "/api/terminal/escribir", { panel, arranque, texto: area.dataset.num, menu: true });
     await new Promise((r) => setTimeout(r, 350));
-    await api("POST", "/api/terminal/escribir", { panel, arranque, texto });
+    await api("POST", "/api/terminal/escribir", { panel, arranque, texto, menu: true });
     return "enviado";
   }
   const b = ev.target.closest("button[data-num]");
   if (!b) return null;
+  // Una opción de una lista en un mensaje se contesta con un mensaje que la dice.
+  if (b.dataset.mensaje) {
+    await api("POST", "/api/terminal/escribir", { panel, arranque, texto: b.dataset.mensaje });
+    return "enviado";
+  }
   // La tuya se escribe primero aquí: el número se manda con ella, que si no la
   // terminal se queda escribiendo y la tarjeta no tiene dónde.
   if (b.dataset.escribir) {
@@ -4970,7 +5006,7 @@ async function contestarMenu(caja, panel, arranque, ev) {
     area.querySelector("textarea").focus();
     return null;
   }
-  await api("POST", "/api/terminal/escribir", { panel, arranque, texto: b.dataset.num });
+  await api("POST", "/api/terminal/escribir", { panel, arranque, texto: b.dataset.num, menu: true });
   return b.closest("[data-multi]") ? "marcado" : "enviado";
 }
 /* Lo que escribiste en «Escribir otra respuesta» sobrevive a que se repinte
@@ -5246,6 +5282,10 @@ function pintarTerminal() {
     document.querySelectorAll(".pestanas .pastilla").forEach((b) => { b.dataset.on = String(b.dataset.cara === ahora); });
     marco.hidden = ahora !== "pantalla";
     conversa.hidden = ahora !== "conversa";
+    // Lo que pregunta ahora, en las dos caras: desde «Pantalla» también se
+    // contesta un menú escribiendo su número en la caja.
+    const a = ahoraDe(v);
+    menuDelPrograma = a?.tipo === "pregunta" && !a.prosa;
 
     if (ahora === "pantalla") {
       // A pantalla completa, xterm no tiene nada por encima de lo que se ve:
@@ -5265,7 +5305,6 @@ function pintarTerminal() {
     }
     // Lo de ahora antes que el transcript: se ve aunque este tarde o falle.
     const seguia = pegadoAbajo(conversa);
-    const a = ahoraDe(v);
     pintarAhora(a);
     if (!saludada) {
       saludada = true;
@@ -5429,6 +5468,9 @@ function pintarTerminal() {
   // cambia de postura sola: comparando el HTML se rehacía en cada vuelta y los
   // botones de una pregunta nacían de nuevo bajo el dedo.
   let ahoraPintado = null;
+  // Si lo último que se vio es un menú del programa: entonces un número suelto
+  // escrito en la caja es elegir esa opción, y no un mensaje.
+  let menuDelPrograma = false;
   const pintarAhora = (a) => {
     const el = document.getElementById("ahora");
     const dice = JSON.stringify(a);
@@ -5505,7 +5547,10 @@ function pintarTerminal() {
     if (!txt || adj.subiendo()) return;
     enviarB.disabled = true;
     try {
-      await api("POST", "/api/terminal/escribir", { panel: e.panel, arranque: e.arranque, texto: txt });
+      // Un número suelto con un menú del programa delante lo elige (sin marca ni
+      // Intro); si no, es un mensaje, y el PC le pone la marca y su Intro.
+      const alMenu = menuDelPrograma && /^[1-9]$/.test(txt);
+      await api("POST", "/api/terminal/escribir", { panel: e.panel, arranque: e.arranque, texto: txt, ...(alMenu ? { menu: true } : {}) });
       texto.value = "";
       guardarBorrador();
       adj.vaciar();
@@ -5570,7 +5615,7 @@ function resumenHerramientas(lista) {
 const turnosHtml = (turnos, ent) => {
   const html = turnos.map((t) => {
     // «[Image #1]» es como Claude Code apunta una imagen pegada: aquí, una etiqueta.
-    const texto = md(t.texto).replace(/\[Image #(\d+)\]/g, (_, n) => `<span class="chip-img">${tr("imagen {n}", { n })}</span>`);
+    const texto = md(t.rol === "tu" ? sinMarca(t.texto) : t.texto).replace(/\[Image #(\d+)\]/g, (_, n) => `<span class="chip-img">${tr("imagen {n}", { n })}</span>`);
     const llega = ent ? ent.de(`${t.rol}|${t.hora || t.texto.slice(0, 48)}`) : "";
     return `<div class="turno${llega}" data-rol="${t.rol === "tu" ? "tu" : "agente"}"><div class="burbuja">${texto}${pasosHtml(t)}</div></div>`;
   }).join("");

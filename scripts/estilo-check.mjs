@@ -44,6 +44,12 @@
 //
 // Los colores no tienen `--arreglar`: elegir la variable es saber qué DICE ese
 // color, y eso no sale de una cuenta. Las velocidades sí.
+//
+// Y desde el 2026-11-11, la cuarta: un bucle sin fin (`animation: … infinite`)
+// cuyo `@keyframes` anima una variable (`--algo:` dentro) FALLA. Es pintar en el
+// hilo principal en cada fotograma, y costó núcleo y medio en su portátil (ver
+// `revisarBucles` y `docs/contexto/estilo.md`). Tampoco tiene `--arreglar`:
+// cambiar cómo se pinta algo es rediseñarlo.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -343,6 +349,80 @@ export function arreglarTiempos(css) {
   return { css: out, cambiadas };
 }
 
+/* ── Lo que se mueve sin fin animando una variable ──────────────────────────
+   Una animación de CSS que solo cambia `transform` u `opacity` la lleva la
+   tarjeta gráfica sola. Una que cambia una variable registrada con `@property`
+   (el ángulo de un `conic-gradient`, un color) NO: el navegador recalcula el
+   estilo y repinta en el hilo principal en cada fotograma de la pantalla, como
+   un `requestAnimationFrame` que se pide a sí mismo. Así estaban el hilo de luz
+   de la barra y el filo de las cajas de Adeo hasta el 2026-11-11: con su estado,
+   130% de un núcleo en el proceso de gráficos y 74% en la página solo por el
+   hilo (`scripts/laboratorio/pintado-su-estado.mjs`). Una vez (una entrada, un
+   cambio de estado) vale; sin fin, no: se pinta quieto y se gira o se mueve
+   con `transform`. Se cruzan todas las hojas: el `@keyframes` puede estar en un
+   tramo y la animación que lo usa en otro. */
+const KEYFRAMES = /@keyframes\s+([-\w]+)\s*\{/g;
+
+/** Los `@keyframes` de una hoja que animan una variable: `{ nombre, variable, linea }`. */
+export function fotogramasConVariable(css) {
+  const limpio = sinComentarios(css);
+  const out = [];
+  for (const m of limpio.matchAll(KEYFRAMES)) {
+    let hondo = 1;
+    let i = m.index + m[0].length;
+    for (; i < limpio.length && hondo > 0; i++) {
+      if (limpio[i] === "{") hondo++;
+      else if (limpio[i] === "}") hondo--;
+    }
+    const v = /(?<![-\w])(--[-\w]+)\s*:/.exec(limpio.slice(m.index + m[0].length, i - 1));
+    if (v) out.push({ nombre: m[1], variable: v[1], linea: limpio.slice(0, m.index).split("\n").length });
+  }
+  return out;
+}
+
+/** Las animaciones que se repiten sin fin en una hoja, con los nombres que
+ *  pueden ser su `@keyframes`: `{ nombres, linea, propiedad, valor }`. */
+export function animacionesSinFin(css) {
+  const limpio = sinComentarios(css);
+  const out = [];
+  for (const d of todas(css)) {
+    if (d.propiedad === "animation") {
+      for (const capa of capas(d.valor)) {
+        if (/\binfinite\b/.test(capa)) out.push({ nombres: capa.split(/\s+/), linea: d.linea, propiedad: d.propiedad, valor: capa });
+      }
+    } else if (d.propiedad === "animation-name") {
+      const regla = limpio.slice(limpio.lastIndexOf("{", d.desde) + 1, limpio.indexOf("}", d.desde));
+      if (/animation-iteration-count\s*:[^;}]*\binfinite\b/.test(regla)) out.push({ nombres: d.valor.split(/\s*,\s*/), linea: d.linea, propiedad: d.propiedad, valor: d.valor });
+    }
+  }
+  return out;
+}
+
+/** Los bucles sin fin que animan una variable, cruzando las hojas
+ *  (`[{ ruta, css }]`): `{ ruta, linea, propiedad, valor, por }`. */
+export function revisarBucles(hojas) {
+  const conVariable = new Map();
+  for (const h of hojas) for (const k of fotogramasConVariable(h.css)) conVariable.set(k.nombre, { ...k, ruta: h.ruta });
+  const fallos = [];
+  for (const h of hojas) {
+    for (const a of animacionesSinFin(h.css)) {
+      const k = a.nombres.map((n) => conVariable.get(n)).find(Boolean);
+      if (!k) continue;
+      fallos.push({
+        ruta: h.ruta,
+        linea: a.linea,
+        propiedad: a.propiedad,
+        valor: a.valor.replace(/\s+/g, " "),
+        por:
+          `bucle sin fin que anima una variable (${k.variable} en @keyframes ${k.nombre}, ${k.ruta}:${k.linea}): ` +
+          "se recalcula y se repinta en el hilo principal en cada fotograma, como un requestAnimationFrame. " +
+          "Píntalo una vez, quieto, y muévelo con transform u opacity (docs/contexto/estilo.md, «Lo que se mueve siempre»)",
+      });
+    }
+  }
+  return fallos;
+}
+
 /* ── Lo escrito dentro del código ────────────────────────────────────────────
    Un `style={{ borderRadius: "8px" }}` o el tema de un editor montado en
    TypeScript se saltan la hoja, y con ella la guía. Se miran con la misma vara. */
@@ -385,7 +465,11 @@ export function tramos(raiz = RAIZ) {
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const todos = tramos();
+  // `--raiz <carpeta>`: mira otra copia del repo, por ejemplo la de un commit
+  // viejo sacada con `git archive <commit> src | tar -x -C <carpeta>`.
+  const i = process.argv.indexOf("--raiz");
+  const raiz = i > 0 ? path.resolve(process.argv[i + 1]) : RAIZ;
+  const todos = tramos(raiz);
   if (process.argv.includes("--arreglar")) {
     let total = 0;
     for (const t of todos) {
@@ -403,18 +487,21 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   }
   const fallos = [];
   let miradas = 0;
+  const hojas = [];
   for (const t of todos) {
     const css = fs.readFileSync(t.entera, "utf8");
+    hojas.push({ ruta: t.ruta, css });
     miradas += declaraciones(css).length;
     for (const f of [...revisar(css), ...revisarColoresYTiempos(css)]) fallos.push(`${t.ruta}:${f.linea}  ${f.propiedad}: ${f.valor}\n      ${f.por}`);
   }
-  for (const c of codigo()) {
+  for (const f of revisarBucles(hojas)) fallos.push(`${f.ruta}:${f.linea}  ${f.propiedad}: ${f.valor}\n      ${f.por}`);
+  for (const c of codigo(raiz)) {
     for (const f of revisarCodigo(fs.readFileSync(c.entera, "utf8"))) fallos.push(`${c.ruta}:${f.linea}  ${f.propiedad}: ${f.valor}\n      ${f.por}`);
   }
-  console.log(`Estilo: ${miradas} esquinas y sombras en ${todos.length} tramos, sus colores y sus velocidades, y lo escrito dentro del código.`);
+  console.log(`Estilo: ${miradas} esquinas y sombras en ${todos.length} tramos, sus colores y sus velocidades, los bucles sin fin y lo escrito dentro del código.`);
   if (fallos.length) {
     console.log(`\nFALLA (${fallos.length}):\n  ` + fallos.join("\n  "));
-    console.log("\n  `node scripts/estilo-check.mjs --arreglar` pasa a la escala las esquinas, sombras y velocidades de la hoja; los colores y lo del código, a mano.");
+    console.log("\n  `node scripts/estilo-check.mjs --arreglar` pasa a la escala las esquinas, sombras y velocidades de la hoja; los colores, los bucles y lo del código, a mano.");
     process.exit(1);
   }
   console.log("\nTODO BIEN.");

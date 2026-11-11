@@ -496,6 +496,9 @@ pub fn resumen_de_lo_tuyo(texto: &str) -> String {
 /// cabecera («Dos encargos, por orden:») no distingue una de otra: se
 /// titula con lo encargado.
 fn titulo_de(texto: &str) -> String {
+    // Lo escrito en el móvil llega con su marca (`movil::MARCA_DEL_MOVIL`): eso
+    // dice de dónde vino, no de qué va.
+    let texto = texto.strip_prefix(crate::movil::MARCA_DEL_MOVIL).unwrap_or(texto);
     match cabecera_y_lista(texto) {
         Some((_, puntos)) => corto(&puntos.join(" · "), 60),
         None => corto(&resumen_de_lo_tuyo(texto), 60),
@@ -2177,6 +2180,10 @@ mod tests {
         let mut c = Conversacion { id: "t".into(), ..Default::default() };
         c.apuntar("tu", "Quiero que arregles el scroll de las terminales. Y luego lo otro.", "");
         assert_eq!(c.titulo, "Quiero que arregles el scroll de las terminales");
+        // Lo que llega del móvil trae su marca delante: el título no la lleva.
+        let mut m = Conversacion { id: "m".into(), ..Default::default() };
+        m.apuntar("tu", &format!("{}Quiero que arregles el scroll de las terminales.", crate::movil::MARCA_DEL_MOVIL), "");
+        assert_eq!(m.titulo, "Quiero que arregles el scroll de las terminales");
     }
 
     /// Desde el PC y desde el móvil a la vez: la segunda se rechaza en vez de

@@ -250,6 +250,9 @@ function pintarMenu(t) {
   const m = menus.get(t.panel);
   pantallas.set(t.panel, m.hecho ? [`● User answered Claude's questions:`, `  ⎿  ${m.hecho}`, "", "❯ "] : pantallaDelMenu(m));
 }
+/** Como `con_marca_del_movil` (movil.rs): un mensaje del móvil lleva la marca;
+    una orden de barra o de consola, o lo que ya la trae, no. */
+const conMarca = (texto) => (!texto.trim() || /^\s*(\/|!|\[móvil\])/.test(texto) ? texto : `[móvil] ${texto}`);
 /** Lo que una terminal con menú hace con lo que se le teclea; false si no tiene menú. */
 function teclearEnMenu(t, texto, tecla) {
   const m = menus.get(t.panel);
@@ -566,11 +569,13 @@ http
         }
         case "/api/enviar": {
           const c = nueva(id);
-          if (!(c.turnos.at(-1)?.rol === "tu" && c.turnos.at(-1)?.texto === v.texto)) {
-            c.turnos.push({ n: c.turnos.length + 1, rol: "tu", texto: v.texto, resumen: "", cuando: ahora() });
+          // Como movil.rs: a Adeo le llega con la marca del móvil; el título, sin ella.
+          const texto = conMarca(v.texto);
+          if (!(c.turnos.at(-1)?.rol === "tu" && c.turnos.at(-1)?.texto === texto)) {
+            c.turnos.push({ n: c.turnos.length + 1, rol: "tu", texto, resumen: "", cuando: ahora() });
           }
-          if (!c.titulo) c.titulo = v.texto.slice(0, 60);
-          contestar(c, v.texto);
+          if (!c.titulo) c.titulo = v.texto.replace(/^\[móvil\] /, "").slice(0, 60);
+          contestar(c, texto);
           return json(res, 202, { ok: true });
         }
         case "/api/mejorar":
@@ -799,15 +804,22 @@ http
           if (!t) return json(res, 404, { error: "Esa terminal ya no está." });
           const otro = deOtroArranque(v.arranque);
           if (otro) return json(res, otro[0], { error: otro[1] });
-          if (teclearEnMenu(t, v.texto)) {
-            escrito.set(t.panel, v.texto);
+          // La respuesta a un menú (`menu`) va tal cual; un mensaje, con la marca
+          // (movil.rs), y con un menú en pantalla no se manda (la ventana, lib/movil.ts).
+          const menu = v.menu === true;
+          const texto = menu ? v.texto : conMarca(v.texto);
+          if (!menu && menus.get(t.panel) && !menus.get(t.panel).hecho) {
+            return json(res, 502, { error: "La terminal te está preguntando con un menú: elige una de sus opciones." });
+          }
+          if (teclearEnMenu(t, texto)) {
+            escrito.set(t.panel, texto);
             return json(res, 202, { ok: true });
           }
           const f = pantallas.get(t.panel);
-          f[f.length - 1] += v.texto;
-          f.push("", `● (el agente leyó: ${v.texto})`, "", "❯ ");
-          escrito.set(t.panel, v.texto);
-          console.log(`escrito en ${t.panel}: ${v.texto}`);
+          f[f.length - 1] += texto;
+          f.push("", `● (el agente leyó: ${texto})`, "", "❯ ");
+          escrito.set(t.panel, texto);
+          console.log(`escrito en ${t.panel}: ${texto}`);
           // Como `marcar_habladas` (decisiones.rs): escribirle a una terminal
           // cierra lo que te hubiera preguntado.
           for (const d of decisiones) {
@@ -885,7 +897,7 @@ http
           if (d.respuesta) return json(res, 409, { error: "Esa decisión ya está contestada." });
           const avisada = vigenciaDe(d) === "viva";
           if (!d.resuelta) d.descartada ??= Date.now();
-          if (avisada) escrito.set(d.panel, `Munir ha descartado la decisión «${d.titulo}» (${d.id}) sin contestarla: no esperes respuesta.`);
+          if (avisada) escrito.set(d.panel, conMarca(`Munir ha descartado la decisión «${d.titulo}» (${d.id}) sin contestarla: no esperes respuesta.`));
           console.log(`decisión ${d.id} descartada${avisada ? `, y se le dice al panel ${d.panel}` : ""}`);
           return json(res, 200, { ok: true, avisada, panel: d.panel });
         }
@@ -901,7 +913,7 @@ http
             if (!e.opcion && !e.texto) return json(res, 400, { error: `Falta contestar la pregunta ${q.id}.` });
           }
           d.respuesta = { cuando: Date.now(), desde: "el banco", entregada: true, elecciones: v.elecciones };
-          const texto = `Munir ha contestado a «${d.titulo}» (decisión ${d.id}): ${JSON.stringify(v.elecciones)}`;
+          const texto = conMarca(`Munir ha contestado a «${d.titulo}» (decisión ${d.id}): ${JSON.stringify(v.elecciones)}`);
           escrito.set(d.panel, texto);
           console.log(`decisión ${d.id} contestada: ${JSON.stringify(v.elecciones)}`);
           return json(res, 200, { ok: true, entregada: true, panel: d.panel });

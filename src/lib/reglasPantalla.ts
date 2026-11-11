@@ -53,6 +53,9 @@ export interface ReglaDePregunta {
    *  por línea de comando entre el título y las opciones, así que doce se
    *  quedaban cortas con tres archivos. */
   lineas?: number;
+  /** Las opciones van ENCIMA de `test`, no debajo: hasta cuántas líneas por
+   *  arriba se buscan. Es el menú que pinta su pie debajo de las opciones. */
+  antes?: number;
 }
 
 /** El tope de las preguntas de Codex. Su menú vive abajo y se borra al
@@ -99,6 +102,27 @@ export const PREGUNTAS: ReglaDePregunta[] = [
     lineas: CODEX_LINEAS,
   },
   {
+    // La pregunta de un agente de Claude Code (AskUserQuestion), medida en la
+    // 2.1.322 el 2026-11-11 (`scripts/laboratorio/movil-elegir-de-verdad.mjs`):
+    // cada opción con su descripción debajo, «Type something.» y, tras una raya,
+    // la última, «Chat about this», que solo lleva este menú (un pie como «Enter
+    // to select» lo llevan también menús que abre quien está al teclado). Las
+    // opciones van ENCIMA. Sin esta regla nadie sabía que la terminal preguntaba
+    // hasta releer su transcript, cada 20 s: el móvil tardaba eso en dar los
+    // botones. El número elige sin Intro, también en las de casillas (ahí marca).
+    // Con su punto delante, como opción numerada: suelta, la frase puede salir
+    // en un mensaje de un agente encima de una lista suya, y eso ya parecía una
+    // pregunta (y el móvil no dejaba escribirle).
+    test: ". Chat about this",
+    hint: "El agente te pregunta: elige una opción.",
+    antes: 30,
+  },
+  {
+    // Y su repaso, tras la última de varias preguntas: «Submit answers» con su 1.
+    test: "Ready to submit your answers?",
+    hint: "El agente te pregunta: elige una opción.",
+  },
+  {
     // Generic numbered menus (first-run prompts, /model, etc.). Kept LAST so
     // the specific hints above win when both match.
     test: "Enter to confirm",
@@ -126,14 +150,27 @@ export function parseAsk(screen: string, reglas: ReglaDePregunta[] = PREGUNTAS):
     // Ignore historical output where the trigger test occurred too many lines ago:
     if (seg.split("\n").length > (t.lineas ?? LINEAS_VIVAS)) continue;
 
-    const opts: AskOption[] = [];
+    let opts: AskOption[] = [];
     // \s{1,2} (not 0): "Opus 4.7" must never parse as option 4.
     const re = /(?:❯\s*)?([1-9])\.\s{1,2}([^\n\r]{2,70})/g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(seg))) {
-      const n = m[1];
-      const label = m[2].split("│")[0].replace(/[─│┃└┘┌┐]+/g, " ").trim();
-      if (label && !opts.some((o) => o.n === n)) opts.push({ n, label });
+    const rotulo = (s: string) => s.split("│")[0].replace(/[─│┃└┘┌┐]+/g, " ").trim();
+    if (t.antes) {
+      // Encima del pie, renglón a renglón: se queda la ÚLTIMA tanda que empieza
+      // en el 1, que más arriba puede haber una lista numerada de un mensaje.
+      const arriba = screen.slice(0, i).split("\n").slice(-t.antes);
+      for (const linea of arriba) {
+        const m = /^\s*(?:[❯›>]\s*)?([1-9])\.\s{1,2}(\S.{1,69})$/.exec(linea.trimEnd());
+        if (!m) continue;
+        if (m[1] === "1") opts = [];
+        if (Number(m[1]) === opts.length + 1 && rotulo(m[2])) opts.push({ n: m[1], label: rotulo(m[2]) });
+      }
+    } else {
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(seg))) {
+        const n = m[1];
+        const label = rotulo(m[2]);
+        if (label && !opts.some((o) => o.n === n)) opts.push({ n, label });
+      }
     }
     if (opts.length < 2 && /\[[yY]\/[nN]\]|\([yY]\/[nN]\)/i.test(seg)) {
       opts.push({ n: "y", label: "Permitir (y)", propio: true });

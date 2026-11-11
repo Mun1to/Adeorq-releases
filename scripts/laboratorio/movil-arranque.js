@@ -31,7 +31,8 @@ async (page) => {
       await page.click("#enviar");
       await page.waitForTimeout(900);
       const fallo = await page.$eval("#fallo", (x) => (x.hidden ? "" : x.textContent));
-      return { sub, seVePantalla: /Vidorq/.test(pantalla), escrito: (await escrito()) === texto, fallo };
+      // Llega como mensaje del móvil, con su marca (`con_marca_del_movil`).
+      return { sub, seVePantalla: /Vidorq/.test(pantalla), escrito: (await escrito()) === `[móvil] ${texto}`, fallo };
     };
     const r = { puerto };
     r.deOtroArranque = await probar("#terminal=3@110", "aviso de ayer");

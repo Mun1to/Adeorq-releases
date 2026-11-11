@@ -100,6 +100,90 @@ es(
 );
 es("con otra tabla de reglas, lee con esa", parseAsk("¿Sigo?\n 1. Sí\n 2. No", [{ test: "¿Sigo?", hint: "x" }])?.regla, "¿Sigo?");
 
+// La pregunta de un agente (AskUserQuestion), copiada de un Claude Code 2.1.322
+// de verdad el 2026-11-11 (`scripts/laboratorio/movil-elegir-de-verdad.mjs`).
+// Sin regla, la terminal no «preguntaba» hasta releer su transcript (20 s), y el
+// móvil tardaba eso en dar los botones. Encima, una lista de un mensaje de antes.
+const delAgente = [
+  "● Te dejo dos cosas de antes:",
+  "  1. Algo de antes",
+  "  2. Otra cosa de antes",
+  "",
+  "❯ lab-varias",
+  "───────────────────────────────────────────────────────────────────────────────",
+  "←  ☐ Día  ☐ Partes  ☐ Hora  ✔ Submit  →",
+  "",
+  "¿Qué día lo publicamos?",
+  "",
+  "❯ 1. Lunes",
+  "     Antes de clase",
+  "  2. Martes",
+  "     Por la tarde",
+  "  3. Miércoles",
+  "     Con calma",
+  "  4. Type something.",
+  "───────────────────────────────────────────────────────────────────────────────",
+  "  5. Chat about this",
+  "",
+  "Enter to select · Tab/Arrow keys to navigate · Esc to cancel",
+].join("\n");
+const pa = parseAsk(delAgente);
+es("la pregunta de un agente: sus opciones van ENCIMA, y no se cogen las de un mensaje de antes", pa?.options.map((o) => `${o.n}:${o.label}`), [
+  "1:Lunes",
+  "2:Martes",
+  "3:Miércoles",
+  "4:Type something.",
+]);
+es("la nombra su regla, y el número elige sin Intro", [pa?.regla, pa?.enter], [". Chat about this", false]);
+const deUnMensaje = [
+  "Te dejo dos caminos:",
+  "",
+  "1. Publicar la 245 y mandar la 251 detrás",
+  "2. Cancelar y reenviar con la 251",
+  "",
+  "Si dudas, dale a «Chat about this» y lo hablamos.",
+  "",
+  "───────────────────────────────────────────────────────────────────────────────",
+  "❯ ",
+  "───────────────────────────────────────────────────────────────────────────────",
+].join("\n");
+es("la frase suelta en un mensaje, encima de una lista suya, no es una pregunta", parseAsk(deUnMensaje), null);
+const deCasillas = [
+  "¿Qué partes enseñamos en el vídeo?",
+  "",
+  "❯ 1. [✔] Cabina",
+  "         Las terminales",
+  "  2. [ ] Lienzo",
+  "         Todo junto",
+  "  3. [✔] Memoria",
+  "         Lo que recuerda",
+  "  4. [ ] Chat",
+  "         Hablar con Adeo",
+  "  5. [ ] Type something",
+  "     Next",
+  "───────────────────────────────────────────────────────────────────────────────",
+  "  6. Chat about this",
+  "",
+  "Enter to select · Tab/Arrow keys to navigate · Esc to cancel",
+].join("\n");
+es("la de casillas, con cada casilla como está", parseAsk(deCasillas)?.options.map((o) => o.label), ["[✔] Cabina", "[ ] Lienzo", "[✔] Memoria", "[ ] Chat"]);
+const repaso = [
+  "←  ☒ Día  ☒ Partes  ☒ Hora  ✔ Submit  →",
+  "",
+  "Review your answers",
+  "",
+  " ● ¿Qué día lo publicamos?",
+  "   → Martes",
+  "",
+  "Ready to submit your answers?",
+  "",
+  "❯ 1. Submit answers",
+  "  2. Cancel",
+].join("\n");
+es("y su repaso, con «Submit answers» en el 1", parseAsk(repaso)?.options.map((o) => `${o.n}:${o.label}`), ["1:Submit answers", "2:Cancel"]);
+const contestada = ["❯ lab-una", "", "● User answered Claude's questions:", "  ⎿  · ¿Qué color le ponemos al botón de enviar? → Verde", "", "● Recibido."].join("\n");
+es("contestada, ya no es una pregunta", parseAsk(contestada), null);
+
 // --- el login -----------------------------------------------------------------------
 es("pide iniciar sesión", loginSegun("…OAuth access token has expired…"), true);
 es("ya la tiene", loginSegun("Login successful. Welcome back"), false);

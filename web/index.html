@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title data-en="meta.titulo">Adeorq · el panel donde trabajan tus agentes</title>
-<meta name="description" data-en-attr="content:meta.desc" content="Panel de escritorio para Windows y Linux: Claude Code, Codex, Gemini y los demás CLI a la vez, en terminales de verdad, y también desde el móvil.">
+<meta name="description" data-en-attr="content:meta.desc" content="Panel de escritorio para Windows, Linux y Mac: Claude Code, Codex, Gemini y los demás CLI a la vez, en terminales de verdad, y también desde el móvil.">
 <!-- METADATOS:INICIO (los escribe scripts/poner-metadatos.mjs, no editar a mano) -->
 <link rel="canonical" href="https://adeorq.com/">
 <link rel="alternate" hreflang="es" href="https://adeorq.com/">
@@ -27,7 +27,7 @@
 <meta property="og:locale:alternate" content="en_US">
 <meta property="og:url" content="https://adeorq.com/">
 <meta property="og:title" content="Adeorq · el panel donde trabajan tus agentes">
-<meta property="og:description" content="Panel de escritorio para Windows y Linux: Claude Code, Codex, Gemini y 19 clientes mas trabajando a la vez en terminales de verdad, con tus proyectos a un clic. Gratis, sin cuenta y sin claves de API.">
+<meta property="og:description" content="Panel de escritorio para Windows, Linux y Mac: Claude Code, Codex, Gemini y 19 clientes mas trabajando a la vez en terminales de verdad, con tus proyectos a un clic. Gratis, sin cuenta y sin claves de API.">
 <meta property="og:image" content="https://adeorq.com/assets/og.png?v=9489ba56">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -35,7 +35,7 @@
 
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Adeorq · el panel donde trabajan tus agentes">
-<meta name="twitter:description" content="Panel de escritorio para Windows y Linux: Claude Code, Codex, Gemini y 19 clientes mas trabajando a la vez en terminales de verdad, con tus proyectos a un clic. Gratis, sin cuenta y sin claves de API.">
+<meta name="twitter:description" content="Panel de escritorio para Windows, Linux y Mac: Claude Code, Codex, Gemini y 19 clientes mas trabajando a la vez en terminales de verdad, con tus proyectos a un clic. Gratis, sin cuenta y sin claves de API.">
 <meta name="twitter:image" content="https://adeorq.com/assets/og.png?v=9489ba56">
 
 <!-- Datos estructurados. Describen SOLO lo que se ve en la pagina: las
@@ -69,7 +69,7 @@
       "@id": "https://adeorq.com/#app",
       "name": "Adeorq",
       "applicationCategory": "DeveloperApplication",
-      "operatingSystem": "Windows, Linux",
+      "operatingSystem": "Windows, Linux, macOS",
       "url": "https://adeorq.com/",
       "author": {
         "@id": "https://adeorq.com/#autor"
@@ -127,7 +127,7 @@
           "name": "¿Hay versión para macOS o Linux?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Linux sí: cada versión publica un AppImage, un .deb y un .rpm. macOS todavía no."
+            "text": "Sí, de las dos. Linux: cada versión publica un AppImage, un .deb y un .rpm. Mac: un .dmg para Apple Silicon (del M1 en adelante) con macOS 12 o más, firmado y notarizado por Apple; los Mac con Intel no están soportados. Todavía no se ha usado a diario en un Mac real: si algo falla, cuéntanoslo."
           }
         },
         {
@@ -298,7 +298,7 @@
       <a class="btn btn--fantasma btn--grande" href="#trabajo" data-en="hero.verComo">Ver cómo trabaja</a>
     </div>
     <ul class="notas">
-      <li data-en="hero.nota1">Windows y Linux · 64 bits</li>
+      <li data-en="hero.nota1">Windows, Linux y Mac · 64 bits</li>
       <li data-en="hero.nota2">Actualizaciones firmadas</li>
       <li data-en="hero.nota3">Usa la sesión que ya tienes</li>
     </ul>
@@ -879,8 +879,8 @@
     <p class="etiqueta" data-en="descarga.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Descarga</p>
     <h2 class="seccion__tit" data-aparece data-en="descarga.tit">Móntate la cabina en dos minutos</h2>
     <p class="seccion__entrada" data-en="descarga.entrada">
-      Para Windows y Linux de 64 bits. Necesitas tener instalado el CLI que ya
-      uses, porque Adeorq trabaja con él.
+      Para Windows y Linux de 64 bits, y para Mac con Apple Silicon. Necesitas
+      tener instalado el CLI que ya uses, porque Adeorq trabaja con él.
     </p>
     </div>
 
@@ -897,10 +897,9 @@
         Descargar para Linux
         <em>AppImage, .deb o .rpm</em>
       </a>
-      <!-- macOS (Apple Silicon): OCULTO a propósito hasta que la primera release lleve el
-           Adeorq-arm64.dmg. Se enciende quitando `hidden` y cambiando los textos que
-           dicen «macOS todavía no» (entrada, requisitos, FAQ). Pasos en docs/contexto/mac.md. -->
-      <a class="btn btn--fantasma btn--grande" hidden
+      <!-- macOS (Apple Silicon): encendido el 2026-11-10, cuando la 0.9.249 y la 0.9.250 ya
+           llevaban Adeorq-arm64.dmg firmado y notarizado. Detalle en docs/contexto/mac.md. -->
+      <a class="btn btn--fantasma btn--grande"
          href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-arm64.dmg"
          rel="noopener" data-en="descarga.btnMac">
         Descargar para Mac
@@ -912,7 +911,7 @@
       <b data-descarga-version>v0.9.175</b>
       <span data-descarga-fecha></span>
       <span data-descarga-peso></span>
-      <span data-en="descarga.requisitos">Windows 10 y 11 · Linux con glibc 2.35 o más</span>
+      <span data-en="descarga.requisitos">Windows 10 y 11 · Linux con glibc 2.35 o más · macOS 12 o más con Apple Silicon</span>
     </p>
 
     <p class="descarga__precio" data-en="descarga.precio">Gratis. Ni cuenta, ni prueba de 14 días, ni tarjeta.</p>
@@ -1005,8 +1004,10 @@
 
       <details class="pregunta" name="faq">
         <summary><span data-en="faq.q5">¿Hay versión para macOS o Linux?</span><svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <p data-en="faq.r5">Linux sí: cada versión publica un AppImage, un .deb y un .rpm. macOS
-           todavía no.</p>
+        <p data-en="faq.r5">Sí, de las dos. Linux: cada versión publica un AppImage, un .deb y un
+           .rpm. Mac: un .dmg para Apple Silicon (del M1 en adelante) con macOS 12 o más,
+           firmado y notarizado por Apple; los Mac con Intel no están soportados. Todavía no
+           se ha usado a diario en un Mac real: si algo falla, cuéntanoslo.</p>
       </details>
 
       <details class="pregunta" name="faq">
@@ -1054,7 +1055,7 @@
         <b>Adeorq</b>
       </a>
       <p class="pie__lema" data-en="pie.lema">
-        El panel donde trabajan todos tus agentes. En Windows y en Linux, y
+        El panel donde trabajan todos tus agentes. En Windows, Linux y Mac, y
         contigo en el móvil.
       </p>
       <p class="pie__estado" data-en="pie.estado"><span class="pie__punto" aria-hidden="true"></span>Gratis, y en marcha.</p>

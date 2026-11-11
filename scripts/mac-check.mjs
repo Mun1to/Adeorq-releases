@@ -77,14 +77,18 @@ dice(leer("src/App.tsx").includes("ponerBarraDelTema(theme)"), "App.tsx la llama
 dice(leer("src-tauri/capabilities/default.json").includes("core:window:allow-set-theme"), "la ventana tiene permiso para cambiar su modo");
 dice(conf.app.windows[0].theme === undefined, "tauri.conf.json no fija `theme` (en Windows cambiaría la barra de siempre)");
 
-/* ── La web: el botón de Mac no puede verse antes de tiempo ─────────────── */
+/* ── La web: el botón de Mac se ve, y ningún texto dice que no hay Mac ───── */
+// Encendido el 2026-11-10: la 0.9.249 y la 0.9.250 ya llevan Adeorq-arm64.dmg (docs/contexto/mac.md).
 const portada = leer("web/index.html");
+const ingles = leer("web/portada/en.mjs");
 const boton = portada.match(/<a[^>]*data-en="descarga\.btnMac"[^>]*>/)?.[0];
 dice(Boolean(boton), "la web lleva el botón de Mac");
 if (boton) {
-  dice(/\shidden(\s|>|=)/.test(boton), "y está oculto: nada de Mac se enseña hasta que una release lleve el DMG (docs/contexto/mac.md, «Encender el botón»)");
-  dice(leer("web/portada/en.mjs").includes("'descarga.btnMac'"), "tiene su texto en inglés");
+  dice(!/\shidden(\s|>|=)/.test(boton), "y se ve (con `hidden` no lo encuentra nadie)");
+  dice(boton.includes("releases/latest/download/Adeorq-arm64.dmg"), "y baja la copia de nombre fijo del DMG");
+  dice(ingles.includes("'descarga.btnMac'"), "tiene su texto en inglés");
 }
+dice(!/macOS\s+todav[ií]a\s+no/i.test(portada) && !/macOS,\s*not yet/i.test(ingles), "ni la portada ni su inglés dicen que todavía no hay Mac");
 
 console.log(fallos ? `\n${fallos} MAL.` : "\nTodo bien.");
 process.exit(fallos ? 1 : 0);

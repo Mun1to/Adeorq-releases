@@ -39,7 +39,7 @@ async (page) => {
   await page.click("#enviar");
   await page.waitForTimeout(700);
   const escrito = await (await page.request.get(`${B}/api/escrito?panel=1`, { headers: AUT })).json();
-  debe(escrito.texto === "a medio escribir para la 1", `se mandó lo guardado (${escrito.texto})`);
+  debe(escrito.texto === "[móvil] a medio escribir para la 1", `se mandó lo guardado, con la marca del móvil (${escrito.texto})`);
   await ir("#terminal=5@111");
   pasos.la5 = await caja();
   debe(pasos.la5.texto === "y esto para la 5", `la 5 conserva el suyo (${JSON.stringify(pasos.la5)})`);

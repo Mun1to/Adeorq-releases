@@ -242,10 +242,10 @@ se autocompacte con el skill de fin mensaje de compactación + que se retome aut
   alguien siguió con ella y el «sigue» no se le echa encima. Si ya iba a seguir en una terminal
   nueva, contesta `nueva` y no compacta; si había un `/fin sin commits` de la raya o de
   `compactar_terminal`, lo sustituye y no hay dos `/compact`.
-- **Sin campana:** Claude Code 2.1.322 sin `preferredNotifChannel` no toca la campana al acabar un
-  turno, así que esto mira cada 3 s además de oírla. OJO: el `/compact` de la raya roja y de
-  `compactar_terminal` sigue esperando a la campana; con la skill `/fin` nueva da igual, porque
-  el `/fin` acaba llamando a `compactarme`.
+- **Sin campana:** Claude Code 2.1.322 no toca la campana al acabar un turno, así que esto mira
+  cada 3 s además de oírla. Desde el mismo día lo hacen también el botón, la raya roja y
+  `compactar_terminal` (`mirarSinCampana`), y el fin de turno de la pantalla hace de campana
+  (`lib/finDeTurno.ts`): lo medido y lo que no ve, en `docs/contexto/fin-de-turno.md`.
 - **La skill `/fin`** (`~/.claude/skills/fin/SKILL.md`, §5): dentro de Adeorq llama a
   `compactarme` con su bloque y lo dice en una línea; `/fin sin compactar` se lo salta.
 - **Medido:** `pnpm bancos contexto` (los casos de `compactarme`; sin la lectura asentada o sin el

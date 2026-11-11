@@ -44,6 +44,7 @@ import {
   VIGILA_COMPACTAR_MS,
   type ModoSolo,
 } from "../src/lib/contexto";
+import { apuntarFin, ASIENTO_FIN_MS, crearFinDeTurno, engancharFinDeTurno, FIN_RECIENTE_MS, finReciente, MIRAR_CADA_MS } from "../src/lib/finDeTurno";
 import type { ContextInfo, WorkState } from "../src/lib/pty";
 
 let fallos = 0;
@@ -106,9 +107,10 @@ function panel(o: Partial<{
         resuelva, con lo que decía el transcript al pedirla: una campana que
         lee y tarda en volver. */
     retener: null as Promise<void> | null,
-    /** Las vueltas de `vigilar` (las esperas de VIGILA_COMPACTAR_MS) no corren
-        solas: cada una espera a que el banco la suelte con `vuelta()`. */
-    manual: false,
+    /** Las vueltas de mirar sin campana y de `vigilar` (las esperas de
+        VIGILA_COMPACTAR_MS) no corren solas: cada una espera a que el banco la
+        suelte con `vuelta()`. Sin soltarlas, solo cuenta la campana. */
+    manual: true,
     ...o,
   };
   const vueltas: Array<() => void> = [];
@@ -783,7 +785,259 @@ async function main() {
     es("con la sugerencia apagada, nada", p.sugerencias, []);
   }
 
-  console.log(fallos ? `\n${fallos} FALLAN:\n  ${rojos.join("\n  ")}` : "\nTodo en verde.");
+  // ── Sin campana (Claude Code 2.1.322, medido el 2026-11-11) ──────────────
+  // `scripts/laboratorio/campana-de-verdad.mjs`: con el canal de fábrica no la
+  // toca nunca, y con `terminal_bell` a los 60 s de quedarse parado. De ella
+  // colgaban el brillo de «terminó», su aviso, la raya roja y el /compact de
+  // después del /fin. Las pantallas son de la 2.1.322 (las dos, iguales en el
+  // renderizador clásico y en el de pantalla completa).
+  const TRABAJANDO = ["✶ Drizzling…", RAYA, "❯ ", RAYA, "  ⏵⏵ auto mode on (shift+tab to cycle) · esc to interrupt"];
+  const PARADA = ["● Hola.", "✻ Brewed for 11s · done 18:44", RAYA, "❯ ", RAYA, "  ⏵⏵ auto mode on (shift+tab to cycle)"];
+  const MENU = [RAYA, " Bash command", " Do you want to proceed?", " ❯ 1. Yes", "   2. No", "", " Esc to cancel · Tab to amend"];
+  const vista = (l: string[]) => ({ trabajando: trabajaEnPantalla((i) => l[i] ?? "", l.length), parada: esperaEnSuCaja((i) => l[i] ?? "", l.length) });
+  ok("(la pantalla de trabajar de la 2.1.322 dice que trabaja, con la caja a la vista)", vista(TRABAJANDO).trabajando && vista(TRABAJANDO).parada);
+  ok("(la de parada, en su caja y sin trabajar)", !vista(PARADA).trabajando && vista(PARADA).parada);
+  {
+    let reloj = 0;
+    const f = crearFinDeTurno(() => reloj);
+    es("recién abierta y en su caja no es un fin: no la ha visto trabajar", f.mirar(vista(PARADA)).fin, false);
+    f.mirar(vista(TRABAJANDO));
+    const r = f.mirar(vista(PARADA));
+    ok("al parar tras trabajar, todavía no: pide volver a mirar cuando se asiente", !r.fin && r.volverEn === ASIENTO_FIN_MS, JSON.stringify(r));
+    reloj += ASIENTO_FIN_MS - 1;
+    es("parada menos del asiento, todavía no", f.mirar(vista(PARADA)).fin, false);
+    reloj += 1;
+    es("asentada, es el fin del turno", f.mirar(vista(PARADA)).fin, true);
+    reloj += 10_000;
+    es("y se dice una sola vez", f.mirar(vista(PARADA)).fin, false);
+    reloj += 50_000;
+    es("la campana del aviso del minuto (terminal_bell) es del mismo turno: no se repite", f.campana(), false);
+    f.mirar(vista(TRABAJANDO));
+    reloj += 1000;
+    f.mirar(vista(PARADA));
+    reloj += 1000;
+    f.mirar(vista(TRABAJANDO));
+    reloj += 5000;
+    es("un respiro entre dos pasos del mismo turno no es el fin", f.mirar(vista(TRABAJANDO)).fin, false);
+    f.mirar(vista(PARADA));
+    reloj += ASIENTO_FIN_MS;
+    es("el turno siguiente se dice cuando acaba", f.mirar(vista(PARADA)).fin, true);
+  }
+  {
+    let reloj = 0;
+    const f = crearFinDeTurno(() => reloj);
+    f.mirar(vista(TRABAJANDO));
+    reloj += 5000;
+    es("con un menú suyo delante no es el fin, por mucho que dure", f.mirar(vista(MENU)).fin, false);
+    reloj += 60_000;
+    es("(ni al minuto)", f.mirar(vista(MENU)).fin, false);
+    es("pero su campana (el aviso de un permiso) se oye, como siempre", f.campana(), true);
+    f.mirar(vista(TRABAJANDO));
+    f.mirar(vista(PARADA));
+    reloj += ASIENTO_FIN_MS;
+    es("y al contestarle y acabar el turno, su fin", f.mirar(vista(PARADA)).fin, true);
+  }
+  {
+    let reloj = 0;
+    const f = crearFinDeTurno(() => reloj);
+    f.mirar(vista(TRABAJANDO));
+    f.mirar(vista(PARADA));
+    es("un CLI que sí toca la campana al acabar: suena y se dice", f.campana(), true);
+    reloj += ASIENTO_FIN_MS + 1000;
+    es("y el detector, después, no lo vuelve a decir", f.mirar(vista(PARADA)).fin, false);
+    es("dos campanas sin verlo trabajar entre medias son del mismo turno", f.campana(), false);
+  }
+  {
+    // Enganchado a un terminal de mentira, con relojes de mentira.
+    let reloj = 0;
+    let pantalla = PARADA;
+    let claude = true;
+    let fines = 0;
+    const relojes: Array<{ en: number; f: () => void; vivo: boolean }> = [];
+    const oyentes = { campana: [] as Array<() => void>, escrito: [] as Array<() => void> };
+    const term = {
+      get rows() {
+        return pantalla.length;
+      },
+      buffer: { active: { baseY: 0, getLine: (y: number) => (pantalla[y] === undefined ? undefined : { translateToString: () => pantalla[y] }) } },
+      onBell: (cb: () => void) => (oyentes.campana.push(cb), { dispose: () => {} }),
+      onWriteParsed: (cb: () => void) => (oyentes.escrito.push(cb), { dispose: () => {} }),
+    };
+    const soltar = engancharFinDeTurno(term, {
+      esClaude: () => claude,
+      alAcabar: () => fines++,
+      ahora: () => reloj,
+      programar: (f, ms) => {
+        const t = { en: reloj + ms, f, vivo: true };
+        relojes.push(t);
+        return () => (t.vivo = false);
+      },
+    });
+    const pasar = (ms: number) => {
+      const hasta = reloj + ms;
+      for (;;) {
+        const t = relojes.filter((x) => x.vivo && x.en <= hasta).sort((a, b) => a.en - b.en)[0];
+        if (!t) break;
+        t.vivo = false;
+        reloj = t.en;
+        t.f();
+      }
+      reloj = hasta;
+    };
+    const escribe = (l: string[]) => {
+      pantalla = l;
+      oyentes.escrito.forEach((f) => f());
+    };
+    const campana = () => oyentes.campana.forEach((f) => f());
+    escribe(TRABAJANDO);
+    pasar(100);
+    escribe(PARADA);
+    pasar(MIRAR_CADA_MS);
+    es("enganchado: al parar, nada todavía", fines, 0);
+    pasar(ASIENTO_FIN_MS);
+    es("asentada sin que el programa escriba nada más, el fin llega solo (sin campana)", fines, 1);
+    campana();
+    pasar(60_000);
+    campana();
+    es("y la campana del mismo turno no lo repite", fines, 1);
+    escribe(TRABAJANDO);
+    pasar(300);
+    escribe(PARADA);
+    pasar(MIRAR_CADA_MS + ASIENTO_FIN_MS);
+    es("el turno siguiente, otro fin", fines, 2);
+    escribe(TRABAJANDO);
+    pasar(10);
+    escribe(PARADA);
+    pasar(10);
+    escribe(TRABAJANDO);
+    pasar(10);
+    escribe(PARADA);
+    pasar(MIRAR_CADA_MS + ASIENTO_FIN_MS);
+    es("muchos trozos seguidos: se mira como mucho cada tanto, y un solo fin", fines, 3);
+    claude = false;
+    campana();
+    campana();
+    es("donde no corre Claude Code, la campana dispara siempre, como antes", fines, 5);
+    escribe(TRABAJANDO);
+    pasar(100);
+    escribe(PARADA);
+    pasar(MIRAR_CADA_MS + ASIENTO_FIN_MS);
+    es("y no se mira su pantalla", fines, 5);
+    soltar();
+  }
+  {
+    apuntarFin(41, 1_000);
+    ok("App: un turno que el panel acaba de anunciar no vuelve a saltar por el transcript", finReciente(41, 1_000 + FIN_RECIENTE_MS - 1));
+    ok("pasado el rato, sí", !finReciente(41, 1_000 + FIN_RECIENTE_MS));
+    ok("y otro panel no tiene nada que ver", !finReciente(42, 1_000));
+  }
+
+  // El traspaso, sin ninguna campana: se relee cada VIGILA_COMPACTAR_MS. Al
+  // acabar, el turno del /fin deja otro número de tokens en el transcript.
+  {
+    const p = panel({ modo: "no", estado: "a_medias" });
+    await p.tr.pedir("compactar");
+    await p.vuelta();
+    es("botón con el agente trabajando y sin campana: mirar cada poco no teclea nada", p.mandado, []);
+    p.s.estado = "lista";
+    await p.vuelta();
+    es("sin campana, al verlo parado, el /fin", p.mandado, ["/fin"]);
+    p.s.estado = "a_medias";
+    await p.vuelta();
+    es("mientras corre el /fin, nada más", p.mandado.length, 1);
+    p.s.estado = "lista";
+    p.s.k = 431;
+    await p.vuelta();
+    ok("y al acabar el /fin, el /compact sin campana", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "), JSON.stringify(p.mandado));
+    es("y se acaba", p.tr.fase(), "nada");
+    await p.tr.alSonar();
+    es("una campana que llega tarde no repite el /compact", p.mandado.length, 2);
+  }
+  {
+    const p = panel({ modo: "fin", estado: "a_medias" });
+    await p.tr.pedirDeAgente();
+    await p.vuelta();
+    es("compactar_terminal sin campana, trabajando: nada", p.mandado, []);
+    p.s.estado = "lista";
+    await p.vuelta();
+    es("al pararse, su /fin sin commits", p.mandado, ["/fin sin commits"]);
+    p.s.estado = "a_medias";
+    await p.vuelta();
+    p.s.estado = "lista";
+    p.s.k = 431;
+    await p.vuelta();
+    ok("y su /compact, sin campana", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "), JSON.stringify(p.mandado));
+  }
+  {
+    // Una lectura que dice «lista» con el mismo número que al mandar el /fin
+    // es la de antes del /fin (un CLI que aún no lo apuntó), no la de su final.
+    const p = panel({ estado: "a_medias" });
+    await p.tr.pedirDeAgente();
+    p.s.estado = "lista";
+    await p.vuelta();
+    es("(el /fin, al verla parada)", p.mandado, ["/fin sin commits"]);
+    await p.vuelta();
+    await p.vuelta();
+    es("una «lista» que no se movió desde el /fin no vale para mandar el /compact", p.mandado.length, 1);
+    p.s.k = 431;
+    await p.vuelta();
+    ok("en cuanto el transcript se mueve, sí", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "), JSON.stringify(p.mandado));
+  }
+  {
+    const p = panel({ estado: "a_medias" });
+    await p.tr.pedirDeAgente();
+    p.s.estado = "lista";
+    await p.tr.alSonar();
+    es("con campana Y mirando a la vez: un solo /fin", p.mandado, ["/fin sin commits"]);
+    p.s.estado = "a_medias";
+    await p.vuelta();
+    p.s.estado = "lista";
+    p.s.k = 431;
+    await p.vuelta();
+    await p.tr.alSonar();
+    await p.vuelta();
+    ok("y un solo /compact", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "), JSON.stringify(p.mandado));
+  }
+  {
+    const p = panel({ modo: "no", k: 650, respuesta: RESPUESTA_FIN });
+    await p.tr.pedir("nueva");
+    es("Nueva sin campana: su /fin", p.mandado, ["/fin"]);
+    p.s.estado = "a_medias";
+    await p.vuelta();
+    p.s.estado = "lista";
+    p.s.k = 661;
+    await p.vuelta();
+    es("y al acabarlo, la terminal nueva con su bloque «Retomar»", p.nuevas.map((x) => x?.split("\n")[0]), ["# RETOMAR, Adeorq compactar a tiempo (guardado el 2026-10-22)"]);
+  }
+  {
+    const p = panel({ claude: false, sinDato: true, fin: false });
+    await p.tr.pedir("compactar");
+    await p.vuelta();
+    await p.vuelta();
+    es("en un panel que no es de Claude Code, sin transcript, no se mira cada poco: solo su campana", p.mandado.length, 1);
+  }
+  {
+    // La raya roja de una delegada, sin campana: la empieza el detector.
+    const p = panel({ modo: "no", delegada: true, estado: "a_medias" });
+    const f = crearFinDeTurno(() => p.s.reloj);
+    const acaba = async () => {
+      f.mirar(vista(TRABAJANDO));
+      p.s.estado = "lista";
+      f.mirar(vista(PARADA));
+      p.s.reloj += ASIENTO_FIN_MS;
+      if (f.mirar(vista(PARADA)).fin) await p.tr.alSonar();
+    };
+    await acaba();
+    es("raya roja sin campana: el detector ve acabar el turno y empieza el /fin sin commits", p.mandado, ["/fin sin commits"]);
+    p.s.estado = "a_medias";
+    await acaba();
+    ok("y al acabar el /fin, su /compact", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "), JSON.stringify(p.mandado));
+    if (f.campana()) await p.tr.alSonar();
+    await p.vuelta();
+    es("la campana del minuto y la vuelta siguiente no compactan otra vez", p.mandado.length, 2);
+  }
+
+  console.log(fallos ?`\n${fallos} FALLAN:\n  ${rojos.join("\n  ")}` : "\nTodo en verde.");
   process.exitCode = fallos ? 1 : 0;
 }
 

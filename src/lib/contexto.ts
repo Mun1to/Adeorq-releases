@@ -402,8 +402,9 @@ export function seguirTrasCompactar(t: Translate): string {
   );
 }
 
-/** Cada cuánto se mira si ya acabó de compactar, para escribirle que siga.
-    Claude Code no toca la campana al acabar un `/compact`. */
+/** Cada cuánto se relee un traspaso en marcha sin esperar a la campana, y si ya
+    acabó de compactar quien se compactó a sí misma. Claude Code no toca la
+    campana al acabar un `/compact`, y la 2.1.322 tampoco al acabar un turno. */
 export const VIGILA_COMPACTAR_MS = 3000;
 /** Compactada y sin quedarse parada en este rato: otro siguió con ella, y el
     «sigue» ya no toca. */
@@ -479,7 +480,9 @@ export interface DepsTraspaso {
  * Los dos bailes en dos pasos de un panel (compactar y recuperar): primero el
  * traspaso (`/fin`), después el `/compact` o la terminal nueva. Cada paso se
  * teclea SOLO con el turno acabado (`turnoAcabado`), así que pulsar Compactar
- * con el agente trabajando ya no se le cuela a mitad: espera a su campana.
+ * con el agente trabajando ya no se le cuela a mitad: espera a que acabe, por
+ * su campana (la de verdad o la del detector de `lib/finDeTurno.ts`) o
+ * releyendo cada poco (`mirarSinCampana`).
  *
  * Y la raya roja (Munir, 2026-10-22: «casi obligatorio»): si el ajuste lo dice
  * (`ModoSolo`), la campana de un turno acabado lo empieza sola, con
@@ -497,7 +500,8 @@ export function crearTraspaso(d: DepsTraspaso) {
       `sinCommits`: el traspaso es `/fin sin commits` y no el entero. */
   /** `propia`: la pidió la sesión para sí misma (`compactarme`), con su
       `mensaje` para el `/compact` y lo que se le escribe después (`seguir`,
-      `null` para nada). `antes`: sus compactaciones al mandar el `/compact`. */
+      `null` para nada). `antes`: sus compactaciones al mandar el `/compact`.
+      `usado`: los tokens que decía el transcript al mandar el `/fin`. */
   let pendiente: {
     que: "compactar" | "nueva" | "propia";
     paso: Exclude<FaseTraspaso, "nada">;
@@ -507,6 +511,7 @@ export function crearTraspaso(d: DepsTraspaso) {
     mensaje?: string;
     seguir?: string | null;
     antes?: number;
+    usado?: number;
   } | null = null;
   /** Ya compactó en esta subida: no repetir hasta verlo bajar. */
   let hecho = false;
@@ -545,6 +550,7 @@ export function crearTraspaso(d: DepsTraspaso) {
   const poner = (p: typeof pendiente) => {
     pendiente = p;
     d.alCambiar?.(fase());
+    if (p) void mirarSinCampana().catch(() => {});
   };
 
   /** `/fin` si es Claude Code y la skill existe; si no, el texto de la casa. */
@@ -555,8 +561,9 @@ export function crearTraspaso(d: DepsTraspaso) {
   };
 
   /** El paso siguiente, si el turno lo deja; si no, a la próxima campana.
-      `en` es cuándo se pidió la lectura `c`. */
-  const avanzar = async (c: Awaited<ReturnType<DepsTraspaso["leer"]>>, en: number) => {
+      `en` es cuándo se pidió la lectura `c`. `porVuelta`: la pide
+      `mirarSinCampana` y no una campana, que es lo que dice que un turno acabó. */
+  const avanzar = async (c: Awaited<ReturnType<DepsTraspaso["leer"]>>, en: number, porVuelta = false) => {
     const p = pendiente;
     if (!p) return;
     if (ahora() - p.desde > CADUCA_MS) return poner(null);
@@ -583,7 +590,7 @@ export function crearTraspaso(d: DepsTraspaso) {
     if (p.paso === "esperando") {
       const texto = await traspaso(p.que, p.sinCommits);
       if (pendiente !== p) return; // «Ahora no» mientras se miraba la skill
-      const cerrando = { ...p, paso: "cerrando" as const, desde: ahora() };
+      const cerrando = { ...p, paso: "cerrando" as const, desde: ahora(), usado: c?.used };
       poner(cerrando);
       await d.mandar(texto);
       // Un `/fin` que esa terminal no conoce no abre turno ni toca la campana,
@@ -602,6 +609,11 @@ export function crearTraspaso(d: DepsTraspaso) {
     // El `/compact` (o la nueva) solo con una lectura de DESPUÉS del `/fin`, y
     // asentada: una de antes dice «lista» del turno anterior, no del `/fin`.
     if (en - p.desde < ASIENTO_MS) return;
+    // Y sin campana, solo si el transcript se movió desde el `/fin`: el turno
+    // del `/fin` deja otro número de tokens. Si no se movió, es la lectura de
+    // antes y no la del `/fin` acabado (el Claude de mentira de
+    // `tope-de-contexto-de-verdad.mjs` no apunta nada tras el `/fin`).
+    if (porVuelta && p.usado != null && c?.used === p.usado) return;
     poner(null);
     // Hecho en los dos casos: la vieja no se compacta sola después.
     hecho = true;
@@ -677,29 +689,43 @@ export function crearTraspaso(d: DepsTraspaso) {
     if (pendiente?.que === "nueva") return "nueva";
     void conCandado(async () => {
       if (pendiente?.que === "nueva") return;
-      const p = { que: "propia" as const, paso: "esperando" as const, solo: true, sinCommits: true, desde: ahora(), mensaje, seguir };
-      poner(p);
+      poner({ que: "propia", paso: "esperando", solo: true, sinCommits: true, desde: ahora(), mensaje, seguir });
       const { c, en } = await leerAhora();
       await avanzar(c, en);
-      if (pendiente === p) void esperarSuTurno(p);
     }, "esperar").catch(() => {});
     return "aceptado";
   };
 
-  /** Hasta que acabe el turno en que la pidió: cada poco, además de su
-      campana. Un Claude Code sin la campana puesta (`preferredNotifChannel`)
-      no la toca al acabar, y medido el 2026-11-11 con la 2.1.322: el
-      `/compact` no llegaba nunca. Cuando `avanzar` lo manda, el pedido ya es
-      otro y esto se acaba. */
-  const esperarSuTurno = async (p: NonNullable<typeof pendiente>) => {
-    while (pendiente === p) {
-      await esperar(VIGILA_COMPACTAR_MS);
-      if (pendiente !== p) return;
-      await conCandado(async () => {
-        if (pendiente !== p) return;
-        const { c, en } = await leerAhora();
-        await avanzar(c, en);
-      }, "soltar");
+  /**
+   * Lo pendiente avanza aunque no suene la campana. Claude Code 2.1.322 no la
+   * toca al acabar un turno: con el canal de fábrica, nunca, y con
+   * `terminal_bell`, al minuto de quedarse parado (medido el 2026-11-11 con
+   * `scripts/laboratorio/campana-de-verdad.mjs`). Sin esto, tras el `/fin` del
+   * botón, de la raya o de `compactar_terminal` el `/compact` no llegaba nunca.
+   * Mientras haya un traspaso en marcha se relee cada poco y se avanza con las
+   * llaves de siempre (`avanzar`), y tras el `/fin` solo con una lectura
+   * asentada (`ASIENTO_MS`) y con el transcript movido desde el `/fin`: una
+   * «lista» de antes no vale. Sin transcript (un panel que no es de Claude
+   * Code) no se mira: a ciegas, solo la campana. Lo de `compactarme` ya
+   * compactando lo mira `vigilar`. Uno solo a la vez.
+   */
+  let mirando = false;
+  const porMirar = () => !!pendiente && d.esClaude() && !(pendiente.que === "propia" && pendiente.paso === "cerrando");
+  const mirarSinCampana = async () => {
+    if (mirando) return;
+    mirando = true;
+    try {
+      while (porMirar()) {
+        await esperar(VIGILA_COMPACTAR_MS);
+        await conCandado(async () => {
+          if (!porMirar()) return;
+          const { c, en } = await leerAhora();
+          if (c) await avanzar(c, en, true);
+          else if (pendiente && ahora() - pendiente.desde > CADUCA_MS) poner(null);
+        }, "soltar");
+      }
+    } finally {
+      mirando = false;
     }
   };
 

@@ -13,10 +13,13 @@ use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, HANDLE};
 use windows_sys::Win32::System::JobObjects::{
     AssignProcessToJobObject, CreateJobObjectW, SetInformationJobObject,
     JobObjectExtendedLimitInformation, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
-    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, JOB_OBJECT_LIMIT_PRIORITY_CLASS,
 };
 #[cfg(windows)]
-use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_SET_QUOTA, PROCESS_TERMINATE};
+use windows_sys::Win32::System::Threading::{
+    OpenProcess, SetPriorityClass, BELOW_NORMAL_PRIORITY_CLASS, PROCESS_SET_INFORMATION,
+    PROCESS_SET_QUOTA, PROCESS_TERMINATE,
+};
 // Solo lo usa `taskkill`, que es la versión de Windows de matar la rama.
 #[cfg(windows)]
 use crate::SinVentana;
@@ -592,15 +595,92 @@ fn vaciar<R: Read>(
 //    escritorio de Claude, no huérfanos nuestros, y meterlos aquí sería
 //    firmarles la sentencia cada vez que Munir cierra Adeorq.
 
-/// El handle del corral. `HANDLE` es un puntero crudo, y por eso Rust no lo
-/// deja vivir en un `static` sin permiso explícito. Aquí el permiso está
+// ─── LA PRIORIDAD DE LO QUE NACE EN UNA TERMINAL ──────────────────────────
+//
+// Todo lo que se lanza desde una terminal corre por debajo de lo normal, y la
+// ventana de Adeorq no. Con los agentes llenando la máquina, la ventana competía
+// a la misma prioridad que su trabajo y se trababa a ratos («todavía se queda
+// congelado en muchas funciones y luego vuelve», Munir, 2026-11-11, con 12,6 de
+// 16 núcleos ocupados por lo que habían lanzado sus terminales y Adeorq gastando
+// 0,8). Con núcleos libres no cambia nada: lo de prioridad baja corre igual de
+// rápido mientras nadie de prioridad normal pida la CPU.
+//
+// En Windows lo fija el corral (`JOB_OBJECT_LIMIT_PRIORITY_CLASS`): vale para
+// el hijo y para todo lo que abra después, y ninguno puede subírsela (Chromium,
+// por ejemplo, se pone a sí mismo en normal). Si Windows no lo acepta, se le
+// baja al hijo al nacer y sus nietos la heredan. El `conhost` de cada terminal
+// lo crea quien abre la terminal, no el hijo, así que se queda en normal.
+// En Linux y Mac, `nice` 10 al hijo al nacer, que heredan sus nietos.
+
+/// `nice` de lo que nace en una terminal en Linux y Mac. El 10 de siempre (es lo
+/// que pone `nice` sin decirle cuánto): en el reparto de Linux, frente a uno de
+/// 0 se lleva una décima parte de la CPU.
+#[cfg(unix)]
+const NICE_DE_LAS_TERMINALES: i32 = 10;
+
+/// Le baja la prioridad a un proceso recién nacido de una terminal, sin corral
+/// que lo haga por él. Si falla, la terminal funciona igual y queda apuntado.
+#[cfg(windows)]
+fn bajar_prioridad(pid: u32) {
+    unsafe {
+        let h = OpenProcess(PROCESS_SET_INFORMATION, 0, pid);
+        if h.is_null() || SetPriorityClass(h, BELOW_NORMAL_PRIORITY_CLASS) == 0 {
+            crate::anotar(&format!(
+                "el proceso {pid} de una terminal se quedó con la prioridad normal: error {}",
+                GetLastError()
+            ));
+        }
+        if !h.is_null() {
+            CloseHandle(h);
+        }
+    }
+}
+
+/// Lo mismo en Linux y Mac. En Linux el `nice` es de cada hilo, así que se le
+/// pone a todos los que ya tenga (al nacer suele ser uno solo); los hilos y
+/// procesos que abra después lo heredan.
+#[cfg(unix)]
+fn bajar_prioridad(pid: u32) {
+    #[cfg(target_os = "linux")]
+    let hilos: Vec<u32> = std::fs::read_dir(format!("/proc/{pid}/task"))
+        .map(|d| d.flatten().filter_map(|e| e.file_name().to_str()?.parse().ok()).collect())
+        .unwrap_or_else(|_| vec![pid]);
+    #[cfg(not(target_os = "linux"))]
+    let hilos = vec![pid];
+    for hilo in hilos {
+        if unsafe { libc::setpriority(libc::PRIO_PROCESS, hilo as libc::id_t, NICE_DE_LAS_TERMINALES) } != 0 {
+            crate::anotar(&format!(
+                "el proceso {pid} de una terminal se quedó con la prioridad normal: {}",
+                std::io::Error::last_os_error()
+            ));
+        }
+    }
+}
+
+/// El handle del corral, y si fija la prioridad de lo que entra. `HANDLE` es
+/// un puntero crudo, y por eso Rust no lo deja vivir en un `static` sin
+/// permiso explícito. Aquí el permiso está
 /// justificado: este handle solo se LEE y se le pasa al kernel, que sí es
 /// seguro entre hilos, y no se cierra JAMÁS —cerrarlo mataría en el acto a
 /// todos los paneles, que es precisamente lo que el flag hace por nosotros
 /// cuando el proceso muere—.
 #[cfg(windows)]
 #[derive(Clone, Copy)]
-struct Corral(HANDLE);
+struct Corral(HANDLE, bool);
+
+/// Le pone al corral sus límites; `false` si Windows no los acepta.
+#[cfg(windows)]
+unsafe fn poner_limites(job: HANDLE, flags: u32, prioridad: u32) -> bool {
+    let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = std::mem::zeroed();
+    info.BasicLimitInformation.LimitFlags = flags;
+    info.BasicLimitInformation.PriorityClass = prioridad;
+    SetInformationJobObject(
+        job,
+        JobObjectExtendedLimitInformation,
+        &info as *const _ as *const core::ffi::c_void,
+        std::mem::size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
+    ) != 0
+}
 #[cfg(windows)]
 unsafe impl Send for Corral {}
 #[cfg(windows)]
@@ -627,18 +707,24 @@ fn corral() -> Option<Corral> {
             ));
             return None;
         }
-        let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = std::mem::zeroed();
         // El flag es TODO el asunto. Y no se pide BREAKAWAY_OK a propósito: sin
         // él, un hijo no puede sacar del corral a los nietos que abra aunque lo
         // intente, y `claude.exe` abre un `node` que es el agente de verdad.
-        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-        let puesto = SetInformationJobObject(
+        // Con él va la prioridad (ver «La prioridad de lo que nace en una
+        // terminal»); si Windows no la acepta, el corral se pone sin ella, que
+        // matar al cerrarse importa más.
+        let con_prioridad = poner_limites(
             job,
-            JobObjectExtendedLimitInformation,
-            &info as *const _ as *const core::ffi::c_void,
-            std::mem::size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
+            JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_PRIORITY_CLASS,
+            BELOW_NORMAL_PRIORITY_CLASS,
         );
-        if puesto == 0 {
+        if !con_prioridad {
+            crate::anotar(&format!(
+                "el corral no acepta fijar la prioridad (error {}): cada terminal la baja al nacer",
+                GetLastError()
+            ));
+        }
+        if !con_prioridad && !poner_limites(job, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, 0) {
             // Un corral sin ese flag es un corral con la puerta abierta: no
             // mataría a nadie al cerrarse y encima metería a los hijos en un
             // job que no les aporta nada. Se cierra y se sigue sin él.
@@ -649,7 +735,7 @@ fn corral() -> Option<Corral> {
             CloseHandle(job);
             return None;
         }
-        Some(Corral(job))
+        Some(Corral(job, con_prioridad))
     })
 }
 
@@ -675,7 +761,17 @@ fn corral() -> Option<Corral> {
 ///   app, no al cerrarse un panel. Los dos caminos siguen haciendo falta.
 #[cfg(windows)]
 fn meter_en_el_corral(pid: u32) {
-    let Some(corral) = corral() else { return };
+    let corral = corral();
+    let dentro = corral.is_some_and(|c| encerrar(c, pid));
+    // Dentro de un corral que fija la prioridad ya la tiene; si no, se le baja a él.
+    if !(dentro && corral.is_some_and(|c| c.1)) {
+        bajar_prioridad(pid);
+    }
+}
+
+/// `true` si el proceso quedó dentro del corral.
+#[cfg(windows)]
+fn encerrar(corral: Corral, pid: u32) -> bool {
     unsafe {
         // Los dos permisos EXACTOS que pide `AssignProcessToJobObject` y ni uno
         // más: para encerrar a un proceso no hace falta poder leer su memoria.
@@ -685,9 +781,10 @@ fn meter_en_el_corral(pid: u32) {
                 "no se pudo abrir el proceso {pid} para meterlo en el corral: error {}",
                 GetLastError()
             ));
-            return;
+            return false;
         }
-        if AssignProcessToJobObject(corral.0, h) == 0 {
+        let dentro = AssignProcessToJobObject(corral.0, h) != 0;
+        if !dentro {
             crate::anotar(&format!(
                 "el proceso {pid} se quedó fuera del corral: error {}",
                 GetLastError()
@@ -696,6 +793,7 @@ fn meter_en_el_corral(pid: u32) {
         // El handle del PROCESO sí se cierra: la pertenencia al job ya está
         // hecha y no depende de que lo mantengamos abierto. El del JOB no.
         CloseHandle(h);
+        dentro
     }
 }
 
@@ -924,6 +1022,11 @@ pub fn abrir(mapa: &Mapa, alta: Alta, salida: std::sync::Arc<dyn Salida>) -> Res
     #[cfg(windows)]
     if let Some(pid) = pid {
         meter_en_el_corral(pid);
+    }
+    // Y por debajo de lo normal (en Windows lo hace el corral).
+    #[cfg(unix)]
+    if let Some(pid) = pid {
+        bajar_prioridad(pid);
     }
 
     let mut reader = pair.master.try_clone_reader().map_err(|e| e.to_string())?;
@@ -3150,6 +3253,35 @@ mod rueda_en_fullscreen {
     }
 }
 
+/// En Linux y Mac, lo que nace en una terminal sale con `nice` 10, y lo que
+/// lance después también. `cargo test --lib prioridad_en_unix`
+#[cfg(all(test, unix))]
+mod prioridad_en_unix {
+    use super::*;
+
+    #[test]
+    fn el_hijo_y_lo_que_lanza_salen_con_nice_10() {
+        // Una shell que lanza un nieto un rato después de nacer, como hace una
+        // terminal con lo que se teclea en ella.
+        let mut hijo = std::process::Command::new("sh")
+            .args(["-c", "sleep 1; sleep 30 & echo $!; wait"])
+            .stdout(std::process::Stdio::piped())
+            .spawn()
+            .expect("no arrancó sh");
+        bajar_prioridad(hijo.id());
+        let mut linea = String::new();
+        std::io::BufRead::read_line(&mut std::io::BufReader::new(hijo.stdout.take().unwrap()), &mut linea).unwrap();
+        let nieto: libc::id_t = linea.trim().parse().expect("sh no dijo el pid de su nieto");
+        let nice = |pid: libc::id_t| unsafe { libc::getpriority(libc::PRIO_PROCESS, pid) };
+        let (del_hijo, del_nieto) = (nice(hijo.id() as libc::id_t), nice(nieto));
+        unsafe { libc::kill(nieto as libc::pid_t, libc::SIGKILL) };
+        let _ = hijo.kill();
+        let _ = hijo.wait();
+        assert_eq!(del_hijo, NICE_DE_LAS_TERMINALES, "el hijo de la terminal");
+        assert_eq!(del_nieto, NICE_DE_LAS_TERMINALES, "lo que lanza el hijo lo hereda");
+    }
+}
+
 /// Que si Adeorq muere, sus agentes mueren con él (META 13), probado con
 /// procesos de verdad y sin tocar ningún panel de Munir.
 ///
@@ -3201,6 +3333,29 @@ mod corral_de_procesos {
         }
         let _ = hijo.kill();
         let _ = hijo.wait();
+    }
+
+    /// Lo que nace en una terminal corre por debajo de lo normal, y no se la
+    /// sube nadie: ni el programa ni quien lo lanzó (`PRIORIDAD_DE_LAS_TERMINALES`).
+    #[test]
+    fn lo_del_corral_corre_por_debajo_de_lo_normal_y_no_sube() {
+        use windows_sys::Win32::System::Threading::{
+            GetPriorityClass, BELOW_NORMAL_PRIORITY_CLASS, NORMAL_PRIORITY_CLASS,
+        };
+        let mut hijo = ping_largo();
+        meter_en_el_corral(hijo.id());
+        unsafe {
+            let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_INFORMATION, 0, hijo.id());
+            assert!(!h.is_null());
+            let al_entrar = GetPriorityClass(h);
+            SetPriorityClass(h, NORMAL_PRIORITY_CLASS);
+            let tras_subirla = GetPriorityClass(h);
+            CloseHandle(h);
+            let _ = hijo.kill();
+            let _ = hijo.wait();
+            assert_eq!(al_entrar, BELOW_NORMAL_PRIORITY_CLASS, "al entrar al corral tiene que bajar de prioridad");
+            assert_eq!(tras_subirla, BELOW_NORMAL_PRIORITY_CLASS, "el corral no deja subirla otra vez");
+        }
     }
 
     /// Y lo que hace Windows cuando el corral se cierra, que es lo que pasa al

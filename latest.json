@@ -1,11 +1,11 @@
 {
-  "version": "0.9.252",
-  "notes": "Una sesion de Claude Code puede compactarse sola con su mensaje y seguir: herramienta compactarme, pensada para fin",
-  "pub_date": "2026-11-11T15:51:48Z",
+  "version": "0.9.253",
+  "notes": "Adeorq ve en la pantalla cuando Claude Code acaba su turno, sin campana: vuelven el aviso de termino, la raya roja y compactar. Y lo que lanzan las terminales va por debajo de lo normal para que la ventana no se trabe",
+  "pub_date": "2026-11-11T19:40:56Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3lnUm9ZSEdGUUtCek5kQVh5V3ZlRVNpYncvdTA3aXZGOVk3NnZKVFA2OEh0cFRZMDRrN3drNGl6bEQvSC81Y24wRnJKdnZpcDVudDljeUZkbTYrSndJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0NDEyMjk4CWZpbGU6QWRlb3JxXzAuOS4yNTJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNTIKbm1TZlZRUElpUkFjQjlRekNTbG02eUlCSW5PRmwwZENGcmdwbWdxSWtWR0EySUxWY1h2ZHhYRkhiUk1RaFZQMHpFWXlBRGJMRmFyRDQ3VHJVeSt6QWc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.252/Adeorq_0.9.252_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3pHQXIzdjNJUmNzZjE0bWU1WnFnZTAyYjl5ZEdBZzVaTXREVFkxT1JneG01aDNidE03RmpGRGVYVHlmTm0vTHRMTUdFc3U0TkxqQXdQK3IvQ3NlT1FrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0NDI2MDQzCWZpbGU6QWRlb3JxXzAuOS4yNTNfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNTMKSHZFNEU4THEzSHgwMytkcFFvLzhPK2cyMythK0ZyM2lTYnZQNXI2emtTRzlOOGYvcFVtd3J1RUJsQ2tpanhEOGFSL2NhdU4yeERibUhkK0N4djh2QXc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.253/Adeorq_0.9.253_x64-setup.exe"
     }
   }
 }

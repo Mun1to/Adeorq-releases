@@ -111,6 +111,7 @@ import {
 import { leerPerfil, raiz, tocarPerfil } from "./lib/perfil";
 import { coloresDeProyectos, proyectoDeCarpeta } from "./lib/colorLienzo";
 import { acabaDeReclamar, PINTA } from "./lib/estados";
+import { finReciente } from "./lib/finDeTurno";
 import { nombreDeRuta, trasCerrarPestana } from "./lib/arbol";
 import { usePuenteMcp } from "./lib/puenteMcp";
 import { cuentaConocida, cuentaDeSuEntorno, useFrenoCuota } from "./lib/frenoCuota";
@@ -315,8 +316,10 @@ function App() {
        2026-08-10: «la tengo activada y no funciona»). El transcript sí lo sabe,
        y Adeorq ya lo lee para pintar el estado de cada panel: colgarlo también
        de aquí cubre además el «o necesita mi feedback», que la campana no sabe
-       decir. Las reglas y sus casos, en `lib/estados.ts`. */
-    if (acabaDeReclamar(antes, st.state)) alTerminarRef.current?.(st.id);
+       decir. Las reglas y sus casos, en `lib/estados.ts`. Un turno que el panel
+       ya anunció (`finReciente`, `lib/finDeTurno.ts`) no salta otra vez; una
+       pregunta suya, sí. */
+    if (acabaDeReclamar(antes, st.state) && (st.state === "pregunta" || !finReciente(st.id))) alTerminarRef.current?.(st.id);
     apuntarEstado(st);
   }, [apuntarEstado]);
   const [cols, setCols] = useState<Col[]>([]);

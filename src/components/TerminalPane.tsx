@@ -90,6 +90,7 @@ import { propsDeVelo } from "../lib/velo";
 import { proveedorDe, sabe } from "../lib/providers";
 import { olvidarTerminal, registrarTerminal } from "../lib/terminales";
 import { enPantalla, esperaEnSuCaja, finDesconocidoEnPantalla, nivelDeContexto, trabajaEnPantalla, useContextoDeSesion, useTraspaso, useTraspasoDelMovil } from "../lib/contexto";
+import { apuntarFin, engancharFinDeTurno } from "../lib/finDeTurno";
 import AvisoContexto from "./AvisoContexto";
 import { useNombreSolo } from "../lib/nombreSolo";
 import { useDatosCabecera } from "../lib/cabeceraTerminal";
@@ -673,6 +674,8 @@ export default function TerminalPane({
   // calls the current callback instead of the one captured at mount.
   const turnEndRef = useRef(onTurnEnd);
   turnEndRef.current = onTurnEnd;
+  /** Si corre Claude Code: solo en él se ve el fin de turno sin campana. */
+  const esClaudeRef = useRef(false);
   // Por ref igual que el de arriba: el `onData` se engancha una sola vez, al
   // nacer la terminal, y se quedaría con la función de aquel primer render.
   const alEscribirRef = useRef(onEscribir);
@@ -1822,9 +1825,11 @@ export default function TerminalPane({
       if (Math.abs(b.viewportY - linea) > 1) t.scrollToLine(linea);
     };
 
-    // The Claude CLI rings the terminal bell when its turn ends; that is the
-    // "this pane finished and waits for you" signal (blue glow).
-    const bellSub = term.onBell(() => {
+    // El fin de un turno («terminó» y su brillo azul): la campana, o Claude Code
+    // pasando de trabajar a parado en su caja, porque la 2.1.322 no la toca al
+    // acabar (`lib/finDeTurno.ts`). Una sola vez por turno.
+    unsubs.push(engancharFinDeTurno(term, { esClaude: () => esClaudeRef.current, alAcabar: () => {
+      apuntarFin(id);
       setDone(true);
       // Turn over: whatever was running has finished, keep only the total.
       setAgents((a) => ({ live: 0, total: a.total }));
@@ -1853,8 +1858,7 @@ export default function TerminalPane({
           sigueIgual: () => doneRef.current,
         });
       }
-    });
-    unsubs.push(() => bellSub.dispose());
+    } }));
 
     /* ── La cola de «leer en paz» ─────────────────────────────────────────
      *
@@ -2151,6 +2155,7 @@ export default function TerminalPane({
   // a ciegas como siempre (no se lee su transcript), y nunca solo. Del `kind`, que se mira
   // sin el encargo: un Codex al que le encargaron algo de «claude» no es Claude Code.
   const esClaude = sabe(kind, "compactaConTraspaso");
+  esClaudeRef.current = esClaude;
   const traspaso = useTraspaso({
     id,
     t,

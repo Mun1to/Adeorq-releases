@@ -74,6 +74,14 @@
     --mono: ui-monospace, "Cascadia Mono", "Roboto Mono", "SF Mono", Consolas, monospace;
     --t: 0.18s;
     --t-lenta: 0.32s;
+    /* El ancho de la columna en una pantalla ancha (un PC, el marco del panel de
+       Munir): lo de dentro va centrado y nada se estira de lado a lado. En el
+       móvil no se nota: la columna es más ancha que la pantalla. La pantalla
+       de una terminal va más ancha, que una línea de Claude Code en el PC tiene
+       unas 160 columnas. */
+    --ancho: 760px;
+    --ancho-pantalla: 1240px;
+    --cajon-fijo: 300px;
     /* El tamaño de la letra que eliges en Ajustes: cada tamaño de la hoja va
        multiplicado por esto. Solo la letra; los huecos y los iconos se quedan. */
     --z: 1;
@@ -177,7 +185,8 @@
      de agente, Chat y Pantalla en una segunda fila. */
   .barra {
     display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; column-gap: 6px;
-    padding: calc(6px + env(safe-area-inset-top)) 8px 6px;
+    /* Los botones de los lados, a la altura del borde de la columna (en el móvil, 8 px). */
+    padding: calc(6px + env(safe-area-inset-top)) max(8px, calc((100% - var(--ancho)) / 2 - 12px)) 6px;
     background: var(--capa); backdrop-filter: var(--vidrio); -webkit-backdrop-filter: var(--vidrio);
     border-bottom: 1px solid var(--borde); box-shadow: var(--brillo);
     position: relative; z-index: 2;
@@ -199,7 +208,9 @@
      arrastrar la vista entera de lado (Munir, 2026-10-15). */
   /* `relative` también aquí, de red: todo lo que vaya en posición absoluta
      dentro de la lista se desliza con ella y nunca estira la página. */
-  .cuerpo { position: relative; flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px 16px 24px; overscroll-behavior: contain; min-height: 0; overflow-wrap: anywhere; }
+  /* La columna se hace con el relleno, no con un ancho: así la rueda del ratón
+     desliza la lista también desde los lados, y su barra queda en el borde. */
+  .cuerpo { position: relative; flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px max(16px, calc((100% - var(--ancho)) / 2)) 24px; overscroll-behavior: contain; min-height: 0; overflow-wrap: anywhere; }
   .cuerpo[hidden] { display: none; }
 
   /* ── 4. Piezas sueltas ── */
@@ -439,6 +450,10 @@
     margin-left: auto; min-width: 22px; height: 22px; padding: 0 7px; display: inline-grid; place-items: center; border-radius: var(--r-pastilla);
     background: var(--pregunta); color: #1d1608; font-size: calc(12px * var(--z)); font-weight: 750;
   }
+  /* En el cajón, `.fila span` le ponía su gris y su tamaño: gris sobre ámbar
+     claro, contraste 1,7. Y en claro el ámbar es oscuro: la cifra, en blanco. */
+  .fila .cuenta-dec { color: #1d1608; font-size: calc(12px * var(--z)); }
+  :root[data-tema="claro"] .cuenta-dec { color: #fff; }
   /* Las decisiones que te esperan, en un globito sobre el botón del cajón:
      se ve desde cualquier pantalla, y en el inicio ya no hay botón de
      Decisiones (Munir, 2026-10-15: «ya está a la izquierda»). */
@@ -468,6 +483,17 @@
   .ajustes .avisos.peligro { color: var(--mal); }
   .ajustes .avisos.peligro[data-seguro] { border-color: color-mix(in srgb, var(--mal) 45%, transparent); }
   .ajuste { display: grid; gap: 8px; padding: 10px 12px 12px; }
+  /* El código para emparejar otro aparato: las seis cifras grandes y sueltas,
+     su cuenta atrás al lado y, debajo, a dónde ir en el otro aparato. */
+  .codigo-otro { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 14px; padding: 2px 2px 0; }
+  .codigo-otro strong { font-size: calc(40px * var(--z)); font-weight: 650; letter-spacing: 0.06em; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--tinta); }
+  .codigo-otro span { font-size: calc(15px * var(--z)); color: var(--suave); font-variant-numeric: tabular-nums; }
+  .otro-donde { margin: 0 2px; font-size: calc(14px * var(--z)); line-height: 1.45; color: var(--suave); overflow-wrap: anywhere; }
+  .otro-donde b { color: var(--tinta); font-weight: 600; }
+  /* «Tus aparatos»: uno por fila con su «Quitar», que va a dos toques. */
+  .aparato > span { overflow-wrap: anywhere; }
+  .mini.quitar { flex: none; min-height: 38px; color: var(--tinta); }
+  .mini.quitar.peligro { color: var(--mal); border-color: color-mix(in srgb, var(--mal) 45%, transparent); }
   .ajuste > b { font-size: calc(13px * var(--z)); font-weight: 600; color: var(--suave); }
   .fila-ajuste { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 12px; }
   .fila-ajuste > span { flex: 1; min-width: 0; display: grid; gap: 1px; font-size: calc(15px * var(--z)); }
@@ -505,7 +531,9 @@
   .muestra.del-pc i { width: 28px; height: 28px; border-radius: 50%; background: var(--c); }
   /* Las tres fotos, con su miniatura. */
   .fotos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-  .foto-op { display: grid; gap: 2px; padding: 0; border: 0; background: none; text-align: center; cursor: pointer; color: var(--suave); }
+  /* `start`: estirada al alto de la fila, la que no lleva segunda línea («Sin
+     foto») repartía el sobrante y su miniatura salía más alta que las otras. */
+  .foto-op { display: grid; align-content: start; gap: 2px; padding: 0; border: 0; background: none; text-align: center; cursor: pointer; color: var(--suave); }
   .foto-op .mini {
     display: grid; place-items: center; aspect-ratio: 3 / 4; max-width: 100%; margin-bottom: 4px; border-radius: var(--r-btn);
     border: 1px solid var(--borde); background: var(--fondo) center / cover no-repeat; color: var(--suave);
@@ -660,7 +688,7 @@
   .pestanas .pastilla[data-on="true"] { background: var(--acento); color: var(--sobre-acento); font-weight: 650; }
   /* Una decisión pendiente se ve desde dentro de una terminal. */
   .aviso-dec {
-    display: flex; align-items: center; gap: 10px; width: calc(100% - 24px); margin: 10px 12px 0; padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px; width: min(calc(100% - 24px), calc(var(--ancho) + 8px)); margin: 10px auto 0; padding: 10px 14px;
     border-radius: var(--r-btn); border: 1px solid color-mix(in srgb, var(--pregunta) 45%, transparent);
     background: color-mix(in srgb, var(--pregunta) 12%, var(--capa)); color: var(--tinta); font: inherit; font-size: calc(13.5px * var(--z));
     text-align: left; cursor: pointer;
@@ -678,7 +706,7 @@
   .ctx[data-nivel="2"] { --c: var(--mal); color: var(--mal); }
   /* El aviso de compactar, como el de las decisiones, con sus botones. */
   .aviso-ctx {
-    display: grid; gap: 8px; margin: 10px 12px 0; padding: 11px 14px;
+    display: grid; gap: 8px; width: min(calc(100% - 24px), calc(var(--ancho) + 8px)); margin: 10px auto 0; padding: 11px 14px;
     border-radius: var(--r-btn); border: 1px solid color-mix(in srgb, var(--termino) 45%, transparent);
     background: color-mix(in srgb, var(--termino) 12%, var(--capa)); font-size: calc(13.5px * var(--z));
   }
@@ -697,7 +725,7 @@
   /* Una sola cosa hace scroll, el `.cuerpo`, y la letra se ajusta al ancho del
      móvil: con `pre` sin ajustar, una línea de 77 columnas no cabía en 390 px. */
   /* A todo el ancho y sin recuadro (2026-10-16): el marco entero es la terminal. */
-  #marco { padding: 0; background: var(--pantalla); }
+  #marco { padding: 0 max(0px, calc((100% - var(--ancho-pantalla)) / 2)); background: var(--pantalla); }
   .pantalla {
     margin: 0; padding: 12px 12px 16px; color: #d6e2f5;
     font: calc(12px * var(--z))/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere;
@@ -731,14 +759,14 @@
   .nota-pantalla { margin: 10px 12px 0; font-size: calc(12.5px * var(--z)); color: #93a4c2; }
   .nota-pantalla button { padding: 0; border: 0; background: none; color: var(--acento); font: inherit; text-decoration: underline; cursor: pointer; }
   .bajar {
-    position: absolute; right: 16px; bottom: calc(100% + 10px); z-index: 2;
+    position: absolute; right: max(16px, calc((100% - var(--ancho)) / 2)); bottom: calc(100% + 10px); z-index: 2;
     width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: grid; place-items: center;
     border: 1px solid var(--borde-fuerte); background: var(--cristal); color: var(--tinta); box-shadow: var(--sombra);
   }
 
   /* ── 9. La caja de escribir: una tarjeta de cristal flotando abajo. Arriba
      el texto; debajo, en una fila, adjuntar, las teclas, las pastillas y mandar. ── */
-  .caja { position: relative; padding: 8px 12px calc(10px + env(safe-area-inset-bottom)); }
+  .caja { position: relative; padding: 8px max(12px, calc((100% - var(--ancho)) / 2 - 4px)) calc(10px + env(safe-area-inset-bottom)); }
   .caja .fallo, .aviso-mejora { margin: 0 4px 8px; }
   .aviso-mejora { font-size: calc(12.5px * var(--z)); color: var(--acento); }
   /* «Adeo es una IA y puede equivocarse» + el enlace de informar de un problema
@@ -972,6 +1000,60 @@
     .tarjeta, .fila, .opcion, .opciones-menu button, .boton, .pastilla, .enviar, .cajon, .cajon-velo { transition: none; }
     .hilo::before { animation-duration: 7s; }
   }
+
+  /* ── 14. En un PC (2026-11-13) ──
+     Munir la abrió en el PC de clase: «la interfaz no está optimizada para PC,
+     solo móvil, y algunas cosas se ven raras». A 1920 todo iba de lado a lado
+     (el punto de estado a 1.800 px de su nombre), el cajón tapaba con su velo,
+     las fotos de Ajustes medían 800 px de alto y emparejar quedaba arriba con
+     media pantalla vacía. La columna está arriba (`--ancho`); aquí, lo demás.
+     Lo fija `scripts/laboratorio/movil-pc.js`. */
+  @media (min-width: 1600px) { :root { --ancho: 860px; } }
+  /* Con el ratón, lo que se pulsa responde al pasar por encima, como el cristal
+     del escritorio; en el móvil no hay «encima» y no se pinta. */
+  @media (hover: hover) {
+    button.fila:hover, .cajon .proyecto:hover, .atras:hover, .tarjeta.ses:hover, .hoja button:hover { background: var(--capa-fuerte); }
+    .tarjeta.ses:hover { border-radius: var(--r-btn); }
+    button.fila[aria-current="true"]:hover { background: var(--capa-viva); }
+    .tarjeta:not(.ses):hover, .opcion:hover, .opciones-menu button:hover, .ver-tarjeta:hover, .avisos:hover { border-color: var(--borde-fuerte); }
+    .pastilla:hover, .mini:hover, .adjuntar:hover, .abrir-teclas:hover, .mover:hover, .descartar:hover, .cajon .pc .a-ajustes:hover { background: var(--capa-viva); }
+    .boton:not(:disabled):hover, .enviar:not(:disabled):hover { filter: brightness(1.08); }
+    .nuevo-encargo:hover { filter: brightness(0.94); }
+  }
+  /* La barra de lo que se desliza, fina y del tono de los bordes: la del
+     sistema, gris y gorda, salía en el PC en medio del cristal. */
+  .cuerpo, .cajon .recientes { scrollbar-width: thin; scrollbar-color: var(--borde-fuerte) transparent; }
+  @media (min-width: 600px) {
+    .ver-rejilla { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+    /* Tres fotos de 3:4 a lo ancho de la columna medían 800 px de alto: en una
+       pantalla ancha van apaisadas, que así es la pantalla donde se ven. */
+    .foto-op .mini { aspect-ratio: 16 / 10; }
+    .ver-cuerpo:not(.entera) .ver-img { max-width: min(100%, var(--ancho)); margin: 0 auto; }
+    /* Lo que se hace con una conversación: una ventana en medio, no una tira
+       a todo el ancho pegada abajo. */
+    .hoja { left: calc(var(--izq, 0px) + max(10px, (100% - var(--izq, 0px)) / 2 - 210px)); right: max(10px, (100% - var(--izq, 0px)) / 2 - 210px); }
+  }
+  @media (min-width: 1024px) {
+    /* El cajón, fijo a la izquierda y sin velo, como la barra de la app del PC.
+       Lo pone `fijarCajon` solo con el aparato emparejado: emparejar va sin él. */
+    body[data-cajon-fijo] { --izq: var(--cajon-fijo); }
+    body[data-cajon-fijo] #app { margin-left: var(--cajon-fijo); }
+    body[data-cajon-fijo] .cajon { width: var(--cajon-fijo); transform: none; transition: none; box-shadow: none; border-right-color: var(--borde); }
+    body[data-cajon-fijo] .cajon-velo { display: none; }
+    /* «Nuevo encargo» flotaba encima de los proyectos: fijo, va en su sitio,
+       entre la lista y la línea del PC, sin tapar nada. */
+    body[data-cajon-fijo] .nuevo-encargo { position: static; order: 1; align-self: flex-end; margin: 8px 16px 10px; }
+    body[data-cajon-fijo] .cajon .pc { order: 2; }
+    body[data-cajon-fijo] .cajon .recientes { padding-bottom: 12px; }
+    /* Su botón sobra; se queda su hueco para que el título siga en medio. */
+    body[data-cajon-fijo] #abrir-cajon { visibility: hidden; }
+    /* En el inicio la barra solo decía «Adeorq», que ya está en el cajón. */
+    body[data-cajon-fijo] .portada > .barra { display: none; }
+    /* La pantalla de una terminal, con letra de PC: a 12 px se leía chica. */
+    .pantalla { font-size: calc(13px * var(--z)); }
+    /* Emparejar, en medio de la ventana y no arriba con el hueco debajo. */
+    .emparejar { min-height: 100dvh; margin-top: 0; padding-block: 24px; align-content: center; }
+  }
 </style>
 <script>
 "use strict";
@@ -1133,18 +1215,19 @@ const EN = {
     "I can't reach your PC. Is it on, with Adeorq open and Tailscale running on both?",
   "Algo ha fallado ({n}).": "Something went wrong ({n}).",
   "Sin permiso para avisar.": "No permission to notify.",
-  "Avisos puestos en este móvil · tocar para quitarlos": "Notifications on for this phone · tap to turn them off",
-  "Avisarme en este móvil cuando una sesión me pregunte o termine":
-    "Notify me on this phone when a session asks me something or finishes",
+  "Avisos puestos en este aparato · tocar para quitarlos": "Notifications on for this device · tap to turn them off",
+  "Avisarme en este aparato cuando una sesión me pregunte o termine":
+    "Notify me on this device when a session asks me something or finishes",
   "No se pudo: {e}": "Could not do it: {e}",
   "Instalar Adeorq como app en este aparato": "Install Adeorq as an app on this device",
-  "Móvil": "Phone",
+  "Aparato": "Device",
   "Conectando con tu PC…": "Connecting to your PC…",
   // Emparejar
   "Conecta este aparato con tu Adeorq": "Connect this device to your Adeorq",
-  "En tu PC, abre Adeorq y ve a {donde}. Escribe aquí el código de seis cifras que sale. Solo hace falta una vez por navegador.":
-    "On your PC, open Adeorq and go to {donde}. Type the six-digit code it shows here. Each browser only needs this once.",
+  "En tu PC, abre Adeorq y ve a {donde}, o saca el código en un aparato ya emparejado, en {otro}. Escríbelo aquí. Solo hace falta una vez por navegador.":
+    "On your PC, open Adeorq and go to {donde}, or get the code on a device that is already paired, in {otro}. Type it here. Each browser only needs this once.",
   "Ajustes > Móvil > Emparejar un móvil": "Settings > Mobile > Pair a phone",
+  "Ajustes > Emparejar otro aparato": "Settings > Pair another device",
   "Código de seis cifras": "Six-digit code",
   "Cómo se llamará en Ajustes": "What it will be called in Settings",
   "Emparejar": "Pair",
@@ -1215,7 +1298,7 @@ const EN = {
     "You have not talked to Adeo yet. Start with “New job”, in the menu.",
   // Ajustes del móvil
   "Ajustes": "Settings",
-  "cómo se ve y qué te avisa este móvil": "how this phone looks and what it tells you",
+  "cómo se ve y qué te avisa este aparato": "how this device looks and what it tells you",
   "Azul": "Blue",
   "Cian": "Cyan",
   "Verde": "Green",
@@ -1234,7 +1317,7 @@ const EN = {
   "Fondo": "Background",
   "La foto de detrás del cristal": "The photo behind the glass",
   "La de tu PC": "Your PC's",
-  "De este móvil": "From this phone",
+  "De este aparato": "From this device",
   "toca para cambiarla": "tap to change it",
   "elige una": "pick one",
   "Sin foto": "No photo",
@@ -1273,12 +1356,29 @@ const EN = {
   "cuando uno se para": "when one stops",
   "Con sonido y vibración": "With sound and vibration",
   "si no, llegan en silencio": "otherwise they arrive silently",
-  "Este móvil": "This phone",
+  "Tus aparatos": "Your devices",
+  "este aparato": "this device",
+  "visto {c}": "seen {c}",
+  "Quitar": "Remove",
+  "Toca otra vez": "Tap again",
+  "tendrá que emparejarse de nuevo": "it will have to be paired again",
+  "«{n}» ya ha entrado.": "“{n}” is in.",
+  "Emparejar otro aparato": "Pair another device",
+  "Para siempre": "For good",
+  "si no, se olvida solo a las 8 horas de entrar": "if not, it is forgotten 8 hours after it comes in",
+  "se olvida a las {h}": "forgotten at {h}",
+  "Pedir otro código": "Get another code",
+  "Código para emparejar otro aparato": "Code to pair another device",
+  "Vale {m}:{s}": "Valid for {m}:{s}",
+  "En el otro aparato, con Tailscale encendido, abre {dir} y escribe este código.":
+    "On the other device, with Tailscale on, open {dir} and type this code.",
+  "Ese código ya ha caducado.": "That code has expired.",
+  "Este aparato": "This device",
   "Dejar el aspecto como venía": "Put the look back as it came",
-  "Olvidar este móvil": "Forget this phone",
+  "Olvidar este aparato": "Forget this device",
   "Toca otra vez para olvidarlo: tendrás que emparejarlo de nuevo": "Tap again to forget it: you will have to pair it again",
   "No he podido abrir esa foto.": "I could not open that photo.",
-  "Esa foto no cabe en este móvil: prueba con otra.": "That photo does not fit on this phone: try another one.",
+  "Esa foto no cabe en este aparato: prueba con otra.": "That photo does not fit on this device: try another one.",
   // Adeo (el chat; en el código sigue siendo el conserje)
   "Adeo": "Adeo",
   "Mejorado: lo mismo que dijiste, ordenado. Si no te gusta, Deshacer.":
@@ -1504,6 +1604,9 @@ const DEL_PC = {
   "Ese modelo no se pide desde el móvil.": "That model cannot be asked for from the phone.",
   "Ese esfuerzo no se pide desde el móvil.": "That effort cannot be asked for from the phone.",
   "Ese proyecto no tiene logo.": "That project has no logo.",
+  "Ese aparato no se reconoce.": "That device is not recognised.",
+  "Ese aparato ya no está emparejado.": "That device is no longer paired.",
+  "Para olvidar este aparato, usa el último botón de Ajustes.": "To forget this device, use the last button in Settings.",
   "Aquí no hay historial.": "There is no history here.",
   "Eso no se le pide a una terminal.": "That is not something to ask a terminal.",
   "Falta en qué proyecto.": "Pick a project.",
@@ -1520,15 +1623,16 @@ const DEL_PC = {
   "Esta terminal no cambia de esfuerzo en marcha.": "This terminal cannot change its effort while running.",
   "Esa terminal no se puede compactar desde aquí.": "That terminal cannot be compacted from here.",
   "Tu PC no tiene foto de fondo.": "Your PC has no background photo.",
-  "El fondo de tu PC es un vídeo: en el móvil no se pone.": "Your PC's background is a video: it is not used on the phone.",
+  "El fondo de tu PC es un vídeo: aquí no se pone.": "Your PC's background is a video: it is not used here.",
   "Esta dirección no es de este PC.": "This address is not this PC's.",
   "Esa página no es la de Adeo.": "That page is not Adeo's.",
   "No hay ningún emparejamiento abierto: pídelo en Ajustes > Móvil.": "No pairing is open: ask for one in Settings > Mobile.",
   "El código ha caducado: pide otro en Ajustes > Móvil.": "The code has expired: ask for another one in Settings > Mobile.",
   "Demasiados intentos: pide otro código en Ajustes > Móvil.": "Too many attempts: ask for another code in Settings > Mobile.",
   "Ese código no es.": "That is not the code.",
+  "Adeo en el móvil está apagado en el PC.": "Adeo on your phone is turned off on the PC.",
   "Aquí no hay nada.": "There is nothing here.",
-  "Este móvil no está emparejado.": "This phone is not paired.",
+  "Este aparato no está emparejado.": "This device is not paired.",
   "Esa conversación no existe.": "That conversation does not exist.",
   "La suscripción no está completa.": "The subscription is incomplete.",
   "No hay nada que mandar.": "There is nothing to send.",
@@ -2364,7 +2468,7 @@ async function api(metodo, ruta, cuerpo) {
   const v = await r.json().catch(() => ({}));
   if (r.status === 401) {
     olvidarClave();
-    throw new Error(delPc(v.error || "Este móvil no está emparejado."));
+    throw new Error(delPc(v.error || "Este aparato no está emparejado."));
   }
   if (!r.ok) {
     const err = new Error(delPc(v.error) || tr("Algo ha fallado ({n}).", { n: r.status }));
@@ -2383,8 +2487,8 @@ function olvidarClave() {
 
 /* Dentro del panel personal de Munir (decisión del 2026-10-08): ahí esta
    página va en un marco, y el navegador le da un almacén aparte que Brave
-   vacía al cerrar la pestaña. Emparejar exige ir al PC, así que sin esto
-   habría que volver a casa cada vez. La clave la guarda el panel y se la da
+   vacía al cerrar la pestaña. Emparejar pide un código del PC (o de otro
+   aparato ya emparejado), así que sin esto habría que pedirlo cada vez. La clave la guarda el panel y se la da
    al abrir; se habla SOLO con esa dirección, la misma que deja `movil.rs` en
    `frame-ancestors` (`PANEL_DE_MUNIR`). */
 const PANEL = "https://munito-panel.pages.dev";
@@ -2505,7 +2609,7 @@ async function pintarAvisos() {
   try { puestos = !!(await suscripcionActual()) && Notification.permission === "granted"; } catch (_) {}
   b.hidden = false;
   b.dataset.on = String(puestos);
-  b.textContent = puestos ? tr("Avisos puestos en este móvil · tocar para quitarlos") : tr("Avisarme en este móvil cuando una sesión me pregunte o termine");
+  b.textContent = puestos ? tr("Avisos puestos en este aparato · tocar para quitarlos") : tr("Avisarme en este aparato cuando una sesión me pregunte o termine");
   b.onclick = async () => {
     b.disabled = true;
     try {
@@ -2551,7 +2655,7 @@ function pintarInstalar() {
 function nombreSugerido() {
   const ua = navigator.userAgent;
   const sistema = /Android/i.test(ua) ? "Android" : /iPhone/i.test(ua) ? "iPhone" : /iPad/i.test(ua) ? "iPad"
-    : /Windows/i.test(ua) ? "Windows" : /Mac OS X/i.test(ua) ? "Mac" : /Linux/i.test(ua) ? "Linux" : tr("Móvil");
+    : /Windows/i.test(ua) ? "Windows" : /Mac OS X/i.test(ua) ? "Mac" : /Linux/i.test(ua) ? "Linux" : tr("Aparato");
   const navegador = navigator.brave ? "Brave" : /EdgA?\//.test(ua) ? "Edge" : /SamsungBrowser/.test(ua) ? "Samsung"
     : /Firefox\/|FxiOS/.test(ua) ? "Firefox" : /Chrome\/|CriOS/.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "";
   return navegador ? `${sistema} · ${navegador}` : sistema;
@@ -2585,10 +2689,31 @@ function ponerEsperan(n) {
 function montarBotonCajon() {
   document.getElementById("abrir-cajon")?.addEventListener("click", () => abrirCajon());
 }
+/* En una pantalla ancha (un PC, el marco del panel de Munir) el cajón se queda
+   abierto a la izquierda, como la barra de la app del PC, en vez de salir
+   encima con un velo (Munir, 2026-11-13, desde el PC de clase). Solo con el
+   aparato emparejado. Sigue siendo el mismo cajón: se repinta al cambiar de
+   pantalla, para marcar dónde estás, y se pone al día cada pocos segundos. */
+const ANCHA = matchMedia("(min-width: 1024px)");
+const cajonFijo = () => document.body.dataset.cajonFijo !== undefined;
+const cajonVisible = () => document.body.dataset.cajon !== undefined || cajonFijo();
+function fijarCajon() {
+  const fijo = ANCHA.matches && !!clave && !["emparejar", "esperando"].includes(e.vista);
+  if (fijo && cajonFijo()) return repintarCajon();
+  if (fijo) {
+    delete document.body.dataset.cajon;
+    document.body.dataset.cajonFijo = "";
+    abrirCajon();
+  } else if (cajonFijo()) {
+    delete document.body.dataset.cajonFijo;
+    cerrarCajon();
+  }
+}
+ANCHA.addEventListener("change", () => fijarCajon());
 function abrirCajon() {
   if (!clave) return;
   pintarCajon();
-  document.body.dataset.cajon = "";
+  if (!cajonFijo()) document.body.dataset.cajon = "";
   cajon.inert = false;
   clearInterval(vigiaCajon);
   vigiaCajon = setInterval(refrescarCajon, 4000);
@@ -2600,13 +2725,21 @@ function abrirCajon() {
   ]).then(([vt, lista, vd, sesiones]) => {
     delCajon = { vt, lista, decisiones: vd?.decisiones || [], sesiones };
     if (vd) ponerEsperan(vivas(delCajon.decisiones).length + preguntanDe(vt).length);
-    if (document.body.dataset.cajon !== undefined) pintarCajon();
+    if (cajonVisible()) repintarCajon();
   });
 }
 function cerrarCajon() {
   delete document.body.dataset.cajon;
+  if (cajonFijo()) return;
   cajon.inert = true;
   clearInterval(vigiaCajon);
+}
+/* Repintar sin perder por dónde ibas en la lista de proyectos. */
+function repintarCajon() {
+  const y = cajon.querySelector(".recientes")?.scrollTop ?? 0;
+  pintarCajon();
+  const r = cajon.querySelector(".recientes");
+  if (r) r.scrollTop = y;
 }
 /* Con el cajón abierto, cada pocos segundos se mira otra vez cómo van las
    terminales, para que el proyecto que se pone a trabajar suba a la vista. Solo
@@ -2616,17 +2749,23 @@ let vigiaCajon = null;
 let tocadoCajon = 0;
 cajon.addEventListener("pointerdown", () => { tocadoCajon = Date.now(); }, { passive: true });
 cajon.addEventListener("scroll", () => { tocadoCajon = Date.now(); }, { passive: true, capture: true });
+/* Fijo, se ve horas: también las decisiones (su cuenta va en el cajón) y nada
+   mientras la pestaña está escondida. */
 function refrescarCajon() {
-  if (document.body.dataset.cajon === undefined || !delCajon) return;
-  Promise.all([api("GET", "/api/terminales"), api("GET", "/api/lista").catch(() => delCajon?.lista || [])]).then(([vt, lista]) => {
-    if (document.body.dataset.cajon === undefined || !delCajon || Date.now() - tocadoCajon < 1200) return;
-    const antes = JSON.stringify([delCajon.vt, delCajon.lista]);
-    delCajon = { ...delCajon, vt, lista };
-    if (JSON.stringify([vt, lista]) === antes) return;
-    const y = cajon.querySelector(".recientes")?.scrollTop ?? 0;
-    pintarCajon();
-    const r = cajon.querySelector(".recientes");
-    if (r) r.scrollTop = y;
+  if (!cajonVisible() || !delCajon) return;
+  if (cajonFijo() && document.visibilityState !== "visible") return;
+  Promise.all([
+    api("GET", "/api/terminales"),
+    api("GET", "/api/lista").catch(() => delCajon?.lista || []),
+    cajonFijo() ? api("GET", "/api/decisiones").catch(() => null) : null,
+  ]).then(([vt, lista, vd]) => {
+    if (!cajonVisible() || !delCajon || Date.now() - tocadoCajon < 1200) return;
+    const decisiones = vd?.decisiones || delCajon.decisiones;
+    const antes = JSON.stringify([delCajon.vt, delCajon.lista, delCajon.decisiones]);
+    delCajon = { ...delCajon, vt, lista, decisiones };
+    if (vd) ponerEsperan(vivas(decisiones).length + preguntanDe(vt).length);
+    if (JSON.stringify([vt, lista, decisiones]) === antes) return;
+    repintarCajon();
   }, () => {});
 }
 /* Lo reciente del cajón, por proyecto y con lo último que usaste arriba (Munir,
@@ -2862,10 +3001,7 @@ cajon.addEventListener("click", (ev) => {
   if (b.dataset.sesion) return seguirSesion(b);
   if (b.dataset.masSes !== undefined) {
     sesionesTodas.add(b.dataset.masSes);
-    const y = cajon.querySelector(".recientes")?.scrollTop ?? 0;
-    pintarCajon();
-    const r = cajon.querySelector(".recientes");
-    if (r) r.scrollTop = y;
+    repintarCajon();
     return;
   }
   if (b.dataset.ir) return ir({ vista: b.dataset.ir });
@@ -2880,13 +3016,25 @@ cajon.addEventListener("click", (ev) => {
 });
 document.getElementById("cajon-velo").addEventListener("click", () => cerrarCajon());
 document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && document.body.dataset.cajon !== undefined) cerrarCajon(); });
+/* Con un teclado de PC, Intro manda y Mayús+Intro baja de línea, como en la app
+   de Claude del PC (2026-11-13). En el móvil Intro sigue bajando de línea y se
+   manda con el botón, que su teclado no tiene Mayús+Intro a mano. */
+const TECLADO_DE_PC = matchMedia("(hover: hover) and (pointer: fine)");
+document.addEventListener("keydown", (ev) => {
+  if (ev.key !== "Enter" || ev.shiftKey || ev.ctrlKey || ev.altKey || ev.metaKey || ev.isComposing || !TECLADO_DE_PC.matches) return;
+  const caja = ev.target instanceof HTMLTextAreaElement ? ev.target.closest(".fila-caja") : null;
+  const mandar = caja?.querySelector(".enviar");
+  if (!mandar) return;
+  ev.preventDefault();
+  if (!mandar.disabled) mandar.click();
+});
 /* Deslizar desde el borde izquierdo lo abre y deslizar hacia la izquierda lo
    cierra, como en la app de Claude. Solo con el móvil emparejado. */
 let dedoX = null;
 document.addEventListener("touchstart", (ev) => {
   const x = ev.touches[0].clientX;
   const abierto = document.body.dataset.cajon !== undefined;
-  dedoX = clave && (abierto || x < 24) && !["emparejar", "esperando"].includes(e.vista) ? x : null;
+  dedoX = clave && !cajonFijo() && (abierto || x < 24) && !["emparejar", "esperando"].includes(e.vista) ? x : null;
 }, { passive: true });
 document.addEventListener("touchend", (ev) => {
   if (dedoX === null) return;
@@ -2932,7 +3080,7 @@ function hojaConversacion(id, titulo) {
     document.querySelectorAll(`#filas .fila[data-id="${CSS.escape(id)}"]`).forEach((f) => f.remove());
     if (delCajon) {
       delCajon.lista = delCajon.lista.filter((f) => f.id !== id);
-      if (document.body.dataset.cajon !== undefined) pintarCajon();
+      if (cajonVisible()) repintarCajon();
     }
     if (e.vista === "hilo" && e.id === id) ir({ vista: "lista" });
   });
@@ -2992,6 +3140,7 @@ function pintar() {
     delPcTraido = true;
     traerDelPc().catch(() => { delPcTraido = false; });
   }
+  fijarCajon();
   if (e.vista === "esperando") { app.innerHTML = `<p class="vacio">${tr("Conectando con tu PC…")}</p>`; return; }
   if (e.vista === "emparejar") return pintarEmparejar();
   if (e.vista === "lista") return pintarLista();
@@ -3016,7 +3165,7 @@ function pintarEmparejar() {
     <div class="emparejar">
       <span class="avatar">${ICONO.chispa}</span>
       <h1>${tr("Conecta este aparato con tu Adeorq")}</h1>
-      <p>${tr("En tu PC, abre Adeorq y ve a {donde}. Escribe aquí el código de seis cifras que sale. Solo hace falta una vez por navegador.", { donde: `<b>${esc(tr("Ajustes > Móvil > Emparejar un móvil"))}</b>` })}</p>
+      <p>${tr("En tu PC, abre Adeorq y ve a {donde}, o saca el código en un aparato ya emparejado, en {otro}. Escríbelo aquí. Solo hace falta una vez por navegador.", { donde: `<b>${esc(tr("Ajustes > Móvil > Emparejar un móvil"))}</b>`, otro: `<b>${esc(tr("Ajustes > Emparejar otro aparato"))}</b>` })}</p>
       <input id="codigo" class="campo codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" aria-label="${tr("Código de seis cifras")}">
       <label class="etiqueta-campo" for="nombre">${tr("Cómo se llamará en Ajustes")}</label>
       <input id="nombre" class="campo" maxlength="40" value="${esc(nombreSugerido())}">
@@ -3082,7 +3231,7 @@ async function pintarLista() {
     conversaciones: `<div id="filas" data-rotulo="${tr("Conversaciones")}"></div>`,
   };
   app.innerHTML = `
-    <div class="vista">
+    <div class="vista portada">
       <header class="barra">${botonCajon()}<h1>Adeorq</h1></header>
       <main class="cuerpo">
         ${a.inicio.map((s) => (a.ocultas.includes(s) ? trozos[s].replace("<div ", "<div hidden ") : trozos[s])).join("")}
@@ -4028,16 +4177,119 @@ async function traerDelPc() {
   aplicarFoto();
 }
 
+/* Emparejar otro aparato desde este, sin ir al PC (Munir, 2026-11-13, desde
+   clase): el PC saca el mismo código que su botón de Ajustes > Móvil, seis
+   cifras para diez minutos que dejan sin valor el anterior
+   (`/api/emparejar/codigo`). Se queda entre visitas a Ajustes, y la cuenta
+   atrás la lleva `vigilarOtro` tocando solo su línea. */
+let otroAparato = null;
+let relojOtro = null;
+const quedanDe = (c) => Math.max(0, Math.ceil((c.hasta - Date.now()) / 1000));
+const cuentaAtras = (n) => tr("Vale {m}:{s}", { m: Math.floor(n / 60), s: String(n % 60).padStart(2, "0") });
+/* «Tus aparatos» (Munir, 2026-11-13: el PC de clase solo se quitaba desde él o
+   desde el de casa): la última lista de `/api/aparatos`, y cómo repintar
+   Ajustes si está abierta. Mientras hay un código vivo se vuelve a mirar cada
+   3 s: el aparato nuevo sale en la lista en cuanto entra, y el código, que ya
+   no vale, deja de contar. */
+let misAparatos = null;
+/* «Por un rato» (Munir, 2026-11-13): el aparato que entra con el código de aquí
+   se olvida solo a las 8 horas, que es para un PC que no es suyo, salvo que se
+   marque «Para siempre». Desmarcada cada vez que se abre la página. */
+let paraSiempre = false;
+const horaDe = (s) => new Date(s * 1000).toLocaleTimeString(INGLES ? "en-GB" : "es", { hour: "2-digit", minute: "2-digit" });
+let alCambiarAparatos = null;
+const idsDe = (lista) => (lista || []).map((d) => d.id).join(" ");
+
+function otroAparatoHtml() {
+  const c = otroAparato;
+  if (c?.entro) {
+    return `<p class="otro-donde">${tr("«{n}» ya ha entrado.", { n: `<b>${esc(c.entro)}</b>` })}</p>
+      <button type="button" class="avisos" id="pedir-codigo">${tr("Emparejar otro aparato")}</button>`;
+  }
+  if (c?.valor && quedanDe(c) > 0) {
+    return `<div class="codigo-otro" role="group" aria-label="${tr("Código para emparejar otro aparato")}">
+        <strong>${esc(c.valor.slice(0, 3))} ${esc(c.valor.slice(3))}</strong>
+        <span id="otro-quedan">${cuentaAtras(quedanDe(c))}</span>
+      </div>
+      <p class="otro-donde">${tr("En el otro aparato, con Tailscale encendido, abre {dir} y escribe este código.", { dir: `<b>${esc(location.origin)}</b>` })}</p>`;
+  }
+  return `${c?.valor ? `<p class="otro-donde">${tr("Ese código ya ha caducado.")}</p>` : ""}${c?.fallo ? `<p class="nota">${esc(c.fallo)}</p>` : ""}
+    <button type="button" class="avisos" id="pedir-codigo">${c?.valor ? tr("Pedir otro código") : tr("Emparejar otro aparato")}</button>`;
+}
+
+function vigilarOtro() {
+  clearInterval(relojOtro);
+  if (!otroAparato?.valor || quedanDe(otroAparato) <= 0) return;
+  let tic = 0;
+  relojOtro = setInterval(() => {
+    const caja = document.getElementById("otro-aparato");
+    if (!caja) return clearInterval(relojOtro);
+    const n = quedanDe(otroAparato);
+    const linea = document.getElementById("otro-quedan");
+    if (n > 0 && linea) {
+      linea.textContent = cuentaAtras(n);
+    } else {
+      clearInterval(relojOtro);
+      caja.innerHTML = otroAparatoHtml();
+    }
+    if (++tic % 3 === 0 && misAparatos) mirarAparatos();
+  }, 1000);
+}
+
+/** Un código nuevo, «por un rato» salvo que esté marcada «Para siempre». */
+async function pedirCodigo() {
+  try {
+    const v = await api("POST", "/api/emparejar/codigo", { siempre: paraSiempre });
+    otroAparato = { valor: String(v.valor), hasta: Date.now() + v.quedan * 1000 };
+  } catch (err) {
+    otroAparato = { fallo: err.message };
+  }
+  const caja = document.getElementById("otro-aparato");
+  if (caja) caja.innerHTML = otroAparatoHtml();
+  vigilarOtro();
+}
+
+/** Vuelve a pedir la lista; si entró uno nuevo, el código ya se gastó. */
+async function mirarAparatos() {
+  const antes = misAparatos;
+  const v = await api("GET", "/api/aparatos").catch(() => null);
+  if (!v || idsDe(v.aparatos) === idsDe(antes)) return;
+  misAparatos = v.aparatos;
+  const nuevo = antes && v.aparatos.find((d) => !antes.some((a) => a.id === d.id));
+  if (nuevo && otroAparato?.valor) {
+    clearInterval(relojOtro);
+    otroAparato = { entro: nuevo.nombre };
+  }
+  alCambiarAparatos?.();
+}
+
 function pintarAjustes() {
   app.innerHTML = `
     <div class="vista">
-      <header class="barra">${botonCajon()}<h1>${tr("Ajustes")}<small>${tr("cómo se ve y qué te avisa este móvil")}</small></h1></header>
+      <header class="barra">${botonCajon()}<h1>${tr("Ajustes")}<small>${tr("cómo se ve y qué te avisa este aparato")}</small></h1></header>
       <main class="cuerpo ajustes" id="ajustes"></main>
     </div>`;
   montarBotonCajon();
   const aqui = document.getElementById("ajustes");
   let yo = null;
   let fallo = "";
+  // El aparato al que se le ha tocado «Quitar» una vez: el segundo toque lo quita.
+  let quitando = null;
+
+  // Este primero, y los demás por el último que se vio.
+  const aparatosHtml = () => (misAparatos || [])
+    .slice()
+    .sort((x, y) => Number(y.este) - Number(x.este) || y.visto - x.visto)
+    .map((d) => {
+      const armado = quitando === d.id;
+      const debajo = armado ? tr("tendrá que emparejarse de nuevo")
+        : [d.este ? tr("este aparato") : tr("visto {c}", { c: hace(d.visto) }), d.hasta ? tr("se olvida a las {h}", { h: horaDe(d.hasta) }) : ""].filter(Boolean).join(" · ");
+      return `<div class="fila-ajuste aparato"${d.este ? " data-este" : ""}>
+        <span>${esc(d.nombre)}<small>${debajo}</small></span>
+        ${d.este ? "" : `<button type="button" class="mini quitar${armado ? " peligro" : ""}" data-quitar="${esc(d.id)}" data-foco="quitar-${esc(d.id)}">${armado ? tr("Toca otra vez") : tr("Quitar")}</button>`}
+      </div>`;
+    })
+    .join("");
 
   const pintarlo = () => {
     if (!aqui.isConnected) return;
@@ -4064,7 +4316,7 @@ function pintarAjustes() {
         <div class="ajuste">
           <div class="fotos" role="radiogroup" aria-label="${tr("La foto de detrás del cristal")}">
             ${fotoOp("pc", tr("La de tu PC"), sinFotoPc, urlPc, !urlPc)}
-            ${fotoOp("propia", tr("De este móvil"), urlPropia ? (a.fondo === "propia" ? tr("toca para cambiarla") : "") : tr("elige una"), urlPropia)}
+            ${fotoOp("propia", tr("De este aparato"), urlPropia ? (a.fondo === "propia" ? tr("toca para cambiarla") : "") : tr("elige una"), urlPropia)}
             ${fotoOp("nada", tr("Sin foto"), "", null)}
           </div>
           <input type="file" id="foto-propia" accept="image/*" hidden>
@@ -4117,14 +4369,22 @@ function pintarAjustes() {
         ${aviso("sonido", tr("Con sonido y vibración"), tr("si no, llegan en silencio"), avisos ? !avisos.silencio : true)}
       </div>
 
-      <h2 class="seccion"><span>${tr("Este móvil")}</span></h2>
+      <h2 class="seccion"><span>${tr("Tus aparatos")}</span></h2>
+      <div class="grupo" id="aparatos">
+        ${aparatosHtml()}
+        <label class="fila-ajuste"><span>${tr("Para siempre")}<small>${tr("si no, se olvida solo a las 8 horas de entrar")}</small></span>${interruptor(`id="para-siempre" data-foco="para-siempre"`, paraSiempre)}</label>
+        <div class="ajuste" id="otro-aparato">${otroAparatoHtml()}</div>
+      </div>
+
+      <h2 class="seccion"><span>${tr("Este aparato")}</span></h2>
       <div class="grupo"><div class="ajuste">
         <button id="instalar" class="avisos" hidden>${tr("Instalar Adeorq como app en este aparato")}</button>
         <button type="button" class="avisos" id="de-fabrica">${tr("Dejar el aspecto como venía")}</button>
-        <button type="button" class="avisos peligro" id="olvidarme">${tr("Olvidar este móvil")}</button>
+        <button type="button" class="avisos peligro" id="olvidarme">${tr("Olvidar este aparato")}</button>
       </div></div>`;
     pintarAvisos().catch(() => {});
     pintarInstalar();
+    vigilarOtro();
     if (foco) aqui.querySelector(`[data-foco="${CSS.escape(foco)}"]`)?.focus();
   };
 
@@ -4157,7 +4417,28 @@ function pintarAjustes() {
       aplicarFoto();
       return pintarlo();
     }
-    // Olvidarse es para siempre (hay que volver a emparejar en el PC): dos toques.
+    if (b.id === "pedir-codigo") {
+      b.disabled = true;
+      return pedirCodigo();
+    }
+    // Quitar a otro aparato, también a dos toques: tendrá que volver a emparejarse.
+    if (b.dataset.quitar) {
+      const id = b.dataset.quitar;
+      if (quitando !== id) {
+        quitando = id;
+        return pintarlo();
+      }
+      b.disabled = true;
+      try {
+        misAparatos = (await api("POST", "/api/aparatos/quitar", { id })).aparatos;
+        fallo = "";
+      } catch (err) {
+        fallo = err.message;
+      }
+      quitando = null;
+      return pintarlo();
+    }
+    // Olvidarse es para siempre (hay que volver a emparejar con un código): dos toques.
     if (b.id === "olvidarme") {
       if (!b.dataset.seguro) {
         b.dataset.seguro = "1";
@@ -4193,12 +4474,19 @@ function pintarAjustes() {
       let datos = null;
       try { datos = await fotoParaGuardar(archivo); } catch (_) {}
       if (!datos) fallo = tr("No he podido abrir esa foto.");
-      else if (!guardarFoto(FOTO_PROPIA, Date.now(), datos)) fallo = tr("Esa foto no cabe en este móvil: prueba con otra.");
+      else if (!guardarFoto(FOTO_PROPIA, Date.now(), datos)) fallo = tr("Esa foto no cabe en este aparato: prueba con otra.");
       else {
         fallo = "";
         guardarAjustes({ fondo: "propia" });
       }
       return pintarlo();
+    }
+    // Cambiarla con un código a la vista saca otro con lo elegido: el de antes
+    // deja de valer, como cualquier código nuevo.
+    if (t.id === "para-siempre") {
+      paraSiempre = t.checked;
+      if (otroAparato?.valor && quedanDe(otroAparato) > 0) pedirCodigo();
+      return;
     }
     if (t.dataset.ajuste === "cristal") {
       const pc = leerGuardado(GUARDADO_PC);
@@ -4232,9 +4520,11 @@ function pintarAjustes() {
   });
 
   clearTimeout(reloj);
+  alCambiarAparatos = pintarlo;
   pintarlo();
   traerDelPc().then(pintarlo).catch(() => {});
   api("GET", "/api/yo").then((v) => { yo = v; pintarlo(); }).catch((err) => { fallo = err.message; pintarlo(); });
+  api("GET", "/api/aparatos").then((v) => { misAparatos = v.aparatos; pintarlo(); }).catch((err) => { fallo = err.message; pintarlo(); });
 }
 
 // ─── Decisiones ─────────────────────────────────────────────────────────────
@@ -4615,7 +4905,7 @@ async function bajarCompartido(id, nueva) {
     const v = await r.json().catch(() => ({}));
     if (r.status === 401) {
       olvidarClave();
-      throw new Error(delPc(v.error || "Este móvil no está emparejado."));
+      throw new Error(delPc(v.error || "Este aparato no está emparejado."));
     }
     throw new Error(delPc(v.error) || tr("Algo ha fallado ({n}).", { n: r.status }));
   }

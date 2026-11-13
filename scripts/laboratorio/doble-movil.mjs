@@ -66,6 +66,38 @@ let yaFallo = false;
 // otro acento. Con `FONDO=<ruta de una foto>` la foto es esa.
 let avisosPrefs = { preguntas: true, terminadas: true, programados: true, silencio: false };
 let olvidado = false;
+// El código que saca un aparato ya emparejado para emparejar otro
+// (`/api/emparejar/codigo`), como en movil.rs: seis cifras, una sola vez,
+// cinco fallos y su vida, que el banco acorta con `/api/sembrar-vida` para ver
+// cómo caduca. Cada aparato que entra con él lleva su propia clave.
+let codigoOtro = null;
+let vidaOtro = 600;
+const otrasClaves = new Map(); // clave -> nombre
+// «Tus aparatos», como movil.rs: el de CLAVE, los que entran con un código de
+// otro aparato y los que siembra el banco (`/api/sembrar-aparatos`). El id es
+// el principio de la huella de la clave, como allí.
+const T0 = ahora();
+const fichas = new Map([[CLAVE, { creado: T0 - 40 * 86400, visto: T0 }]]); // clave -> { creado, visto }
+const idDe = (clave) => crypto.createHash("sha256").update(clave).digest("hex").slice(0, 12);
+const aparatosPara = (llave) =>
+  [...(olvidado ? [] : [CLAVE]), ...otrasClaves.keys()].map((c) => ({
+    id: idDe(c),
+    nombre: c === CLAVE ? "Android" : otrasClaves.get(c),
+    creado: fichas.get(c)?.creado ?? T0,
+    visto: fichas.get(c)?.visto ?? T0,
+    avisos: false,
+    este: c === llave,
+    hasta: fichas.get(c)?.hasta ?? null,
+  }));
+/** Fuera los «por un rato» a los que se les acabó, como `caducar` en movil.rs. */
+function caducar() {
+  for (const [c, f] of fichas) {
+    if (f.hasta && ahora() >= f.hasta && otrasClaves.has(c)) {
+      console.log(`«${otrasClaves.get(c)}» se olvidó solo: era por un rato`);
+      otrasClaves.delete(c);
+    }
+  }
+}
 const traspasos = [];
 let aspecto = { acento: "#4d9fff", opacidad: 60, desenfoque: 0, foto: null };
 if (process.env.FONDO) aspecto.foto = { tipo: /\.jpe?g$/i.test(process.env.FONDO) ? "image/jpeg" : "image/png", bytes: fs.readFileSync(process.env.FONDO), version: "fondo-de-fuera" };
@@ -507,7 +539,26 @@ http
         return res.end(INGLES ? pagina.replace('<html lang="es">', '<html lang="en">') : pagina);
       }
       if (url.pathname === "/api/emparejar") {
-        return v.codigo === "123456" ? json(res, 200, { clave: CLAVE, nombre: v.nombre }) : json(res, 403, { error: "Ese código no es." });
+        if (v.codigo === "123456") return json(res, 200, { clave: CLAVE, nombre: v.nombre });
+        if (codigoOtro && Date.now() >= codigoOtro.hasta) {
+          codigoOtro = null;
+          return json(res, 403, { error: "El código ha caducado: pide otro en Ajustes > Móvil." });
+        }
+        if (codigoOtro && v.codigo === codigoOtro.valor) {
+          const { porUnRato } = codigoOtro;
+          codigoOtro = null;
+          const clave = `otra-${crypto.randomBytes(12).toString("hex")}`;
+          otrasClaves.set(clave, v.nombre);
+          // «Por un rato», como movil.rs: se olvida solo a las ocho horas.
+          fichas.set(clave, { creado: ahora(), visto: ahora(), ...(porUnRato ? { hasta: ahora() + 8 * 3600 } : {}) });
+          console.log(`emparejado otro aparato: ${v.nombre}`);
+          return json(res, 200, { clave, nombre: v.nombre });
+        }
+        if (codigoOtro && ++codigoOtro.fallos >= 5) {
+          codigoOtro = null;
+          return json(res, 403, { error: "Demasiados intentos: pide otro código en Ajustes > Móvil." });
+        }
+        return json(res, 403, { error: "Ese código no es." });
       }
       // El service worker de los avisos, en corto: lo de verdad está en `movil.rs`.
       if (url.pathname === "/sw.js") {
@@ -525,12 +576,58 @@ http
         return res.end(fs.readFileSync(ruta, "utf8"));
       }
       if (!url.pathname.startsWith("/api/")) return json(res, 404, { error: "Aquí no hay nada." });
-      if (olvidado || req.headers.authorization !== `Bearer ${CLAVE}`) return json(res, 401, { error: "Este móvil no está emparejado." });
+      const llave = (req.headers.authorization || "").replace(/^Bearer /, "");
+      caducar();
+      if (!((llave === CLAVE && !olvidado) || otrasClaves.has(llave))) return json(res, 401, { error: "Este aparato no está emparejado." });
+      const nombreDe = otrasClaves.get(llave) ?? "Android";
+      if (fichas.has(llave)) fichas.get(llave).visto = ahora();
       const id = url.searchParams.get("id") || v.id;
       switch (url.pathname) {
+        case "/api/aparatos":
+          if (req.method !== "GET") return json(res, 405, { error: "Así no." });
+          return json(res, 200, { aparatos: aparatosPara(llave) });
+        case "/api/aparatos/quitar": {
+          if (req.method !== "POST") return json(res, 405, { error: "Así no." });
+          const quien = String(v.id || "");
+          if (quien.length < 8 || !/^[0-9a-f]+$/i.test(quien)) return json(res, 400, { error: "Ese aparato no se reconoce." });
+          const cuales = aparatosPara(llave).filter((d) => d.id.startsWith(quien));
+          if (cuales.length !== 1) return json(res, cuales.length ? 400 : 404, { error: cuales.length ? "Ese aparato no se reconoce." : "Ese aparato ya no está emparejado." });
+          if (cuales[0].este) return json(res, 400, { error: "Para olvidar este aparato, usa el último botón de Ajustes." });
+          const suya = [CLAVE, ...otrasClaves.keys()].find((c) => idDe(c) === cuales[0].id);
+          if (suya === CLAVE) olvidado = true;
+          else otrasClaves.delete(suya);
+          console.log(`«${nombreDe}» quitó a «${cuales[0].nombre}» desde Tus aparatos`);
+          return json(res, 200, { aparatos: aparatosPara(llave) });
+        }
+        // Solo del banco: aparatos de antes, como los tres de octubre de Munir.
+        // `[{ nombre, dias }]`: emparejados y vistos por última vez hace tantos días.
+        case "/api/sembrar-aparatos":
+          for (const a of v.aparatos || []) {
+            const clave = `vieja-${crypto.randomBytes(12).toString("hex")}`;
+            otrasClaves.set(clave, a.nombre);
+            fichas.set(clave, { creado: ahora() - (a.dias + 1) * 86400, visto: ahora() - a.dias * 86400 });
+          }
+          return json(res, 200, { aparatos: aparatosPara(llave) });
         case "/api/yo":
           // `version` como `movil.rs`: el enlace de «Informar de un problema» la lleva.
-          return json(res, 200, { nombre: "Android", avisos: avisosPrefs, version: "0.9.243" });
+          return json(res, 200, { nombre: nombreDe, avisos: avisosPrefs, version: "0.9.243" });
+        case "/api/emparejar/codigo": {
+          if (req.method !== "POST") return json(res, 405, { error: "Así no." });
+          let valor;
+          do valor = String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
+          while (valor === "123456");
+          codigoOtro = { valor, hasta: Date.now() + vidaOtro * 1000, fallos: 0, porUnRato: v.siempre !== true };
+          console.log(`«${nombreDe}» pidió un código para emparejar otro aparato`);
+          return json(res, 200, { valor, quedan: vidaOtro, por_un_rato: codigoOtro.porUnRato });
+        }
+        // Solo del banco: que el «por un rato» que se llama así se acabe dentro de tantos segundos.
+        case "/api/sembrar-caduca":
+          for (const [c, n] of otrasClaves) if (n === v.nombre && fichas.get(c)?.hasta) fichas.get(c).hasta = ahora() + (Number(v.segundos) || 0);
+          return json(res, 200, { aparatos: aparatosPara(llave) });
+        // Solo del banco: la vida del próximo código, para verlo caducar.
+        case "/api/sembrar-vida":
+          vidaOtro = Number(v.segundos) || 600;
+          return json(res, 200, { ok: true });
         case "/api/avisos": {
           const claves = ["preguntas", "terminadas", "programados", "silencio"];
           if (claves.some((k) => k in v && typeof v[k] !== "boolean")) return json(res, 400, { error: "Eso no son avisos." });

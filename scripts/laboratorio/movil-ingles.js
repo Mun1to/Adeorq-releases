@@ -217,5 +217,18 @@ async (page) => {
     await mirar("sesión nueva");
   });
 
+  // 9. Ajustes, y el código para emparejar otro aparato (2026-11-13).
+  await paso("ajustes", async () => {
+    await page.goto(`${B}/`);
+    await page.click("#abrir-cajon");
+    await page.click("#cajon .a-ajustes");
+    await page.waitForSelector("#pedir-codigo");
+    await page.waitForTimeout(300);
+    await mirar("ajustes");
+    await page.click("#pedir-codigo");
+    await page.waitForSelector(".codigo-otro strong");
+    await mirar("ajustes con el código para otro aparato");
+  });
+
   return { fallos, vistas };
 }

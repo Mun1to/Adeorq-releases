@@ -73,5 +73,19 @@ async (page) => {
   debe(pasos.emparejar.qr && /^https:\/\/.+\.ts\.net:8443$/.test(pasos.emparejar.direccion ?? ""), "emparejar: falta el QR o la dirección al lado");
   debe(pasos.emparejar.codigo === "482 913", `emparejar: el código sale como ${pasos.emparejar.codigo}`);
 
+  // Lo saca un aparato ya emparejado desde su página (`/api/emparejar/codigo`,
+  // 2026-11-13): sustituye al del botón y sale aquí solo, sin tocar nada.
+  const codigoAqui = () => page.evaluate(() => document.querySelector(".movil-codigo strong")?.textContent ?? null);
+  await page.evaluate(() => window.__codigoDelMovil("731406"));
+  await page.waitForTimeout(500);
+  pasos.delMovil = await codigoAqui();
+  debe(pasos.delMovil === "731 406", `el código que saca el móvil sustituye al del botón (${pasos.delMovil})`);
+  await mirar("");
+  pasos.sinPedir = await codigoAqui();
+  await page.evaluate(() => window.__codigoDelMovil("205118"));
+  await page.waitForTimeout(500);
+  pasos.delMovilSinBoton = await codigoAqui();
+  debe(pasos.sinPedir === null && pasos.delMovilSinBoton === "205 118", `con Ajustes abierta y sin pulsar nada, sale el del móvil (${pasos.sinPedir} → ${pasos.delMovilSinBoton})`);
+
   return { pasos, fallos };
 }

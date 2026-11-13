@@ -61,7 +61,7 @@ async (page) => {
     ancho: document.querySelector(".cuerpo").scrollWidth <= document.querySelector(".cuerpo").clientWidth + 1,
     actual: document.querySelector('#cajon .a-ajustes')?.getAttribute("aria-current"),
   }));
-  debe(JSON.stringify(pasos.pantalla.secciones) === JSON.stringify(["Fondo", "Colores", "Letra", "Adeo", "El inicio", "Avisos", "Este móvil"]), `las secciones de Ajustes (${pasos.pantalla.secciones})`);
+  debe(JSON.stringify(pasos.pantalla.secciones) === JSON.stringify(["Fondo", "Colores", "Letra", "Adeo", "El inicio", "Avisos", "Tus aparatos", "Este aparato"]), `las secciones de Ajustes (${pasos.pantalla.secciones})`);
   debe(pasos.pantalla.ancho, "Ajustes no se sale de la pantalla");
   debe(await marcado('[data-ajuste="fondo"][data-valor="pc"]'), "la foto del PC sale elegida");
   debe(await marcado('[data-ajuste="acento"][data-valor="pc"]'), "el acento del PC sale elegido");

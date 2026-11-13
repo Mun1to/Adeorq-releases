@@ -62,6 +62,12 @@ async (page) => {
       encendido: false, sirviendo: false, despierto: false, avisos: 1, puerto: 3013, codigo: null,
       dispositivos: [{ id: "a1b2c3d4", nombre: "Android", creado: ahora - 86400, visto: ahora - 600, avisos: true }],
     };
+    // Un aparato emparejado saca un código desde su página, como
+    // `/api/emparejar/codigo` en movil.rs: sustituye al que hubiera y avisa.
+    window.__codigoDelMovil = (valor) => {
+      movil.codigo = { valor, quedan: 600 };
+      window.__emitir("movil:codigo", null);
+    };
 
     const llamadas = [];
     window.__llamadas = llamadas;

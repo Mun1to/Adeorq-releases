@@ -8,6 +8,7 @@
 // llevaba tres días fuera de Tailscale sin que nada se lo dijera.
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { encode } from "uqr";
 import { useT } from "../lib/i18n";
@@ -84,7 +85,7 @@ function Fila({
 }
 
 export default function AjustesMovil() {
-  const { t } = useT();
+  const { t, lang } = useT();
   const [estado, setEstado] = useState<EstadoMovil | null>(null);
   const [ts, setTs] = useState<Tailscale | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -98,8 +99,14 @@ export default function AjustesMovil() {
     movilEstado()
       .then((e) => {
         setEstado(e);
+        setAhora(Date.now());
         // El código se apaga solo al emparejar: ahí se ve que el móvil entró.
-        if (!e.codigo) setCodigo(null);
+        // Y el que saca un aparato ya emparejado (`/api/emparejar/codigo`)
+        // sale aquí igual que el del botón, porque es el mismo.
+        const c = e.codigo;
+        setCodigo((antes) =>
+          !c ? null : antes?.valor === c.valor ? antes : { valor: c.valor, hasta: Date.now() + c.quedan * 1000 },
+        );
       })
       .catch((e) => setError(String(e)));
   }, []);
@@ -115,6 +122,15 @@ export default function AjustesMovil() {
     releer();
     mirarTailscale(false);
   }, [releer, mirarTailscale]);
+
+  // Un aparato emparejado acaba de sacar un código desde su página, o de quitar
+  // a otro desde «Tus aparatos».
+  useEffect(() => {
+    const fuera = [listen("movil:codigo", () => releer()), listen("movil:aparatos", () => releer())];
+    return () => {
+      for (const f of fuera) f.then((g) => g()).catch(() => {});
+    };
+  }, [releer]);
 
   // Con un código a la vista: la cuenta atrás, y mirar si el móvil ya entró.
   useEffect(() => {
@@ -379,13 +395,19 @@ export default function AjustesMovil() {
               <ul className="movil-lista">
                 {estado.dispositivos.map((d) => {
                   const visto = hace(d.visto * 1000);
-                  const cuando = t("visto {c}", { c: t(visto.clave, { n: visto.valor }) });
+                  // Emparejado «por un rato» desde otro aparato: a qué hora se olvida solo.
+                  const hora = d.hasta ? new Date(d.hasta * 1000).toLocaleTimeString(lang === "en" ? "en-GB" : "es", { hour: "2-digit", minute: "2-digit" }) : null;
+                  const cuando = [
+                    t("visto {c}", { c: t(visto.clave, { n: visto.valor }) }),
+                    d.avisos ? t("con avisos") : null,
+                    hora ? t("se olvida a las {h}", { h: hora }) : null,
+                  ].filter(Boolean).join(" · ");
                   return (
                     <li key={d.id}>
                       <MovilIcon size={18} />
                       <span className="movil-quien">
                         <strong>{d.nombre}</strong>
-                        <em>{d.avisos ? `${cuando} · ${t("con avisos")}` : cuando}</em>
+                        <em>{cuando}</em>
                       </span>
                       <span className="movil-fila-botones">
                         {d.avisos && (
@@ -402,7 +424,7 @@ export default function AjustesMovil() {
                 })}
               </ul>
               {estado.avisos === 0 ? (
-                <p className="movil-prueba">{t("Ningún móvil ha pedido avisos todavía. En el móvil, abre Ajustes (abajo del menú) y toca «Avisarme en este móvil».")}</p>
+                <p className="movil-prueba">{t("Ningún móvil ha pedido avisos todavía. En el móvil, abre Ajustes (abajo del menú) y toca «Avisarme en este aparato».")}</p>
               ) : (
                 prueba && <p className="movil-prueba">{prueba}</p>
               )}

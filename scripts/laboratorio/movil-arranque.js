@@ -14,6 +14,9 @@
 // fallo.
 async (page) => {
   const AUT = { Authorization: "Bearer clave-de-mentira" };
+  // A ancho de móvil: a 1440 (el de fábrica del banco) el cajón va fijo y sin
+  // su botón desde el 2026-11-13 (`movil-pc.js`), y aquí se abre con él.
+  await page.setViewportSize({ width: 412, height: 900 });
   const medir = async (puerto) => {
     const B = `http://127.0.0.1:${puerto}`;
     try { await page.goto(`${B}/`); } catch (_) { return { puerto, error: "sin servidor" }; }

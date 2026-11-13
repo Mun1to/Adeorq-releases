@@ -65,6 +65,10 @@ const FUERA = [
   // publicar la disección de la web de una empresa desde el repo del producto
   // que se inspira en ella se lee distinto de como es.
   "docs/REFERENCIA-HULY.md",
+  // Los análisis contra la competencia (2026-11-13: orquestador.md y
+  // diseno-ade.md, de Warp, Orca y BridgeMind): el mismo tipo de documento que
+  // MEJORAS.md, propuestas internas y no cómo funciona el producto. CARPETA.
+  "docs/propuestas",
   "docs/EMISION.md",
   "web/DISENO.md",
   // Los punteros por proveedor de la regla AI (CLAUDE.md ya estaba arriba):

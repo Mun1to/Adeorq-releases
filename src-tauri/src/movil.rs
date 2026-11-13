@@ -167,7 +167,15 @@ pub struct Dispositivo {
     /// Cuáles quiere y si suenan: lo elige ese móvil en sus Ajustes.
     #[serde(default)]
     pub avisos: PrefsAvisos,
+    /// Emparejado «por un rato» (un PC que no es suyo): el segundo, en Unix, en
+    /// que se olvida solo. Sin esto es para siempre.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hasta: Option<u64>,
 }
+
+/// Cuánto dura un aparato emparejado «por un rato» con un código sacado desde
+/// otro aparato (Munir, 2026-11-13: para el PC de clase, que no es suyo).
+pub const VIDA_POR_UN_RATO: u64 = 8 * 60 * 60;
 
 /// Qué avisos quiere un móvil. Se filtra AQUÍ y no en el móvil: el navegador
 /// obliga a enseñar todo aviso que llega (`userVisibleOnly`), así que uno que
@@ -254,6 +262,8 @@ struct Codigo {
     valor: String,
     hasta: Instant,
     fallos: u8,
+    /// El aparato que entre con él se olvida solo a las `VIDA_POR_UN_RATO`.
+    por_un_rato: bool,
 }
 
 /// Quién puede entrar. Sin disco dentro, para poder probarlo: quien la usa
@@ -270,9 +280,28 @@ impl Guardia {
     }
 
     pub fn nuevo_codigo(&mut self, ahora: Instant) -> Result<String, String> {
+        self.codigo_para(ahora, false)
+    }
+
+    /// Como `nuevo_codigo`, y si `por_un_rato`, el aparato que entre con él se
+    /// olvida solo a las ocho horas.
+    pub fn codigo_para(&mut self, ahora: Instant, por_un_rato: bool) -> Result<String, String> {
         let valor = seis_cifras()?;
-        self.codigo = Some(Codigo { valor: valor.clone(), hasta: ahora + VIDA_CODIGO, fallos: 0 });
+        self.codigo = Some(Codigo { valor: valor.clone(), hasta: ahora + VIDA_CODIGO, fallos: 0, por_un_rato });
         Ok(valor)
+    }
+
+    /// Quita los emparejados «por un rato» a los que se les acabó, y dice cuáles.
+    pub fn caducar(&mut self, cuando: u64) -> Vec<String> {
+        let mut idos = Vec::new();
+        self.ajustes.dispositivos.retain(|d| {
+            let vale = d.hasta.is_none_or(|h| cuando < h);
+            if !vale {
+                idos.push(d.nombre.clone());
+            }
+            vale
+        });
+        idos
     }
 
     fn codigo_visible(&self, ahora: Instant) -> Option<(String, u64)> {
@@ -299,6 +328,7 @@ impl Guardia {
             }
             return Err("Ese código no es.".into());
         }
+        let por_un_rato = c.por_un_rato;
         self.codigo = None;
         let clave = clave_nueva()?;
         self.ajustes.dispositivos.push(Dispositivo {
@@ -308,6 +338,7 @@ impl Guardia {
             visto: cuando,
             push: None,
             avisos: PrefsAvisos::default(),
+            hasta: por_un_rato.then_some(cuando + VIDA_POR_UN_RATO),
         });
         Ok(clave)
     }
@@ -316,6 +347,10 @@ impl Guardia {
     pub fn quien(&mut self, clave: &str, cuando: u64) -> Option<(String, bool)> {
         let h = huella(clave);
         let d = self.ajustes.dispositivos.iter_mut().find(|d| iguales(d.huella.as_bytes(), h.as_bytes()))?;
+        // Una llave «por un rato» que ya pasó no abre, aunque nadie la haya quitado aún.
+        if d.hasta.is_some_and(|fin| cuando >= fin) {
+            return None;
+        }
         let apuntar = cuando.saturating_sub(d.visto) >= APUNTAR_VISTO;
         if apuntar {
             d.visto = cuando;
@@ -350,7 +385,7 @@ impl Guardia {
         self.ajustes
             .dispositivos
             .iter()
-            .filter(|d| d.avisos.quiere(tipo))
+            .filter(|d| d.avisos.quiere(tipo) && d.hasta.is_none_or(|fin| crate::conserje::ahora() < fin))
             .filter_map(|d| d.push.clone().map(|s| (d.nombre.clone(), s, d.avisos.silencio)))
             .collect()
     }
@@ -374,6 +409,48 @@ impl Guardia {
             }
             _ => false,
         }
+    }
+
+    /// Los emparejados como los enseñan Ajustes del PC y «Tus aparatos» de la
+    /// página; `este` marca el de esa clave.
+    pub fn visibles(&self, clave: Option<&str>) -> Vec<DispositivoVisible> {
+        let mia = clave.map(huella);
+        self.ajustes
+            .dispositivos
+            .iter()
+            .map(|d| DispositivoVisible {
+                id: d.huella.chars().take(12).collect(),
+                nombre: d.nombre.clone(),
+                creado: d.creado,
+                visto: d.visto,
+                avisos: d.push.is_some(),
+                este: mia.as_ref().is_some_and(|h| iguales(d.huella.as_bytes(), h.as_bytes())),
+                hasta: d.hasta,
+            })
+            .collect()
+    }
+
+    /// Un aparato quita a OTRO desde «Tus aparatos» (Munir, 2026-11-13: el PC de
+    /// clase solo se podía quitar desde ese PC o desde el de casa). Por el id de la
+    /// lista, que es el principio de la huella, y tiene que señalar a uno solo.
+    /// Uno mismo se olvida por `/api/olvidarme`, que además borra su clave del
+    /// navegador; por aquí se quedaría dentro con una clave que ya no vale.
+    /// Devuelve el nombre del quitado, o el estado y el porqué.
+    pub fn quitar_otro(&mut self, clave: &str, id: &str) -> Result<String, (u16, &'static str)> {
+        if id.len() < 8 || !id.bytes().all(|b| b.is_ascii_hexdigit()) {
+            return Err((400, "Ese aparato no se reconoce."));
+        }
+        let mia = huella(clave);
+        let cuales: Vec<usize> = (0..self.ajustes.dispositivos.len())
+            .filter(|&i| self.ajustes.dispositivos[i].huella.starts_with(id))
+            .collect();
+        let [i] = cuales[..] else {
+            return Err(if cuales.is_empty() { (404, "Ese aparato ya no está emparejado.") } else { (400, "Ese aparato no se reconoce.") });
+        };
+        if iguales(self.ajustes.dispositivos[i].huella.as_bytes(), mia.as_bytes()) {
+            return Err((400, "Para olvidar este aparato, usa el último botón de Ajustes."));
+        }
+        Ok(self.ajustes.dispositivos.remove(i).nombre)
     }
 
     /// El móvil que lleva esa clave se olvida a sí mismo, desde sus Ajustes.
@@ -433,7 +510,7 @@ fn iguales(a: &[u8], b: &[u8]) -> bool {
 fn limpiar_nombre(n: &str) -> String {
     let s: String = n.chars().filter(|c| !c.is_control()).take(40).collect();
     let s = s.trim();
-    if s.is_empty() { "Móvil".into() } else { s.into() }
+    if s.is_empty() { "Aparato".into() } else { s.into() }
 }
 
 // ─── HTTP, lo justo ─────────────────────────────────────────────────────────
@@ -853,6 +930,12 @@ pub trait Casa {
     }
     /// Que la pestaña «Decisiones» de la app se entere de que una cambió.
     fn decisiones_cambian(&self) {}
+    /// Un aparato emparejado sacó un código para emparejar otro: queda en el
+    /// rastro QUIÉN lo pidió (nunca el código) y Ajustes > Móvil lo enseña.
+    fn codigo_pedido(&self, _por: &str) {}
+    /// Un aparato salió de la lista sin pasar por Ajustes del PC (otro lo quitó
+    /// desde su página): la línea va al rastro y Ajustes > Móvil se pone al día.
+    fn aparatos_cambian(&self, _linea: &str) {}
     /// La foto (o el vídeo) que el PC lleva detrás de las terminales.
     fn fondo(&self) -> Option<PathBuf> {
         None
@@ -964,17 +1047,22 @@ pub fn atender(
         .and_then(|v| v.strip_prefix("Bearer "))
         .unwrap_or("")
         .trim();
-    let nombre = {
+    // Antes de mirar la clave, fuera los «por un rato» a los que se les acabó: su
+    // llave da 401 y salen de la lista, también la de quien pregunta.
+    let (idos, quien) = {
         let mut g = guardia.lock().unwrap();
-        match g.quien(clave, reloj.1) {
-            Some((n, apuntar)) => {
-                if apuntar {
-                    persistir(&g.ajustes);
-                }
-                n
-            }
-            None => return Respuesta::error(401, "Este móvil no está emparejado."),
+        let idos = g.caducar(reloj.1);
+        let quien = g.quien(clave, reloj.1);
+        if !idos.is_empty() || quien.as_ref().is_some_and(|(_, apuntar)| *apuntar) {
+            persistir(&g.ajustes);
         }
+        (idos, quien)
+    };
+    for n in &idos {
+        casa.aparatos_cambian(&format!("Móvil: «{n}» se olvidó solo: era por un rato"));
+    }
+    let Some((nombre, _)) = quien else {
+        return Respuesta::error(401, "Este aparato no está emparejado.");
     };
 
     let cuerpo: Value = serde_json::from_slice(&p.cuerpo).unwrap_or(Value::Null);
@@ -990,6 +1078,26 @@ pub fn atender(
             // (política 11.16 de la Microsoft Store): el informe tiene que decir de
             // qué Adeorq habla, y la página la sirve este mismo programa.
             Respuesta::json(200, json!({ "nombre": nombre, "avisos": avisos, "version": env!("CARGO_PKG_VERSION") }))
+        }
+        // Emparejar otro aparato sin ir al PC (Munir, 2026-11-13, desde clase):
+        // el mismo código que el botón de Ajustes, que sustituye al que hubiera.
+        // Quien lo pide ya escribe en las terminales, así que no gana poder.
+        // Sin `"siempre": true`, «por un rato»: el aparato que entre con él se
+        // olvida solo a las ocho horas (es para un PC que no es suyo).
+        ("POST", "/api/emparejar/codigo") => {
+            let por_un_rato = cuerpo["siempre"].as_bool() != Some(true);
+            let valor = {
+                let mut g = guardia.lock().unwrap();
+                if !g.ajustes.encendido {
+                    return Respuesta::error(409, "Adeo en el móvil está apagado en el PC.");
+                }
+                match g.codigo_para(reloj.0, por_un_rato) {
+                    Ok(v) => v,
+                    Err(e) => return Respuesta::error(500, &e),
+                }
+            };
+            casa.codigo_pedido(&nombre);
+            Respuesta::json(200, json!({ "valor": valor, "quedan": VIDA_CODIGO.as_secs(), "por_un_rato": por_un_rato }))
         }
         // Lo que el móvil elige en sus Ajustes y tiene que saber el PC: qué
         // avisos le manda, y olvidarse de él.
@@ -1010,6 +1118,28 @@ pub fn atender(
             }
             Respuesta::json(200, json!({ "ok": true }))
         }
+        // «Tus aparatos»: los emparejados, con el de esta clave marcado, y quitar
+        // a otro sin ir al PC ni al aparato (Munir, 2026-11-13).
+        ("GET", "/api/aparatos") => {
+            let aparatos = guardia.lock().unwrap().visibles(Some(clave));
+            Respuesta::json(200, json!({ "aparatos": aparatos }))
+        }
+        ("POST", "/api/aparatos/quitar") => {
+            let id = cuerpo["id"].as_str().unwrap_or("").trim();
+            let quitado = {
+                let mut g = guardia.lock().unwrap();
+                match g.quitar_otro(clave, id) {
+                    Ok(n) => {
+                        persistir(&g.ajustes);
+                        n
+                    }
+                    Err((estado, por)) => return Respuesta::error(estado, por),
+                }
+            };
+            casa.aparatos_cambian(&format!("Móvil: «{nombre}» quitó a «{quitado}» desde Tus aparatos"));
+            let aparatos = guardia.lock().unwrap().visibles(Some(clave));
+            Respuesta::json(200, json!({ "aparatos": aparatos }))
+        }
         // El aspecto del PC, para que el móvil arranque igual: el acento del
         // tema y cómo se ve su foto (eso lo sabe la ventana), y si hay foto.
         ("GET", "/api/apariencia") => {
@@ -1025,7 +1155,7 @@ pub fn atender(
         ("GET", "/api/fondo") => match casa.fondo() {
             None => Respuesta::error(404, "Tu PC no tiene foto de fondo."),
             Some(p) => match tipo_de_imagen(&p) {
-                None => Respuesta::error(415, "El fondo de tu PC es un vídeo: en el móvil no se pone."),
+                None => Respuesta::error(415, "El fondo de tu PC es un vídeo: aquí no se pone."),
                 Some(tipo) => match std::fs::read(&p) {
                     Ok(cuerpo) => Respuesta { estado: 200, tipo, cuerpo },
                     Err(e) => Respuesta::error(500, &e.to_string()),
@@ -1585,7 +1715,8 @@ pub fn atender(
             | "/api/terminal/tecla" | "/api/adjuntar" | "/api/decisiones" | "/api/decision"
             | "/api/decision/responder" | "/api/decision/descartar" | "/api/avisos" | "/api/olvidarme"
             | "/api/apariencia" | "/api/fondo" | "/api/terminal/modelo" | "/api/terminal/traspaso" | "/api/historia"
-            | "/api/logo" | "/api/proyectos" | "/api/abrir" | "/api/sesiones" | "/api/seguir") => Respuesta::error(405, "Así no."),
+            | "/api/logo" | "/api/proyectos" | "/api/abrir" | "/api/sesiones" | "/api/seguir"
+            | "/api/emparejar/codigo" | "/api/aparatos" | "/api/aparatos/quitar") => Respuesta::error(405, "Así no."),
         _ => Respuesta::error(404, "Aquí no hay nada."),
     }
 }
@@ -1713,6 +1844,14 @@ impl Casa for CasaDeVerdad {
     }
     fn decisiones_cambian(&self) {
         crate::decisiones::avisar_cambio(&self.app);
+    }
+    fn codigo_pedido(&self, por: &str) {
+        crate::anotar(&format!("Móvil: «{por}» pidió un código para emparejar otro aparato"));
+        let _ = self.app.emit("movil:codigo", ());
+    }
+    fn aparatos_cambian(&self, linea: &str) {
+        crate::anotar(linea);
+        let _ = self.app.emit("movil:aparatos", ());
     }
     fn fondo(&self) -> Option<PathBuf> {
         crate::manage::fondo_actual()
@@ -1965,6 +2104,10 @@ pub struct DispositivoVisible {
     pub visto: u64,
     /// Si ese móvil pidió avisos.
     pub avisos: bool,
+    /// Es el aparato que pregunta (en «Tus aparatos» de la página; en el PC, nunca).
+    pub este: bool,
+    /// Si es «por un rato», cuándo se olvida solo (segundos Unix).
+    pub hasta: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -1987,25 +2130,22 @@ pub struct EstadoMovil {
 }
 
 fn estado(m: &Movil) -> EstadoMovil {
-    let g = m.guardia.lock().unwrap();
+    let mut g = m.guardia.lock().unwrap();
+    // Ajustes > Móvil tampoco enseña a los «por un rato» a los que se les acabó.
+    let idos = g.caducar(crate::conserje::ahora());
+    if !idos.is_empty() {
+        persistir_de_verdad(&g.ajustes);
+        for n in &idos {
+            crate::anotar(&format!("Móvil: «{n}» se olvidó solo: era por un rato"));
+        }
+    }
     EstadoMovil {
         encendido: g.ajustes.encendido,
         sirviendo: m.sirviendo.load(Ordering::SeqCst),
         despierto: m.despierto.load(Ordering::SeqCst),
         avisos: g.ajustes.dispositivos.iter().filter(|d| d.push.is_some()).count(),
         puerto: puerto().unwrap_or(PUERTO),
-        dispositivos: g
-            .ajustes
-            .dispositivos
-            .iter()
-            .map(|d| DispositivoVisible {
-                id: d.huella.chars().take(12).collect(),
-                nombre: d.nombre.clone(),
-                creado: d.creado,
-                visto: d.visto,
-                avisos: d.push.is_some(),
-            })
-            .collect(),
+        dispositivos: g.visibles(None),
         codigo: g.codigo_visible(Instant::now()).map(|(valor, quedan)| CodigoVisible { valor, quedan }),
     }
 }
@@ -2497,8 +2637,18 @@ mod tests {
         sitio: &'static str,
         /// La foto de fondo del PC, si la prueba le pone una.
         fondo: Option<PathBuf>,
+        /// Lo que llega al rastro cuando un aparato pide un código: quién lo pidió.
+        pedidos: RefCell<Vec<String>>,
+        /// Lo que llega al rastro cuando un aparato sale de la lista sin el PC.
+        cambios: RefCell<Vec<String>>,
     }
     impl Casa for CasaDeMentira {
+        fn codigo_pedido(&self, por: &str) {
+            self.pedidos.borrow_mut().push(por.to_string());
+        }
+        fn aparatos_cambian(&self, linea: &str) {
+            self.cambios.borrow_mut().push(linea.to_string());
+        }
         fn lista(&self) -> Value {
             json!([{ "id": "abc", "titulo": "Una" }])
         }
@@ -2953,6 +3103,219 @@ mod tests {
 
     fn cuerpo_de(r: &Respuesta) -> Value {
         serde_json::from_slice(&r.cuerpo).unwrap_or(Value::Null)
+    }
+
+    /// Emparejar otro aparato desde uno que ya lo está: sin clave no hay
+    /// código, y con ella sale el mismo de Ajustes (lo ve el PC), que empareja
+    /// de verdad un segundo aparato por `/api/emparejar` y sirve una sola vez.
+    /// El rastro dice quién lo pidió, nunca el código.
+    #[test]
+    fn un_aparato_emparejado_saca_un_codigo_que_empareja_otro() {
+        let (g, clave) = emparejada();
+        g.lock().unwrap().ajustes.encendido = true;
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 10);
+        let pedir_codigo = |c: Option<&str>| atender(&pedir("POST", "/api/emparejar/codigo", c, ""), &g, &casa, &nada, reloj);
+
+        assert_eq!(pedir_codigo(None).estado, 401);
+        assert_eq!(pedir_codigo(Some("una-clave-inventada-de-cuarenta-y-tres-letra")).estado, 401);
+        assert!(g.lock().unwrap().codigo_visible(reloj.0).is_none(), "sin clave no nace ningún código");
+        assert!(casa.pedidos.borrow().is_empty());
+
+        let r = pedir_codigo(Some(&clave));
+        assert_eq!(r.estado, 200);
+        let v = cuerpo_de(&r);
+        let codigo = v["valor"].as_str().unwrap().to_string();
+        assert!(codigo.len() == 6 && codigo.chars().all(|c| c.is_ascii_digit()), "seis cifras: {codigo}");
+        assert_eq!(v["quedan"], VIDA_CODIGO.as_secs());
+        assert_eq!(g.lock().unwrap().codigo_visible(reloj.0).map(|(c, _)| c), Some(codigo.clone()), "Ajustes lo ve");
+        assert_eq!(*casa.pedidos.borrow(), vec!["Pixel".to_string()], "el rastro, quién lo pidió");
+        assert!(!casa.pedidos.borrow()[0].contains(&codigo));
+
+        let cuerpo = json!({ "codigo": codigo, "nombre": "Windows · Edge" }).to_string();
+        let r = atender(&pedir("POST", "/api/emparejar", None, &cuerpo), &g, &casa, &nada, reloj);
+        assert_eq!(r.estado, 200);
+        let otra = cuerpo_de(&r)["clave"].as_str().unwrap().to_string();
+        assert_ne!(otra, clave);
+        let yo = atender(&pedir("GET", "/api/yo", Some(&otra), ""), &g, &casa, &nada, reloj);
+        assert_eq!((yo.estado, cuerpo_de(&yo)["nombre"].clone()), (200, json!("Windows · Edge")));
+        assert_eq!(g.lock().unwrap().ajustes.dispositivos.len(), 2);
+        assert!(g.lock().unwrap().codigo_visible(reloj.0).is_none(), "en Ajustes se apaga al emparejar");
+        let otra_vez = json!({ "codigo": codigo, "nombre": "Tercero" }).to_string();
+        assert_eq!(atender(&pedir("POST", "/api/emparejar", None, &otra_vez), &g, &casa, &nada, reloj).estado, 403, "una vez");
+        assert_eq!(atender(&pedir("GET", "/api/emparejar/codigo", Some(&clave), ""), &g, &casa, &nada, reloj).estado, 405);
+    }
+
+    /// El código del móvil es el de Ajustes en todo: sustituye al que hubiera
+    /// (también al del botón), caduca a los diez minutos, cinco fallos lo
+    /// queman aunque luego se acierte, y con el móvil apagado no se saca.
+    #[test]
+    fn el_codigo_del_movil_sustituye_al_anterior_y_cinco_fallos_lo_queman() {
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 10);
+        let c = Some(clave.as_str());
+        let pedir_codigo = || atender(&pedir("POST", "/api/emparejar/codigo", c, ""), &g, &casa, &nada, reloj);
+        let probar = |codigo: &str, ahora: Instant| {
+            let cuerpo = json!({ "codigo": codigo, "nombre": "Intruso" }).to_string();
+            atender(&pedir("POST", "/api/emparejar", None, &cuerpo), &g, &casa, &nada, (ahora, 10))
+        };
+
+        assert_eq!(pedir_codigo().estado, 409, "apagado, no");
+        assert!(g.lock().unwrap().codigo_visible(reloj.0).is_none());
+        g.lock().unwrap().ajustes.encendido = true;
+
+        let del_boton = g.lock().unwrap().nuevo_codigo(reloj.0).unwrap();
+        let del_movil = cuerpo_de(&pedir_codigo())["valor"].as_str().unwrap().to_string();
+        if del_boton != del_movil {
+            let r = probar(&del_boton, reloj.0);
+            assert_eq!(r.estado, 403, "el del botón ya no vale");
+        }
+
+        let malo = if del_movil == "000000" { "111111" } else { "000000" };
+        for _ in 0..INTENTOS - 1 {
+            assert_eq!(probar(malo, reloj.0).estado, 403);
+        }
+        // El fallo del botón de arriba ya contó: el quinto lo quema.
+        if del_boton == del_movil {
+            assert_eq!(probar(malo, reloj.0).estado, 403);
+        }
+        assert_eq!(probar(&del_movil, reloj.0).estado, 403, "quemado aunque se acierte");
+        assert_eq!(g.lock().unwrap().ajustes.dispositivos.len(), 1);
+
+        let nuevo = cuerpo_de(&pedir_codigo())["valor"].as_str().unwrap().to_string();
+        assert_eq!(probar(&nuevo, reloj.0 + VIDA_CODIGO).estado, 403, "caducado");
+        assert_eq!(g.lock().unwrap().ajustes.dispositivos.len(), 1);
+        assert_eq!(casa.pedidos.borrow().len(), 2);
+    }
+
+    /// Una guardia con dos aparatos: el móvil de `emparejada` y un PC de clase.
+    fn con_dos() -> (Mutex<Guardia>, String, String) {
+        let (g, clave) = emparejada();
+        let t = Instant::now();
+        let otra = {
+            let mut gg = g.lock().unwrap();
+            let c = gg.nuevo_codigo(t).unwrap();
+            gg.emparejar(&c, "Windows · Chrome", t, 0).unwrap()
+        };
+        (g, clave, otra)
+    }
+
+    /// «Tus aparatos» (Munir, 2026-11-13, el PC de clase solo se quitaba desde
+    /// él o desde el de casa): sin clave no se ve ni se quita nada; con ella sale
+    /// la lista con el de esa clave marcado, sin huellas enteras; se quita a otro,
+    /// que se queda fuera al momento, y el rastro dice quién quitó a quién. A sí
+    /// mismo no se quita por aquí: se quedaría dentro con una clave muerta.
+    #[test]
+    fn tus_aparatos_se_ven_y_se_quitan_solo_emparejado() {
+        let (g, clave, otra) = con_dos();
+        let casa = CasaDeMentira::default();
+        let guardados = RefCell::new(0);
+        let persistir = |_: &Ajustes| *guardados.borrow_mut() += 1;
+        let reloj = (Instant::now(), 10);
+        let ir = |metodo: &str, ruta: &str, c: Option<&str>, cuerpo: &str| atender(&pedir(metodo, ruta, c, cuerpo), &g, &casa, &persistir, reloj);
+        let quitar = |c: Option<&str>, id: &str| ir("POST", "/api/aparatos/quitar", c, &json!({ "id": id }).to_string());
+
+        assert_eq!(ir("GET", "/api/aparatos", None, "").estado, 401);
+        assert_eq!(ir("GET", "/api/aparatos", Some("una-clave-inventada-de-cuarenta-y-tres-letra"), "").estado, 401);
+        let id_de = |nombre: &str| g.lock().unwrap().visibles(None).into_iter().find(|d| d.nombre == nombre).unwrap().id;
+        let (id_pixel, id_clase) = (id_de("Pixel"), id_de("Windows · Chrome"));
+        assert_eq!(quitar(None, &id_clase).estado, 401, "sin clave no se quita");
+        assert_eq!(g.lock().unwrap().ajustes.dispositivos.len(), 2);
+
+        let r = ir("GET", "/api/aparatos", Some(&clave), "");
+        assert_eq!(r.estado, 200);
+        let lista = cuerpo_de(&r)["aparatos"].as_array().unwrap().clone();
+        let marcas: Vec<(String, bool)> = lista.iter().map(|d| (d["nombre"].as_str().unwrap().to_string(), d["este"].as_bool().unwrap())).collect();
+        assert_eq!(marcas, vec![("Pixel".to_string(), true), ("Windows · Chrome".to_string(), false)]);
+        assert!(lista.iter().all(|d| d["id"].as_str().unwrap().len() == 12), "el id es el principio de la huella");
+        let texto = String::from_utf8_lossy(&r.cuerpo).to_string();
+        assert!(!texto.contains(&huella(&clave)) && !texto.contains(&huella(&otra)) && !texto.contains(&clave), "ni huellas enteras ni claves");
+        let desde_la_otra = cuerpo_de(&ir("GET", "/api/aparatos", Some(&otra), ""))["aparatos"][1]["este"].clone();
+        assert_eq!(desde_la_otra, json!(true), "cada uno se ve marcado a sí mismo");
+
+        assert_eq!(quitar(Some(&clave), &id_pixel).estado, 400, "a sí mismo, no por aquí");
+        assert_eq!(quitar(Some(&clave), "abc").estado, 400, "un id corto no vale");
+        assert_eq!(quitar(Some(&clave), "zzzzzzzzzzzz").estado, 400, "ni uno que no es una huella");
+        assert_eq!(quitar(Some(&clave), "000000000000").estado, 404, "uno que no existe");
+        assert_eq!((g.lock().unwrap().ajustes.dispositivos.len(), *guardados.borrow()), (2, 0), "nada de eso quitó ni guardó nada");
+        assert!(casa.cambios.borrow().is_empty());
+
+        let r = quitar(Some(&clave), &id_clase);
+        assert_eq!(r.estado, 200);
+        assert_eq!(cuerpo_de(&r)["aparatos"].as_array().map(Vec::len), Some(1), "devuelve la lista ya sin él");
+        assert_eq!(*guardados.borrow(), 1, "se guarda en movil.json");
+        assert_eq!(*casa.cambios.borrow(), vec!["Móvil: «Pixel» quitó a «Windows · Chrome» desde Tus aparatos".to_string()]);
+        assert_eq!(ir("GET", "/api/yo", Some(&otra), "").estado, 401, "el quitado se queda fuera al momento");
+        assert_eq!(quitar(Some(&clave), &id_clase).estado, 404);
+        assert_eq!(ir("GET", "/api/aparatos/quitar", Some(&clave), "").estado, 405);
+    }
+
+    /// «Por un rato» (Munir, 2026-11-13: el PC de clase no es suyo). El código que
+    /// saca un aparato sin `siempre` deja al que entra con él para ocho horas; a su
+    /// hora (el reloj de mentira de `atender`) su llave da 401, sale de la lista,
+    /// se guarda movil.json sin él y el rastro lo dice. Con `siempre`, y con el
+    /// botón del PC, es para siempre. Y a un caducado no se le manda ningún aviso.
+    #[test]
+    fn un_aparato_por_un_rato_se_olvida_solo_a_las_ocho_horas() {
+        let (g, clave) = emparejada();
+        g.lock().unwrap().ajustes.encendido = true;
+        let casa = CasaDeMentira::default();
+        let guardados = RefCell::new(0);
+        let persistir = |_: &Ajustes| *guardados.borrow_mut() += 1;
+        let t = Instant::now();
+        let ir = |metodo: &str, ruta: &str, c: Option<&str>, cuerpo: &str, s: u64| atender(&pedir(metodo, ruta, c, cuerpo), &g, &casa, &persistir, (t, s));
+        let entrar = |codigo: &Value, nombre: &str, s: u64| {
+            let cuerpo = json!({ "codigo": codigo, "nombre": nombre }).to_string();
+            cuerpo_de(&ir("POST", "/api/emparejar", None, &cuerpo, s))["clave"].as_str().unwrap().to_string()
+        };
+        let hasta_de = |i: usize| g.lock().unwrap().ajustes.dispositivos[i].hasta;
+
+        let r = cuerpo_de(&ir("POST", "/api/emparejar/codigo", Some(&clave), "", 1000));
+        assert_eq!(r["por_un_rato"], json!(true), "de entrada, por un rato");
+        let clase = entrar(&r["valor"], "Windows · Chrome", 1000);
+        let fin = 1000 + VIDA_POR_UN_RATO;
+        assert_eq!(hasta_de(1), Some(fin));
+        let lista = cuerpo_de(&ir("GET", "/api/aparatos", Some(&clave), "", 1001))["aparatos"].clone();
+        assert_eq!((lista[0]["hasta"].clone(), lista[1]["hasta"].clone()), (Value::Null, json!(fin)), "la lista dice cuándo se olvida");
+
+        let r = cuerpo_de(&ir("POST", "/api/emparejar/codigo", Some(&clave), &json!({ "siempre": true }).to_string(), 1002));
+        assert_eq!(r["por_un_rato"], json!(false));
+        let suyo = entrar(&r["valor"], "Mac · Safari", 1002);
+        assert_eq!(hasta_de(2), None, "con la casilla, para siempre");
+        let del_boton = g.lock().unwrap().nuevo_codigo(t).unwrap();
+        entrar(&json!(del_boton), "Android · Chrome", 1003);
+        assert_eq!(hasta_de(3), None, "el código del botón del PC, para siempre");
+        assert!(casa.cambios.borrow().is_empty());
+
+        assert_eq!(ir("GET", "/api/yo", Some(&clase), "", fin - 1).estado, 200, "un segundo antes, todavía abre");
+        let antes = *guardados.borrow();
+        assert_eq!(ir("GET", "/api/yo", Some(&clase), "", fin).estado, 401, "a su hora, su llave ya no abre");
+        assert!(*guardados.borrow() > antes, "y movil.json se guarda sin él");
+        assert_eq!(*casa.cambios.borrow(), vec!["Móvil: «Windows · Chrome» se olvidó solo: era por un rato".to_string()]);
+        let lista = cuerpo_de(&ir("GET", "/api/aparatos", Some(&clave), "", fin))["aparatos"].clone();
+        let nombres: Vec<&str> = lista.as_array().unwrap().iter().map(|d| d["nombre"].as_str().unwrap()).collect();
+        assert_eq!(nombres, vec!["Pixel", "Mac · Safari", "Android · Chrome"], "sale de la lista");
+        assert_eq!(ir("GET", "/api/yo", Some(&suyo), "", fin + 10 * VIDA_POR_UN_RATO).estado, 200, "el de para siempre sigue");
+        assert_eq!(casa.cambios.borrow().len(), 1, "se olvida una vez, no en cada petición");
+
+        // Un «por un rato» que ya pasó, sin que nadie haya llamado todavía: no abre.
+        let mut viejo = Guardia::default();
+        let sub = crate::push::Suscripcion { endpoint: "https://push.example/x".into(), p256dh: "p".into(), auth: "a".into() };
+        let caducado = clave_nueva().unwrap();
+        viejo.ajustes.dispositivos.push(Dispositivo { nombre: "Caducado".into(), huella: huella(&caducado), hasta: Some(1), push: Some(sub.clone()), ..Default::default() });
+        viejo.ajustes.dispositivos.push(Dispositivo { nombre: "Fijo".into(), huella: "cd".repeat(32), push: Some(sub), ..Default::default() });
+        assert_eq!(viejo.quien(&caducado, 2), None, "su llave no abre aunque siga en la lista");
+        let avisados: Vec<String> = viejo.suscripciones(None).into_iter().map(|(n, _, _)| n).collect();
+        assert_eq!(avisados, vec!["Fijo".to_string()], "al caducado no se le manda ningún aviso");
+        assert_eq!(viejo.caducar(2), vec!["Caducado".to_string()]);
+
+        // El movil.json de antes, sin `hasta`, es para siempre; y para siempre no lo escribe.
+        let de_antes: Dispositivo = serde_json::from_str(r#"{"nombre":"PC","huella":"x","creado":1}"#).unwrap();
+        assert_eq!(de_antes.hasta, None);
+        assert!(!serde_json::to_string(&de_antes).unwrap().contains("hasta"));
     }
 
     /// Las terminales desde el móvil (decisión E3): la lista y la pantalla van

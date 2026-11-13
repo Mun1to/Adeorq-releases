@@ -72,6 +72,8 @@ export interface Dispositivo {
   visto: number;
   /** Si ese móvil pidió avisos. */
   avisos: boolean;
+  /** Emparejado «por un rato»: cuándo se olvida solo (segundos Unix). */
+  hasta?: number | null;
 }
 
 export interface EstadoMovil {

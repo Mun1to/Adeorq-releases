@@ -54,6 +54,7 @@ mod conserje;
 mod decisiones;
 // Lo que un agente le enseña a Munir en el móvil (`compartir_en_el_movil`).
 mod compartidos;
+mod vivo;
 mod programados;
 mod historia;
 mod movil;

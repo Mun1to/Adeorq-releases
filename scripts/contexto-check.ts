@@ -8,7 +8,7 @@
 //
 // D7, el mismo día, tras medir que el 85,8 % del gasto son respuestas con 200k
 // o más de contexto: las rayas van por TOKENS, no por el % de la ventana (con
-// un millón, el 50 % eran 500k y llegaba tarde). 300k avisa, 400k compacta y
+// un millón, el 50 % eran 500k y llegaba tarde). 350k avisa, 450k compacta (300k y 400k hasta el 14-nov) y
 // 600k ofrece una terminal nueva; en una ventana pequeña vale lo que llegue
 // antes, los tokens o el % de antes, para que Haiku siga avisando.
 //
@@ -35,6 +35,7 @@ import {
   esperaEnSuCaja,
   finDesconocidoEnPantalla,
   leerDelPanel,
+  sinSugerencia,
   leerModoSolo,
   marcarDelegada,
   nivelDeContexto,
@@ -85,7 +86,7 @@ function panel(o: Partial<{
   const s = {
     modo: "sin-commits" as ModoSolo,
     estado: "lista" as WorkState,
-    k: 420,
+    k: 470,
     ventana: 1_000_000,
     vivos: 0,
     pregunta: false,
@@ -100,6 +101,8 @@ function panel(o: Partial<{
     respuesta: null as string | null,
     delegada: false,
     caja: true,
+    /** El transcript acaba en el 429 de cuota (`sinCuota` de `session_context`). */
+    sinCuota: false,
     /** La pantalla dice «Unknown command: /fin» (una terminal de otra cuenta). */
     finNo: false,
     reloj: 1_000_000,
@@ -125,7 +128,7 @@ function panel(o: Partial<{
       mandado.push(x);
     },
     leer: async () => {
-      const foto = s.sinDato ? null : { state: s.estado, agentsLive: s.vivos, used: s.k * 1000, window: s.ventana };
+      const foto = s.sinDato ? null : { state: s.estado, agentsLive: s.vivos, used: s.k * 1000, window: s.ventana, sinCuota: s.sinCuota };
       const espera = s.retener;
       s.retener = null;
       if (espera) await espera;
@@ -194,17 +197,17 @@ async function main() {
   // ── Las rayas ───────────────────────────────────────────────────────────
   const n = (k: number, ventana = 1_000_000) => nivelDeContexto({ used: k * 1000, window: ventana });
   es("sin dato no hay aviso", nivelDeContexto(undefined), 0);
-  es("un millón: 299k todavía no", n(299), 0);
-  es("un millón: 300k ya avisa (el 30 %, no el 50)", n(300), 1);
-  es("un millón: 399k sigue en el aviso", n(399), 1);
-  es("un millón: 400k compacta (el 40 %, no el 60)", n(400), 2);
+  es("un millón: 349k todavía no", n(349), 0);
+  es("un millón: 350k ya avisa (el 35 %, no el 50)", n(350), 1);
+  es("un millón: 449k sigue en el aviso", n(449), 1);
+  es("un millón: 450k compacta (el 45 %, no el 60)", n(450), 2);
   es("un millón: 599k sigue en compactar", n(599), 2);
   es("un millón: 600k, mejor una terminal nueva (no el 80 %)", n(600), 3);
   es("Haiku (200k): 99k todavía no", n(99, 200_000), 0);
-  es("Haiku: el 50 % (100k) llega antes que los 300k y avisa", n(100, 200_000), 1);
+  es("Haiku: el 50 % (100k) llega antes que los 350k y avisa", n(100, 200_000), 1);
   es("Haiku: el 60 % (120k) compacta", n(120, 200_000), 2);
   es("Haiku: el 80 % (160k), terminal nueva", n(160, 200_000), 3);
-  es("sin ventana sabida, solo los tokens", n(400, 0), 2);
+  es("sin ventana sabida, solo los tokens", n(450, 0), 2);
   es("sin tokens (Codex no los da), nada", nivelDeContexto({ used: 0, window: 0 }), 0);
 
   // ── Cuándo un turno ha acabado de verdad ───────────────────────────────
@@ -232,7 +235,7 @@ async function main() {
   {
     const p = panel();
     await p.tr.alSonar();
-    es("a 420k y con el turno acabado, la campana manda /fin sin commits", p.mandado, ["/fin sin commits"]);
+    es("a 470k y con el turno acabado, la campana manda /fin sin commits", p.mandado, ["/fin sin commits"]);
     es("y queda cerrando", p.tr.fase(), "cerrando");
     await p.tr.alSonar();
     ok("la campana siguiente manda el /compact", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "), JSON.stringify(p.mandado));
@@ -241,9 +244,9 @@ async function main() {
     es("una campana más, con el número viejo todavía en el transcript, no vuelve a empezar", p.mandado.length, 2);
     p.s.k = 30;
     await p.tr.alSonar();
-    p.s.k = 430;
+    p.s.k = 480;
     await p.tr.alSonar();
-    es("pero si bajó y vuelve a cruzar los 400k, vuelve a hacerlo", p.mandado.slice(2), ["/fin sin commits"]);
+    es("pero si bajó y vuelve a cruzar los 450k, vuelve a hacerlo", p.mandado.slice(2), ["/fin sin commits"]);
   }
   {
     const p = panel({ modo: "fin" });
@@ -256,9 +259,9 @@ async function main() {
     es("con el modo «no» la campana no manda nada", p.mandado, []);
   }
   {
-    const p = panel({ k: 350 });
+    const p = panel({ k: 400 });
     await p.tr.alSonar();
-    es("a 350k solo se avisa: nada se manda solo", p.mandado, []);
+    es("a 400k solo se avisa: nada se manda solo", p.mandado, []);
   }
   {
     const p = panel({ k: 130, ventana: 200_000 });
@@ -289,7 +292,7 @@ async function main() {
   {
     const p = panel({ visto: 2 });
     await p.tr.alSonar();
-    es("«Ahora no» a 420k: la campana no manda nada", p.mandado, []);
+    es("«Ahora no» a 470k: la campana no manda nada", p.mandado, []);
     p.s.k = 610;
     await p.tr.alSonar();
     es("pero al cruzar los 600k es otro aviso y vuelve", p.mandado, ["/fin sin commits"]);
@@ -335,6 +338,35 @@ async function main() {
     es("pasado el plazo, no se compacta a destiempo", p.mandado.length, 1);
   }
 
+  // ── Sin cuota no se teclea nada ────────────────────────────────────────
+  // La terminal 19, 2026-11-14: parada por el tope de 5 horas a 464k, la raya
+  // le tecleó /compact, falló («Error during compaction: You've hit your
+  // 5-hour limit») y tapó el 429 al relevo.
+  {
+    const p = panel({ sinCuota: true });
+    await p.tr.alSonar();
+    es("sin cuota y a 470k, la campana no le teclea nada", p.mandado, []);
+    es("ni deja nada esperando", p.tr.fase(), "nada");
+    p.s.sinCuota = false;
+    await p.tr.alSonar();
+    es("con cuota otra vez, la campana siguiente sí manda el /fin sin commits", p.mandado, ["/fin sin commits"]);
+  }
+  {
+    const p = panel({ modo: "no", sinCuota: true });
+    await p.tr.pedir("compactar");
+    es("pulsar Compactar sin cuota no teclea nada", p.mandado, []);
+    es("y se queda esperando a que vuelva", p.tr.fase(), "esperando");
+    p.s.sinCuota = false;
+    await p.tr.alSonar();
+    es("al volver la cuota, el /fin", p.mandado, ["/fin"]);
+  }
+  {
+    const p = panel({ sinCuota: true });
+    es("compactarme sin cuota se acepta", await p.tr.pedirPropia("# COMPACTACIÓN", null), "aceptado");
+    await p.tr.alSonar();
+    es("pero el /compact espera a la cuota", p.mandado, []);
+  }
+
   // ── El botón, a mano ───────────────────────────────────────────────────
   {
     const p = panel({ modo: "no", estado: "a_medias" });
@@ -378,7 +410,7 @@ async function main() {
   {
     const p = panel({ veces: 2 });
     await p.tr.alSonar();
-    es("compactada dos veces, la campana de los 420k NO compacta una tercera", p.mandado, []);
+    es("compactada dos veces, la campana de los 470k NO compacta una tercera", p.mandado, []);
     es("y no abre nada sin su clic", [p.nuevas.length, p.archivadas.length], [0, 0]);
   }
   {
@@ -408,7 +440,7 @@ async function main() {
   {
     const p = panel({ modo: "no", delegada: true });
     await p.tr.alSonar();
-    es("una delegada a 420k compacta sola aunque el ajuste diga «no»", p.mandado, ["/fin sin commits"]);
+    es("una delegada a 470k compacta sola aunque el ajuste diga «no»", p.mandado, ["/fin sin commits"]);
     await p.tr.alSonar();
     ok("y al acabar el /fin, su /compact", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "), JSON.stringify(p.mandado));
   }
@@ -432,9 +464,9 @@ async function main() {
     es("una delegada ya compactada dos veces no se compacta sola una tercera", p.mandado, []);
   }
   {
-    const p = panel({ modo: "no", delegada: true, k: 350 });
+    const p = panel({ modo: "no", delegada: true, k: 400 });
     await p.tr.alSonar();
-    es("una delegada a 350k solo avisa", p.mandado, []);
+    es("una delegada a 400k solo avisa", p.mandado, []);
   }
 
   // ── compactar_terminal: lo pide un agente por el MCP ────────────────────
@@ -549,6 +581,37 @@ async function main() {
     await p.vuelta();
     es("con seguir a null, compactada y sin escribirle nada", p.mandado.length, 2);
     es("y se acaba igual", p.tr.fase(), "nada");
+  }
+  {
+    // Sin `seguir`: el «Retomar» de su /fin, leído al mandar el /compact. Munir,
+    // 14-nov, al ver la frase de la casa: «¿por qué no se coge el mensaje de retomar?».
+    const p = panel({ estado: "a_medias", manual: true, respuesta: RESPUESTA_FIN });
+    p.tr.pedirPropia(BLOQUE, undefined);
+    await p.asentar();
+    p.s.estado = "lista";
+    await p.tr.alSonar();
+    p.s.veces = 1;
+    // La primera vuelta es la de mirar su turno; la segunda, la de vigilar.
+    await p.vuelta();
+    await p.vuelta();
+    const seguir = p.mandado[1] ?? "";
+    ok("sin seguir dado, tras compactar teclea su bloque «Retomar»", seguir.startsWith("# RETOMAR, Adeorq compactar a tiempo"), JSON.stringify(p.mandado));
+    ok("y detrás, una línea para que siga sin pararse", seguir.endsWith("déjalo dicho y espera.") && seguir.includes("«Lo siguiente»"), seguir.slice(-120));
+  }
+  {
+    const p = panel({ estado: "a_medias", manual: true, respuesta: "Hecho. ¿Lo subo?" });
+    p.tr.pedirPropia(BLOQUE, undefined);
+    await p.asentar();
+    p.s.estado = "lista";
+    await p.tr.alSonar();
+    p.s.veces = 1;
+    await p.vuelta();
+    await p.vuelta();
+    es(
+      "sin «Retomar» en su respuesta, la frase de la casa",
+      p.mandado[1],
+      "Ya estás compactada. Sigue con lo pendiente del resumen, sin repetir lo hecho; lo que solo puede decidir Munir, déjalo dicho y espera.",
+    );
   }
   {
     const p = panel({ estado: "a_medias", manual: true });
@@ -718,12 +781,29 @@ async function main() {
   ok("una consola con su prompt «❯» (starship), no", !enPantalla("~/web on main", "❯ "));
   ok("con un borrador en la caja, no", !enPantalla(RAYA, "❯ arregla el scroll", RAYA));
   ok("con un borrador de dos líneas, no", !enPantalla(RAYA, "❯ arregla el scroll", "  y el menú", RAYA));
+  {
+    // La sugerencia gris de la 2.1.3xx ya no empieza por «Try "»: es una frase
+    // atenuada («sigue con el laboratorio»). 14-nov: dos terminales a 470k con el
+    // turno acabado no se compactaron porque se leía como un borrador.
+    const fila = (texto: string, tenueDesde: number) => ({
+      translateToString: () => texto.trimEnd(),
+      length: [...texto].length,
+      getCell: (x: number) => {
+        const ch = [...texto][x];
+        return ch === undefined ? undefined : { getChars: () => ch, getWidth: () => 1, isDim: () => (x >= tenueDesde ? 1 : 0) };
+      },
+    });
+    const caja = (f: ReturnType<typeof fila>) => esperaEnSuCaja((i) => [RAYA, sinSugerencia(f), RAYA][i] ?? "", 5);
+    ok("la sugerencia atenuada tras «❯» cuenta como caja vacía", caja(fila("❯ sigue con el laboratorio", 2)));
+    ok("lo escrito de verdad (sin atenuar) sigue siendo un borrador", !caja(fila("❯ sigue con el laboratorio", 99)));
+    es("fuera de la caja no se toca nada atenuado (rayas y pie)", sinSugerencia(fila("  ⏵⏵ auto mode on", 0)), "  ⏵⏵ auto mode on");
+  }
   ok("con un permiso abierto, no", !enPantalla(RAYA, " Bash command", " Do you want to proceed?", " ❯ 1. Yes", "   2. No", "", " Esc to cancel · Tab to amend"));
   ok("con una pregunta abierta, no", !enPantalla(RAYA, "❯ 1. Instalador", "  2. En los dos sitios", RAYA, "  5. Chat about this", "", "Enter to select · Tab/Arrow keys to navigate · Esc to cancel"));
   {
     const p = panel({ caja: false });
     await p.tr.alSonar();
-    es("a 420k, con la pantalla sin su caja (un PowerShell), la campana no teclea nada", p.mandado, []);
+    es("a 470k, con la pantalla sin su caja (un PowerShell), la campana no teclea nada", p.mandado, []);
     await p.tr.pedir("compactar");
     es("ni el botón", p.mandado, []);
     await p.tr.pedirDeAgente();
@@ -766,9 +846,9 @@ async function main() {
   {
     const p = panel({ k: 250 });
     await p.tr.alSonar();
-    p.s.k = 320;
+    p.s.k = 370;
     await p.tr.alSonar();
-    es("pasados los 300k ya no es sugerencia: es el aviso", p.sugerencias, []);
+    es("pasados los 350k ya no es sugerencia: es el aviso", p.sugerencias, []);
   }
   {
     const p = panel({ k: 50, ventana: 200_000 });
@@ -946,7 +1026,7 @@ async function main() {
     await p.vuelta();
     es("mientras corre el /fin, nada más", p.mandado.length, 1);
     p.s.estado = "lista";
-    p.s.k = 431;
+    p.s.k = 481;
     await p.vuelta();
     ok("y al acabar el /fin, el /compact sin campana", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "), JSON.stringify(p.mandado));
     es("y se acaba", p.tr.fase(), "nada");
@@ -964,7 +1044,7 @@ async function main() {
     p.s.estado = "a_medias";
     await p.vuelta();
     p.s.estado = "lista";
-    p.s.k = 431;
+    p.s.k = 481;
     await p.vuelta();
     ok("y su /compact, sin campana", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "), JSON.stringify(p.mandado));
   }
@@ -979,7 +1059,7 @@ async function main() {
     await p.vuelta();
     await p.vuelta();
     es("una «lista» que no se movió desde el /fin no vale para mandar el /compact", p.mandado.length, 1);
-    p.s.k = 431;
+    p.s.k = 481;
     await p.vuelta();
     ok("en cuanto el transcript se mueve, sí", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "), JSON.stringify(p.mandado));
   }
@@ -992,7 +1072,7 @@ async function main() {
     p.s.estado = "a_medias";
     await p.vuelta();
     p.s.estado = "lista";
-    p.s.k = 431;
+    p.s.k = 481;
     await p.vuelta();
     await p.tr.alSonar();
     await p.vuelta();

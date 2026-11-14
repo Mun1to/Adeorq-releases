@@ -236,7 +236,9 @@ export interface Provider {
    *  demás que la publican se lee de sus ficheros (`usageOf`). */
   cuotaPorCuenta?: boolean;
   /** Se le puede pasar el testigo a OTRA cuenta suya con un acta de dónde iba
-   *  (`lib/relevo.ts`), y el aviso de cuota ofrece esa salida. */
+   *  (`lib/relevo.ts`), y el aviso de cuota ofrece esa salida. Una delegada suya
+   *  sin cuota sigue sola en otra cuenta con la misma conversación
+   *  (`lib/relevoCuota.ts`, que solo lo hace con las CLI que lo tengan). */
   relevo?: boolean;
   /** Pregunta si confías en la carpeta al abrirse, y Adeorq sabe dejarlo
    *  contestado antes (`confiar_carpeta` en `mcp.rs`). */

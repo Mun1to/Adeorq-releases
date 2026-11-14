@@ -24,6 +24,7 @@ import { conLasPrincipales, fotoRapida, leidaEn, mundoEnCache, parteDelEquipo } 
 import { comandoDe } from "./lanzar";
 import { cuentaDeArranque, cuentaPedida, cuentasDe } from "./frenoCuota";
 import { cuantasPesan, elegirCuenta, modeloParaSuPlan, type CuentaViva } from "./router";
+import { abrirElRelevo, conLasAgotadas, elegirParaRelevo, type ManosDelRelevo } from "./relevoCuota";
 import { isModelAlias } from "./models";
 import { proveedorDe, sabe } from "./providers";
 import {
@@ -51,7 +52,7 @@ export interface ManosDelPuente {
     team?: undefined,
     shadow?: undefined,
     grupo?: undefined,
-    envOverride?: undefined,
+    envOverride?: Record<string, string>,
     opciones?: { abiertaPor?: string },
   ) => { id: number; donde: "lienzo" | "cabina" } | null | undefined;
   /** Dibujar una flecha entre dos terminales del lienzo. */
@@ -122,10 +123,21 @@ function abiertasDesdeLaLectura(cuenta: Account, vivos: Set<number>): number {
 export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accountsRef, agyExe }: ManosDelPuente): void {
   useEffect(() => {
     /** Cada cuenta con lo que ya lleva abierto, para `elegirCuenta`. Después de
-        la foto, que puede tardar segundos: las vivas de ahora, no las de antes. */
+        la foto, que puede tardar segundos: las vivas de ahora, no las de antes.
+        Y las que una delegada vio agotadas, paradas hasta su hora aunque la
+        lectura de cuota aún no lo diga (`lib/relevoCuota.ts`). */
     const conSusAbiertas = (vivas: CuentaViva[]): CuentaViva[] => {
       const vivos = new Set(panelesRef.current().map((s) => s.id));
-      return vivas.map((v) => ({ ...v, abiertas: abiertasDesdeLaLectura(v.cuenta, vivos) }));
+      return conLasAgotadas(vivas.map((v) => ({ ...v, abiertas: abiertasDesdeLaLectura(v.cuenta, vivos) })));
+    };
+    /** El relevo por cuota: lo ordena Rust (`mcp/relevo_cuota.rs`). */
+    const manosDelRelevo: ManosDelRelevo = {
+      addPane,
+      vivas: async (cli) => conSusAbiertas(await fotoRapida(cuentasDe(cli, accountsRef.current.list), 4000)),
+      lista: () => accountsRef.current.list,
+      nombreDe: (id) => panelesRef.current().find((s) => s.id === id)?.name,
+      confiar: (cwd, dir) => confiarCarpeta(cwd, dir),
+      marcar: marcarDelegada,
     };
     const atender = async (p: PedidoMcp) => {
       const responder = (r: Parameters<typeof mcpReply>[1]) =>
@@ -161,7 +173,8 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
             return;
           }
           // Cerrada por quien la abrió: si se retoma otro día, ya no es delegada.
-          olvidarDelegada(panelesRef.current().find((s) => s.id === id)?.sessionId);
+          // Salvo en un relevo por cuota, donde su conversación sigue en la nueva.
+          if (p.relevo !== true) olvidarDelegada(panelesRef.current().find((s) => s.id === id)?.sessionId);
           cerrarRef.current(id);
           responder({});
           return;
@@ -243,6 +256,14 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
           responder({
             datos: { cwd: carpeta.cwd, cli: proveedorDe(quiere.cli)?.label ?? quiere.cli, conEncargo: ARRANCAN_CON_ENCARGO.has(quiere.cli) },
           });
+          return;
+        }
+        if (p.clase === "relevo_cuenta") {
+          responder(await elegirParaRelevo(p as Parameters<typeof elegirParaRelevo>[0], manosDelRelevo));
+          return;
+        }
+        if (p.clase === "relevo_abrir") {
+          responder(await abrirElRelevo(p as Parameters<typeof abrirElRelevo>[0], manosDelRelevo));
           return;
         }
         if (p.clase !== "open_pane") {

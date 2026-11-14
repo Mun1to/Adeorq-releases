@@ -436,6 +436,54 @@ semanal mezclados.
   cuenta, sin preguntar por la carpeta, con «auto mode on», contesta y su transcript queda en esa
   cuenta, que el laboratorio borra al acabar.
 
+## Una delegada sin cuota sigue sola en otra cuenta (2026-11-14)
+
+Munir, ese día: *«si en una cuenta secundaria que la principal haya abierto una sesion y se le acaba
+la cuota a la secundaria que se abra otra terminal en la principal o la que tenga cuota para terminar
+la tarea en el menor tiempo posible»*. Solo las delegadas (`Puente::delegadas`, menos las de un
+encargo programado, que llevan su cuenta y su freno): las de Munir no se relevan solas (D8), y para
+esas sigue el relevo con acta del menú de la terminal (`lib/relevo.ts`).
+
+- **Sigue la MISMA conversación.** Medido con Claude Code 2.1.325 contra una API de mentira: un
+  `.jsonl` copiado a `projects/<carpeta>/` de otro `CLAUDE_CONFIG_DIR` se retoma con `--resume <id>`,
+  escribe en el mismo archivo y manda la historia entera. La API lo admite por escrito
+  (platform.claude.com, «Preserved thinking», «Accounts and cloud platforms»: *«A move to another
+  account […] works the same way: keep sending the full history»*): el razonamiento de Opus 5.5 vale
+  en cualquier cuenta, y el de Sonnet 5.5, Haiku 5.5 y Fable 5.2 se cae sin error. Y la terminal 19,
+  esa misma noche, pasó a mano de la «2da MAIN» a la principal así y siguió (BUZON, «CASO REAL, 02:41»).
+- **Cómo se ve:** un vigía en Rust (`mcp/relevo_cuota.rs`, cada 30 s, `ADEORQ_RELEVO=0` lo apaga) lee
+  la cola del transcript de cada delegada de Claude Code. Sin cuota es la respuesta de mentira con
+  `"error": "rate_limit"` y `quotaLimits.status: "rejected"` (o `apiError: "usage_limit_reached"`)
+  sin renovar todavía, o la nota `usageLimitNote: "wrap_up"` con el turno acabado. Un `/compact` o un
+  aviso de tarea detrás del 429 no cuentan como mensaje nuevo: el de la terminal 19 tapaba el 429.
+  Del transcript y no de la lectura de uso, que esa noche decía «81 %» con la cuenta ya parada.
+- **Qué hace:** pide a la ventana la cuenta (`relevo_cuenta`: `elegirCuenta` sin la agotada, y a una
+  sin sitio no va), cierra la vieja SIN olvidar que es delegada (`close_pane` con `relevo`), espera a
+  que muera su proceso (Claude Code se reanuda solo a la hora de renovarse, y abierta dos veces se
+  cuelga), MUEVE la conversación y su carpeta de al lado a la cuenta nueva (`mudar`; dos copias del
+  mismo id salían dos veces en la barra y se contaban dos veces en tu uso, por eso
+  `uso_historia::mudada` muda también lo ya contado), y abre la nueva (`relevo_abrir`) con `--resume`,
+  su modelo, su esfuerzo, `auto`, `CLAUDE_CODE_RESUME_THRESHOLD_MINUTES` alto (sin él, una de más de
+  100.000 tokens con el último mensaje de hace más de 70 minutos se para en «Resume from summary»,
+  leído en su binario) y un «sigue» como primer mensaje. Al nacer con esa conversación, `al_nacer` la
+  vuelve a hacer de la misma madre. Si no se pudo mover, nace con el acta y se apunta aparte.
+- **Lo que se le dice a la madre:** en la respuesta de su siguiente llamada al MCP, como la raya roja:
+  la vieja, la nueva, las dos cuentas, el tope y cuándo se renueva. Preguntar por la vieja dice en qué
+  panel sigue. Sin otra cuenta con sitio se le dice una vez que no se releva y que Claude Code seguirá
+  solo al renovarse, y se reintenta a los 15 minutos. Como mucho tres relevos de una conversación en
+  seis horas.
+- **La cuenta agotada se queda parada en la ventana hasta su hora** (`conLasAgotadas`): el siguiente
+  `open_pane` y `get_usage` la saltan aunque la lectura de cuota aún no lo diga.
+- **Su rastro** (`rastros::escribir_de_cuota`) no dice «La abrió el panel…», así que la papelera no lo
+  toma por una cerrada; la conversación se tira cuando se cierre la nueva con el suyo.
+- **Medido:** `cargo test --lib relevo_cuota` (con la línea de verdad de la 2.1.323 y la secuencia de
+  la terminal 19), `cargo test --lib uso_historia`, `pnpm bancos relevo-cuota` (rojo con la regla de
+  saltar la agotada rota) y `node scripts/laboratorio/relevo-cuota-de-verdad.mjs`: una Adeorq aislada,
+  una madre por el puerto y un Claude de mentira (`relevo-cuota-falso.mjs`) que se queda sin cuota.
+  `ADEORQ_TRANSCRIPT=<ruta> cargo test --lib relevo_cuota::tests::un_transcript_de_verdad -- --ignored
+  --nocapture` lee un transcript de verdad. **NO PROBADO:** con un Claude Code de verdad sin cuota
+  relevado por Adeorq (lo de la terminal 19 fue a mano), ni con Codex, que no se releva.
+
 ## La línea de casa lleva contraseña (2026-11-03)
 
 Hasta ese día bastaba con mandar `{"adeorq":"de-casa"}` al 3012 (o lanzar `adeorq --mcp

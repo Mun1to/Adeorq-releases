@@ -264,6 +264,19 @@ pub fn escribir_de_relevo(dir: &Path, nombre: &str, carpeta: &str, sesion: &str,
     ))
 }
 
+/// El rastro de una delegada que se quedó sin cuota y siguió sola en otra cuenta
+/// (`mcp/relevo_cuota.rs`). No dice «La abrió el panel…», así que la papelera no
+/// lo toma por una cerrada: su conversación sigue viva en la terminal nueva, y
+/// se tira cuando esa se cierre con el suyo.
+pub fn escribir_de_cuota(dir: &Path, nombre: &str, carpeta: &str, sesion: &str, siguio: &str, cuerpo: &str, ahora_ms: u64) -> Result<PathBuf, String> {
+    guardar_de_la_ventana(dir, nombre, sesion, ahora_ms, |dia, hora| format!(
+        "# Rastro de «{}»\n\n- Relevada por cuota: {dia} {hora} UTC\n- Carpeta: `{carpeta}`\n- Conversación: `{sesion}` (se retoma con `claude --resume {sesion}` en esa carpeta, en la cuenta donde siguió)\n- {}\n\n## Qué hizo, dónde dejó su parte y qué falta\n\n{}\n",
+        nombre.trim(),
+        siguio.trim(),
+        cuerpo.trim()
+    ))
+}
+
 /// Un rastro que escribe la ventana y no un agente: el id lo manda ella, así
 /// que solo vale si es un id, y el fichero no pisa a otro del mismo minuto.
 fn guardar_de_la_ventana(dir: &Path, nombre: &str, sesion: &str, ahora_ms: u64, md: impl FnOnce(&str, &str) -> String) -> Result<PathBuf, String> {

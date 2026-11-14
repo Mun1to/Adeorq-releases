@@ -88,6 +88,10 @@ pub enum Como {
     AMano,
     /// Su encargo programado, al acabar.
     Programado,
+    /// Se quedó sin cuota y siguió en otra terminal, con otra cuenta, que nació
+    /// con un acta porque su conversación no se pudo mudar (`relevo_cuota.rs`;
+    /// `por` es la nueva). Si se mudó, no se cierra: la nueva ES ella.
+    Cuota,
 }
 
 /// Todas, por clave (`clave`).
@@ -204,6 +208,8 @@ fn como_acabo(clave: &str, d: &Delegada, visto: Visto, ahora_ms: u64) -> Option<
             (Como::ClosePane, None) => "cerrada con close_pane por un agente sin panel".to_string(),
             (Como::AMano, _) => "la cerró Munir a mano, con la X".to_string(),
             (Como::Programado, _) => "la cerró su encargo programado al acabar".to_string(),
+            (Como::Cuota, Some(p)) => format!("se quedó sin cuota y la relevó la terminal {p}, en otra cuenta"),
+            (Como::Cuota, None) => "se quedó sin cuota y la relevó otra terminal, en otra cuenta".to_string(),
         };
         return Some((c.ms, format!("{que}, a las {}.{rastro}", hora(c.ms, ahora_ms))));
     }

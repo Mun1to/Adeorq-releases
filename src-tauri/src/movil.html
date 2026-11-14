@@ -253,10 +253,21 @@
   }
   /* «Para ver»: lo que te enseñan los agentes (compartidos.rs), con su miniatura. */
   .ver-rejilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  /* Cada una abre al tocarla, y lleva su «Quitar» a dos toques debajo (el de «Tus aparatos»). */
   .ver-tarjeta {
-    display: grid; grid-template-rows: auto auto; width: 100%; padding: 0; text-align: left; cursor: pointer; overflow: hidden;
+    display: grid; grid-template-rows: auto auto; align-content: start; overflow: hidden;
     border-radius: var(--r-caja); border: 1px solid var(--borde); background: var(--capa); box-shadow: var(--brillo);
   }
+  .ver-abrir { display: grid; grid-template-rows: auto auto; width: 100%; padding: 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
+  .ver-tarjeta > .mini.quitar { justify-self: start; margin: 0 11px 11px; }
+  /* Arriba de la lista: qué se va solo y «Vaciar», también a dos toques. */
+  .ver-arriba { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 12px; }
+  .ver-arriba span { font-size: calc(14px * var(--z)); color: var(--suave); }
+  /* «Abrir en vivo», quieto entre la cabecera y la captura, que queda de vista previa. */
+  .ver-vivo { display: flex; align-items: center; gap: 12px; padding: 10px max(16px, calc((100% - var(--ancho)) / 2)); border-bottom: 1px solid var(--borde); }
+  .ver-vivo .boton { flex: none; text-decoration: none; }
+  .ver-vivo .boton[aria-disabled="true"] { opacity: 0.5; pointer-events: none; }
+  .ver-vivo small { font-size: calc(13.5px * var(--z)); line-height: 1.35; color: var(--suave); }
   .ver-mini { display: grid; place-items: center; aspect-ratio: 3 / 4; overflow: hidden; background: var(--capa-fuerte); color: var(--suave); }
   .ver-mini img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
   .ver-mini svg { width: 34px; height: 34px; }
@@ -1015,7 +1026,7 @@
     button.fila:hover, .cajon .proyecto:hover, .atras:hover, .tarjeta.ses:hover, .hoja button:hover { background: var(--capa-fuerte); }
     .tarjeta.ses:hover { border-radius: var(--r-btn); }
     button.fila[aria-current="true"]:hover { background: var(--capa-viva); }
-    .tarjeta:not(.ses):hover, .opcion:hover, .opciones-menu button:hover, .ver-tarjeta:hover, .avisos:hover { border-color: var(--borde-fuerte); }
+    .tarjeta:not(.ses):hover, .opcion:hover, .opciones-menu button:hover, .ver-tarjeta:has(> .ver-abrir:hover), .avisos:hover { border-color: var(--borde-fuerte); }
     .pastilla:hover, .mini:hover, .adjuntar:hover, .abrir-teclas:hover, .mover:hover, .descartar:hover, .cajon .pc .a-ajustes:hover { background: var(--capa-viva); }
     .boton:not(:disabled):hover, .enviar:not(:disabled):hover { filter: brightness(1.08); }
     .nuevo-encargo:hover { filter: brightness(0.94); }
@@ -1517,6 +1528,13 @@ const EN = {
   "Capturar otra vez": "Capture again",
   "Eso ya no está compartido: caducó, o el agente nunca lo compartió.": "That is no longer shared: it expired, or the agent never shared it.",
   "Capturando la web en tu PC…": "Capturing the web on your PC…",
+  "se va en {m} min": "goes in {m} min",
+  "visto": "seen",
+  "Lo que abres se va a la hora.": "What you open goes an hour later.",
+  "Vaciar": "Clear all",
+  "Toca otra vez para vaciar": "Tap again to clear all",
+  "Abrir en vivo": "Open live",
+  "Se abre en otra pestaña y la puedes tocar.": "It opens in another tab and you can use it.",
   // Una terminal
   "Te pregunta": "Asking you",
   "Es tu turno:": "Your turn:",
@@ -1653,6 +1671,11 @@ const DEL_PC = {
   "Eso ya no está compartido.": "That is no longer shared.",
   "Aquí no se comparte nada.": "Nothing is shared here.",
   "Aquí no se capturan webs.": "Webs are not captured here.",
+  "Eso no es una web de tu PC.": "That is not a web on your PC.",
+  "Aquí no hay webs en vivo.": "There are no live webs here.",
+  // vivo.rs
+  "La web en vivo no está en marcha en tu PC. Apaga y enciende «Adeo en el móvil» en Ajustes.":
+    "Live webs are not running on your PC. Turn “Adeo on your phone” off and on again in Settings.",
   // compartidos.rs
   "Solo se comparte un archivo, nunca una carpeta.": "Only a file is shared, never a folder.",
   "Ese archivo ya no es lo que se compartió.": "That file is no longer what was shared.",
@@ -1705,6 +1728,10 @@ const DEL_PC_CON_HUECO = [
   [/^El cursor del selector no llegó a «(.*)»\.$/, "The picker's cursor did not reach “$1”."],
   [/^Este modelo no deja elegir el esfuerzo, así que se queda como está y no en «(.*)»\.$/, "This model does not let you choose the effort, so it stays as it is and not at “$1”."],
   [/^El selector no llega al esfuerzo «(.*)» con este modelo\.$/, "The picker does not reach effort “$1” with this model."],
+  // vivo.rs
+  [/^No hay nada escuchando en 127\.0\.0\.1:(\d+): arranca la web antes de mirarla\.$/, "Nothing is listening on 127.0.0.1:$1: start the web before looking at it."],
+  [/^En tu Tailscale, el (\d+) ya lo usa otra cosa \((.*)\) y Adeorq no lo pisa\. Quítalo con «(.*)» y vuelve a probar\.$/s, "On your Tailscale, $1 is already used by something else ($2) and Adeorq does not override it. Remove it with “$3” and try again."],
+  [/^Tailscale no dejó abrir el (\d+) para la web en vivo: (.*)$/s, "Tailscale did not let port $1 open for the live web: $2"],
 ];
 function delPc(texto) {
   if (!INGLES || !texto) return texto;
@@ -4920,7 +4947,40 @@ async function imagenCompartida(id, nueva) {
   return u;
 }
 
-const quedaVer = (c) => tr("caduca en {h} h", { h: Math.max(1, Math.round((c.caduca - Date.now()) / 3600000)) });
+/** Cuándo se va: en minutos la última hora, y «visto» si ya lo abriste (se va a la hora de mirarlo). */
+const quedaVer = (c) => {
+  const ms = c.caduca - Date.now();
+  const cuando = ms < 3600000
+    ? tr("se va en {m} min", { m: Math.max(1, Math.round(ms / 60000)) })
+    : tr("caduca en {h} h", { h: Math.round(ms / 3600000) });
+  return c.abierto ? `${tr("visto")} · ${cuando}` : cuando;
+};
+
+/** «Quitar» y «Vaciar» van a dos toques, como «Quitar» en «Tus aparatos»: el
+    primero arma el botón, y a los cuatro segundos se desarma solo. */
+function aDosToques(boton, armado, hacer, avisar) {
+  const normal = boton.textContent;
+  let reloj = 0;
+  boton.addEventListener("click", async (ev) => {
+    ev.stopPropagation();
+    if (!boton.classList.contains("peligro")) {
+      boton.classList.add("peligro");
+      boton.textContent = armado;
+      reloj = setTimeout(() => { boton.classList.remove("peligro"); boton.textContent = normal; }, 4000);
+      return;
+    }
+    clearTimeout(reloj);
+    boton.disabled = true;
+    try {
+      await hacer();
+    } catch (err) {
+      boton.disabled = false;
+      boton.classList.remove("peligro");
+      boton.textContent = normal;
+      avisar(err.message);
+    }
+  });
+}
 
 async function pintarCompartidos() {
   app.innerHTML = `
@@ -4945,12 +5005,42 @@ async function pintarCompartidos() {
     aqui.innerHTML = `<p class="vacio">${tr("Nada que ver todavía. Cuando un agente te enseñe una captura, una página o una web de tu PC, sale aquí.")}</p>`;
     return;
   }
-  aqui.innerHTML = `<div class="ver-rejilla">${lista.map((c) => `
-    <button class="ver-tarjeta" data-id="${esc(c.id)}" data-tipo="${esc(c.tipo)}">
-      <span class="ver-mini">${c.tipo === "pagina" ? ICONO.pagina : '<img alt="">'}</span>
-      <span class="ver-pie"><b>${esc(c.titulo)}</b><small>${esc([c.proyecto, TIPO_VER[c.tipo], hace(c.creado / 1000)].filter(Boolean).join(" · "))}</small><small>${esc(quedaVer(c))}</small></span>
-    </button>`).join("")}</div>`;
-  aqui.querySelectorAll(".ver-tarjeta").forEach((b) => b.addEventListener("click", () => ir({ vista: "visto", id: b.dataset.id })));
+  const vacio = () => { aqui.innerHTML = `<p class="vacio">${tr("Nada que ver todavía. Cuando un agente te enseñe una captura, una página o una web de tu PC, sale aquí.")}</p>`; };
+  const avisar = (m) => {
+    let n = aqui.querySelector(".ver-fallo");
+    if (!n) {
+      n = document.createElement("p");
+      n.className = "nota ver-fallo";
+      aqui.prepend(n);
+    }
+    n.textContent = m;
+  };
+  aqui.innerHTML = `
+    <div class="ver-arriba"><span>${tr("Lo que abres se va a la hora.")}</span><button type="button" class="mini quitar" id="ver-vaciar">${tr("Vaciar")}</button></div>
+    <div class="ver-rejilla">${lista.map((c) => `
+    <div class="ver-tarjeta" data-id="${esc(c.id)}" data-tipo="${esc(c.tipo)}">
+      <button type="button" class="ver-abrir">
+        <span class="ver-mini">${c.tipo === "pagina" ? ICONO.pagina : '<img alt="">'}</span>
+        <span class="ver-pie"><b>${esc(c.titulo)}</b><small>${esc([c.proyecto, TIPO_VER[c.tipo], hace(c.creado / 1000)].filter(Boolean).join(" · "))}</small><small>${esc(quedaVer(c))}</small></span>
+      </button>
+      <button type="button" class="mini quitar" data-quitar="${esc(c.id)}">${tr("Quitar")}</button>
+    </div>`).join("")}</div>`;
+  aqui.querySelectorAll(".ver-tarjeta").forEach((t) => {
+    t.querySelector(".ver-abrir").addEventListener("click", () => ir({ vista: "visto", id: t.dataset.id }));
+    aDosToques(t.querySelector("[data-quitar]"), tr("Toca otra vez"), async () => {
+      await api("POST", "/api/compartidos/quitar", { id: t.dataset.id }).catch((err) => { if (err.estado !== 404) throw err; });
+      if (urlsVer.has(t.dataset.id)) URL.revokeObjectURL(urlsVer.get(t.dataset.id));
+      urlsVer.delete(t.dataset.id);
+      t.remove();
+      if (!aqui.querySelector(".ver-tarjeta")) vacio();
+    }, avisar);
+  });
+  aDosToques(document.getElementById("ver-vaciar"), tr("Toca otra vez para vaciar"), async () => {
+    await api("POST", "/api/compartidos/vaciar", {});
+    for (const u of urlsVer.values()) URL.revokeObjectURL(u);
+    urlsVer.clear();
+    vacio();
+  }, avisar);
   // Las miniaturas de una en una: la de una web se captura en el PC y tarda.
   for (const b of aqui.querySelectorAll('.ver-tarjeta:not([data-tipo="pagina"])')) {
     const img = b.querySelector("img");
@@ -4961,6 +5051,51 @@ async function pintarCompartidos() {
       if (b.isConnected) b.querySelector(".ver-mini").innerHTML = ICONO.imagen;
     }
   }
+}
+
+/* «Abrir en vivo»: la web del PC en otra pestaña, por OTRO origen (`vivo.rs`),
+   donde su JavaScript no llega a la clave de esta página. Se entra con un pase
+   de un solo uso que se pide antes de tocar, para que el botón sea un enlace de
+   verdad (un `window.open` después de esperar lo bloquean los navegadores del
+   móvil); vale tres minutos, así que se renueva cada minuto y tras cada toque. */
+function montarVivo(c, antes) {
+  const barra = document.createElement("div");
+  barra.className = "ver-vivo";
+  barra.innerHTML = `<a class="boton" id="ver-vivo" target="_blank" rel="noopener noreferrer" aria-disabled="true">${tr("Abrir en vivo")}</a><small id="ver-vivo-nota">${tr("Se abre en otra pestaña y la puedes tocar.")}</small>`;
+  antes.before(barra);
+  const enlace = barra.querySelector("#ver-vivo");
+  const nota = barra.querySelector("#ver-vivo-nota");
+  const renovar = async () => {
+    if (!enlace.isConnected) return clearInterval(reloj);
+    if (document.hidden) return;
+    try {
+      const v = await api("POST", "/api/vivo/pase", { id: c.id });
+      if (!enlace.isConnected) return;
+      enlace.href = v.url;
+      enlace.removeAttribute("aria-disabled");
+      nota.textContent = tr("Se abre en otra pestaña y la puedes tocar.");
+    } catch (err) {
+      enlace.removeAttribute("href");
+      enlace.setAttribute("aria-disabled", "true");
+      nota.textContent = err.message;
+    }
+  };
+  const reloj = setInterval(renovar, 60000);
+  enlace.addEventListener("click", (ev) => {
+    if (!enlace.getAttribute("href")) return ev.preventDefault();
+    // El pase vale una vez: el siguiente toque necesita otro.
+    setTimeout(() => {
+      enlace.removeAttribute("href");
+      enlace.setAttribute("aria-disabled", "true");
+      renovar();
+    }, 0);
+  });
+  const alVolver = () => {
+    if (!enlace.isConnected) return document.removeEventListener("visibilitychange", alVolver);
+    if (!document.hidden) renovar();
+  };
+  document.addEventListener("visibilitychange", alVolver);
+  renovar();
 }
 
 async function pintarVisto() {
@@ -4986,7 +5121,13 @@ async function pintarVisto() {
     aqui.innerHTML = `<p class="nota">${tr("Eso ya no está compartido: caducó, o el agente nunca lo compartió.")}</p>`;
     return;
   }
-  document.getElementById("titulo").innerHTML = `${esc(c.titulo)}<small>${esc([c.proyecto, TIPO_VER[c.tipo], quedaVer(c)].filter(Boolean).join(" · "))}</small>`;
+  const titular = () => { document.getElementById("titulo").innerHTML = `${esc(c.titulo)}<small>${esc([c.proyecto, TIPO_VER[c.tipo], quedaVer(c)].filter(Boolean).join(" · "))}</small>`; };
+  titular();
+  // Abierto: desde ahora le queda una hora en «Para ver» (`compartidos::abrir`).
+  api("POST", "/api/compartido/visto", { id: c.id }).then((v) => {
+    Object.assign(c, { caduca: v.caduca, abierto: v.abierto });
+    if (document.getElementById("titulo")?.isConnected) titular();
+  }, () => {});
   const cargar = async (nueva) => {
     aqui.classList.remove("entera");
     aqui.innerHTML = `<p class="vacio">${c.tipo === "web" ? tr("Capturando la web en tu PC…") : tr("cargando…")}</p>`;
@@ -5020,6 +5161,7 @@ async function pintarVisto() {
     }
   };
   if (c.tipo === "web") {
+    montarVivo(c, aqui);
     const otra = document.getElementById("ver-otra");
     otra.hidden = false;
     otra.addEventListener("click", async () => {

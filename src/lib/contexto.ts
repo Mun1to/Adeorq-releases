@@ -137,8 +137,13 @@ export function useContextoDeSesion(
  * un día completo de trabajo (2026-07-30). El aviso es para que esa decisión
  * se tome con el dato delante, que es lo único que faltaba.
  *
- * 0 = nada que decir · 1 = ya pesa (300k) · 2 = compacta ya (400k, fijo, y
+ * 0 = nada que decir · 1 = ya pesa (350k) · 2 = compacta ya (450k, fijo, y
  * compacta solo si el ajuste lo dice) · 3 = mejor una terminal nueva (600k).
+ *
+ * Las dos primeras subieron de 300k y 400k el 2026-11-14 (Munir: «agrandarlo
+ * a 450k de contexto y aviso al 350k», con «solo haz el /fin siempre y
+ * compactas y retomas»). Lo medido en `docs/contexto/cuando-compactar.md`
+ * dice que por calidad 400k ya llegaba tarde: es su decisión, con ese dato.
  *
  * Por TOKENS desde la D7 (Munir, 2026-10-22). El mismo día, tras gastar el
  * 40 % de su semana en uno, había pedido el 50 y el 60 % («que sea casi
@@ -158,8 +163,8 @@ export function useContextoDeSesion(
  * su gasto delante, y el % solo manda donde la ventana entera es más pequeña.
  * La píldora de la cabecera sigue con el %, y los tokens exactos en su globo.
  */
-export const AVISO_TOKENS = 300_000;
-export const FIJO_TOKENS = 400_000;
+export const AVISO_TOKENS = 350_000;
+export const FIJO_TOKENS = 450_000;
 export const NUEVA_TOKENS = 600_000;
 export const AVISO_PCT = 50;
 export const FIJO_PCT = 60;
@@ -230,11 +235,41 @@ export function trabajaEnPantalla(linea: (i: number) => string, filas: number): 
     dos llaves de pantalla (`trabajaEnPantalla`, `esperaEnSuCaja`). Sin
     terminal, no. */
 export function enPantalla(
-  term: { rows: number; buffer: { active: { baseY: number; getLine(y: number): { translateToString(trim?: boolean): string } | undefined } } } | null,
+  term: { rows: number; buffer: { active: { baseY: number; getLine(y: number): FilaXterm | undefined } } } | null,
   mirar: (linea: (i: number) => string, filas: number) => boolean,
 ): boolean {
   const buf = term?.buffer.active;
-  return !!term && !!buf && mirar((i) => buf.getLine(buf.baseY + i)?.translateToString(true) ?? "", term.rows);
+  return !!term && !!buf && mirar((i) => sinSugerencia(buf.getLine(buf.baseY + i)), term.rows);
+}
+
+/** Lo que hace falta de una fila de xterm (`IBufferLine`); las celdas, si las da. */
+export interface FilaXterm {
+  translateToString(trim?: boolean): string;
+  length?: number;
+  getCell?(x: number): { getChars(): string; getWidth(): number; isDim(): number } | undefined;
+}
+
+/**
+ * La fila como texto, y en la caja de Claude Code (la que empieza por `❯`) sin
+ * lo atenuado: su sugerencia gris («sigue con el laboratorio») no la escribió
+ * nadie. Leída como texto, la caja parecía tener un borrador, y nada se
+ * tecleaba solo: el 2026-11-14 dos terminales pasaron los 450.000 tokens con el
+ * turno acabado y no se compactaron, y Munir: «¿por qué las sesiones tuyas no
+ * las compactas tú?». Solo tras `❯`: las rayas y el pie pueden ir atenuados y
+ * son los que dicen dónde está la caja.
+ */
+export function sinSugerencia(fila: FilaXterm | undefined): string {
+  if (!fila) return "";
+  const texto = fila.translateToString(true);
+  if (!/^[❯>]/.test(texto) || !fila.getCell || fila.length == null) return texto;
+  let s = "";
+  for (let x = 0; x < fila.length; x++) {
+    const c = fila.getCell(x);
+    if (!c || c.getWidth() === 0) continue;
+    const ch = c.getChars() || " ";
+    s += x > 0 && c.isDim() ? " ".repeat(ch.length) : ch;
+  }
+  return s.trimEnd();
 }
 
 export { esperaEnSuCaja } from "./cajaClaude";
@@ -384,6 +419,7 @@ export function bloqueRetomar(texto: string): string | null {
   const tras = titulo ? bloques(texto.slice(titulo.index))[0] : undefined;
   return tras || bloques(texto).find((b) => /^#\s*RETOMAR\b/i.test(b)) || null;
 }
+const bloqueDe = (texto: string | null): string | null => (texto ? bloqueRetomar(texto) : null);
 
 export function ordenDeCompactar(t: Translate): string {
   return t(
@@ -395,8 +431,17 @@ export function ordenDeCompactar(t: Translate): string {
  * Lo que se le escribe a una sesión que se compactó a sí misma
  * (`compactarme`) cuando acaba de compactar, si no pidió otra cosa: Munir,
  * 2026-11-11, «compactar por tu cuenta en Adeorq y retomar la sesión».
+ *
+ * Con el bloque «Retomar» de su `/fin` (`bloqueRetomar` de su última
+ * respuesta), ese bloque y una línea para que no se pare: Munir, 2026-11-14,
+ * al ver la frase de la casa en su terminal, «¿qué es esto?, ¿por qué no se
+ * coge el mensaje de retomar del historial de la terminal?». Sin bloque, la
+ * frase de la casa.
  */
-export function seguirTrasCompactar(t: Translate): string {
+export function seguirTrasCompactar(t: Translate, retomar?: string | null): string {
+  if (retomar?.trim()) {
+    return `${retomar.trim()}\n\n${t("Ya estás compactada: sigue con «Lo siguiente» sin esperar; lo que solo puede decidir Munir, déjalo dicho y espera.")}`;
+  }
   return t(
     "Ya estás compactada. Sigue con lo pendiente del resumen, sin repetir lo hecho; lo que solo puede decidir Munir, déjalo dicho y espera.",
   );
@@ -440,7 +485,7 @@ export interface DepsTraspaso {
   /** El transcript releído AHORA, no el de hace veinte segundos. `null` si
       este CLI no deja uno: entonces el botón va a ciegas, como siempre, y
       solo no se hace nada. */
-  leer: () => Promise<Pick<ContextInfo, "state" | "agentsLive" | "used" | "window"> | null>;
+  leer: () => Promise<(Pick<ContextInfo, "state" | "agentsLive" | "used" | "window"> & Pick<Partial<ContextInfo>, "sinCuota">) | null>;
   /** Un menú suyo en pantalla (permiso, pregunta). */
   hayPregunta: () => boolean;
   /** Algo tecleado y sin mandar: lo nuestro se pegaría detrás. */
@@ -569,6 +614,10 @@ export function crearTraspaso(d: DepsTraspaso) {
     if (ahora() - p.desde > CADUCA_MS) return poner(null);
     const puede = c ? turnoAcabado(c, d.hayPregunta()) && !d.hayBorrador() && !d.trabajando() : !p.solo;
     if (!puede) return;
+    // Parada por cuota, `/fin` y `/compact` fallan, y el `/compact` fallido tapa
+    // el 429 (la terminal 19, 2026-11-14): se espera a que se renueve o la releve
+    // otra cuenta (`mcp/relevo_cuota.rs`), y lo pendiente caduca como siempre.
+    if (c?.sinCuota) return;
     // Y en Claude Code, con su caja a la vista: si no, el CLI se cerró (o
     // tiene un menú abierto) y lo tecleado iría a otro sitio.
     if (d.esClaude() && !(d.enSuCaja?.() ?? true)) return;
@@ -580,8 +629,11 @@ export function crearTraspaso(d: DepsTraspaso) {
       // DESPUÉS de pedirlo (la de su campana), nunca con la del momento.
       if (en - p.desde < ASIENTO_MS) return;
       const antes = await d.compactaciones().catch(() => 0);
+      // Sin `seguir` dado, el «Retomar» de su `/fin`: se lee ahora, con su
+      // turno ya acabado, porque llama a `compactarme` ANTES de escribirlo.
+      const seguir = p.seguir === undefined ? seguirTrasCompactar(d.t, bloqueDe(await d.ultimaRespuesta().catch(() => null))) : p.seguir;
       if (pendiente !== p) return;
-      const cerrando = { ...p, paso: "cerrando" as const, desde: ahora(), antes };
+      const cerrando = { ...p, paso: "cerrando" as const, desde: ahora(), antes, seguir };
       poner(cerrando);
       await d.mandar(`/compact ${p.mensaje ?? ""}`.trimEnd());
       void vigilar(cerrando);
@@ -685,7 +737,7 @@ export function crearTraspaso(d: DepsTraspaso) {
       seguir en una terminal nueva no se compacta; si había otro traspaso en
       marcha (el `/fin sin commits` de la raya o de `compactar_terminal`, que
       ahora acaba llamando aquí) lo sustituye, para no compactar dos veces. */
-  const pedirPropia = (mensaje: string, seguir: string | null): RespuestaPropia => {
+  const pedirPropia = (mensaje: string, seguir: string | null | undefined): RespuestaPropia => {
     if (pendiente?.que === "nueva") return "nueva";
     void conCandado(async () => {
       if (pendiente?.que === "nueva") return;
@@ -745,7 +797,7 @@ export function crearTraspaso(d: DepsTraspaso) {
       // ofrece seguir en una terminal nueva, y sin su clic se queda ahí. En
       // una delegada se le avisa a quien la abrió (`mcp.rs`).
       const modo: ModoSolo = d.delegada?.() ? "sin-commits" : d.modo();
-      if (c && !pendiente && !hecho && nivel >= 2 && nivel > d.visto() && modo !== "no" && d.esClaude()) {
+      if (c && !c.sinCuota && !pendiente && !hecho && nivel >= 2 && nivel > d.visto() && modo !== "no" && d.esClaude()) {
         if ((await d.compactaciones().catch(() => 0)) < COMPACTADA_DE_MAS) {
           poner({ que: "compactar", paso: "esperando", solo: true, sinCommits: modo !== "fin", desde: ahora() });
         }
@@ -857,7 +909,8 @@ export function useTraspaso(m: {
       const u = ultimo.current;
       if (!u.esClaude || !u.sesion) return "sin-conversacion";
       setSugerencia(null);
-      return traspaso.pedirPropia(mensaje, seguir == null ? seguirTrasCompactar(u.t) : seguir || null);
+      // Sin dar, `undefined`: el de la casa se arma al mandar el `/compact`, con su «Retomar».
+      return traspaso.pedirPropia(mensaje, seguir == null ? undefined : seguir || null);
     },
     alSonarCampana: () => void traspaso.alSonar().catch(() => {}),
     /** Nada solo en este nivel, y fuera lo que estuviera esperando. */

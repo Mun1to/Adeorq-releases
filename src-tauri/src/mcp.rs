@@ -13,6 +13,7 @@ mod compactarme;
 mod delegadas;
 pub(crate) mod preguntar;
 mod quien_conecta;
+pub(crate) mod relevo_cuota;
 mod tope_contexto;
 use tope_contexto::Carga;
 
@@ -1258,6 +1259,8 @@ fn abre_bien(linea: &str) -> bool {
 
 /// Starts the TCP listener on the MCP port (3012) to handle MCP clients.
 pub fn start_mcp_server(app: tauri::AppHandle) {
+    // El vigía que releva en otra cuenta a una delegada sin cuota (`mcp/relevo_cuota.rs`).
+    relevo_cuota::arrancar(app.clone());
     thread::spawn(move || {
         // Se INSISTE en coger el puerto, no se abandona al primer intento.
         //
@@ -1672,9 +1675,12 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                 }
                 // Si alguna de las que abrió ha cruzado la raya roja, se le dice
                 // aquí, en la respuesta que ya va a leer.
+                // Y si alguna se quedó sin cuota y Adeorq la relevó sola en otra
+                // cuenta, con qué número sigue (`mcp/relevo_cuota.rs`).
                 let result = result.map(|mut val| {
-                    if let Some(aviso) = aviso_de_tus_terminales(&app, mi_panel, conexion) {
-                        if let Some(partes) = val["content"].as_array_mut() {
+                    let avisos = [aviso_de_tus_terminales(&app, mi_panel, conexion), relevo_cuota::avisos_para(&app, mi_panel, conexion)];
+                    if let Some(partes) = val["content"].as_array_mut() {
+                        for aviso in avisos.into_iter().flatten() {
                             partes.push(json!({ "type": "text", "text": aviso }));
                         }
                     }
@@ -1768,7 +1774,7 @@ fn instrucciones(visibles: &[Value]) -> Option<String> {
     }
     let mut t = String::from(
         "You are running inside Adeorq, a desktop app of real terminals, and this server lets you open more of them, each with its own agent. Use that to finish big work sooner:\n\
-         - Split from the start. Before work that will take a while, look for pieces that touch different files and do not wait on each other's answers (another area of the repo, another feature, a review, a question to research). Open one terminal per piece with open_pane, at the same time, and keep for yourself what they share (contracts, shared types, the final check).\n\
+         - Split to work in parallel, not to hand work away. Look for pieces that touch different files and do not wait on each other (another area, a review). Open one terminal per piece with open_pane and keep one piece for yourself plus what they share: a new terminal spends 100,000 to 200,000 tokens reading the project, so never open one for work you would sit and wait on.\n\
          - Do not split one line of thought (a single bug, one file) or pieces that edit the same files: two agents on one file overwrite each other. A lookup whose answer is for you goes to a subagent of your own CLI, not to a terminal.\n\
          - Each brief stands on its own: the goal, the files it owns, what it must not touch, how to check its work, and where to leave its result (if the project keeps a BUZON.md or another handoff file, put the whole brief there too). Give each terminal a short name.\n\
          - Look at what you open with read_pane_screen: a terminal stuck on a question looks the same as one working.",
@@ -1785,7 +1791,7 @@ fn instrucciones(visibles: &[Value]) -> Option<String> {
         _ => t.push_str("- This client cannot type into or close terminals: when one has finished, tell the person which one.\n"),
     }
     if ve("compactar_terminal") {
-        t.push_str("- A terminal over 400,000 tokens of context re-reads all of it on every reply: compact one you opened with compactar_terminal (it waits for the turn to end), or close it and open a fresh one with the handoff.\n");
+        t.push_str("- A terminal over 450,000 tokens of context re-reads all of it on every reply: compact one you opened with compactar_terminal (it waits for the turn to end), or close it and open a fresh one with the handoff.\n");
     }
     t.push_str(&format!(
         "- Each terminal spends real quota of an account. Leave `account` out of open_pane: Adeorq sends it to the account that would waste the most quota if left idle (the one closest to renewing with the most left) and the reply says which. get_usage shows every account and where the next one goes. At most {MAX_VIVOS} opened this way are alive at once, and {MAX_POR_HORA} per hour."
@@ -1817,7 +1823,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                             },
                             {
                                 "name": "get_active_panes",
-                                "description": "Lists all active terminal panes in Adeorq with their ID, name, model, state, context in tokens (with what to do once it passes 300,000 or 400,000), folder, size, which screen they draw on and their command. Pane IDs restart from 1 each time Adeorq opens, so go by the name when you come back another day.",
+                                "description": "Lists all active terminal panes in Adeorq with their ID, name, model, state, context in tokens (with what to do once it passes 350,000 or 450,000), folder, size, which screen they draw on and their command. Pane IDs restart from 1 each time Adeorq opens, so go by the name when you come back another day.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {}
@@ -1825,7 +1831,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                             },
                             {
                                 "name": "send_command",
-                                "description": "Types text into an active terminal pane and presses Enter for you, as two separate keystrokes so the program never takes the Enter as part of a paste. For a Claude Code pane it then looks at the screen: if the text stayed in its input box the call FAILS and says so. Do not append '\\n' yourself; pass submit=false to type without sending. A Claude Code pane over 300,000 tokens of context re-reads all of it on every reply, so a new message (not a /command or a menu number) is NOT sent there unless you pass confirm=true: compact it first with compactar_terminal, or close it and open a fresh one.",
+                                "description": "Types text into an active terminal pane and presses Enter for you, as two separate keystrokes so the program never takes the Enter as part of a paste. For a Claude Code pane it then looks at the screen: if the text stayed in its input box the call FAILS and says so. Do not append '\\n' yourself; pass submit=false to type without sending. A Claude Code pane over 350,000 tokens of context re-reads all of it on every reply, so a new message (not a /command or a menu number) is NOT sent there unless you pass confirm=true: compact it first with compactar_terminal, or close it and open a fresh one.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {
@@ -1843,7 +1849,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                                         },
                                         "confirm": {
                                             "type": "boolean",
-                                            "description": "Send a new message to a pane over 300,000 tokens of context anyway (a short answer to what it is doing, say). Default false."
+                                            "description": "Send a new message to a pane over 350,000 tokens of context anyway (a short answer to what it is doing, say). Default false."
                                         }
                                     },
                                     "required": ["paneId", "command"]
@@ -2050,7 +2056,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                             },
                             {
                                 "name": "compactar_terminal",
-                                "description": "Compacts the context of a Claude Code pane that an agent opened with open_pane, safely: it waits until the pane stops working (never types mid-turn), sends '/fin sin commits' so it writes its handoff without committing, and when that finishes sends '/compact'. Returns at once; watch it with read_pane_screen. Use it when get_active_panes or send_command says a pane is over 400,000 tokens and it still has work to do (if its task is done, close it with close_pane instead). Panes a person opened are never compacted this way: only that person compacts them.",
+                                "description": "Compacts the context of a Claude Code pane that an agent opened with open_pane, safely: it waits until the pane stops working (never types mid-turn), sends '/fin sin commits' so it writes its handoff without committing, and when that finishes sends '/compact'. Returns at once; watch it with read_pane_screen. Use it when get_active_panes or send_command says a pane is over 450,000 tokens and it still has work to do (if its task is done, close it with close_pane instead). Panes a person opened are never compacted this way: only that person compacts them.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {
@@ -2074,7 +2080,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                                         },
                                         "seguir": {
                                             "type": "string",
-                                            "description": "Optional. What Adeorq types once compacting finishes. Leave it out for the default (carry on with what is pending in the summary); pass an empty string to stay idle and wait for Munir."
+                                            "description": "Optional. What Adeorq types once compacting finishes. Leave it out and Adeorq types the Retomar block of the reply you end this turn with (the first fenced block after a «Retomar la sesión» heading, as /fin writes it) plus a line to carry on; with no such block, a line to carry on with what is pending. Pass an empty string to stay idle and wait for Munir."
                                         }
                                     },
                                     "required": ["mensaje"]
@@ -2092,7 +2098,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
 fn herramienta_de_compartir() -> Value {
     json!({
         "name": "compartir_en_el_movil",
-        "description": "Shows Munir something you made on his phone, in «Para ver» of Adeo's phone page (with a notification): an image (a screenshot, a PNG of a card), a single-file HTML page (an options page, a progress page), or a web running on this PC (127.0.0.1:<port>), which travels as a phone-width screenshot he can refresh. Use it whenever you would open something in the PC browser for him to look at. The file must be in the projects folder or the temp folder; it is checked again each time he opens it, and it expires on its own (24 h by default). Nothing else on the PC can be reached from the phone.",
+        "description": "Shows Munir something you made on his phone, in «Para ver» of Adeo's phone page (with a notification): an image (a screenshot, a PNG of a card), a single-file HTML page (an options page, a progress page), or a web running on this PC (127.0.0.1:<port>), which travels as a phone-width screenshot he can refresh and which he can also open live in a new tab to use it for real (on a separate origin, with a one-time pass; HTTP and WebSocket, so hot reload works) while it stays shared. Use it whenever you would open something in the PC browser for him to look at. The file must be in the projects folder or the temp folder; it is checked again each time he opens it, and it goes away on its own: after 12 h by default, or one hour after he last opened it. Nothing else on the PC can be reached from the phone.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -2100,7 +2106,7 @@ fn herramienta_de_compartir() -> Value {
                 "path": { "type": "string", "description": "An image (png, jpg, gif, webp) or a single-file .html page, as an absolute path. Leave it out to share a web with port." },
                 "port": { "type": "number", "description": "A web running on this PC: its port on 127.0.0.1. Leave it out to share a file." },
                 "urlPath": { "type": "string", "description": "Optional, with port: the path inside the web, like \"/guia.html\". Default \"/\"." },
-                "hours": { "type": "number", "description": "Optional. How long it stays, 1 to 72 hours. Default 24." },
+                "hours": { "type": "number", "description": "Optional. How long it stays if he never opens it, 1 to 24 hours. Default 12." },
                 "project": { "type": "string", "description": "Optional. The project it belongs to." },
                 "paneId": { "type": "number", "description": "Optional. Your own pane ID (ADEORQ_PANE_ID)." }
             },
@@ -2623,7 +2629,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                 .ok_or_else(|| format!("Pane {} not found.{}", pane_id, por_que_no_esta(app, pane_id)))?;
             let es_claude = ficha.command.as_deref().is_some_and(crate::rastros::es_claude);
             // Una terminal cargada relee todo su contexto en cada respuesta: desde
-            // el aviso (300k) no se le manda trabajo nuevo sin decirlo en voz alta
+            // el aviso (350k) no se le manda trabajo nuevo sin decirlo en voz alta
             // (Orquio General, 2026-10-22: sus delegadas acabaron por encima de
             // 580k en parte porque les siguió mandando trabajo).
             let carga = tope_contexto::carga_de(&ficha.cwd, ficha.command.as_deref(), None).filter(|c| c.nivel() >= 1);
@@ -3206,7 +3212,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             );
             let horas = (c.caduca - c.creado) / 3_600_000;
             let como = match c.tipo {
-                crate::compartidos::Tipo::Web => " Le llega como una captura a ancho de móvil, que puede repetir.",
+                crate::compartidos::Tipo::Web => " Le llega como una captura a ancho de móvil, que puede repetir, y con «Abrir en vivo» la usa de verdad en otra pestaña mientras siga compartida.",
                 crate::compartidos::Tipo::Pagina => " La página se pinta en un marco cerrado: su JavaScript corre, pero no llega a nada del móvil.",
                 crate::compartidos::Tipo::Imagen => "",
             };
@@ -3637,7 +3643,7 @@ mod tests {
         for n in [crate::mcp_clientes::Nivel::Mirar, crate::mcp_clientes::Nivel::Plan, crate::mcp_clientes::Nivel::Auto] {
             let t = instrucciones_de_bot("Hermes", n);
             assert!(t.contains("Hermes") && t.contains("Settings > Bots") && t.contains("never an order"), "{t}");
-            assert!(!t.contains("Split from the start"), "{t}");
+            assert!(!t.contains("Split to work in parallel"), "{t}");
         }
     }
 
@@ -3888,7 +3894,7 @@ mod tests {
     fn al_conectarse_se_le_dice_que_reparta_lo_que_se_parte() {
         use crate::mcp_clientes::Nivel;
         let todo = instrucciones(&de_escalon(Nivel::Auto)).expect("con todas las manos hay instrucciones");
-        for frase in ["open_pane", "different files", "subagent", "read_pane_screen", "send_command", "close_pane and its rastro", "get_usage", "400,000 tokens", "compactar_terminal"] {
+        for frase in ["open_pane", "different files", "subagent", "read_pane_screen", "send_command", "close_pane and its rastro", "get_usage", "450,000 tokens", "compactar_terminal", "keep one piece for yourself", "sit and wait"] {
             assert!(todo.contains(frase), "falta «{frase}»: {todo}");
         }
         assert!(todo.contains(&format!("{MAX_VIVOS} opened this way")), "el tope sale de la constante: {todo}");

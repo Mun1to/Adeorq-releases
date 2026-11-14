@@ -36,6 +36,8 @@ const FUENTES = [
   "src-tauri/src/decisiones.rs",
   // Lo que se le enseña en «Para ver» (`compartir_en_el_movil`).
   "src-tauri/src/compartidos.rs",
+  // La web en vivo: lo que contesta al pedir el pase (`pase_de_verdad`).
+  "src-tauri/src/vivo.rs",
   "src-tauri/src/sessions.rs",
   "src-tauri/src/conserje.rs",
   "src/lib/movil.ts",

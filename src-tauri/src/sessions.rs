@@ -210,7 +210,7 @@ fn leer_cola(path: &Path, size: u64) -> std::io::Result<Vec<String>> {
 /// compactación: un Opus nuevo de un millón compactaba a 120k, dos veces,
 /// antes de pasar de 200k y que la salvaguarda de `context_de` lo corrigiera
 /// (revisión de `1954cf0`, 2026-10-30). Con el millón, las rayas caen en sus
-/// tokens (300k, 400k, 600k), que es lo que nunca adelanta nada; un modelo de
+/// tokens (350k, 450k, 600k), que es lo que nunca adelanta nada; un modelo de
 /// ventana pequeña que no esté aquí se compacta solo al llegar a su límite.
 /// Los modelos de sus transcripts ese día: Opus 5 y 5.5, Fable 5 y 5.1,
 /// Sonnet 5, 5.5 y 4.6, Opus 4.8 (todos de un millón) y Haiku 4.5 y 5.5.
@@ -1092,6 +1092,8 @@ fn codex_context_de(path: &Path, session_id: String) -> Option<ContextInfo> {
         // panel se sigue llamando como lo abriste.
         title: String::new(),
         viva: false,
+        // El relevo y su lectura son de Claude Code.
+        sin_cuota: false,
     })
 }
 
@@ -2101,6 +2103,23 @@ pub struct ContextInfo {
     /// conversación aunque su transcript siga diciendo «lista» y 450k. Solo
     /// lo rellena `session_context`; en el resto, `false`.
     pub viva: bool,
+    /// Parada por cuota: su último turno acabó en el 429 de «You've hit your
+    /// limit» (o en la nota de recoger), con la misma lectura que el relevo
+    /// (`mcp/relevo_cuota.rs`). Con esto la raya no le teclea `/compact` ni
+    /// `/fin`: sin cuota fallan, y el `/compact` de la terminal 19 tapó su 429
+    /// (2026-11-14, BUZON «CASO REAL, 02:41»).
+    pub sin_cuota: bool,
+}
+
+/// Si la cola de un transcript dice que está parada por cuota. Sin la marca del
+/// 429 ni la nota de recoger en las líneas, ni se parsea: esto se lee en cada
+/// vuelta de cada terminal.
+fn parada_por_cuota(lines: &[String]) -> bool {
+    let marca = lines.iter().rev().take(800).any(|l| l.contains("\"error\":\"rate_limit\"") || l.contains("usageLimitNote"));
+    marca && {
+        let ahora = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0);
+        crate::mcp::relevo_cuota::sin_cuota(lines, ahora, 0).is_some()
+    }
 }
 
 /// El nombre de una sesión, leído de la cola de su transcript. Manda el que se
@@ -2549,6 +2568,7 @@ fn context_de(path: &Path) -> Option<ContextInfo> {
         .map(|(_, s)| s)
         .unwrap_or_default();
     let title = titulo_de(&lines);
+    let sin_cuota = parada_por_cuota(&lines);
     // Compacting throws the whole conversation away and leaves a summary, so
     // the `usage` further back describes tokens that are no longer loaded. The
     // panel kept showing that old figure until the next turn wrote a new one:
@@ -2613,6 +2633,7 @@ fn context_de(path: &Path) -> Option<ContextInfo> {
             state,
             title,
             viva: false,
+            sin_cuota,
         });
     }
     // Compacted so recently that the tail we read holds no usage line at all:
@@ -2634,6 +2655,7 @@ fn context_de(path: &Path) -> Option<ContextInfo> {
             state,
             title,
             viva: false,
+            sin_cuota,
         });
     }
     // A session with no usage line yet (just started) can still have workers.
@@ -2649,6 +2671,7 @@ fn context_de(path: &Path) -> Option<ContextInfo> {
         state,
         title,
         viva: false,
+        sin_cuota,
     })
 }
 
@@ -4063,6 +4086,34 @@ otra
                 n
             );
         }
+    }
+
+    /// La terminal 19 el 2026-11-14: su turno acabó en el 429 de cuota y la raya
+    /// le tecleó `/compact`, que falló y tapó el 429. El contexto tiene que
+    /// decirlo para que la raya no lo haga; con cuota otra vez, ya no.
+    #[test]
+    fn el_contexto_dice_si_esta_parada_por_cuota() {
+        let dir = std::env::temp_dir().join(format!("adeorq-ctx-cuota-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let cwd = dir.join("proj");
+        let claude = dir.join(".claude").join("projects").join(encode_claude(&cwd.to_string_lossy()));
+        std::fs::create_dir_all(&claude).unwrap();
+        let uso = r#"{"type":"assistant","timestamp":"2026-11-14T01:30:00Z","message":{"model":"claude-opus-5-5","role":"assistant","usage":{"input_tokens":10,"cache_read_input_tokens":460000,"cache_creation_input_tokens":0},"content":[{"type":"text","text":"sigo"}]}}"#;
+        let el_429 = r#"{"type":"assistant","timestamp":"2026-11-14T01:40:00Z","message":{"model":"<synthetic>","role":"assistant","content":[{"type":"text","text":"You've hit your 5-hour limit · resets 3:50am (Europe/Madrid)"}]},"apiError":"usage_limit_reached","quotaLimits":{"status":"rejected","resetsAt":4102444800,"rateLimitType":"five_hour"},"error":"rate_limit","isApiErrorMessage":true,"apiErrorStatus":429}"#;
+        let otra = r#"{"type":"assistant","timestamp":"2026-11-14T03:55:00Z","message":{"model":"claude-opus-5-5","role":"assistant","usage":{"input_tokens":10,"cache_read_input_tokens":461000,"cache_creation_input_tokens":0},"content":[{"type":"text","text":"ya sigo"}]}}"#;
+        let leer = || context_at(&dir.join(".claude").join("projects"), &cwd.to_string_lossy(), None).unwrap();
+
+        std::fs::write(claude.join("s.jsonl"), format!("{uso}\n{el_429}\n")).unwrap();
+        let info = leer();
+        assert!(info.sin_cuota, "acabó en el 429 de cuota y aún no se renueva");
+        assert_eq!(info.used, 460_010, "y el número sigue siendo el de su último gasto");
+
+        std::fs::write(claude.join("s.jsonl"), format!("{uso}\n{el_429}\n{otra}\n")).unwrap();
+        assert!(!leer().sin_cuota, "una respuesta de verdad después es que ya hay cuota");
+
+        std::fs::write(claude.join("s.jsonl"), format!("{uso}\n")).unwrap();
+        assert!(!leer().sin_cuota, "una conversación normal no está parada");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

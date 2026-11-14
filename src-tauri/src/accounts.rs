@@ -789,10 +789,32 @@ fn skills_principal() -> Result<PathBuf, String> {
     Ok(casa.join(".claude").join("skills"))
 }
 
+/// La carpeta que Claude Code llena solo con las skills de claude.ai, dentro de
+/// `skills`. No es una skill ni la escribe nadie a mano, y va por cubos, uno por
+/// cuenta (`<org>_<usuario>` y su `.bucket-…`), así que dos cuentas comparten la
+/// misma sin pisarse. Contarla como «skill suya» dejaba la 2da MAIN sin poder
+/// compartir, y sus delegadas sin `/fin` («Unknown command: /fin», 2026-11-14).
+const DE_CLAUDE_AI: &str = "synced";
+
 fn cuantas_en(p: &Path) -> u32 {
     std::fs::read_dir(p)
-        .map(|d| d.filter_map(|e| e.ok()).filter(|e| e.path().is_dir()).count() as u32)
+        .map(|d| d.filter_map(|e| e.ok()).filter(|e| e.path().is_dir() && e.file_name() != DE_CLAUDE_AI).count() as u32)
         .unwrap_or(0)
+}
+
+/// Lleva los cubos de `synced` de una cuenta al `synced` de la principal antes
+/// de enlazar, para no perder ninguno. Si un nombre ya está allí, no se toca
+/// nada y se dice: dos cubos con el mismo nombre serían la misma cuenta.
+fn llevar_synced(suyo: &Path, principal: &Path) -> Result<(), String> {
+    let entradas: Vec<_> = std::fs::read_dir(suyo).map_err(|e| e.to_string())?.filter_map(|e| e.ok()).collect();
+    if let Some(e) = entradas.iter().find(|e| principal.join(e.file_name()).exists()) {
+        return Err(format!("las skills de claude.ai de esa cuenta ({}) ya están en la principal", e.file_name().to_string_lossy()));
+    }
+    std::fs::create_dir_all(principal).map_err(|e| e.to_string())?;
+    for e in entradas {
+        std::fs::rename(e.path(), principal.join(e.file_name())).map_err(|err| format!("no pude llevar {}: {err}", e.file_name().to_string_lossy()))?;
+    }
+    std::fs::remove_dir(suyo).map_err(|e| format!("no pude quitar su carpeta {DE_CLAUDE_AI}: {e}"))
 }
 
 /// Es un enlace (symlink o junction). `symlink_metadata` no sigue el enlace,
@@ -835,6 +857,10 @@ pub async fn compartir_skills(config_dir: String) -> Result<u32, String> {
             return Err(format!(
                 "esa cuenta ya tiene {propias} skills suyas; muévelas o bórralas antes de compartir"
             ));
+        }
+        let synced = suya.join(DE_CLAUDE_AI);
+        if synced.is_dir() {
+            llevar_synced(&synced, &principal.join(DE_CLAUDE_AI))?;
         }
         std::fs::remove_dir(&suya).map_err(|e| format!("no pude quitar la carpeta vacía: {e}"))?;
     }
@@ -902,5 +928,33 @@ mod tests_skills {
     #[test]
     fn a_folder_with_no_subfolders_counts_zero() {
         assert_eq!(cuantas_en(Path::new("no-existe-esta-carpeta-de-verdad")), 0);
+    }
+
+    /// La 2da MAIN el 2026-11-14: su `skills` solo tenía el `synced` de Claude
+    /// Code, que contaba como una skill suya, y compartir se negaba.
+    #[test]
+    fn synced_is_not_a_skill_and_its_buckets_move_next_to_the_main_ones() {
+        let base = std::env::temp_dir().join(format!("adeorq-skills-synced-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        let suya = base.join("cuenta").join("skills");
+        let principal = base.join("principal").join("skills");
+        std::fs::create_dir_all(suya.join(DE_CLAUDE_AI).join("org_b")).unwrap();
+        std::fs::write(suya.join(DE_CLAUDE_AI).join(".bucket-org_b"), "").unwrap();
+        std::fs::create_dir_all(principal.join(DE_CLAUDE_AI).join("org_a")).unwrap();
+        std::fs::create_dir_all(principal.join("fin")).unwrap();
+        assert_eq!(cuantas_en(&suya), 0, "synced no es una skill suya");
+        assert_eq!(cuantas_en(&principal), 1, "ni en la principal");
+
+        llevar_synced(&suya.join(DE_CLAUDE_AI), &principal.join(DE_CLAUDE_AI)).unwrap();
+        assert!(principal.join(DE_CLAUDE_AI).join("org_a").is_dir(), "el cubo de la principal sigue");
+        assert!(principal.join(DE_CLAUDE_AI).join("org_b").is_dir(), "y el suyo está al lado");
+        assert!(principal.join(DE_CLAUDE_AI).join(".bucket-org_b").is_file());
+        assert!(!suya.join(DE_CLAUDE_AI).exists(), "y su synced se quitó, para poder enlazar");
+
+        // Un cubo que ya está en la principal no se pisa.
+        std::fs::create_dir_all(suya.join(DE_CLAUDE_AI).join("org_a")).unwrap();
+        assert!(llevar_synced(&suya.join(DE_CLAUDE_AI), &principal.join(DE_CLAUDE_AI)).is_err());
+        assert!(suya.join(DE_CLAUDE_AI).join("org_a").is_dir(), "y no se movió nada");
+        let _ = std::fs::remove_dir_all(&base);
     }
 }

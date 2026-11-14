@@ -689,13 +689,13 @@ Adeorq watches the screen of each terminal and turns the cryptic into buttons.
    **Revive** appears (it closes the program and resumes the same conversation) or
    **Start fresh** if the session weighs too much.
 5. **Context notice.** Long sessions get expensive: each message pays for the whole
-   context again. Adeorq warns by tokens: at **300,000** "good moment to compact", at
-   **400,000** (in red) it compacts by itself if you have that turned on and at
+   context again. Adeorq warns by tokens: at **350,000** "good moment to compact", at
+   **450,000** (in red) it compacts by itself if you have that turned on and at
    **600,000** it recommends a new terminal with a handoff. The buttons are
    *Compact*, *New with handoff*, *Not now* and *Close this one*. In a small context
    window the percentage rules (50, 60 and 80%). Compacting first sends the handoff
    (the `/fin` if that skill exists) and then `/compact`, only when the agent has
-   finished its turn. What happens at 400,000 you choose in **Settings ›
+   finished its turn. What happens at 450,000 you choose in **Settings ›
    Terminals** (warn and wait for the button, compact without commits, or compact with
    the whole `/fin`). It never compacts by itself in Codex or Gemini. If the session
    has already been compacted twice, it offers a new one instead of a third.
@@ -1041,7 +1041,7 @@ names appear below so you can jump to one.
 - **Jump to the session that finishes, full screen**, **Ask to open the web view when
   a terminal starts a server** and the **search engine of the browser bar** (Google,
   Brave Search or DuckDuckGo).
-- **At 400,000 tokens of context**: warn and wait for the button, compact by itself
+- **At 450,000 tokens of context**: warn and wait for the button, compact by itself
   without commits, or compact by itself with the whole `/fin`
   ([section 10](#10-what-appears-inside-a-terminal)).
 - **Start Adeorq when the computer boots.**
@@ -1202,7 +1202,7 @@ An agent with a low tier that asks for something that is not its to ask gets a
 refusal that tells it which tier it has and where that is changed.
 
 Limits worth knowing: an agent opens six live terminals at most at once and twelve
-per hour; a new message to a Claude terminal with more than 300,000 tokens of context
+per hour; a new message to a Claude terminal with more than 350,000 tokens of context
 comes back to it and only goes out if it insists; it cannot compact one that a person
 opened; and the terminals an agent opens it closes itself when it finishes, leaving a
 summary in the data folder.

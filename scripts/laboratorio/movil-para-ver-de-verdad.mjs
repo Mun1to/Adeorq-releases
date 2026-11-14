@@ -7,7 +7,7 @@
 //
 //   cargo build --manifest-path src-tauri/Cargo.toml   (deja C:\ct\debug\adeorq.exe)
 //   pnpm dev                                            (el binario de desarrollo carga de ahí)
-//   node scripts/laboratorio/movil-para-ver-de-verdad.mjs [carpeta para las fotos]
+//   node scripts/laboratorio/movil-para-ver-de-verdad.mjs [carpeta para las fotos] [exe, con barras de Windows]
 //
 // Lo que mide, además de que se vea: que no se comparte lo protegido (una carpeta
 // BUNKER, la ruta de sus bóvedas, una carpeta, algo fuera de las de trabajo, un
@@ -67,7 +67,7 @@ const a = await abrirAislada({
   puertoMcp: PUERTO_MCP,
   depurar: DEPURAR,
   fotos: FOTOS,
-  exe: EXE,
+  exe: process.argv[3] || EXE,
   entorno: { PATH, Path: PATH, ADEORQ_MOVIL_PUERTO: String(PUERTO_MOVIL), ProgramW6432: sinProgramas, ProgramFiles: sinProgramas },
 });
 let ctx = null;
@@ -162,6 +162,9 @@ try {
   await page.waitForSelector(".ver-tarjeta");
   debe(await hasta(() => page.evaluate(() => [...document.querySelectorAll(".ver-mini img")].filter((i) => i.naturalWidth > 0).length === 2), 30_000, 300), "las dos miniaturas de imagen salen en la lista");
   await page.screenshot({ path: join(FOTOS, "para-ver-lista.png") });
+  // Ver la lista (y bajar las miniaturas, también la captura de la web) no cuenta como abrirla.
+  const sinAbrir = (await (await fetch(`${B}/api/compartidos`, { headers: AUT })).json()).compartidos ?? [];
+  debe(sinAbrir.length === 3 && sinAbrir.every((c) => !c.abierto && c.caduca - Date.now() > 11 * 3600_000), "ver la lista no cuenta como abrir: siguen sus 12 h", sinAbrir.map((c) => `${c.tipo} ${Math.round((c.caduca - Date.now()) / 60_000)} min`).join(", "));
 
   const abrir = async (tipo) => {
     await page.click(`.ver-tarjeta[data-tipo="${tipo}"]`);
@@ -177,10 +180,14 @@ try {
   await page.waitForFunction(() => document.querySelector(".ver-img")?.naturalWidth > 0, null, { timeout: 30_000 });
   debe((await page.evaluate(() => document.querySelector(".ver-img").naturalWidth)) === 824, "la web se ve como captura");
   // A lo ancho de la pantalla, ni más ni menos (la primera vez se salía y dejaba hueco).
+  // Medido con la vista ya quieta: mientras entra deslizándose, la página mide unos píxeles más.
+  await page.waitForFunction(() => document.getAnimations().every((x) => x.playState !== "running" || x.effect?.getTiming().iterations === Infinity));
   const medida = await page.evaluate(() => {
     const i = document.querySelector(".ver-img").getBoundingClientRect();
     const c = document.getElementById("visto");
-    return { izq: Math.round(i.left), ancho: Math.round(i.width), pantalla: innerWidth, caja: c.clientWidth, scroll: c.scrollLeft, clases: c.className };
+    // Lo que se sale de lo ancho, si algo se sale: con eso se sabe quién ensancha la página.
+    const fuera = [...document.querySelectorAll("body *")].filter((x) => x.getBoundingClientRect().right > innerWidth - 0.5 && x.getBoundingClientRect().width > 0).slice(-3).map((x) => `${x.tagName.toLowerCase()}.${x.className}:${Math.round(x.getBoundingClientRect().right)}`);
+    return { izq: Math.round(i.left), ancho: Math.round(i.width), pantalla: innerWidth, caja: c.clientWidth, scroll: c.scrollLeft, clases: c.className, fuera, doc: document.documentElement.scrollWidth };
   });
   debe(medida.izq === 0 && medida.ancho === medida.pantalla, "la captura ocupa el ancho de la pantalla", JSON.stringify(medida));
   debe(await page.isVisible("#ver-otra"), "y se puede capturar otra vez");
@@ -204,6 +211,38 @@ try {
   await page.goto(`${B}/#ver=${de("imagen")?.id}`);
   await page.waitForFunction(() => document.querySelector(".ver-img")?.naturalWidth > 0);
   debe(true, "el enlace de un aviso (#ver=) abre lo compartido");
+
+  // Se limpia sola (Munir, 2026-11-14): lo abierto se va a la hora de mirarlo,
+  // y desde la lista se quita una o se vacía todo, cada cosa a dos toques.
+  const ahora = await (await fetch(`${B}/api/compartidos`, { headers: AUT })).json();
+  const abierta = (ahora.compartidos ?? []).find((c) => c.id === de("imagen")?.id);
+  const leQueda = abierta ? abierta.caduca - Date.now() : 0;
+  debe(Boolean(abierta?.abierto) && leQueda > 55 * 60_000 && leQueda <= 60 * 60_000, "lo abierto se va a la hora de mirarlo", JSON.stringify(abierta));
+  await page.goto(`${B}/`);
+  await page.waitForSelector("#abrir-cajon");
+  await page.click("#abrir-cajon");
+  await page.click('[data-ir="compartidos"]');
+  await page.waitForSelector(".ver-tarjeta [data-quitar]");
+  const pie = await page.evaluate(() => [...document.querySelectorAll(".ver-tarjeta")].map((t) => t.querySelector(".ver-pie").textContent));
+  debe(pie.some((t) => /visto · se va en \d+ min/.test(t)), "la tarjeta de lo abierto dice «visto · se va en N min»", pie.join(" | "));
+  debe(await page.isVisible("#ver-vaciar"), "«Vaciar» está arriba de la lista");
+  await page.screenshot({ path: join(FOTOS, "para-ver-lista-limpia.png") });
+  const quitar = `.ver-tarjeta[data-tipo="pagina"] [data-quitar]`;
+  await page.click(quitar);
+  debe((await page.textContent(quitar)) === "Toca otra vez", "el primer toque de «Quitar» solo lo arma");
+  await page.screenshot({ path: join(FOTOS, "para-ver-quitar-armado.png") });
+  await page.click(quitar);
+  await page.waitForFunction(() => !document.querySelector('.ver-tarjeta[data-tipo="pagina"]'));
+  const tras = (await (await fetch(`${B}/api/compartidos`, { headers: AUT })).json()).compartidos ?? [];
+  debe(tras.length === 2 && !tras.some((c) => c.tipo === "pagina"), "«Quitar» la quita también en el PC", tras.map((c) => c.titulo).join(", "));
+  debe((await fetch(`${B}/api/compartido?id=${de("pagina")?.id}`, { headers: AUT })).status === 404, "lo quitado ya no se sirve");
+  await page.click("#ver-vaciar");
+  debe((await page.textContent("#ver-vaciar")) === "Toca otra vez para vaciar", "el primer toque de «Vaciar» solo lo arma");
+  await page.click("#ver-vaciar");
+  await page.waitForSelector("#compartidos .vacio");
+  const final = (await (await fetch(`${B}/api/compartidos`, { headers: AUT })).json()).compartidos ?? [];
+  debe(final.length === 0, "«Vaciar» deja la lista vacía", final.map((c) => c.titulo).join(", "));
+  await page.screenshot({ path: join(FOTOS, "para-ver-vacia.png") });
 } catch (e) {
   debe(false, "el laboratorio entero", e?.stack ?? e);
 } finally {

@@ -4,11 +4,16 @@
 // sabía abrirte una terminal en otra cuenta, pero esa terminal nacía VACÍA:
 // tenías que contarle otra vez a mano lo que llevabas media hora explicando.
 //
-// Esto NO es «la conversación continúa», y conviene decirlo claro porque suena
-// a eso: cada CLI guarda su historial a su manera y una sesión de una cuenta no
-// se puede abrir con otra. Lo que se traspasa es un ACTA: para qué se abrió
-// aquello, qué fue lo último que dijo el agente, y la orden de seguir desde
-// ahí. Es lo mismo que harías tú resumiéndoselo, pero sin escribirlo.
+// Esto NO es «la conversación continúa»: lo que se traspasa es un ACTA, para qué
+// se abrió aquello, qué fue lo último que dijo el agente, y la orden de seguir
+// desde ahí. Es lo mismo que harías tú resumiéndoselo, pero sin escribirlo.
+//
+// Ojo, que aquí ponía que una conversación de una cuenta no se puede abrir con
+// otra, y no se había medido. Medido el 2026-11-14 con Claude Code 2.1.325: SÍ
+// se puede, moviendo su `.jsonl` a `projects/<carpeta>/` de la otra cuenta y
+// abriéndola con `--resume`, y la API lo admite («Preserved thinking»). Es lo
+// que hace el relevo solo de las delegadas sin cuota (`mcp/relevo_cuota.rs`,
+// `lib/relevoCuota.ts`), y esta acta queda para cuando no se puede mudar.
 //
 // Las tres piezas ya existían sueltas desde julio (`usage.rs` sabe la cuota,
 // `last_reply` lee el final del transcript y `read_encargos` guarda para qué se

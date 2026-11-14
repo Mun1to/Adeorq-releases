@@ -1,5 +1,5 @@
 // Ajustes › Terminales: qué hace un panel de Claude Code al llegar a la raya roja de contexto
-// (400.000 tokens, o el 60 % de una ventana pequeña; `nivelDeContexto`).
+// (450.000 tokens, o el 60 % de una ventana pequeña; `nivelDeContexto`).
 //
 // Munir, 2026-10-22: «que sea casi obligatorio compactar en ese rango». De fábrica
 // «sin commits» (lo eligió él ese día): a la campana manda `/fin sin commits`, que la skill
@@ -18,7 +18,7 @@ export default function AjusteCompactar() {
   return (
     <>
       <label className="setting-row setting-compactar">
-        <span>{t("A los 400.000 tokens de contexto, en Claude Code")}</span>
+        <span>{t("A los 450.000 tokens de contexto, en Claude Code")}</span>
         <select
           value={modo}
           onChange={(e) => {

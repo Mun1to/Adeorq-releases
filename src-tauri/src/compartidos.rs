@@ -20,7 +20,11 @@
 //! - **El mismo emparejado y Tailscale de siempre**: se sirve por `/api/`, con
 //!   la clave del móvil (`movil.rs`).
 //! - **Caduca solo**: a las `HORAS_DE_FABRICA`, o a las que diga el agente sin
-//!   pasar de `HORAS_TOPE`.
+//!   pasar de `HORAS_TOPE`; y lo que ya abrió en el móvil, una hora después de
+//!   la última vez que lo miró (`VIDA_TRAS_ABRIR_MS`). Munir, 2026-11-14: «haz
+//!   que se vaya limpiando lo de que ver en el movil». Tenía 26 en la lista,
+//!   de cinco sesiones, alguna con 63 h por delante. Y se quita a mano: uno
+//!   («Quitar») o todos («Vaciar»).
 //! - **Una web del PC viaja como captura**, no como página: solo salen sus
 //!   píxeles, a ancho de móvil (`capturar_web`, con el Edge del sistema y un
 //!   perfil de usar y tirar). Servirla entera por el mismo origen que la página
@@ -31,11 +35,26 @@
 
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
-/// Los que se guardan a la vez; el más viejo se va primero.
-pub const TOPE: usize = 30;
-pub const HORAS_DE_FABRICA: u64 = 24;
-pub const HORAS_TOPE: u64 = 72;
+/// Los que se guardan a la vez; el más viejo se va primero. Una sesión que
+/// enseña una tanda manda seis de golpe: con quince caben dos tandas y algo.
+pub const TOPE: usize = 15;
+pub const HORAS_DE_FABRICA: u64 = 12;
+pub const HORAS_TOPE: u64 = 24;
+/// Lo que le queda a algo desde la última vez que se abrió en el móvil (la
+/// vista entera o la web en vivo), sin pasar nunca de su `caduca`.
+pub const VIDA_TRAS_ABRIR_MS: u64 = 3_600_000;
+/// Abrirlo otra vez antes de esto no vuelve a escribir la lista: la web en
+/// vivo lo apunta en cada petición.
+const APUNTAR_ABIERTO_MS: u64 = 60_000;
+/// Leer, cambiar y guardar la lista va de uno en uno: el MCP comparte desde un
+/// hilo, el móvil quita desde otro y la web en vivo apunta que se abrió.
+static CERROJO: Mutex<()> = Mutex::new(());
+
+fn cerrojo() -> std::sync::MutexGuard<'static, ()> {
+    CERROJO.lock().unwrap_or_else(|e| e.into_inner())
+}
 /// Lo que pesa como mucho un archivo compartido.
 pub const TOPE_BYTES: u64 = 25 * 1024 * 1024;
 const TOPE_TITULO: usize = 200;
@@ -60,9 +79,16 @@ pub const PROHIBIDOS: [&str; 12] = [
     ".gemini",
 ];
 
-/// Los puertos de este PC que no se capturan: el MCP de Adeorq y la propia
-/// página del móvil.
-const PUERTOS_DE_ADEORQ: [u16; 2] = [3012, crate::movil::PUERTO];
+/// Los puertos de este PC que no se enseñan: el MCP de Adeorq, la propia
+/// página del móvil y la web en vivo, los de fábrica y los que diga el entorno
+/// de una Adeorq aislada de pruebas.
+fn puertos_de_adeorq() -> Vec<u16> {
+    let mut p = vec![3012, crate::movil::PUERTO, crate::vivo::PUERTO];
+    p.extend(crate::mcp::puerto().ok());
+    p.extend(crate::movil::puerto().ok());
+    p.extend(crate::vivo::puerto().ok());
+    p
+}
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -92,6 +118,18 @@ pub struct Compartido {
     /// Milisegundos.
     pub creado: u64,
     pub caduca: u64,
+    /// La última vez que se abrió en el móvil, en ms. Desde entonces le queda
+    /// `VIDA_TRAS_ABRIR_MS` (ver `se_va`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub abierto: Option<u64>,
+}
+
+impl Compartido {
+    /// Cuándo se va de verdad: a su `caduca`, o una hora después de abrirlo si
+    /// eso llega antes.
+    pub fn se_va(&self) -> u64 {
+        self.abierto.map_or(self.caduca, |a| self.caduca.min(a.saturating_add(VIDA_TRAS_ABRIR_MS)))
+    }
 }
 
 /// Lo que pide el agente.
@@ -191,11 +229,11 @@ fn camino_valido(camino: Option<&str>) -> Result<String, String> {
     Ok(c.to_string())
 }
 
-fn puerto_valido(puerto: u16) -> Result<(), String> {
+pub fn puerto_valido(puerto: u16) -> Result<(), String> {
     if puerto < 1024 {
         return Err("Solo se capturan webs de puertos de 1024 para arriba.".into());
     }
-    if PUERTOS_DE_ADEORQ.contains(&puerto) {
+    if puertos_de_adeorq().contains(&puerto) {
         return Err(format!("El {puerto} es de Adeorq: ese no se enseña."));
     }
     Ok(())
@@ -231,6 +269,7 @@ pub fn preparar(p: &Pedido, ahora: u64, raices: &[PathBuf], id: String) -> Resul
         panel: p.panel,
         creado: ahora,
         caduca: ahora + horas * 3_600_000,
+        abierto: None,
     })
 }
 
@@ -262,15 +301,19 @@ fn captura_de(dir: &Path, id: &str) -> Option<PathBuf> {
     id_valido(id).then(|| dir.join(format!("{id}.png")))
 }
 
-/// Lo que sigue vivo, el más nuevo primero. Lo caducado se borra al pasar.
-pub fn vigentes(dir: &Path, ahora: u64) -> Vec<Compartido> {
+fn borrar_captura(dir: &Path, id: &str) {
+    if let Some(f) = captura_de(dir, id) {
+        let _ = std::fs::remove_file(f);
+    }
+}
+
+/// Lo vivo, sin el cerrojo: quien llama ya lo tiene.
+fn vivos_de(dir: &Path, ahora: u64) -> Vec<Compartido> {
     let todos = leer_lista(dir);
-    let (vivos, idos): (Vec<_>, Vec<_>) = todos.into_iter().partition(|c| c.caduca > ahora);
+    let (vivos, idos): (Vec<_>, Vec<_>) = todos.into_iter().partition(|c| c.se_va() > ahora);
     if !idos.is_empty() {
         for c in &idos {
-            if let Some(f) = captura_de(dir, &c.id) {
-                let _ = std::fs::remove_file(f);
-            }
+            borrar_captura(dir, &c.id);
         }
         let _ = guardar_lista(dir, &vivos);
     }
@@ -279,14 +322,19 @@ pub fn vigentes(dir: &Path, ahora: u64) -> Vec<Compartido> {
     vivos
 }
 
+/// Lo que sigue vivo, el más nuevo primero. Lo caducado se borra al pasar.
+pub fn vigentes(dir: &Path, ahora: u64) -> Vec<Compartido> {
+    let _c = cerrojo();
+    vivos_de(dir, ahora)
+}
+
 /// Lo guarda. Si ya había `TOPE`, se va el más viejo.
 pub fn guardar(dir: &Path, c: Compartido, ahora: u64) -> Result<Compartido, String> {
-    let mut lista = vigentes(dir, ahora);
+    let _c = cerrojo();
+    let mut lista = vivos_de(dir, ahora);
     lista.insert(0, c.clone());
     for viejo in lista.split_off(TOPE.min(lista.len())) {
-        if let Some(f) = captura_de(dir, &viejo.id) {
-            let _ = std::fs::remove_file(f);
-        }
+        borrar_captura(dir, &viejo.id);
     }
     guardar_lista(dir, &lista)?;
     Ok(c)
@@ -297,6 +345,55 @@ pub fn buscar(dir: &Path, id: &str, ahora: u64) -> Option<Compartido> {
         return None;
     }
     vigentes(dir, ahora).into_iter().find(|c| c.id == id)
+}
+
+/// Lo apunta como abierto ahora (la vista entera del móvil, o la web en vivo):
+/// desde aquí le queda una hora, sin pasar de su `caduca`. Devuelve cómo
+/// queda, o `None` si ya no está. Dentro del mismo minuto no se reescribe.
+pub fn abrir(dir: &Path, id: &str, ahora: u64) -> Option<Compartido> {
+    if !id_valido(id) {
+        return None;
+    }
+    let _c = cerrojo();
+    let mut lista = vivos_de(dir, ahora);
+    let c = lista.iter_mut().find(|c| c.id == id)?;
+    if c.abierto.is_none_or(|a| ahora.saturating_sub(a) >= APUNTAR_ABIERTO_MS) {
+        c.abierto = Some(ahora);
+        let hecho = c.clone();
+        let _ = guardar_lista(dir, &lista);
+        return Some(hecho);
+    }
+    Some(c.clone())
+}
+
+/// Quita uno («Quitar» en el móvil), con su captura. Si estaba, `true`.
+pub fn quitar(dir: &Path, id: &str, ahora: u64) -> Result<bool, String> {
+    if !id_valido(id) {
+        return Ok(false);
+    }
+    let _c = cerrojo();
+    let mut lista = vivos_de(dir, ahora);
+    let antes = lista.len();
+    lista.retain(|c| c.id != id);
+    if lista.len() == antes {
+        return Ok(false);
+    }
+    borrar_captura(dir, id);
+    guardar_lista(dir, &lista)?;
+    Ok(true)
+}
+
+/// Quita todos («Vaciar» en el móvil). Devuelve cuántos había.
+pub fn vaciar(dir: &Path, ahora: u64) -> Result<usize, String> {
+    let _c = cerrojo();
+    let lista = vivos_de(dir, ahora);
+    for c in &lista {
+        borrar_captura(dir, &c.id);
+    }
+    if !lista.is_empty() {
+        guardar_lista(dir, &[])?;
+    }
+    Ok(lista.len())
 }
 
 /// Un id nuevo: 16 bytes del sistema, en hexadecimal.
@@ -474,7 +571,7 @@ mod tests {
         }
 
         let c = preparar(&pedido_de(&raiz.join("tarjeta.png")), 1000, &raices, "a".repeat(32)).unwrap();
-        assert_eq!((c.tipo, c.caduca), (Tipo::Imagen, 1000 + 24 * 3_600_000));
+        assert_eq!((c.tipo, c.caduca), (Tipo::Imagen, 1000 + 12 * 3_600_000));
         assert_eq!(preparar(&pedido_de(&raiz.join("plano.html")), 1, &raices, "b".repeat(32)).unwrap().tipo, Tipo::Pagina);
 
         let error = |p: &Path| preparar(&pedido_de(p), 1, &raices, "c".repeat(32)).unwrap_err();
@@ -511,6 +608,7 @@ mod tests {
         assert!(web(80, None).unwrap_err().contains("1024"));
         assert!(web(3012, None).unwrap_err().contains("es de Adeorq"));
         assert!(web(crate::movil::PUERTO, None).unwrap_err().contains("es de Adeorq"));
+        assert!(web(crate::vivo::PUERTO, None).unwrap_err().contains("es de Adeorq"), "la web en vivo no se enseña a sí misma");
         for malo in ["guia.html", "//otro.sitio/x", "/a b", "/x@otro", "/a\\b"] {
             assert!(web(8080, Some(malo)).unwrap_err().contains("urlPath"), "{malo}");
         }
@@ -571,6 +669,58 @@ mod tests {
         }
         assert_eq!(vigentes(&dir, 5000).len(), TOPE);
         assert!(buscar(&dir, &uno.id, 5000).is_none());
+        let _ = std::fs::remove_dir_all(&raiz);
+    }
+
+    /// Munir, 2026-11-14: «haz que se vaya limpiando lo de que ver en el
+    /// movil». Doce horas de fábrica y veinticuatro de tope; lo abierto se va
+    /// una hora después de la última vez que se miró; y se quita a mano.
+    #[test]
+    fn se_limpia_solo_lo_abierto_se_va_a_la_hora_y_se_quita_a_mano() {
+        let raiz = sitio("limpia");
+        let dir = raiz.join("almacen");
+        let raices = vec![raiz.clone()];
+        let web = |horas: Option<u64>| Pedido { titulo: "La web".into(), puerto: Some(8080), horas, ..Default::default() };
+        let hora = 3_600_000u64;
+        assert_eq!(preparar(&web(None), 0, &raices, "a".repeat(32)).unwrap().caduca, 12 * hora);
+        assert_eq!(preparar(&web(Some(72)), 0, &raices, "a".repeat(32)).unwrap().caduca, 24 * hora, "el tope es 24 h");
+
+        let uno = guardar(&dir, preparar(&web(None), 0, &raices, id_nuevo().unwrap()).unwrap(), 0).unwrap();
+        let dos = guardar(&dir, preparar(&web(None), 10, &raices, id_nuevo().unwrap()).unwrap(), 10).unwrap();
+        std::fs::write(dir.join(format!("{}.png", uno.id)), b"\x89PNG captura").unwrap();
+
+        // Abierto a las 2 h: se va a las 3 h, no a las 12.
+        let abierto = abrir(&dir, &uno.id, 2 * hora).unwrap();
+        assert_eq!((abierto.abierto, abierto.se_va()), (Some(2 * hora), 3 * hora));
+        assert!(buscar(&dir, &uno.id, 3 * hora - 1).is_some());
+        // Mirarlo otra vez le da otra hora desde ahí; dentro del mismo minuto no reescribe.
+        assert_eq!(abrir(&dir, &uno.id, 2 * hora + 30_000).unwrap().abierto, Some(2 * hora));
+        assert_eq!(abrir(&dir, &uno.id, 2 * hora + 30 * 60_000).unwrap().se_va(), 3 * hora + 30 * 60_000);
+        assert!(buscar(&dir, &uno.id, 3 * hora + 30 * 60_000).is_none(), "a la hora de mirarlo, fuera");
+        assert!(!dir.join(format!("{}.png", uno.id)).exists(), "y su captura con él");
+        assert!(buscar(&dir, &dos.id, 3 * hora + 30 * 60_000).is_some(), "lo que no se abrió sigue");
+        // Una hora después de abrirlo nunca alarga lo que ya caducaba antes.
+        let corto = guardar(&dir, preparar(&web(Some(1)), 4 * hora, &raices, id_nuevo().unwrap()).unwrap(), 4 * hora).unwrap();
+        assert_eq!(abrir(&dir, &corto.id, 4 * hora + 50 * 60_000).unwrap().se_va(), 5 * hora);
+        assert!(abrir(&dir, "../compartidos", 0).is_none());
+
+        // «Quitar» uno y «Vaciar» todos.
+        assert!(quitar(&dir, &dos.id, 4 * hora).unwrap());
+        assert!(!quitar(&dir, &dos.id, 4 * hora).unwrap(), "lo que ya no está no se quita dos veces");
+        assert!(!quitar(&dir, "ABC", 4 * hora).unwrap());
+        assert!(buscar(&dir, &dos.id, 4 * hora).is_none());
+        let tres = guardar(&dir, preparar(&web(None), 4 * hora, &raices, id_nuevo().unwrap()).unwrap(), 4 * hora).unwrap();
+        std::fs::write(dir.join(format!("{}.png", tres.id)), b"\x89PNG").unwrap();
+        assert_eq!(vaciar(&dir, 4 * hora).unwrap(), 2);
+        assert!(vigentes(&dir, 4 * hora).is_empty());
+        assert!(!dir.join(format!("{}.png", tres.id)).exists());
+        assert_eq!(vaciar(&dir, 4 * hora).unwrap(), 0);
+
+        // Caben quince: el decimosexto echa al más viejo.
+        for i in 0..=TOPE as u64 {
+            guardar(&dir, preparar(&web(None), 5 * hora + i, &raices, id_nuevo().unwrap()).unwrap(), 5 * hora + i).unwrap();
+        }
+        assert_eq!((TOPE, vigentes(&dir, 5 * hora + 100).len()), (15, 15));
         let _ = std::fs::remove_dir_all(&raiz);
     }
 

@@ -952,6 +952,11 @@ pub trait Casa {
     fn capturar_web(&self, _puerto: u16, _camino: &str) -> Result<Vec<u8>, String> {
         Err("Aquí no se capturan webs.".into())
     }
+    /// Un pase de un solo uso para abrir en vivo esa web compartida, y la
+    /// dirección por la que entra (`vivo.rs`). `quien` dice de qué aparato es.
+    fn vivo_pase(&self, _c: &crate::compartidos::Compartido, _quien: &str, _host: &str) -> Result<String, String> {
+        Err("Aquí no hay webs en vivo.".into())
+    }
     /// El historial de una sesión en orden, para la Pantalla (`historia.rs`).
     fn historia(&self, _cwd: &str, _sesion: &str) -> Result<Value, String> {
         Err("Aquí no hay historial.".into())
@@ -1687,12 +1692,50 @@ pub fn atender(
         // por su id. Nunca una ruta: no se puede pedir otra cosa que lo compartido.
         ("GET", "/api/compartidos") => match casa.compartidos() {
             Ok(dir) => {
+                // `caduca` es cuándo se va de verdad: lo ya abierto, a la hora de mirarlo.
                 let lista: Vec<Value> = crate::compartidos::vigentes(&dir, reloj.1.saturating_mul(1000))
                     .iter()
-                    .map(|c| json!({ "id": c.id, "titulo": c.titulo, "tipo": c.tipo, "proyecto": c.proyecto, "creado": c.creado, "caduca": c.caduca }))
+                    .map(|c| json!({ "id": c.id, "titulo": c.titulo, "tipo": c.tipo, "proyecto": c.proyecto, "creado": c.creado, "caduca": c.se_va(), "abierto": c.abierto }))
                     .collect();
                 Respuesta::json(200, json!({ "compartidos": lista }))
             }
+            Err(e) => Respuesta::error(500, &e),
+        },
+        // Abrir en vivo una web compartida (`vivo.rs`): un pase de un solo uso
+        // para entrar por OTRO origen, donde su JavaScript no ve la clave de aquí.
+        ("POST", "/api/vivo/pase") => {
+            let id = cuerpo["id"].as_str().unwrap_or("");
+            let Some(c) = casa.compartidos().ok().and_then(|dir| crate::compartidos::buscar(&dir, id, reloj.1.saturating_mul(1000))) else {
+                return Respuesta::error(404, "Eso ya no está compartido.");
+            };
+            if c.tipo != crate::compartidos::Tipo::Web {
+                return Respuesta::error(400, "Eso no es una web de tu PC.");
+            }
+            match casa.vivo_pase(&c, &huella(clave)[..12], host) {
+                Ok(url) => Respuesta::json(200, json!({ "url": url })),
+                Err(e) => Respuesta::error(409, &e),
+            }
+        }
+        // Lo abrió a pantalla entera: desde ahora le queda una hora (`compartidos::abrir`).
+        ("POST", "/api/compartido/visto") => {
+            let id = cuerpo["id"].as_str().unwrap_or("");
+            match casa.compartidos().ok().and_then(|dir| crate::compartidos::abrir(&dir, id, reloj.1.saturating_mul(1000))) {
+                Some(c) => Respuesta::json(200, json!({ "caduca": c.se_va(), "abierto": c.abierto })),
+                None => Respuesta::error(404, "Eso ya no está compartido."),
+            }
+        }
+        // «Quitar» uno y «Vaciar» todos, desde «Para ver». Lo que se quita deja
+        // de verse al momento, también la web en vivo (`vivo.rs` lo mira en cada petición).
+        ("POST", "/api/compartidos/quitar") => {
+            let id = cuerpo["id"].as_str().unwrap_or("");
+            match casa.compartidos().and_then(|dir| crate::compartidos::quitar(&dir, id, reloj.1.saturating_mul(1000))) {
+                Ok(true) => Respuesta::json(200, json!({ "ok": true })),
+                Ok(false) => Respuesta::error(404, "Eso ya no está compartido."),
+                Err(e) => Respuesta::error(500, &e),
+            }
+        }
+        ("POST", "/api/compartidos/vaciar") => match casa.compartidos().and_then(|dir| crate::compartidos::vaciar(&dir, reloj.1.saturating_mul(1000))) {
+            Ok(n) => Respuesta::json(200, json!({ "quitados": n })),
             Err(e) => Respuesta::error(500, &e),
         },
         ("GET", "/api/compartido") => {
@@ -1708,7 +1751,7 @@ pub fn atender(
             }
         }
         (_, "/api/yo" | "/api/lista" | "/api/conversacion" | "/api/enviar" | "/api/mejorar" | "/api/router" | "/api/olvidar" | "/api/programados" | "/api/uso"
-            | "/api/compartidos" | "/api/compartido"
+            | "/api/compartidos" | "/api/compartido" | "/api/compartido/visto" | "/api/compartidos/quitar" | "/api/compartidos/vaciar" | "/api/vivo/pase"
             | "/api/cerebro" | "/api/fijo" | "/api/programas" | "/api/pensador" | "/api/programa"
             | "/api/parar" | "/api/sesion" | "/api/push/clave" | "/api/push/suscribir"
             | "/api/push/olvidar" | "/api/terminales" | "/api/terminal" | "/api/terminal/escribir"
@@ -1865,6 +1908,9 @@ impl Casa for CasaDeVerdad {
     fn capturar_web(&self, puerto: u16, camino: &str) -> Result<Vec<u8>, String> {
         crate::compartidos::capturar_web(puerto, camino)
     }
+    fn vivo_pase(&self, c: &crate::compartidos::Compartido, quien: &str, host: &str) -> Result<String, String> {
+        crate::vivo::pase_de_verdad(c, quien, host)
+    }
     fn historia(&self, cwd: &str, sesion: &str) -> Result<Value, String> {
         crate::historia::de_sesion(cwd, sesion, 250).map(|v| json!(v))
     }
@@ -1913,6 +1959,24 @@ pub fn movil_reply(state: tauri::State<'_, Movil>, peticion: u64, datos: Value) 
     }
 }
 
+/// Que «Adeo en el móvil» sigue encendido: la web en vivo (`vivo.rs`) se para con él.
+pub fn sirve(app: &tauri::AppHandle) -> bool {
+    !app.state::<Movil>().apagar.load(Ordering::SeqCst)
+}
+
+/// Que el aparato cuya huella empieza por `quien` (lo que lleva el pase de la
+/// web en vivo) sigue emparejado y, si era por un rato, en su hora: olvidarlo
+/// corta también lo que tenga abierto en vivo.
+pub fn aparato_sigue(app: &tauri::AppHandle, quien: &str, cuando: u64) -> bool {
+    !quien.is_empty()
+        && app.state::<Movil>().guardia.lock().unwrap().ajustes.dispositivos.iter().any(|d| d.huella.starts_with(quien) && !d.hasta.is_some_and(|fin| cuando >= fin))
+}
+
+/// Si la app está en inglés: las páginas de la web en vivo hablan su idioma.
+pub fn en_ingles(app: &tauri::AppHandle) -> bool {
+    app.state::<Movil>().guardia.lock().unwrap().ajustes.ingles
+}
+
 fn persistir_de_verdad(a: &Ajustes) {
     if let Err(e) = guardar_ajustes(a) {
         crate::anotar(&format!("Móvil: no he podido guardar movil.json ({e})"));
@@ -1956,6 +2020,11 @@ fn arrancar(app: &tauri::AppHandle) {
             m.sirviendo.store(false, Ordering::SeqCst);
             return;
         };
+        // La web en vivo, en su propio puerto y origen (`vivo.rs`): se enciende y se apaga con esto.
+        {
+            let app = app.clone();
+            std::thread::spawn(move || crate::vivo::servir(app));
+        }
         // Sin bloqueo, para poder apagarlo desde Ajustes sin cerrar la app.
         let _ = escucha.set_nonblocking(true);
         m.despierto.store(no_dormir(true), Ordering::SeqCst);
@@ -2307,7 +2376,7 @@ pub struct MovilEnTailscale {
     pub visto: u64,
 }
 
-fn tailscale_exe() -> Option<PathBuf> {
+pub(crate) fn tailscale_exe() -> Option<PathBuf> {
     let nombre = if cfg!(windows) { "tailscale.exe" } else { "tailscale" };
     if let Some(path) = std::env::var_os("PATH") {
         for dir in std::env::split_paths(&path) {
@@ -2331,20 +2400,20 @@ fn tailscale_exe() -> Option<PathBuf> {
 
 /// Lo que dijo un programa por cada salida, por separado: un aviso en la de
 /// errores no tiene que estropear el JSON de la normal.
-struct Dijo {
+pub(crate) struct Dijo {
     bien: bool,
-    normal: String,
+    pub(crate) normal: String,
     errores: String,
 }
 
 impl Dijo {
-    fn todo(&self) -> String {
+    pub(crate) fn todo(&self) -> String {
         format!("{}\n{}", self.normal, self.errores).trim().to_string()
     }
 }
 
 /// Lanza, espera con tope y devuelve lo que dijo.
-fn correr(exe: &PathBuf, args: &[&str], tope: Duration) -> Result<Dijo, String> {
+pub(crate) fn correr(exe: &PathBuf, args: &[&str], tope: Duration) -> Result<Dijo, String> {
     let mut hijo = std::process::Command::new(exe)
         .args(args)
         .stdin(std::process::Stdio::null())
@@ -2422,18 +2491,25 @@ pub struct Puesto {
     pub ajeno: Option<String>,
 }
 
-fn es_el_conserje(proxy: &str) -> bool {
+/// Si ese `Proxy` de `tailscale serve` lleva a este PC, al puerto `local`.
+fn lleva_a(proxy: &str, local: u16) -> bool {
     let p = proxy.trim().trim_end_matches('/');
     let p = p.strip_prefix("http://").unwrap_or(p);
-    p == format!("127.0.0.1:{PUERTO}") || p == format!("localhost:{PUERTO}") || p == PUERTO.to_string()
+    p == format!("127.0.0.1:{local}") || p == format!("localhost:{local}") || p == local.to_string()
 }
 
 /// De `tailscale serve status --json`, que es su `ipn.ServeConfig` tal cual:
 /// `TCP` va de puerto a qué se hace con él, y `Web` de «nombre:puerto» a sus
 /// rutas, cada una con su `Proxy`, `Path` o `Text`.
 pub fn en_el_puerto(json_serve: &str) -> Puesto {
+    en_el_puerto_de(json_serve, PUERTO_TAILSCALE, PUERTO)
+}
+
+/// Lo mismo para cualquier puerto de Tailscale y el puerto de este PC al que
+/// tiene que llevar: la web en vivo va por el 8444 hasta su proxy (`vivo.rs`).
+pub fn en_el_puerto_de(json_serve: &str, puerto_ts: u16, local: u16) -> Puesto {
     let v: Value = serde_json::from_str(json_serve).unwrap_or(Value::Null);
-    let puerto = PUERTO_TAILSCALE.to_string();
+    let puerto = puerto_ts.to_string();
     let mut puesto = Puesto::default();
     if let Some(destino) = v["TCP"][&puerto]["TCPForward"].as_str().filter(|d| !d.is_empty()) {
         puesto.ajeno = Some(format!("tcp → {destino}"));
@@ -2445,7 +2521,7 @@ pub fn en_el_puerto(json_serve: &str) -> Puesto {
         }
         for (ruta, h) in web["Handlers"].as_object().into_iter().flatten() {
             let proxy = h["Proxy"].as_str().unwrap_or("");
-            if ruta == "/" && es_el_conserje(proxy) {
+            if ruta == "/" && lleva_a(proxy, local) {
                 puesto.nuestro = true;
             } else if puesto.ajeno.is_none() {
                 let que = [proxy, h["Path"].as_str().unwrap_or("")].into_iter().find(|s| !s.is_empty()).unwrap_or("un texto");
@@ -2952,6 +3028,56 @@ mod tests {
         assert_eq!(ver(&foto.id).estado, 409);
         let tarde = (Instant::now(), 10 + 25 * 3600);
         assert_eq!(atender(&pedir("GET", &format!("/api/compartido?id={}", plano.id), c, ""), &g, &casa, &nada, tarde).estado, 404);
+        let _ = std::fs::remove_dir_all(&raiz);
+    }
+
+    /// «Para ver» se limpia (Munir, 2026-11-14): lo abierto a pantalla entera
+    /// se va a la hora, y desde el móvil se quita uno o se vacía todo. Sin
+    /// clave, nada de eso.
+    #[test]
+    fn para_ver_se_quita_a_mano_y_lo_visto_se_va_a_la_hora() {
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira { sitio: "-limpia", ..Default::default() };
+        let nada = |_: &Ajustes| {};
+        let c = Some(clave.as_str());
+        let dir = casa.compartidos().unwrap();
+        let raiz = dir.parent().unwrap().to_path_buf();
+        let _ = std::fs::remove_dir_all(&raiz);
+        let web = |titulo: &str| {
+            let p = crate::compartidos::Pedido { titulo: titulo.into(), puerto: Some(8080), ..Default::default() };
+            let c = crate::compartidos::preparar(&p, 10_000, &[], crate::compartidos::id_nuevo().unwrap()).unwrap();
+            crate::compartidos::guardar(&dir, c, 10_000).unwrap()
+        };
+        let (una, otra, tercera) = (web("Una"), web("Otra"), web("Tercera"));
+        let a_las = |s: u64| (Instant::now(), s);
+        let manda = |ruta: &str, cuerpo: Value, clave: Option<&str>, s: u64| atender(&pedir("POST", ruta, clave, &cuerpo.to_string()), &g, &casa, &nada, a_las(s));
+        let titulos = |s: u64| {
+            let l = cuerpo_de(&atender(&pedir("GET", "/api/compartidos", c, ""), &g, &casa, &nada, a_las(s)));
+            l["compartidos"].as_array().unwrap().iter().map(|x| x["titulo"].as_str().unwrap().to_string()).collect::<Vec<_>>()
+        };
+
+        for ruta in ["/api/compartido/visto", "/api/compartidos/quitar", "/api/compartidos/vaciar"] {
+            assert_eq!(manda(ruta, json!({ "id": una.id }), None, 20).estado, 401, "{ruta} sin clave");
+            assert_eq!(atender(&pedir("GET", ruta, c, ""), &g, &casa, &nada, a_las(20)).estado, 405, "{ruta} por GET");
+        }
+        // Abierta a los 20 s: la lista dice que se va una hora después, no a las 12 h.
+        let r = manda("/api/compartido/visto", json!({ "id": una.id }), c, 20);
+        assert_eq!((r.estado, cuerpo_de(&r)["caduca"].clone()), (200, json!(20_000 + 3_600_000)));
+        let lista = cuerpo_de(&atender(&pedir("GET", "/api/compartidos", c, ""), &g, &casa, &nada, a_las(30)));
+        let suya = lista["compartidos"].as_array().unwrap().iter().find(|x| x["id"] == json!(una.id)).cloned().unwrap();
+        assert_eq!((suya["caduca"].clone(), suya["abierto"].clone()), (json!(20_000 + 3_600_000), json!(20_000)));
+
+        assert_eq!(manda("/api/compartidos/quitar", json!({ "id": otra.id }), c, 40).estado, 200);
+        assert_eq!(manda("/api/compartidos/quitar", json!({ "id": otra.id }), c, 40).estado, 404, "lo quitado no está");
+        assert_eq!(manda("/api/compartidos/quitar", json!({ "id": "../almacen" }), c, 40).estado, 404);
+        assert_eq!(titulos(40), ["Tercera", "Una"]);
+
+        assert_eq!(titulos(20 + 3600), ["Tercera"], "a la hora de abrirla ya no está");
+        assert_eq!(manda("/api/compartido/visto", json!({ "id": una.id }), c, 20 + 3600).estado, 404);
+        let r = manda("/api/compartidos/vaciar", json!({}), c, 3700);
+        assert_eq!((r.estado, cuerpo_de(&r)["quitados"].clone()), (200, json!(1)));
+        assert!(titulos(3700).is_empty());
+        assert_eq!(atender(&pedir("GET", &format!("/api/compartido?id={}", tercera.id), c, ""), &g, &casa, &nada, a_las(3700)).estado, 404);
         let _ = std::fs::remove_dir_all(&raiz);
     }
 

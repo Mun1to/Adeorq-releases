@@ -13,8 +13,8 @@
 
 /// Las rayas de la D7, en tokens y en % de la ventana: en cada una vale lo que
 /// llegue antes, para que una ventana pequeña (Haiku, 200k) siga avisando.
-pub const AVISO_TOKENS: u64 = 300_000;
-pub const FIJO_TOKENS: u64 = 400_000;
+pub const AVISO_TOKENS: u64 = 350_000;
+pub const FIJO_TOKENS: u64 = 450_000;
 pub const NUEVA_TOKENS: u64 = 600_000;
 const AVISO_PCT: u64 = 50;
 const FIJO_PCT: u64 = 60;
@@ -200,7 +200,7 @@ pub fn retenido(id: u32, c: &Carga) -> String {
 /// Si toca avisar a quien la abrió: al cruzar la raya roja, una vez por raya.
 /// `avisadas` guarda la última raya avisada de cada terminal, y se olvida
 /// cuando baja del aviso (tras compactar), para que la subida siguiente vuelva
-/// a avisar. Del aviso y no de la raya roja: una terminal que ronda los 400k
+/// a avisar. Del aviso y no de la raya roja: una terminal que ronda los 450k
 /// avisaba en cada subida, y la ventana olvida lo visto al mismo sitio
 /// (`ctxVisto` en `TerminalPane.tsx`).
 pub fn toca_avisar(avisadas: &mut std::collections::HashMap<u32, u8>, id: u32, nivel: u8) -> bool {
@@ -341,17 +341,17 @@ mod tests {
     #[test]
     fn el_nivel_es_el_de_la_cabecera() {
         let m = 1_000_000;
-        assert_eq!(nivel(299_000, m), 0);
-        assert_eq!(nivel(300_000, m), 1);
-        assert_eq!(nivel(399_000, m), 1);
-        assert_eq!(nivel(400_000, m), 2);
+        assert_eq!(nivel(349_000, m), 0);
+        assert_eq!(nivel(350_000, m), 1);
+        assert_eq!(nivel(449_000, m), 1);
+        assert_eq!(nivel(450_000, m), 2);
         assert_eq!(nivel(599_000, m), 2);
         assert_eq!(nivel(600_000, m), 3);
         assert_eq!(nivel(99_000, 200_000), 0);
-        assert_eq!(nivel(100_000, 200_000), 1, "Haiku: el 50 % llega antes que los 300k");
+        assert_eq!(nivel(100_000, 200_000), 1, "Haiku: el 50 % llega antes que los 350k");
         assert_eq!(nivel(120_000, 200_000), 2);
         assert_eq!(nivel(160_000, 200_000), 3);
-        assert_eq!(nivel(400_000, 0), 2, "sin ventana sabida, los tokens");
+        assert_eq!(nivel(450_000, 0), 2, "sin ventana sabida, los tokens");
         assert_eq!(nivel(0, 0), 0);
     }
 
@@ -370,10 +370,10 @@ mod tests {
         let t = en_la_lista(3, &carga(120, 1_000_000));
         assert!(t.contains("Contexto: 120.000 tokens de 1.000.000"), "{t}");
         assert!(consejo(3, &carga(120, 1_000_000)).is_none());
-        let t = en_la_lista(3, &carga(350, 1_000_000));
-        assert!(t.contains("350.000") && t.contains("300.000"), "{t}");
-        let t = en_la_lista(3, &carga(412, 1_000_000));
-        assert!(t.contains("400.000") && t.contains("compactar_terminal(3)") && t.contains("close_pane"), "{t}");
+        let t = en_la_lista(3, &carga(400, 1_000_000));
+        assert!(t.contains("400.000") && t.contains("350.000"), "{t}");
+        let t = en_la_lista(3, &carga(462, 1_000_000));
+        assert!(t.contains("450.000") && t.contains("compactar_terminal(3)") && t.contains("close_pane"), "{t}");
         let t = en_la_lista(3, &carga(612, 1_000_000));
         assert!(t.contains("600.000") && t.contains("abre otra"), "{t}");
         let t = en_la_lista(3, &carga(125, 200_000));
@@ -450,6 +450,7 @@ mod tests {
             state: "lista".into(),
             title: String::new(),
             viva,
+            sin_cuota: false,
         };
         assert_eq!(carga_si_corre(info(true), "s".into()).map(|c| c.usados), Some(450_000));
         assert_eq!(carga_si_corre(info(false), "s".into()), None);
@@ -467,7 +468,7 @@ mod tests {
     #[test]
     fn a_quien_la_abrio_se_le_avisa_una_vez_por_raya() {
         let mut av = HashMap::new();
-        assert!(!toca_avisar(&mut av, 3, 1), "el aviso de 300k no se le pega a cada llamada");
+        assert!(!toca_avisar(&mut av, 3, 1), "el aviso de 350k no se le pega a cada llamada");
         assert!(toca_avisar(&mut av, 3, 2));
         assert!(!toca_avisar(&mut av, 3, 2), "la segunda llamada ya no");
         assert!(toca_avisar(&mut av, 3, 3), "a los 600k, otra vez");
@@ -477,26 +478,26 @@ mod tests {
         assert!(toca_avisar(&mut av, 4, 2), "cada terminal la suya");
     }
 
-    /// Revisión de `1954cf0`: se olvidaba al bajar de 400k, y una terminal que
-    /// baila alrededor de la raya (398k, 401k, 399k…) avisaba en cada subida.
-    /// Se olvida al bajar del aviso (300k), como la ventana (`contexto.ts`).
+    /// Revisión de `1954cf0`: se olvidaba al bajar de 450k, y una terminal que
+    /// baila alrededor de la raya (448k, 451k, 449k…) avisaba en cada subida.
+    /// Se olvida al bajar del aviso (350k), como la ventana (`contexto.ts`).
     #[test]
     fn el_aviso_no_se_repite_rondando_la_raya() {
         let mut av = HashMap::new();
         assert!(toca_avisar(&mut av, 3, 2));
-        assert!(!toca_avisar(&mut av, 3, 1), "bajó a 398k");
-        assert!(!toca_avisar(&mut av, 3, 2), "y volvió a 401k: ya se le dijo");
-        assert!(!toca_avisar(&mut av, 3, 0), "compactó de verdad: por debajo de 300k");
+        assert!(!toca_avisar(&mut av, 3, 1), "bajó a 448k");
+        assert!(!toca_avisar(&mut av, 3, 2), "y volvió a 451k: ya se le dijo");
+        assert!(!toca_avisar(&mut av, 3, 0), "compactó de verdad: por debajo de 350k");
         assert!(toca_avisar(&mut av, 3, 2), "ahora sí es otra subida");
     }
 
     #[test]
     fn el_aviso_dice_si_se_compactara_sola() {
-        let t = aviso_a_quien_la_abrio(3, "C:\\proyectos\\Web", &carga(412, 1_000_000), 0);
-        for frase in ["terminal 3", "C:\\proyectos\\Web", "412.000", "/fin sin commits", "/compact", "close_pane"] {
+        let t = aviso_a_quien_la_abrio(3, "C:\\proyectos\\Web", &carga(462, 1_000_000), 0);
+        for frase in ["terminal 3", "C:\\proyectos\\Web", "462.000", "/fin sin commits", "/compact", "close_pane"] {
             assert!(t.contains(frase), "falta «{frase}»: {t}");
         }
-        let t = aviso_a_quien_la_abrio(3, "C:\\x", &carga(412, 1_000_000), 2);
+        let t = aviso_a_quien_la_abrio(3, "C:\\x", &carga(462, 1_000_000), 2);
         assert!(t.contains("2 veces") && t.contains("no se compacta sola") && t.contains("compactar_terminal(3)"), "{t}");
     }
 
@@ -512,13 +513,13 @@ mod tests {
 
     #[test]
     fn compactar_dice_que_espera_y_lo_que_va_a_teclear() {
-        let t = parte_de_compactar(3, Some(&carga(412, 1_000_000)), "nada", 0);
-        for frase in ["412.000", "/fin sin commits", "/compact", "acabe su turno", "read_pane_screen(3)", "30 minutos"] {
+        let t = parte_de_compactar(3, Some(&carga(462, 1_000_000)), "nada", 0);
+        for frase in ["462.000", "/fin sin commits", "/compact", "acabe su turno", "read_pane_screen(3)", "30 minutos"] {
             assert!(t.contains(frase), "falta «{frase}»: {t}");
         }
         let t = parte_de_compactar(3, None, "cerrando", 0);
         assert!(t.contains("ya") && t.contains("en marcha") && !t.contains("tokens"), "{t}");
-        let t = parte_de_compactar(3, Some(&carga(412, 1_000_000)), "nada", 2);
+        let t = parte_de_compactar(3, Some(&carga(462, 1_000_000)), "nada", 2);
         assert!(t.contains("2 veces"), "{t}");
     }
 
@@ -526,8 +527,8 @@ mod tests {
     fn cerrar_y_abrir_dicen_el_contexto() {
         assert!(al_cerrar(Some(&carga(612, 1_000_000))).contains("612.000 tokens"));
         assert_eq!(al_cerrar(None), "");
-        let t = tus_otras(&[(3, carga(412, 1_000_000)), (5, carga(120, 1_000_000))]);
-        assert!(t.contains("3: 412.000") && t.contains("5: 120.000") && t.contains("compactar_terminal(3)"), "{t}");
+        let t = tus_otras(&[(3, carga(462, 1_000_000)), (5, carga(120, 1_000_000))]);
+        assert!(t.contains("3: 462.000") && t.contains("5: 120.000") && t.contains("compactar_terminal(3)"), "{t}");
         assert!(!t.contains("compactar_terminal(5)"), "la de 120k no necesita consejo: {t}");
         assert_eq!(tus_otras(&[]), "");
     }

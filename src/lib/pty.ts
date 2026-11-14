@@ -324,6 +324,10 @@ export interface ContextInfo {
       con el CLI cerrado, el transcript se queda quieto y ya no es la del
       panel. Solo lo dice `session_context`. */
   viva?: boolean;
+  /** Parada por cuota: su último turno acabó en el 429 de «You've hit your
+      limit», leído como lo lee el relevo (`mcp/relevo_cuota.rs`). Sin cuota,
+      `/compact` y `/fin` fallan, así que la raya no se los teclea. */
+  sinCuota?: boolean;
 }
 
 /** What a session or a pane is doing. Empty = unknown, and never actionable. */

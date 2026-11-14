@@ -2134,7 +2134,7 @@ const EN: Record<string, string> = {
     "First the handoff (BUZON.md and living docs), then /compact. With the agent working, it waits for its turn to end.",
   "Nada solo hasta el aviso siguiente": "Nothing on its own until the next warning",
   "Compactar ya": "Compact now",
-  "A los 400.000 tokens de contexto, en Claude Code": "At 400,000 tokens of context, in Claude Code",
+  "A los 450.000 tokens de contexto, en Claude Code": "At 450,000 tokens of context, in Claude Code",
   "Avisar y esperar al botón": "Warn and wait for the button",
   "Compactar solo, sin commits": "Compact on its own, without commits",
   "Compactar solo, con el /fin entero": "Compact on its own, with the full /fin",
@@ -2156,6 +2156,8 @@ const EN: Record<string, string> = {
     "Keep the real state of the repo, what was done with its exact paths, what is pending and today's traps; summarise the rest.",
   "Ya estás compactada. Sigue con lo pendiente del resumen, sin repetir lo hecho; lo que solo puede decidir Munir, déjalo dicho y espera.":
     "You are compacted now. Carry on with what is pending in the summary, without redoing what is done; anything only Munir can decide, say it and wait.",
+  "Ya estás compactada: sigue con «Lo siguiente» sin esperar; lo que solo puede decidir Munir, déjalo dicho y espera.":
+    "You are compacted now: carry on with “Lo siguiente” without waiting; anything only Munir can decide, say it and wait.",
   "Antes de compactar, deja al día el traspaso: el BUZON.md del proyecto y sus docs vivos, con lo hecho (rutas exactas), lo pendiente y las trampas de hoy. Sin commits. Cuando acabes, te compacto yo.":
     "Before compacting, bring the handoff up to date: the project's BUZON.md and its living docs, with what was done (exact paths), what is pending and today's traps. No commits. When you finish, I will compact you.",
   "Encajar todo en la pantalla": "Fit everything on screen",

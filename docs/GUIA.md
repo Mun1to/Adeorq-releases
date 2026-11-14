@@ -667,13 +667,13 @@ Adeorq vigila la pantalla de cada terminal y traduce lo críptico a botones.
    (cierra el programa y retoma la misma conversación) o **Empezar limpia** si la
    sesión pesa demasiado.
 5. **Aviso de contexto.** Las sesiones largas se vuelven caras: cada mensaje paga el
-   contexto entero otra vez. Adeorq avisa por tokens: a los **300.000** «buen momento
-   para compactar», a los **400.000** (en rojo) compacta solo si lo tienes activado y
+   contexto entero otra vez. Adeorq avisa por tokens: a los **350.000** «buen momento
+   para compactar», a los **450.000** (en rojo) compacta solo si lo tienes activado y
    a los **600.000** recomienda una terminal nueva con un traspaso. Los botones son
    *Compactar*, *Nueva con traspaso*, *Ahora no* y *Cerrar esta*. En una ventana de
    contexto pequeña manda el porcentaje (50, 60 y 80 %). Compactar manda primero el
    traspaso (el `/fin` si existe esa skill) y después `/compact`, solo cuando el
-   agente acabó su turno. Qué hace a los 400.000 lo eliges en **Ajustes ›
+   agente acabó su turno. Qué hace a los 450.000 lo eliges en **Ajustes ›
    Terminales** (avisar y esperar al botón, compactar sin commits, o compactar con
    el `/fin` entero). Nunca compacta solo en Codex ni en Gemini. Si la sesión ya se
    compactó dos veces, ofrece una nueva en vez de una tercera.
@@ -1008,7 +1008,7 @@ salen sus nombres para saltar a una.
 - **Saltar a la sesión que termina, a pantalla completa**, **Preguntar si abro la web
   cuando una terminal levanta un servidor** y el **buscador de la barra del navegador**
   (Google, Brave Search o DuckDuckGo).
-- **A los 400.000 tokens de contexto**: avisar y esperar al botón, compactar solo sin
+- **A los 450.000 tokens de contexto**: avisar y esperar al botón, compactar solo sin
   commits, o compactar solo con el `/fin` entero ([punto 10](#10-lo-que-sale-dentro-de-una-terminal)).
 - **Arrancar Adeorq al encender el ordenador.**
 - **Al cerrar la ventana**: *Preguntar cada vez*, *Seguir en segundo plano* (la ventana se
@@ -1161,7 +1161,7 @@ Un agente con escalón bajo que pida algo que no le toca recibe un rechazo que l
 qué escalón tiene y dónde se cambia.
 
 Límites que conviene saber: un agente abre como mucho seis terminales vivas a la vez
-y doce por hora; un mensaje nuevo a una terminal de Claude con más de 300.000 tokens
+y doce por hora; un mensaje nuevo a una terminal de Claude con más de 350.000 tokens
 de contexto se le devuelve y solo sale si insiste; no puede compactar una que abrió una
 persona; y las terminales que abre un agente las cierra él cuando acaba, dejando un
 resumen en la carpeta de datos.

@@ -100,7 +100,7 @@ pub fn respuesta(parte: &str, mensaje: &str, seguir: Option<&str>, veces: u32) -
             let despues = match seguir {
                 Some(s) if s.is_empty() => "se queda parada esperando a Munir".to_string(),
                 Some(s) => format!("te escribe: «{}»", corto(s)),
-                None => "te escribe que sigas con lo pendiente del resumen".to_string(),
+                None => "te escribe el bloque «Retomar» con el que acabes esta respuesta (bajo un título «Retomar la sesión», como el del /fin) y que sigas; sin ese bloque, que sigas con lo pendiente del resumen".to_string(),
             };
             let mut t = format!(
                 "Hecho. En cuanto acabe este turno, Adeorq te escribe /compact con tu mensaje ({} caracteres); cuando termine de compactar, {despues}. \

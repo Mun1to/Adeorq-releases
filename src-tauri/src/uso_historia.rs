@@ -459,6 +459,52 @@ fn guardado() -> Option<PathBuf> {
     crate::dir_datos().ok().map(|d| d.join("uso-historia-2.json"))
 }
 
+/// Lo recordado en disco (y el archivo de antes, que ya no vale, fuera).
+fn cargar() -> HashMap<String, Leido> {
+    if let Ok(d) = crate::dir_datos() {
+        let _ = std::fs::remove_file(d.join("uso-historia.json"));
+    }
+    guardado()
+        .and_then(|r| std::fs::read_to_string(r).ok())
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+fn guardar(leidos: &HashMap<String, Leido>) {
+    if let (Some(r), Ok(texto)) = (guardado(), serde_json::to_string(leidos)) {
+        let tmp = r.with_extension("json.tmp");
+        if std::fs::write(&tmp, texto).is_ok() {
+            let _ = std::fs::rename(&tmp, &r);
+        }
+    }
+}
+
+/// Una conversación (o su carpeta de al lado) que se mudó de cuenta: el relevo
+/// por cuota (`mcp/relevo_cuota.rs`) la mueve a la cuenta que sigue con ella. Lo
+/// ya contado se muda con ella y se sigue leyendo desde donde se quedó; si no,
+/// la vieja contaría como ida (`idos_de`) y la nueva se leería entera otra vez:
+/// todo lo de antes, dos veces. Las rutas, canónicas, como las guarda esto.
+pub fn mudada(viejo: &Path, nuevo: &Path) {
+    let mut guardia = LEIDOS.lock().unwrap_or_else(|e| e.into_inner());
+    let leidos = guardia.get_or_insert_with(cargar);
+    if mudar_claves(leidos, viejo, nuevo) {
+        guardar(leidos);
+    }
+}
+
+/// Lo de `mudada`, sin disco: cambia las claves que son `viejo` o cuelgan de él.
+fn mudar_claves(leidos: &mut HashMap<String, Leido>, viejo: &Path, nuevo: &Path) -> bool {
+    let (v, n) = (viejo.to_string_lossy().into_owned(), nuevo.to_string_lossy().into_owned());
+    let dentro = |k: &str| k == v || k.strip_prefix(v.as_str()).is_some_and(|r| r.starts_with(['\\', '/']));
+    let claves: Vec<String> = leidos.keys().filter(|k| dentro(k)).cloned().collect();
+    for k in &claves {
+        if let Some(l) = leidos.remove(k) {
+            leidos.insert(format!("{n}{}", &k[v.len()..]), l);
+        }
+    }
+    !claves.is_empty()
+}
+
 /// Lo trabajado con todas esas cuentas. La primera vez lee todo (en su equipo,
 /// unos 4,7 GB); las siguientes, solo lo que ha crecido. `proyectos` son las
 /// carpetas de los proyectos del panel (`list_projects`): la carpeta de cada
@@ -468,15 +514,7 @@ fn guardado() -> Option<PathBuf> {
 pub fn uso_historia(cuentas: Vec<CuentaUso>, proyectos: Option<Vec<String>>) -> Result<Historia, String> {
     let proyectos = proyectos.unwrap_or_default();
     let mut guardia = LEIDOS.lock().unwrap_or_else(|e| e.into_inner());
-    let leidos = guardia.get_or_insert_with(|| {
-        if let Ok(d) = crate::dir_datos() {
-            let _ = std::fs::remove_file(d.join("uso-historia.json"));
-        }
-        guardado()
-            .and_then(|r| std::fs::read_to_string(r).ok())
-            .and_then(|s| serde_json::from_str(&s).ok())
-            .unwrap_or_default()
-    });
+    let leidos = guardia.get_or_insert_with(cargar);
     let mut vistos = Vec::new();
     for (cli, path) in archivos_de(&cuentas) {
         let clave = path.to_string_lossy().into_owned();
@@ -521,12 +559,7 @@ pub fn uso_historia(cuentas: Vec<CuentaUso>, proyectos: Option<Vec<String>>) -> 
             sesiones.push(s.clone());
         }
     }
-    if let (Some(r), Ok(texto)) = (guardado(), serde_json::to_string(&*leidos)) {
-        let tmp = r.with_extension("json.tmp");
-        if std::fs::write(&tmp, texto).is_ok() {
-            let _ = std::fs::rename(&tmp, &r);
-        }
-    }
+    guardar(leidos);
     let mut cubos: Vec<Cubo> = todos.into_values().collect();
     cubos.sort_by(|a, b| a.hora.cmp(&b.hora).then(a.modelo.cmp(&b.modelo)).then(a.carpeta.cmp(&b.carpeta)));
     Ok(Historia { cubos, sesiones, archivos })
@@ -535,6 +568,28 @@ pub fn uso_historia(cuentas: Vec<CuentaUso>, proyectos: Option<Vec<String>>) -> 
 #[cfg(test)]
 mod pruebas {
     use super::*;
+
+    #[test]
+    fn una_conversacion_mudada_de_cuenta_no_se_cuenta_dos_veces() {
+        let leido = |hasta: u64| Leido { hasta, ..Leido::default() };
+        let a = r"\\?\C:\Users\x\.claude\projects\C--demo";
+        let b = r"\\?\C:\Users\x\AppData\Local\Adeorq\accounts\claude-2\projects\C--demo";
+        let mut leidos: HashMap<String, Leido> = [
+            (format!(r"{a}\s1.jsonl"), leido(900)),
+            (format!(r"{a}\s1\subagents\agent-1.jsonl"), leido(40)),
+            (format!(r"{a}\s10.jsonl"), leido(7)),
+        ]
+        .into_iter()
+        .collect();
+        assert!(mudar_claves(&mut leidos, Path::new(&format!(r"{a}\s1.jsonl")), Path::new(&format!(r"{b}\s1.jsonl"))));
+        assert!(mudar_claves(&mut leidos, Path::new(&format!(r"{a}\s1")), Path::new(&format!(r"{b}\s1"))));
+        // Se sigue leyendo la nueva desde donde se quedó la vieja, y la de al lado no se toca.
+        assert_eq!(leidos[&format!(r"{b}\s1.jsonl")].hasta, 900);
+        assert_eq!(leidos[&format!(r"{b}\s1\subagents\agent-1.jsonl")].hasta, 40);
+        assert_eq!(leidos[&format!(r"{a}\s10.jsonl")].hasta, 7);
+        assert!(!leidos.contains_key(&format!(r"{a}\s1.jsonl")));
+        assert!(!mudar_claves(&mut leidos, Path::new(r"C:\nada.jsonl"), Path::new(r"C:\otra.jsonl")));
+    }
 
     fn respuesta(id: &str, modelo: &str, ts: &str, e: u64, s: u64, cl: u64, ce: u64) -> String {
         format!(

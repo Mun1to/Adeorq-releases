@@ -1,11 +1,11 @@
 {
-  "version": "0.9.254",
-  "notes": "Empareja otro aparato desde el movil, mira y quita tus aparatos desde la pagina, y un aparato emparejado desde otro se olvida solo a las 8 horas. La pagina del movil se ve bien en un PC",
-  "pub_date": "2026-11-13T17:06:12Z",
+  "version": "0.9.255",
+  "notes": "Relevo por cuota en otra cuenta, la web del PC en vivo en el movil, Para ver se limpia sola, compactar a los 450.000 con el fin y tu Retomar, y sin cuota no se compacta",
+  "pub_date": "2026-11-14T06:25:25Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLys0REMyQTc3bzh3dUh5UlhOY1VpSjFXRmp3d01MNk5BSVJFcWk4bmhRbmhzNzZIVlAyRUpadDlZSE90aUlZRjBuZTJ6SGZuaTlNd1J4NThNNkdVL0E4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0NTg5NTY0CWZpbGU6QWRlb3JxXzAuOS4yNTRfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNTQKOFduVVVHUVI5eG5xTXpHWHdxTFZ6endsRmZoQ3U2OWEzcWxJZHowV0FEcjNUSFVSajJYait1L3JpTzBobzFIREFqQTc2WXJpVDZTQ3AvMkE5R3VsQ1E9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.254/Adeorq_0.9.254_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzh1OTJIR2VIQloxRWlTdittT256bXM5aDZlY2lwNEI2MGlLV2dqUi81czU5L2ZLa01TcEJMSTdObHl4UUxWOUpGSTB4QVF4eFZ6Ni80Tkg3bHZGNkEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0NjM3NTExCWZpbGU6QWRlb3JxXzAuOS4yNTVfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNTUKT1VXTU9GLzkxN0dHL1NJTTFSTTVFOCt3Mmp1TW5IaFVKRi8zYXZIR2MxdW1ObThvekxEbGFZcGNwVEJVS1Vid0xNVlBJQTFGSVcrdjhtYWF5UGpFRHc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.255/Adeorq_0.9.255_x64-setup.exe"
     }
   }
 }

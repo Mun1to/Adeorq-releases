@@ -79,6 +79,15 @@ Patrón: petición y respuesta sobre los eventos que ya usa el PTY.
 Cada cliente MCP se atiende en su propio hilo (`thread::spawn` en `mcp.rs`), así
 que bloquear ese hilo esperando la respuesta es correcto: no para nada más.
 
+**Un evento no se guarda: antes de emitir, se espera a que la ventana escuche.** El
+MCP contesta a los dos segundos de arrancar Adeorq y la ventana escucha a los seis
+(un Mac de GitHub, casa nueva). Un `open_pane` pedido en ese hueco se emitía a nadie y
+esperaba el tope entero para acabar en «la ventana de Adeorq no contestó a tiempo»:
+así cayó la prueba del Mac de la 0.9.256. Desde entonces `usePuenteMcp`, al empezar a
+escuchar, llama a `mcp_oyente_listo`, y `pedir_a_la_ventana_con` espera a esa señal
+dentro del mismo tope. Laboratorio: `scripts/laboratorio/carrera-arranque-de-verdad.mjs
+directo` (rojo a los 25 s sin el arreglo, verde en 1,6 s con él).
+
 ## Los dos frenos, que no son opcionales
 
 Munir eligió el agente que decide, así que el control no puede ser «pregúntame

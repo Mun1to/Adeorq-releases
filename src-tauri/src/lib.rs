@@ -573,6 +573,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             mcp::mcp_reply,
+            mcp::mcp_oyente_listo,
             cierre::cierre_acuse,
             cierre::cierre_puede_fondo,
             cierre::cierre_con_bandeja,

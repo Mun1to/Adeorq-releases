@@ -1,11 +1,11 @@
 {
-  "version": "0.9.256",
-  "notes": "Encargos de la noche en una copia aparte del Modo Espejo, Decisiones como lista unica de lo que te toca, la madre se entera cuando una delegada entrega, cajas Docker y valla del raton, y el tablero se reparte solo al abrir una terminal",
-  "pub_date": "2026-11-15T21:44:53Z",
+  "version": "0.9.257",
+  "notes": "Un agente que pide una terminal nada mas arrancar Adeorq ya no espera 25 segundos a una ventana que aun no escucha",
+  "pub_date": "2026-11-15T23:56:01Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzlGdzhtMlNlRnVHa1hzbUpxSEdWL1JweFQ5aWs5blQ0SXN1MUhRV0N1WnJMMFg3VTRrTEZjOW56eG9UcG5BNXhmanE3WHRGZTV6a3FGOFNvbmMrTEFJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0Nzc5MDc3CWZpbGU6QWRlb3JxXzAuOS4yNTZfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNTYKZm5PbEE1OUlTOG9IanNiUjdZRWg2SkdnUUhFbW5FcWU4Sm9kTDJZUGFhQ1lVTkN0Q3hqK3pUMkcycGtVTlFOa1RvTlNhdGtIOUcxK2pqTUVFQ2loRHc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.256/Adeorq_0.9.256_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzVod1p2blE3WHlJQkxvYkpqKzhhWkdRRGwzZkJJUmhnckZyK3lrOUdPMnZKVEhGYWl0THk4REVEZmhjNkloTzE2Y3h4TXo2SFA3MEtSMW1vb1FaM3dVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0Nzg2OTUxCWZpbGU6QWRlb3JxXzAuOS4yNTdfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNTcKWjFxNjBEc2N0SlZLa0QyZTBXaWpad1FKUVVTRTgyS2NHTzMzU2tCcmo2RlJTZEpXUGhtdjVRaUQxL2l6eDNOUmkzNFMxengxMzNqZE0xY290aUREREE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.257/Adeorq_0.9.257_x64-setup.exe"
     }
   }
 }

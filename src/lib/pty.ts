@@ -1395,8 +1395,13 @@ export function dejarDeCompartirSkills(configDir: string): Promise<void> {
    con `mcp_reply`. Si nadie contesta en 25 segundos, el agente recibe un «no
    contestó a tiempo» en vez de quedarse colgado. Ver `docs/SUPREMA.md`. */
 
+/** Escucha, y en cuanto escucha se lo dice a Rust (`mcp_oyente_listo`), que hasta
+    entonces espera para emitir los pedidos: emitidos antes, no los oía nadie. */
 export function onPedidoMcp(cb: (p: PedidoMcp) => void): Promise<UnlistenFn> {
-  return listen<PedidoMcp>("mcp:pedido", (e) => cb(e.payload));
+  return listen<PedidoMcp>("mcp:pedido", (e) => cb(e.payload)).then((un) => {
+    void invoke("mcp_oyente_listo").catch(() => {});
+    return un;
+  });
 }
 
 export function mcpReply(peticion: number, respuesta: RespuestaMcp): Promise<void> {

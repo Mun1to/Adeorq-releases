@@ -3,7 +3,7 @@
   "private": true,
   "author": "Munir Torres Athayde",
   "license": "SEE LICENSE IN LICENSE",
-  "version": "0.9.256",
+  "version": "0.9.257",
   "type": "module",
   "scripts": {
     "dev": "vite",

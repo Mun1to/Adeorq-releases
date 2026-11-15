@@ -73,6 +73,10 @@ pub struct Puente {
     /// La última raya de contexto que se le avisó a quien abrió cada delegada
     /// (`tope_contexto::toca_avisar`).
     avisadas: Mutex<HashMap<u32, u8>>,
+    /// La ventana ya escucha `mcp:pedido` (`mcp_oyente_listo`). El MCP contesta
+    /// a los dos segundos de arrancar y la ventana escucha a los seis: lo que se
+    /// emitía en ese hueco no lo oía nadie (la prueba del Mac de la 0.9.256).
+    oyente: AtomicBool,
 }
 
 /// Quién abrió una terminal por `open_pane`.
@@ -472,6 +476,24 @@ pub fn mcp_reply(state: tauri::State<'_, Puente>, peticion: u64, respuesta: Resp
     }
 }
 
+/// La ventana ya escucha los pedidos: lo dice `usePuenteMcp` al montarse.
+#[tauri::command]
+pub fn mcp_oyente_listo(state: tauri::State<'_, Puente>) {
+    state.oyente.store(true, Ordering::Release);
+}
+
+/// Espera, como mucho `hasta`, a que la ventana escuche. Un evento no se guarda:
+/// emitido antes, se pierde, y quien pidió esperaba el tope entero para nada.
+fn esperar_oyente(oyente: &AtomicBool, hasta: Instant) -> bool {
+    while !oyente.load(Ordering::Acquire) {
+        if Instant::now() >= hasta {
+            return false;
+        }
+        thread::sleep(Duration::from_millis(50));
+    }
+    true
+}
+
 /// Pide algo al front y espera su respuesta. Bloquea este hilo, con tope.
 pub(crate) fn pedir_a_la_ventana(app: &tauri::AppHandle, clase: &str, datos: Value) -> Result<Respuesta, String> {
     pedir_a_la_ventana_con(app, clase, datos, ESPERA)
@@ -486,6 +508,10 @@ pub(crate) fn pedir_a_la_ventana_con(
     espera: Duration,
 ) -> Result<Respuesta, String> {
     let puente = app.state::<Puente>();
+    // Recién arrancada, la ventana aún no escucha: se espera a que lo haga, dentro
+    // del mismo tope, en vez de emitir a nadie.
+    let hasta = Instant::now() + espera;
+    esperar_oyente(&puente.oyente, hasta);
     let peticion = puente.siguiente.fetch_add(1, Ordering::Relaxed) + 1;
     let (tx, rx) = mpsc::channel::<Respuesta>();
     puente.esperando.lock().unwrap().insert(peticion, tx);
@@ -498,7 +524,7 @@ pub(crate) fn pedir_a_la_ventana_con(
         return Err("la ventana de Adeorq no responde".into());
     }
 
-    match rx.recv_timeout(espera) {
+    match rx.recv_timeout(hasta.saturating_duration_since(Instant::now())) {
         Ok(r) => match r.error {
             Some(e) => Err(e),
             None => Ok(r),
@@ -3578,6 +3604,29 @@ mod tests {
     use super::*;
     use std::fs;
     use std::path::PathBuf;
+
+    #[test]
+    fn un_pedido_espera_a_que_la_ventana_escuche_y_no_mas_del_tope() {
+        let oyente = Arc::new(AtomicBool::new(false));
+        let o = oyente.clone();
+        let t = thread::spawn(move || {
+            thread::sleep(Duration::from_millis(300));
+            o.store(true, Ordering::Release);
+        });
+        let antes = Instant::now();
+        assert!(esperar_oyente(&oyente, antes + Duration::from_secs(5)));
+        assert!(antes.elapsed() >= Duration::from_millis(250), "no esperó a la ventana");
+        t.join().unwrap();
+        // Ya escuchando, no se espera nada.
+        let antes = Instant::now();
+        assert!(esperar_oyente(&oyente, antes + Duration::from_secs(5)));
+        assert!(antes.elapsed() < Duration::from_millis(40));
+        // Y una que no escucha nunca no se espera más del tope.
+        let sorda = AtomicBool::new(false);
+        let antes = Instant::now();
+        assert!(!esperar_oyente(&sorda, antes + Duration::from_millis(200)));
+        assert!(antes.elapsed() < Duration::from_secs(2));
+    }
 
     #[test]
     fn un_agente_abre_claude_en_opus_y_nunca_en_fable() {

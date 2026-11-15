@@ -2994,7 +2994,6 @@ export default function Sidebar({
                 className="project-logo"
                 data-live={g.hasLive}
                 data-active={flyout?.name === g.name}
-                style={{ ["--c" as string]: hueOf(g.name) }}
                 onMouseEnter={(e) => hoverLogo(g.name, e.currentTarget)}
                 onMouseLeave={leaveLogo}
                 onClick={() => {
@@ -3048,7 +3047,6 @@ export default function Sidebar({
                 // dónde vaya a caer de verdad. Antes iba siempre arriba y
                 // mentía cada vez que bajabas un proyecto.
                 data-encima={sobreProy?.name === g.name ? sobreProy.lado : undefined}
-                style={{ ["--c" as string]: hueOf(g.name) }}
                 onContextMenu={(e) => showMenu(e, projectMenu(g))}
                 onPointerDown={(e) => proyDown(e, g.name)}
                 onPointerMove={proyMove}

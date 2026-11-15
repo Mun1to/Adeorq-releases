@@ -11,6 +11,7 @@
 import { useEffect, type Dispatch, type SetStateAction } from "react";
 import { loTomaElLienzo } from "./atajos";
 import { raiz } from "./perfil";
+import type { View } from "./vistas";
 
 /** Dónde se guarda si el modo emisión está puesto. */
 export const STREAM_KEY = "adeorq-stream";
@@ -26,8 +27,11 @@ export function useAtajosGlobales(m: {
   setShowForeman: Dispatch<SetStateAction<boolean>>;
   setPanic: Dispatch<SetStateAction<boolean>>;
   setStream: Dispatch<SetStateAction<boolean>>;
+  /** Cambiar de pestaña. Ctrl+Mayús+B abre Decisiones (lo que te toca) desde
+      donde estés. */
+  irAVista: (v: View) => void;
 }): void {
-  const { focusedId, panes, addPane, splitPane, onToggleMax, showForeman, setDictarAlAbrir, setShowForeman, setPanic, setStream } = m;
+  const { focusedId, panes, addPane, splitPane, onToggleMax, showForeman, setDictarAlAbrir, setShowForeman, setPanic, setStream, irAVista } = m;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!e.ctrlKey || !e.shiftKey) return;
@@ -57,6 +61,9 @@ export function useAtajosGlobales(m: {
         e.preventDefault();
         setDictarAlAbrir(true);
         setShowForeman(true);
+      } else if (k === "b") {
+        e.preventDefault();
+        irAVista("decisiones");
       } else if (k === "p") {
         e.preventDefault();
         setPanic((v) => !v);
@@ -77,5 +84,5 @@ export function useAtajosGlobales(m: {
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [focusedId, panes, addPane, splitPane, onToggleMax]);
+  }, [focusedId, panes, addPane, splitPane, onToggleMax, irAVista]);
 }

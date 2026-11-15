@@ -1322,8 +1322,19 @@ export function shadowDiff(worktreePath: string, baseBranch: string): Promise<st
   return invoke("shadow_diff", { worktreePath, baseBranch });
 }
 
-export function shadowStatus(worktreePath: string): Promise<ShadowFile[]> {
-  return invoke("shadow_status", { worktreePath });
+/** Con `baseBranch`, también lo que el agente ya guardó en commits de su rama. */
+export function shadowStatus(worktreePath: string, baseBranch?: string): Promise<ShadowFile[]> {
+  return invoke("shadow_status", { worktreePath, baseBranch: baseBranch ?? null });
+}
+
+/** La rama de la que nacería un espejo en esa carpeta, o por qué no se puede. */
+export function shadowDisponible(projectPath: string): Promise<string> {
+  return invoke("shadow_disponible", { projectPath });
+}
+
+/** Lo que un espejo tiene sin aceptar: ficheros sueltos y commits de su rama. */
+export function shadowPendiente(worktreePath: string, baseBranch: string): Promise<{ sueltos: number; commits: number }> {
+  return invoke("shadow_pendiente", { worktreePath, baseBranch });
 }
 
 /** Devuelve qué ha pasado, en una frase, para poder enseñárselo a Munir. */

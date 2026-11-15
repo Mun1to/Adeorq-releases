@@ -114,6 +114,14 @@ export function trasEntrar(lista: Aviso[], paneId: number, ahora: number): Aviso
   return queda.length === lista.length ? lista : queda;
 }
 
+/** Lo quitas tú desde la lista de Decisiones (Retroceso): un «terminó» que no
+    vas a mirar. Un «te espera» no se quita así, porque sigue esperándote: se
+    va solo cuando le contestas en su terminal. */
+export function trasQuitar(lista: Aviso[], paneId: number): Aviso[] {
+  const queda = lista.filter((a) => !(a.paneId === paneId && a.tipo === "hecho"));
+  return queda.length === lista.length ? lista : queda;
+}
+
 /** Cómo está la mascota (Adeo). `piensa` y `escucha` no salen de aquí: son los
     del chat, mientras el conserje contesta y mientras le escribes
     (`animoDelChat`, en `lib/conserje.ts`). */
@@ -155,6 +163,8 @@ interface Almacen {
   vista: () => void;
   /** Has entrado en esa terminal: `trasEntrar`. */
   entrar: (paneId: number) => void;
+  /** Lo has quitado de la lista de Decisiones: `trasQuitar`. */
+  quitar: (paneId: number) => void;
 }
 
 const cambia = (s: Almacen, lista: Aviso[]) => (lista === s.lista ? s : { lista });
@@ -163,6 +173,7 @@ export const useAvisos = create<Almacen>((set) => ({
   lista: [],
   vista: () => set((s) => cambia(s, trasVerla(s.lista))),
   entrar: (paneId) => set((s) => cambia(s, trasEntrar(s.lista, paneId, Date.now()))),
+  quitar: (paneId) => set((s) => cambia(s, trasQuitar(s.lista, paneId))),
 }));
 
 /**

@@ -20,6 +20,14 @@
 // atrás la manda igual; una nueva del MCP sube la cuenta sin recargar; y en
 // inglés la pestaña se llama Decisions.
 //
+// Y desde el 2026-11-15 (A1), la lista única: una terminal que te espera, una
+// decisión viva y un encargo parado van en «Te toca» y cuentan en la pestaña;
+// lo que terminó y las ideas de tus agentes van debajo y no cuentan; todo de
+// borde a borde y sin recuadro; se maneja con J/K, Intro, 1 a 9, Tab, O, Esc y
+// Ctrl+Intro; Retroceso quita un «terminó»; una idea se descarta aquí y sale de
+// la bandeja; ? enseña las teclas; Esc te devuelve adonde estabas, y
+// Ctrl+Mayús+B y el último renglón de la campana te traen.
+//
 // Devuelve { fallos: [...] }: vacío es que todo está en su sitio.
 // ⚠ Cargarlo dos veces en la misma página suma los dos guiones de arranque:
 // cerrar la página (browser_close) antes de volver a lanzarlo.
@@ -96,6 +104,10 @@ async (page) => {
         case "plugin:event|listen": (oyentes[args.event] ??= []).push(args.handler); return escucha++;
         case "plugin:event|unlisten": return null;
         case "list_projects": return [{ name: "Adeorq", path: "C:\\proyectos\\Adeorq", hasGit: true }];
+        // La bandeja de la Agenda (`inbox.rs`): vacía hasta que el banco la llena.
+        case "read_inbox": return copia(window.__notas ?? []);
+        case "drop_inbox": window.__notas = (window.__notas ?? []).filter((n) => n.line !== args.line); return null;
+        case "programados_listar": return { puede: true, reloj: true, encargos: copia(window.__programados ?? []) };
         // Como `decisiones.rs`: las pendientes primero, y cada una con su
         // vigencia. El panel 3 es el único con terminal abierta.
         case "decisiones_listar":
@@ -160,8 +172,8 @@ async (page) => {
 
   const llamadasDe = (cmd) => page.evaluate((c) => window.__llamadas.filter(([x]) => x === c).map(([, a]) => a), cmd);
   const tab = page.locator('button.tab[data-tab="decisiones"]');
-  // El de enviar es el último del pie; delante va «Descartar».
-  const boton = page.locator(".dec-pie button:last-child");
+  // El de enviar es el último de la barra del pie; delante va «Descartar».
+  const boton = page.locator(".dec-pie-botones button:last-child");
   const estado = page.locator(".dec-estado");
   const preguntas = page.locator(".dec-pregunta");
 
@@ -178,24 +190,24 @@ async (page) => {
   await page.waitForSelector(".dec-abierta");
   debe(await page.locator(".dec-fila").count() === 4, "cuatro en la lista");
   const etis = await page.locator(".dec-lista-eti").allTextContents();
-  debe(etis.join() === "Te esperan,Anteriores", `los dos montones de la lista (${etis})`);
+  debe(etis.join() === "Te toca,Ya pasó", `las partes con algo dentro, y solo esas (${etis})`);
   debe(await page.locator(".dec-limpiar").count() === 0, "ya no hay botón de vaciar: se limpia sola");
-  debe((await page.locator(".dec-head").textContent()) === "Decisiones2 te esperan", `el título va dentro del cristal (${await page.locator(".dec-head").textContent()})`);
+  debe((await page.locator(".dec-head").textContent()) === "Decisiones2 te tocan", `el título va dentro del cristal (${await page.locator(".dec-head").textContent()})`);
   debe((await page.locator(".dec-abierta h2").textContent()) === "Dónde va la barra de la guía", "abre la primera que te espera");
   debe(/El panel 3 sigue abierto/.test(await page.locator(".dec-vigencia").textContent()), "la viva dice quién la espera");
   const ficha = await page.locator(".dec-resumen li").allTextContents();
-  debe(ficha.join("|") === "ALa barra de arribaFalta|BEl menú en el móvilFalta", `la ficha dice lo que falta (${ficha.join("|")})`);
+  debe(ficha.join("|") === "AFalta|BFalta", `la barra del pie dice lo que falta (${ficha.join("|")})`);
 
   // 2b. La que nadie espera: no cuenta en la pestaña, lo dice, y se descarta
   //     sin escribir en ninguna terminal (el panel 3 de hoy es otra).
   await page.locator(".dec-fila", { hasText: "El color de ayer" }).click();
   debe(/Ya no la espera nadie/.test(await page.locator(".dec-vigencia").textContent()), "la huérfana lo dice");
-  debe(/sin nadie detrás/.test(await page.locator(".dec-fila", { hasText: "El color de ayer" }).textContent()), "su fila dice cómo acabó");
-  await page.locator(".dec-pie button", { hasText: "Descartar" }).click();
+  debe(/^Sin nadie detrás/.test(await page.locator(".dec-fila", { hasText: "El color de ayer" }).textContent()), "su fila empieza por cómo acabó");
+  await page.locator(".dec-barra button", { hasText: "Descartar" }).click();
   await page.waitForTimeout(400);
   debe((await llamadasDe("decision_descartar")).length === 1 && (await llamadasDe("pty_send")).length === 0, "se descarta sin teclear en ninguna terminal");
   debe(/La descartaste/.test(await page.locator(".dec-vigencia").textContent()), `queda como descartada (${await page.locator(".dec-vigencia").textContent()})`);
-  debe(await page.locator(".dec-pie").count() === 0 && await page.locator(".dec-pregunta:disabled").count() === 1, "y ya no se contesta");
+  debe(await page.locator(".dec-barra").count() === 0 && await page.locator(".dec-pregunta:disabled").count() === 1, "y ya no se contesta");
   debe((await tab.locator(".tab-count").textContent()) === "2", "la cuenta de la pestaña no cambia: nunca la contó");
   await page.locator(".dec-fila", { hasText: "Dónde va la barra" }).click();
   await page.waitForTimeout(200);
@@ -259,7 +271,7 @@ async (page) => {
   await page.waitForTimeout(200);
   const leida = await page.evaluate(() => ({
     hecha: document.querySelector(".dec-hecha")?.textContent ?? "",
-    pie: Boolean(document.querySelector(".dec-pie")),
+    pie: Boolean(document.querySelector(".dec-barra")),
     apagadas: [...document.querySelectorAll(".dec-pregunta")].every((f) => f.disabled),
     marcada: document.querySelector(".dec-opcion[data-marcada=true] .dec-num")?.textContent,
     caja: Boolean(document.querySelector(".dec-libre")),
@@ -287,7 +299,7 @@ async (page) => {
   await page.evaluate(() => { for (const x of window.__dec) if (!x.respuesta) x.descartada ??= Date.now(); window.__emitir("decisiones:cambian"); });
   await tab.click();
   await page.waitForSelector(".dec-calma");
-  debe(await page.locator(".dec-abierta").count() === 0 && /No te espera ninguna decisión/.test(await page.locator(".dec-calma").textContent()), "con nada pendiente, la calma");
+  debe(await page.locator(".dec-abierta").count() === 0 && /Nada te toca ahora/.test(await page.locator(".dec-calma").textContent()), "con nada pendiente, la calma");
   debe(await page.locator(".dec-calma .mascota, .dec-calma svg, .dec-calma canvas").count() > 0, "y Adeo en ella");
   await page.screenshot({ path: `${CAPTURAS}/dec-calma.png` });
 
@@ -318,7 +330,146 @@ async (page) => {
   debe(await tab.locator(".tab-count").count() === 0, "y la cuenta vuelve a cero sola");
   await page.locator(".dec-fila", { hasText: "Una nueva" }).click();
   debe(/La hablaste con el agente/.test(await page.locator(".dec-vigencia").textContent()), "la abierta dice que la hablaste");
-  debe(/hablada/.test(await page.locator(".dec-fila", { hasText: "Una nueva" }).textContent()), "y su fila, que está hablada");
+  debe(/^Hablada/.test(await page.locator(".dec-fila", { hasText: "Una nueva" }).textContent()), "y su fila empieza por «Hablada»");
+
+  // 11. La lista única (A1, 2026-11-15): lo que te toca, lo que terminó y las
+  //     ideas de tus agentes, como un correo. Una terminal que te espera, una
+  //     decisión viva y un encargo que el freno paró cuentan en la pestaña; el
+  //     turno acabado y las ideas, no.
+  await page.evaluate(async (arranque) => {
+    const op = (texto, extra = {}) => ({ texto, recomendada: false, ...extra });
+    window.__dec.push({
+      id: "d19a2b3c4d03", titulo: "Qué color lleva el botón", proyecto: "Adeorq", panel: 3, arranque, creada: Date.now() - 60_000,
+      preguntas: [
+        { id: "A", titulo: "El color", opciones: [op("Azul", { recomendada: true, detalle: "El acento de la casa." }), op("Verde")] },
+        { id: "B", titulo: "El borde", opciones: [op("Con borde"), op("Sin borde")] },
+      ],
+    });
+    window.__notas = [
+      { line: 4, kind: "idea", project: "Adeorq", text: "Que la Agenda enseñe la semana entera" },
+      { line: 7, kind: "paso", project: "Adeorq", text: "Probar el arranque en un Windows limpio" },
+    ];
+    window.__programados = [{
+      id: "noche", nombre: "Repaso de la noche", encargo: "Repasa lo de ayer", cwd: "C:/proyectos/Adeorq", cli: "claude",
+      cuando: { tipo: "diario", hora: "03:00" }, activo: true, creado: 0, ultima: 0, ultimoDia: "", corrida: null, ultimas: [],
+      fallosSeguidos: 3, cortado: { cuando: Date.now() - 3_600_000, motivo: "La terminal se cerró sin terminar." },
+    }];
+    const { useAvisos } = await import("/src/lib/campana.ts");
+    useAvisos.setState({ lista: [
+      { n: 901, paneId: 3, nombre: "Adeorq · la barra", cwd: "C:/proyectos/Adeorq", tipo: "espera", porque: "hay un menú en pantalla", cuando: Date.now() - 120_000, leido: false },
+      { n: 902, paneId: 5, nombre: "VoCript · dictado", cwd: "C:/proyectos/VoCript", tipo: "hecho", porque: "", cuando: Date.now() - 300_000, leido: false },
+    ] });
+    window.__emitir("decisiones:cambian");
+    window.__emitir("programados:cambian");
+  }, ARR);
+  await page.locator('button.tab[data-tab="panel"]').click();
+  await page.waitForTimeout(300);
+  await tab.click();
+  await page.waitForSelector(".dec-parte[data-parte=ideas]");
+  await page.waitForTimeout(300);
+  debe((await tab.locator(".tab-count").textContent()) === "3", `la pestaña cuenta lo que te toca: 3 (${await tab.locator(".tab-count").textContent()})`);
+  const partes = await page.locator(".dec-lista-eti").allTextContents();
+  debe(partes.join() === "Te toca,Terminó,Ideas de tus agentes,Ya pasó", `las cuatro partes en su orden (${partes})`);
+  const palabras = await page.locator(".dec-parte[data-parte=toca] .dec-palabra").allTextContents();
+  debe(palabras.join() === "Contesta,Decide,Parado", `en Te toca, la terminal, la decisión y el encargo (${palabras})`);
+  debe(/^Mira/.test(await page.locator(".dec-parte[data-parte=termino] .dec-fila").textContent()), "lo que terminó empieza por «Mira»");
+  const ideas = await page.locator(".dec-parte[data-parte=ideas] .dec-fila-titulo").allTextContents();
+  debe(ideas.length === 2 && /Probar el arranque/.test(ideas[0]), `las ideas, la última del archivo arriba (${ideas})`);
+  debe((await page.locator(".dec-abierta h2").textContent()) === "Adeorq · la barra", "abre la primera que te toca: la terminal que espera");
+  debe(await page.locator(".dec-acciones button", { hasText: "Ir a la terminal" }).count() === 1, "y lleva a su terminal");
+  const caras = await page.evaluate(() => {
+    const est = (sel) => { const e = document.querySelector(sel); const c = e && getComputedStyle(e); return c && { borde: c.borderTopWidth, radio: c.borderTopLeftRadius }; };
+    const cuerpo = document.querySelector(".dec-cuerpo").getBoundingClientRect();
+    const dec = document.querySelector(".dec").getBoundingClientRect();
+    return { lista: est(".dec-lista"), cuerpo: { izq: cuerpo.left - dec.left, der: dec.right - cuerpo.right, abajo: dec.bottom - cuerpo.bottom } };
+  });
+  debe(caras.lista.borde === "0px" && caras.lista.radio === "0px", `la lista sin recuadro (${JSON.stringify(caras.lista)})`);
+  debe(caras.cuerpo.izq === 0 && caras.cuerpo.der === 0 && caras.cuerpo.abajo === 0, `de borde a borde (${JSON.stringify(caras.cuerpo)})`);
+  await page.screenshot({ path: `${CAPTURAS}/dec-lista.png` });
+
+  // 12. Con el teclado: J y K, Intro, 1 a 9, Tab, O, Esc por capas y Ctrl+Intro.
+  const foco = () => page.evaluate(() => {
+    const a = document.activeElement;
+    return { id: a?.dataset?.id ?? "", tipo: a?.type ?? a?.tagName, q: a?.closest(".dec-pregunta")?.id.slice(-1) ?? "" };
+  });
+  debe((await foco()).id === "aviso:3", `al entrar, el foco en la lista (${JSON.stringify(await foco())})`);
+  await page.keyboard.press("j");
+  debe((await page.locator(".dec-abierta h2").textContent()) === "Qué color lleva el botón", "J baja a la decisión");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(150);
+  let f = await foco();
+  debe(f.tipo === "radio" && f.q === "A", `Intro entra en la primera pregunta (${JSON.stringify(f)})`);
+  await page.keyboard.press("1");
+  await page.keyboard.press("Tab");
+  await page.waitForTimeout(150);
+  f = await foco();
+  debe(f.tipo === "radio" && f.q === "B", `Tab pasa a la pregunta B (${JSON.stringify(f)})`);
+  await page.keyboard.press("2");
+  await page.waitForTimeout(150);
+  const marcadas = await page.evaluate(() => [...document.querySelectorAll(".dec-pregunta")].map((q) => q.querySelector("input:checked")?.closest(".dec-opcion")?.querySelector(".dec-num")?.textContent ?? "-"));
+  debe(marcadas.join() === "1,2", `1 en la A y 2 en la B (${marcadas})`);
+  debe(!(await boton.isDisabled()), "con las dos, Enviar se enciende");
+  await page.keyboard.press("o");
+  f = await foco();
+  debe(f.tipo === "textarea" && f.q === "B", `O escribe en la pregunta de delante (${JSON.stringify(f)})`);
+  await page.keyboard.press("Escape");
+  f = await foco();
+  debe(f.tipo === "radio" && f.q === "B", `Esc sale de la caja de texto a su pregunta (${JSON.stringify(f)})`);
+  await page.keyboard.press("Escape");
+  debe((await foco()).id === "dec:d19a2b3c4d03", "otro Esc vuelve a la lista");
+  await page.screenshot({ path: `${CAPTURAS}/dec-teclado.png` });
+  await page.keyboard.press("Control+Enter");
+  await page.waitForTimeout(100);
+  debe((await boton.textContent()) === "Deshacer (5)", `Ctrl+Intro la manda con su cuenta atrás (${await boton.textContent()})`);
+  await page.keyboard.press("Control+Enter");
+  await page.waitForTimeout(200);
+  debe((await estado.textContent()) === "No se ha mandado." && !(await llamadasDe("decision_responder")).some((a) => a.id === "d19a2b3c4d03"), "y otra vez la deshace");
+  await page.keyboard.press("j");
+  debe(await page.locator(".dec-acciones button", { hasText: "Abrirlo en la Agenda" }).count() === 1, "el encargo parado lleva a la Agenda");
+  await page.keyboard.press("j");
+  debe(/VoCript · dictado/.test(await page.locator(".dec-abierta h2").textContent()), "J baja a lo que terminó");
+  await page.keyboard.press("Backspace");
+  await page.waitForTimeout(200);
+  debe(await page.locator(".dec-parte[data-parte=termino]").count() === 0, "Retroceso lo quita de la lista");
+  debe(/Probar el arranque/.test((await page.locator(".dec-propuesta").textContent()) ?? ""), "y se abre la que ocupa su sitio");
+  await page.keyboard.press("k");
+  debe((await page.locator(".dec-abierta h2").textContent()) === "Repaso de la noche", "K sube");
+  await page.keyboard.press("j");
+
+  // 13. Una idea de un agente: se descarta aquí, y sale de la bandeja.
+  await page.locator(".dec-acciones button", { hasText: "Descartar" }).click();
+  await page.waitForTimeout(400);
+  debe((await llamadasDe("drop_inbox")).map((a) => a.line).join() === "7", "Descartar la borra de la bandeja (su línea)");
+  debe(await page.locator(".dec-parte[data-parte=ideas] .dec-fila").count() === 1, "y deja la otra");
+  debe(/Descartada/.test((await page.locator(".dec-dicho").textContent()) ?? ""), "y lo dice");
+
+  // 14. La chuleta, y Esc que te devuelve; Ctrl+Mayús+B y la campana te traen.
+  await page.keyboard.press("?");
+  debe(await page.locator(".dec-teclas").count() === 1, "? abre la chuleta de las teclas");
+  await page.screenshot({ path: `${CAPTURAS}/dec-chuleta.png` });
+  await page.keyboard.press("Escape");
+  debe(await page.locator(".dec-teclas").count() === 0, "Esc la cierra");
+  await page.locator(".dec-fila").first().focus();
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(300);
+  debe(await page.locator(".dec").count() === 0, "Esc en la lista vuelve adonde estabas");
+  await page.keyboard.press("Control+Shift+B");
+  await page.waitForTimeout(400);
+  debe(await page.locator(".dec").count() === 1, "Ctrl+Mayús+B abre Decisiones");
+  await page.locator('button.tab[data-tab="panel"]').click();
+  await page.waitForTimeout(300);
+  await page.locator(".campana").click();
+  await page.waitForTimeout(200);
+  debe((await page.locator(".avisos-pie").textContent()) === "Abrir Decisiones", "el último renglón de la campana");
+  await page.locator(".avisos-pie").click();
+  await page.waitForTimeout(400);
+  debe(await page.locator(".dec").count() === 1 && await page.locator(".avisos").count() === 0, "lleva a Decisiones y cierra la lista");
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.waitForTimeout(300);
+  await page.locator(".dec-fila", { hasText: "Qué color lleva el botón" }).click();
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: `${CAPTURAS}/dec-1920.png` });
+  await page.setViewportSize({ width: 1440, height: 900 });
 
   // 10. En inglés.
   await page.evaluate(() => sessionStorage.setItem("__lang", "en"));
@@ -328,9 +479,9 @@ async (page) => {
   debe((await tab.getAttribute("aria-label")) === "Decisions", `en inglés (${await tab.getAttribute("aria-label")})`);
   await tab.click();
   await page.waitForSelector(".dec-abierta");
-  const en = await page.evaluate(() => ({ eti: [...document.querySelectorAll(".dec-lista-eti")].map((x) => x.textContent), botones: [...document.querySelectorAll(".dec-pie button")].map((b) => b.textContent) }));
+  const en = await page.evaluate(() => ({ eti: [...document.querySelectorAll(".dec-lista-eti")].map((x) => x.textContent), botones: [...document.querySelectorAll(".dec-pie-botones button")].map((b) => b.textContent), palabra: document.querySelector(".dec-palabra")?.textContent }));
   // Recargar deja la casa como al principio: vuelven las vivas y la que nadie espera.
-  debe(en.eti.join() === "Waiting for you,Earlier" && en.botones.join() === "Discard,Send answer", `la vista en inglés (${JSON.stringify(en)})`);
+  debe(en.eti.join() === "Your turn,Past" && en.botones.join() === "Discard,Send answer" && en.palabra === "Decide", `la vista en inglés (${JSON.stringify(en)})`);
   await page.evaluate(() => sessionStorage.removeItem("__lang"));
 
   return { fallos };

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { sessionIdOf } from "./comandos";
 import type { Translate } from "./i18n";
 import { sabe } from "./providers";
-import { codexContext, lastReply, listSkills, rastroDeRelevo, sendPty, sessionCompactions, sessionContext, type ContextInfo } from "./pty";
+import { codexContext, lastReply, listSkills, rastroDeRelevo, sendPty, sessionCompactions, sessionContext, writePty, type ContextInfo } from "./pty";
 
 /** Cada cuánto se relee la sesión de un panel: deprisa mientras trabaja. */
 const RELEER_MS = 20_000;
@@ -163,6 +163,11 @@ export function useContextoDeSesion(
  * su gasto delante, y el % solo manda donde la ventana entera es más pequeña.
  * La píldora de la cabecera sigue con el %, y los tokens exactos en su globo.
  */
+/** Por debajo, la píldora de la cabecera no sale: si algo sale en pantalla es
+    que hay que mirarlo (Munir, C1 del 2026-11-15: «a partir de 100.000, en
+    ámbar desde 350.000 y en rojo desde 450.000»). */
+export const MOSTRAR_TOKENS = 100_000;
+export const MOSTRAR_PCT = 15;
 export const AVISO_TOKENS = 350_000;
 export const FIJO_TOKENS = 450_000;
 export const NUEVA_TOKENS = 600_000;
@@ -181,6 +186,11 @@ export function nivelDeContexto(c: Pick<ContextInfo, "used" | "window"> | null |
   if (!c || u <= 0) return 0;
   const w = c.window;
   return u >= raya(NUEVA_TOKENS, NUEVA_PCT, w) ? 3 : u >= raya(FIJO_TOKENS, FIJO_PCT, w) ? 2 : u >= raya(AVISO_TOKENS, AVISO_PCT, w) ? 1 : 0;
+}
+/** Si la píldora de contexto sale en la cabecera: desde 100.000 tokens, o el
+    15 % de una ventana pequeña. */
+export function contextoAlaVista(c: Pick<ContextInfo, "used" | "window"> | null | undefined): boolean {
+  return !!c && c.used > 0 && c.used >= raya(MOSTRAR_TOKENS, MOSTRAR_PCT, c.window);
 }
 /** «350k»: los tokens como los dice el aviso. */
 export function enMiles(tokens: number): string {
@@ -202,13 +212,14 @@ export function turnoAcabado(c: Pick<ContextInfo, "state" | "agentsLive"> | null
  * Qué hace un panel de Claude Code al llegar al 60 % sin que nadie pulse nada.
  * «no»: el aviso se queda fijo y espera al botón. «sin-commits»: a la campana
  * manda `/fin sin commits` (los traspasos, sin tocar git) y luego `/compact`.
- * «fin»: lo mismo con el `/fin` entero, que COMMITEA solo en sus repos.
- * De fábrica «sin commits»: lo eligió Munir el 2026-10-22 (A1 de su página),
- * con la condición de que nunca lo haga con el agente trabajando. El `/fin`
- * entero no va de fábrica porque escribiría en sus repos sin su mano.
+ * «fin»: lo mismo con el `/fin` entero, que commitea su propio trabajo (con
+ * rutas explícitas; subir sigue pidiendo su palabra). De fábrica «fin» desde
+ * el 2026-11-15 (Munir, R1 de su página: «El /fin entero: memoria, traspaso y
+ * commits de su propio trabajo, y se compacta»); antes era «sin commits», que
+ * eligió el 2026-10-22. Nunca con el agente trabajando.
  */
 export type ModoSolo = "no" | "sin-commits" | "fin";
-const MODO_DE_FABRICA: ModoSolo = "sin-commits";
+const MODO_DE_FABRICA: ModoSolo = "fin";
 const CLAVE_MODO = "adeorq-compactar-solo";
 const CLAVE_SUGERIR = "adeorq-compactar-sugerir";
 export function leerModoSolo(): ModoSolo {
@@ -309,8 +320,8 @@ export function leerDelPanel(
 /**
  * Las terminales que abrió un agente con `open_pane` en este arranque (las
  * apunta `lib/puenteMcp.ts`). En ellas no hay nadie que pulse Compactar, así
- * que a la raya roja compactan solas con `/fin sin commits` aunque el ajuste
- * de Munir diga «no» o «fin»; en las suyas manda su ajuste (D8: sin su clic,
+ * que a la raya roja compactan solas con el `/fin` entero aunque el ajuste
+ * de Munir diga «no» o «sin commits»; en las suyas manda su ajuste (D8: sin su clic,
  * nada que él no haya pedido). Pedido de «Orquio General», 2026-10-22: sus
  * seis delegadas de ese día acabaron entre 588k y 832k tokens. Rust lleva su
  * propia lista (`Puente::delegadas`) para el MCP; las dos nacen en el mismo
@@ -451,6 +462,11 @@ export function seguirTrasCompactar(t: Translate, retomar?: string | null): stri
     acabó de compactar quien se compactó a sí misma. Claude Code no toca la
     campana al acabar un `/compact`, y la 2.1.322 tampoco al acabar un turno. */
 export const VIGILA_COMPACTAR_MS = 3000;
+/** Lo que se le deja a una delegada pasada de los 600k por si estaba acabando
+    su turno, antes de cortárselo (`alPasarse`). */
+export const CORTAR_TRAS_MS = 3 * 60_000;
+/** Cada cuánto la mira el panel mientras está pasada de esa raya. */
+const MIRAR_PASADA_MS = 30_000;
 /** Compactada y sin quedarse parada en este rato: otro siguió con ella, y el
     «sigue» ya no toca. */
 export const SEGUIR_HASTA_MS = 60_000;
@@ -502,6 +518,8 @@ export interface DepsTraspaso {
   modo: () => ModoSolo;
   /** La abrió un agente (`esDelegada`): compacta sola y sin commits. */
   delegada?: () => boolean;
+  /** Un Escape: corta el turno de una delegada que no acaba (`alPasarse`). */
+  cortar?: () => Promise<void>;
   sugerir: () => boolean;
   esClaude: () => boolean;
   tieneFin: () => Promise<boolean>;
@@ -531,7 +549,7 @@ export interface DepsTraspaso {
  *
  * Y la raya roja (Munir, 2026-10-22: «casi obligatorio»): si el ajuste lo dice
  * (`ModoSolo`), la campana de un turno acabado lo empieza sola, con
- * `/fin sin commits` salvo que el ajuste pida el entero. «Ahora no» lo para
+ * el `/fin` entero salvo que el ajuste pida «sin commits». «Ahora no» lo para
  * hasta el aviso siguiente. Tras compactar no vuelve a empezar con el número
  * viejo del transcript: espera a verlo bajar del aviso.
  *
@@ -557,7 +575,12 @@ export function crearTraspaso(d: DepsTraspaso) {
     seguir?: string | null;
     antes?: number;
     usado?: number;
+    /** Lo empezó un Escape nuestro (`alPasarse`): tras él no queda la última
+        palabra del agente, sino «[Request interrupted by user]». */
+    cortado?: boolean;
   } | null = null;
+  /** Desde cuándo se la ve pasada de la raya de la nueva y trabajando. */
+  let pasadaDesde: number | null = null;
   /** Ya compactó en esta subida: no repetir hasta verlo bajar. */
   let hecho = false;
   /** El porcentaje al acabar el último turno, para medir lo que subió este. */
@@ -612,7 +635,12 @@ export function crearTraspaso(d: DepsTraspaso) {
     const p = pendiente;
     if (!p) return;
     if (ahora() - p.desde > CADUCA_MS) return poner(null);
-    const puede = c ? turnoAcabado(c, d.hayPregunta()) && !d.hayBorrador() && !d.trabajando() : !p.solo;
+    // Tras nuestro Escape el transcript acaba en «[Request interrupted by
+    // user]» (o en el tool_result que cortó), y eso no es «lista»: lo que dice
+    // que paró es la pantalla (sin «esc to interrupt», en su caja), y se le deja
+    // asentar antes de mirarla.
+    const cortadoYParado = !!p.cortado && !!c && c.agentsLive === 0 && !d.hayPregunta() && en - p.desde >= ASIENTO_MS;
+    const puede = c ? (turnoAcabado(c, d.hayPregunta()) || cortadoYParado) && !d.hayBorrador() && !d.trabajando() : !p.solo;
     if (!puede) return;
     // Parada por cuota, `/fin` y `/compact` fallan, y el `/compact` fallido tapa
     // el 429 (la terminal 19, 2026-11-14): se espera a que se renueve o la releve
@@ -642,7 +670,8 @@ export function crearTraspaso(d: DepsTraspaso) {
     if (p.paso === "esperando") {
       const texto = await traspaso(p.que, p.sinCommits);
       if (pendiente !== p) return; // «Ahora no» mientras se miraba la skill
-      const cerrando = { ...p, paso: "cerrando" as const, desde: ahora(), usado: c?.used };
+      // El `/fin` ya es un turno suyo: su fin se lee como siempre, sin el atajo del corte.
+      const cerrando = { ...p, paso: "cerrando" as const, desde: ahora(), usado: c?.used, cortado: false };
       poner(cerrando);
       await d.mandar(texto);
       // Un `/fin` que esa terminal no conoce no abre turno ni toca la campana,
@@ -686,12 +715,13 @@ export function crearTraspaso(d: DepsTraspaso) {
     }, "esperar");
 
   /** Lo pide un agente por el MCP (`compactar_terminal`): como el botón,
-      pero sin commits y nunca a ciegas, y si ya hay un traspaso en marcha
-      (lo pulsó Munir, o lo empezó la campana) no se empieza otro. */
+      con el `/fin` entero (R1, 2026-11-15) y nunca a ciegas, y si ya hay un
+      traspaso en marcha (lo pulsó Munir, o lo empezó la campana) no se
+      empieza otro. */
   const pedirDeAgente = () =>
     conCandado(async () => {
       if (pendiente) return;
-      poner({ que: "compactar", paso: "esperando", solo: true, sinCommits: true, desde: ahora() });
+      poner({ que: "compactar", paso: "esperando", solo: true, sinCommits: false, desde: ahora() });
       const { c, en } = await leerAhora();
       await avanzar(c, en);
     }, "esperar");
@@ -735,7 +765,7 @@ export function crearTraspaso(d: DepsTraspaso) {
 
   /** Lo pide la sesión para sí misma por el MCP (`compactarme`). Si ya iba a
       seguir en una terminal nueva no se compacta; si había otro traspaso en
-      marcha (el `/fin sin commits` de la raya o de `compactar_terminal`, que
+      marcha (el `/fin` de la raya o de `compactar_terminal`, que
       ahora acaba llamando aquí) lo sustituye, para no compactar dos veces. */
   const pedirPropia = (mensaje: string, seguir: string | null | undefined): RespuestaPropia => {
     if (pendiente?.que === "nueva") return "nueva";
@@ -796,7 +826,7 @@ export function crearTraspaso(d: DepsTraspaso) {
       // Ya compactada dos veces no se compacta una tercera sola: el aviso
       // ofrece seguir en una terminal nueva, y sin su clic se queda ahí. En
       // una delegada se le avisa a quien la abrió (`mcp.rs`).
-      const modo: ModoSolo = d.delegada?.() ? "sin-commits" : d.modo();
+      const modo: ModoSolo = d.delegada?.() ? "fin" : d.modo();
       if (c && !c.sinCuota && !pendiente && !hecho && nivel >= 2 && nivel > d.visto() && modo !== "no" && d.esClaude()) {
         if ((await d.compactaciones().catch(() => 0)) < COMPACTADA_DE_MAS) {
           poner({ que: "compactar", paso: "esperando", solo: true, sinCommits: modo !== "fin", desde: ahora() });
@@ -805,7 +835,36 @@ export function crearTraspaso(d: DepsTraspaso) {
       await avanzar(c, en);
     }, "soltar");
 
-  return { pedir, pedirDeAgente, pedirPropia, alSonar, cancelar: () => poner(null), fase };
+  /**
+   * Una delegada pasada de la raya de la nueva (600k) en un turno que no acaba.
+   * La raya roja espera a que acabe el turno, y un turno puede no acabar: el
+   * 2026-11-01 la «seguridad14-core» de «Orquio General» pasó de 600.000 a las
+   * 16:52 y siguió 48 minutos más, hasta 930.958, en UN turno de 1 h 31 min, y
+   * Munir tuvo que avisar a mano. Su orden, «sí o sí»: que se cumpla aunque el
+   * turno no acabe, sin depender de quien la abrió, sin perder lo que tenga a
+   * medias, y solo en las que abre un agente. Se le dan `CORTAR_TRAS_MS` por si
+   * estaba acabando; si sigue, un Escape corta el turno y sigue el baile de la
+   * raya roja (el `/fin`, que deja lo que llevaba en su traspaso, y el
+   * `/compact`). Con un menú suyo en pantalla no se corta: el Escape lo
+   * contestaría. La llama el panel cada poco desde la raya (`useTraspaso`).
+   */
+  const alPasarse = () =>
+    conCandado(async () => {
+      const olvidar = () => void (pasadaDesde = null);
+      if (!d.delegada?.() || !d.esClaude() || !d.cortar || pendiente || hecho) return olvidar();
+      const { c } = await leerAhora();
+      if (!c || c.sinCuota || nivelDeContexto(c) < 3 || d.hayPregunta() || !d.trabajando()) return olvidar();
+      pasadaDesde ??= ahora();
+      if (ahora() - pasadaDesde < CORTAR_TRAS_MS) return;
+      // Compactada ya dos veces: no se compacta una tercera (a quien la abrió
+      // ya le dice `mcp.rs` que abra otra).
+      if ((await d.compactaciones().catch(() => 0)) >= COMPACTADA_DE_MAS) return;
+      olvidar();
+      poner({ que: "compactar", paso: "esperando", solo: true, sinCommits: false, desde: ahora(), cortado: true });
+      await d.cortar();
+    }, "soltar");
+
+  return { pedir, pedirDeAgente, pedirPropia, alSonar, alPasarse, cancelar: () => poner(null), fase };
 }
 
 /**
@@ -884,8 +943,17 @@ export function useTraspaso(m: {
     abrirNueva: (encargo) => ultimo.current.onNueva?.(ultimo.current.id, encargo ?? undefined),
     alSugerir: setSugerencia,
     alCambiar: setFase,
+    cortar: () => writePty(ultimo.current.id, "\x1b"),
   });
   const traspaso = tr.current;
+  // Desde la raya de la nueva, una delegada que sigue trabajando se mira cada
+  // poco: si el turno no acaba, se le corta (`alPasarse`). Fuera de ella, nada.
+  const pasada = m.nivel >= 3 && !!m.esClaude && esDelegada(m.id);
+  useEffect(() => {
+    if (!pasada) return;
+    const vigia = window.setInterval(() => void traspaso.alPasarse().catch(() => {}), MIRAR_PASADA_MS);
+    return () => window.clearInterval(vigia);
+  }, [pasada]);
 
   const pedir = (que: "compactar" | "nueva") => {
     setSugerencia(null);

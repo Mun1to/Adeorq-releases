@@ -15,8 +15,9 @@
 // Fuera del paquete se mide que NADA cambió: el acceso va a Supabase, y recuperar la
 // sesión lee el almacén y, solo si hay token, lo cambia por una sesión.
 //
-// Y, aparte, que `AgendaView.tsx` esconde lo que la enseña (la cifra de las ideas, el
-// botón de aceptar una idea) detrás de la misma señal: eso se lee del fuente, y se
+// Y, aparte, que `AgendaView.tsx` esconde lo que la enseña (la cifra de las ideas) y
+// `DecisionesView.tsx` el botón de aceptar una idea (desde el 2026-11-15 las ideas de
+// tus agentes se atienden allí) detrás de la misma señal: eso se lee del fuente, y se
 // mide de verdad en `scripts/laboratorio/brujula-de-verdad.mjs`.
 
 declare const process: { exit(codigo: number): never };
@@ -117,7 +118,11 @@ const resumen = () => JSON.stringify(llamadas);
   const agenda = readFileSync("src/components/AgendaView.tsx", "utf8").replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/\/\/.*$/gm, "");
   ok("AgendaView sabe si es la Tienda (`yaEnLaTienda` y `enLaTienda`)", /useState\(yaEnLaTienda\)/.test(agenda) && /enLaTienda\(\)\.then\(setEnTienda\)/.test(agenda));
   ok("y la cifra de las ideas solo sale fuera de la Tienda", /\{!enTienda && \(\s*<Cifra\s+n=\{projectIdeas\.length\}/.test(agenda));
-  ok("y aceptar una idea (que va a la brújula) no sale en la Tienda, pero un paso sí", /\{!\(enTienda && n\.kind !== "paso"\) && \(\s*<button\s+className="ag-si"/.test(agenda));
+  const decisiones = readFileSync("src/components/DecisionesView.tsx", "utf8").replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/\/\/.*$/gm, "");
+  ok(
+    "y en Decisiones, aceptar una idea (que va a la brújula) no sale en la Tienda, pero un paso sí",
+    /useState\(yaEnLaTienda\)/.test(decisiones) && /enLaTienda\(\)\.then\(setTienda\)/.test(decisiones) && /\{!\(tienda && n\.kind !== "paso"\) && \(\s*<button/.test(decisiones),
+  );
   ok("y las pantallas de ideas y de fechas no pintan nada en la Tienda", /if \(enTienda && \(modo === "ideas" \|\| modo === "fechas"\)\) return null;/.test(agenda));
 
   console.log(fallos ? `\n${fallos} FALLAN` : "\nTodo bien.");

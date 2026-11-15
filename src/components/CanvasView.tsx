@@ -237,14 +237,14 @@ interface Props {
   onCreate: (
     kind: SpawnKind,
     project: Project,
-    propio?: { name?: string; command?: string[]; viva?: Recogida },
+    propio?: { name?: string; command?: string[]; viva?: Recogida; espejo?: string },
     cuenta?: Account,
   ) => CanvasPane;
   /** Recuperar el tablero al abrir, el mismo ajuste que usa la Cabina. */
   recuperar: boolean;
   /** Convierte el comando con el que nació una terminal en el que la devuelve
    *  a SU conversación. Lo resuelve App, que es quien sabe de sesiones. */
-  alVolver: (cwd: string, command?: string[]) => Promise<string[] | undefined>;
+  alVolver: (cwd: string, command?: string[], espejo?: string) => Promise<string[] | undefined>;
   /** Abre una terminal del lienzo con un encargo dentro, y lo deja apuntado.
    *  Lo resuelve App, que es quien sabe acuñar sesiones y guardar encargos. */
   onLanzarEncargo: (texto: string, project: Project, aparte?: Aparte) => void;
@@ -642,7 +642,7 @@ function Canvas({
       kind: SpawnKind,
       p: Project,
       en?: { x: number; y: number; w?: number; h?: number },
-      propio?: { name?: string; command?: string[]; viva?: Recogida },
+      propio?: { name?: string; command?: string[]; viva?: Recogida; espejo?: string },
       cuenta?: Account,
     ): CanvasPane => {
       const pane = onCreate(kind, p, propio, cuenta);
@@ -2654,7 +2654,7 @@ ${ruta}` : ruta;
           proyecto: d.proyecto,
           ruta: d.pane.cwd,
           cmd: conComandos ? d.pane.command : undefined,
-          pty: conComandos ? d.pane.id : undefined,
+          pty: conComandos ? d.pane.id : undefined, espejo: conComandos ? d.pane.espejo : undefined, // su copia aparte (`lib/copiaAparte.ts`)
           // Su cuenta, para volver a ella (`NodoTerm.cuenta`). Solo de un
           // agente: una consola no tiene con qué iniciar sesión.
           cuenta: conComandos && cli !== "shell" ? cuentaDelNodo(d.pane, cli) : undefined,
@@ -2800,12 +2800,12 @@ ${ruta}` : ruta;
           // de otra máquina) nace como una terminal nueva de ese tipo. La que
           // sigue viva se queda la suya: su número y su comando, sin `--resume`.
           const viva = recogidas?.get(n.id);
-          const command = viva ? (viva.command ?? n.cmd) : n.cmd ? await alVolver(n.ruta, n.cmd) : undefined;
+          const command = viva ? (viva.command ?? n.cmd) : n.cmd ? await alVolver(n.ruta, n.cmd, n.espejo) : undefined;
           const pane = place(
             n.kind,
             { name: n.proyecto || n.ruta, path: n.ruta, hasGit: false },
             { x: n.x, y: n.y, w: n.w, h: n.h },
-            command || viva ? { command, viva } : undefined,
+            command || viva ? { command, viva, espejo: viva ? undefined : n.espejo } : undefined,
             // En su cuenta: App la acepta solo si sigue en Cuentas o es la principal.
             n.cuenta,
           );

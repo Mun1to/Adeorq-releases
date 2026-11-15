@@ -18,7 +18,9 @@
 import { useEffect } from "react";
 import { marcarDelegada, type DetalleTraspaso, type FaseTraspaso } from "./contexto";
 import { apuntarDelegada, olvidarDelegada } from "./delegadas";
-import { confiarCarpeta, listProjects, mainAccount, mcpReply, onPedidoMcp, type Account, type PaneStatus } from "./pty";
+import { confiarCarpeta, listProjects, mainAccount, mcpReply, onPedidoMcp, shadowDisponible, shadowPendiente, type Account, type PaneStatus } from "./pty";
+import { raiz } from "./perfil";
+import { apuntarCopia, copiaDe, copiaPorCarpeta, dondeNace, notaDeCopia, parteDeCopia, porQueNoSeCierra, proyectoDe } from "./copiaAparte";
 import { pantallaDe } from "./terminales";
 import { conLasPrincipales, fotoRapida, leidaEn, mundoEnCache, parteDelEquipo } from "./mundo";
 import { comandoDe } from "./lanzar";
@@ -27,8 +29,11 @@ import { cuantasPesan, elegirCuenta, modeloParaSuPlan, type CuentaViva } from ".
 import { abrirElRelevo, conLasAgotadas, elegirParaRelevo, type ManosDelRelevo } from "./relevoCuota";
 import { isModelAlias } from "./models";
 import { proveedorDe, sabe } from "./providers";
+import { esEstadoEntrega } from "./vueltaArriba";
+import { alCerrarPorMcp, alEntregar, apuntarHija } from "./vueltaArribaVivo";
 import {
   ARRANCAN_CON_ENCARGO,
+  COLA_DE_ENTREGA,
   carpetaDe,
   cliPedido,
   nombreDe,
@@ -50,10 +55,10 @@ export interface ManosDelPuente {
     at?: undefined,
     account?: Account,
     team?: undefined,
-    shadow?: undefined,
+    shadow?: boolean,
     grupo?: undefined,
     envOverride?: Record<string, string>,
-    opciones?: { abiertaPor?: string },
+    opciones?: { abiertaPor?: string; espejo?: string },
   ) => { id: number; donde: "lienzo" | "cabina" } | null | undefined;
   /** Dibujar una flecha entre dos terminales del lienzo. */
   enlazarRef: Ref<((from: number, to: number, auto: boolean) => boolean) | null>;
@@ -120,6 +125,15 @@ function abiertasDesdeLaLectura(cuenta: Account, vivos: Set<number>): number {
   return cuantasPesan(aperturas.filter((a) => a.cuenta === cuenta.id), leidaEn(cuenta) ?? 0, vivos);
 }
 
+/** Por qué no se cierra la terminal `id` por el MCP o por el reloj, o nada si
+    se puede: la dueña de una copia aparte con trabajo sin aceptar se queda
+    (`lib/copiaAparte.ts`). */
+async function siNoSeCierra(id: number): Promise<string | null> {
+  const copia = copiaDe(id);
+  if (!copia || copia.duena !== id) return null;
+  return porQueNoSeCierra(id, copia, await shadowPendiente(copia.arbol, copia.base).catch(() => null));
+}
+
 export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accountsRef, agyExe }: ManosDelPuente): void {
   useEffect(() => {
     /** Cada cuenta con lo que ya lleva abierto, para `elegirCuenta`. Después de
@@ -162,7 +176,8 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
            lo mismo que hace la X, y por eso no hay un camino de muerte aparte
            para el MCP: dos formas de matar un agente se separan con el tiempo y
            una de las dos se queda sin arreglar. */
-        if (p.clase === "close_pane") {
+        // `cerrable` lo pregunta `close_pane` del MCP antes de guardar su rastro.
+        if (p.clase === "close_pane" || p.clase === "cerrable") {
           const id = Number(p.paneId);
           if (!Number.isFinite(id) || id <= 0) {
             responder({ error: "`paneId` tiene que ser el número de una terminal." });
@@ -172,9 +187,17 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
             responder({ error: "la ventana todavía no está lista para cerrar terminales" });
             return;
           }
+          // Un relevo por cuota sí: su copia sigue en la terminal nueva.
+          const no = p.relevo === true ? null : await siNoSeCierra(id);
+          if (no || p.clase === "cerrable") {
+            responder(no ? { error: no } : {});
+            return;
+          }
           // Cerrada por quien la abrió: si se retoma otro día, ya no es delegada.
           // Salvo en un relevo por cuota, donde su conversación sigue en la nueva.
           if (p.relevo !== true) olvidarDelegada(panelesRef.current().find((s) => s.id === id)?.sessionId);
+          // Si la cierra quien la abrió, no se le cuenta que se cerró.
+          alCerrarPorMcp(id, p.quien, p.relevo === true);
           cerrarRef.current(id);
           responder({});
           return;
@@ -207,7 +230,7 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
           return;
         }
         // `compactar_terminal`: lo hace el panel con su traspaso, que espera a
-        // que pare, manda `/fin sin commits` y luego `/compact` (`lib/contexto.ts`).
+        // que pare, manda `/fin` y luego `/compact` (`lib/contexto.ts`).
         // Rust ya comprobó que es de Claude Code y que la abrió un agente.
         if (p.clase === "compactar") {
           const detail: { id: number; que: string; hecho: boolean; deAgente: boolean; fase?: FaseTraspaso } = {
@@ -232,6 +255,19 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
           };
           window.dispatchEvent(new CustomEvent("adeorq:traspaso", { detail }));
           responder(detail.hecho ? { parte: detail.parte ?? "aceptado" } : { error: `No tengo pintada la terminal ${p.paneId}.` });
+          return;
+        }
+        // `entregar`: una hija dice cómo acabó. Rust ya comprobó que la pide
+        // ella, con su contraseña, que es delegada y que su madre está abierta;
+        // aquí va a la cola de la madre (`lib/vueltaArribaVivo.ts`).
+        if (p.clase === "entrega") {
+          const hija = Number(p.paneId);
+          const madre = Number(p.madre);
+          if (!Number.isFinite(hija) || !Number.isFinite(madre) || !esEstadoEntrega(p.estado)) {
+            responder({ error: "entrega sin panel, sin madre o con un estado que no conozco" });
+            return;
+          }
+          responder({ parte: alEntregar({ hija, madre, estado: p.estado, resumen: String(p.resumen ?? "") }) });
           return;
         }
         if (p.clase === "uso") {
@@ -278,10 +314,28 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
         const proyectos = await listProjects().catch(() => []);
         const donde = carpetaDe(p, proyectos);
         if ("error" in donde) return responder({ error: donde.error });
-        const cwd = donde.cwd;
+        // En una copia aparte (el Modo Espejo) lo que trabaja solo: un encargo
+        // programado, y lo que abra una terminal que ya vive en una copia, dentro
+        // de esa misma copia (`lib/copiaAparte.ts`). Solo en un repo de git: si
+        // no, nace donde pidió y se dice.
+        const q = typeof p.quien === "number" ? p.quien : undefined;
+        const deLaMadre = q === undefined ? undefined : copiaDe(q) ?? copiaPorCarpeta(panelesRef.current().find((s) => s.id === q)?.cwd);
+        const nace = dondeNace(donde.cwd, p.espejo === true, deLaMadre);
+        const cwd = nace.cwd;
+        let espejo = false;
+        let deCopia: string | undefined;
+        if (nace.espejo) {
+          const sin = await shadowDisponible(proyectoDe(cwd, raiz())).then(() => null, (e: unknown) => String(e));
+          espejo = sin === null;
+          deCopia = parteDeCopia(sin === null ? "propia" : { sin });
+        } else if (nace.copia) {
+          deCopia = parteDeCopia("de su madre");
+        }
+        const enCopia = espejo ? proyectoDe(cwd, raiz()) : nace.copia?.proyecto;
 
         const brief = (p.brief ?? "").trim();
-        const label = nombreDe(p, cwd, cli);
+        // Por la carpeta que pidió: la del árbol de una copia se llama «5-mv8cm5kg».
+        const label = nombreDe(p, donde.cwd, cli);
         // Solo los que la tabla marca con `encargoEnLinea` (`ARRANCAN_CON_ENCARGO`,
         // que sale de `providers.ts`) aceptan el encargo en la línea de arranque.
         // Al resto se les abre la terminal y se le DICE al agente que lo mande
@@ -343,7 +397,14 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
         // modo auto y no en el de Ajustes (ver `Peticion` en `lib/arranque.ts`).
         // Salvo que venga de fuera de Adeorq: esa nace en el de Ajustes.
         const conSuModo = p.conSuModo === true;
-        const command = comandoDe({ cli, encargo: brief, modelo, agyExe: agyExe.current, desatendida: !conSuModo });
+        // Y al final del encargo, que diga cómo acabó (`entregar`). No en una de
+        // otra cuenta, que no ve el MCP de Adeorq, ni en lo que abre una persona
+        // desde fuera, que no tiene madre a la que entregar.
+        // Y si trabaja en una copia, que lo sepa: dónde está lo que no va en git.
+        const encargo = !conEncargo
+          ? brief
+          : brief + (enCopia ? notaDeCopia(enCopia) : "") + (!otraCasa && !conSuModo ? COLA_DE_ENTREGA : "");
+        const command = comandoDe({ cli, encargo, modelo, agyExe: agyExe.current, desatendida: !conSuModo });
 
         /* Antes de abrirla, que pueda arrancar. Una terminal de Claude en una
            carpeta donde Munir no ha entrado nunca nace parada en «¿confías en
@@ -376,11 +437,18 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
         // Por su conversación, para que al recrear su panel (otro arranque,
         // Reanimar) vuelva siendo delegada (`lib/delegadas.ts`).
         apuntarDelegada(command, abiertaPor);
-        const abierto = addPane(label, cwd, command, undefined, cuenta, undefined, undefined, undefined, undefined, {
+        // La caja aparte, si la pidió (`caja.rs`; Rust ya la validó): viaja como
+        // marca en su entorno, y `pty_spawn` envuelve el comando en ella.
+        const enCaja = typeof p.caja === "string" && p.caja ? { ADEORQ_CAJA: p.caja } : undefined;
+        const abierto = addPane(label, cwd, command, undefined, cuenta, undefined, espejo || undefined, undefined, enCaja, {
           abiertaPor,
         });
         if (!abierto) return responder({ error: "no pude abrir la terminal" });
         marcarDelegada(abierto.id);
+        // La que nace en la copia de su madre: lo que abra ella, también ahí.
+        if (nace.copia) apuntarCopia(abierto.id, nace.copia);
+        // Lo que le pase se le cuenta a quien la abrió (`lib/vueltaArribaVivo.ts`).
+        if (typeof p.quien === "number") apuntarHija(abierto.id, p.quien);
         if (apertura) apertura.panel = abierto.id;
 
         // La flecha de paso, si la pidió: así el árbol le queda hecho sin una
@@ -410,6 +478,7 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
             deCuenta,
             porTecho,
             otraCasa,
+            deCopia,
           ]
             .filter(Boolean)
             .join(" "),

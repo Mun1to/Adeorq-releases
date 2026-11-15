@@ -12,6 +12,7 @@
 
 import {
   applyPreset,
+  colocarNueva,
   columnasPara,
   equilibrada,
   MAX_COLS,
@@ -177,6 +178,40 @@ ok(
 );
 const todas = applyPreset(abiertas(3), de(3, 1), cid(), new Set([1, 2, 3]));
 ok("con todo apartado se reparte todo igual", filas(todas).join() === "1,1,1", filas(todas).join(","));
+
+// --- una terminal nueva cae ordenada (Munir, 2026-11-15: «que cuando abran
+// terminales nuevas se ordenen bien»). Antes la cuarta iba debajo de la primera
+// con un tercio del alto.
+const unaMas = (cols: Col[], id: number, fuera?: ReadonlySet<number>) => colocarNueva(cols, id, cid(), fuera);
+let deUna: Col[] = [];
+const malas: string[] = [];
+for (let n = 1; n <= 12; n++) {
+  deUna = unaMas(deUna, n);
+  if (filas(deUna).join() !== presetFor(n).rows.join()) malas.push(`${n}: ${filas(deUna).join(",")} y no ${presetFor(n).rows.join(",")}`);
+}
+ok("abriéndolas de una en una, cada número queda en su reparto de fábrica", malas.length === 0, malas.join("; "));
+const cuatro = [1, 2, 3, 4].reduce<Col[]>((c, id) => unaMas(c, id), []);
+ok("cuatro quedan dos arriba y dos abajo", filas(cuatro).join() === "2,2", filas(cuatro).join(","));
+ok("y las cuatro del mismo alto", cuatro.every((c) => c.hs.every((h) => h === c.hs[0])));
+ok("en el orden en que se abrieron", cuatro.flatMap((c) => c.panes).join() === "1,2,3,4");
+
+const suya = unaMas(applyPreset(abiertas(6), de(2, 3), cid()), 7);
+ok("una rejilla elegida (2x3) conserva sus dos columnas", filas(suya).join() === "3,4", filas(suya).join(","));
+
+const grande = unaMas(applyPreset(abiertas(4), unaGrande(4), cid()), 5);
+ok("«una grande» sigue siendo una grande con una más al lado", filas(grande).join() === unaGrande(5).rows.join(), filas(grande).join(","));
+ok("y la grande sigue siendo la primera", grande[0].panes.join() === "1" && grande[0].w > grande[1].w);
+
+const tocada = applyPreset(abiertas(3), de(3, 1), cid()).map((c, i) => ({ ...c, w: [1.4, 0.8, 0.8][i] }));
+const trasTocada = unaMas(tocada, 4);
+ok("si la estiró a mano, los anchos no se mueven", trasTocada.map((c) => c.w).join() === "1.4,0.8,0.8", trasTocada.map((c) => c.w).join(","));
+const columna = trasTocada.find((c) => c.panes.includes(4))!;
+ok("y la nueva entra del alto de su vecina", columna.hs.length === 2 && columna.hs[0] === columna.hs[1], columna.hs.join(","));
+
+const conFuera = applyPreset(abiertas(4), presetFor(3), cid(), new Set([4]));
+const trasFuera = unaMas(conFuera, 5, new Set([4]));
+const vistasTras = trasFuera.map((c) => c.panes.filter((p) => p !== 4).length).filter(Boolean);
+ok("con una apartada, la forma se mira con lo que se ve", vistasTras.join() === presetFor(4).rows.join(), vistasTras.join(","));
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);
 (globalThis as unknown as { process: { exitCode?: number } }).process.exitCode = fallos ? 1 : 0;

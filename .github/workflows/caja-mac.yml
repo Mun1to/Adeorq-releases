@@ -1,0 +1,114 @@
+# La caja del Mac: prueba una rama en un Mac de GitHub y devuelve lo que salió.
+#
+# Es la tercera caja de `docs/contexto/cajas.md` (Munir, O1): una terminal de Adeorq
+# en Windows que necesita ver algo en macOS lo manda aquí con
+# `node scripts/caja-mac.mjs [--ref <rama>] [--herramientas nada|node|rust] -- <comando>`,
+# espera y trae la salida. No firma, no publica y no lleva ningún secreto.
+#
+# · El comando llega como entrada del botón y se usa SOLO por `env:`. Escrito con
+#   `${{ }}` dentro de un `run:` sería código que GitHub pega en el guion antes de
+#   correrlo (inyección), y con comillas o un `$(...)` haría otra cosa.
+# · `permissions: contents: read` y `persist-credentials: false`: el comando no se
+#   lleva un token que valga para nada más que leer este repo, y ni ese queda en `.git`.
+# · Lo pide quien puede escribir en el repo (es lo que exige `workflow_dispatch`).
+# · El workflow tiene que estar en la rama por defecto para que el botón exista; la
+#   rama que se prueba es la entrada `ref`, que puede ser otra.
+# · En un repo privado del plan Free, un minuto de macOS cuesta como diez de Linux
+#   (unos 193 al mes): `timeout-minutes` lo corta a los 30, y `herramientas` deja no
+#   instalar Rust cuando no hace falta.
+
+name: Caja Mac
+run-name: Caja Mac ${{ inputs.marca }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Rama o commit que se prueba"
+        type: string
+        required: true
+        default: main
+      comando:
+        description: "Lo que se corre en el Mac (bash, desde la raíz del repo)"
+        type: string
+        required: true
+      herramientas:
+        description: "Lo que se instala antes: nada, node (con pnpm install) o rust (node y Rust)"
+        type: choice
+        options: [nada, node, rust]
+        default: node
+      marca:
+        description: "Para que scripts/caja-mac.mjs encuentre su vuelta"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: caja-mac
+  cancel-in-progress: false
+
+jobs:
+  caja:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - if: inputs.herramientas != 'nada'
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 11
+
+      - if: inputs.herramientas != 'nada'
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - if: inputs.herramientas == 'rust'
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+
+      - if: inputs.herramientas == 'rust'
+        uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          workspaces: "src-tauri -> target"
+          shared-key: caja-mac
+          cache-on-failure: true
+
+      - if: inputs.herramientas != 'nada'
+        run: pnpm install --frozen-lockfile
+
+      - name: El comando
+        env:
+          COMANDO: ${{ inputs.comando }}
+        run: |
+          set -o pipefail
+          {
+            echo "macOS $(sw_vers -productVersion) ($(uname -m)), commit $(git rev-parse --short HEAD)"
+            echo "\$ $COMANDO"
+          } | tee salida.txt
+          set +e
+          bash -c "$COMANDO" 2>&1 | tee -a salida.txt
+          codigo=${PIPESTATUS[0]}
+          echo "salida: $codigo" | tee -a salida.txt
+          {
+            echo '```'
+            tail -n 80 salida.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$codigo"
+
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: caja-mac-salida
+          path: salida.txt
+          if-no-files-found: ignore
+          retention-days: 7

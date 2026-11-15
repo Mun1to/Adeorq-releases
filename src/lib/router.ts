@@ -392,22 +392,34 @@ export function enCuanto(ms: number, ahora: number, t: Translate = ES): string {
   return t("en {falta}", { falta: cuantoFalta(ms, ahora, t) });
 }
 
+/**
+ * Lo gastado y lo previsto de una cuenta, POR SEPARADO. El previsto (`semanaDe`:
+ * lo leído más diez puntos por cada terminal abierta desde la lectura) es lo que
+ * decide el reparto, pero no es gasto. Dicho a secas, «"Principal" pasa del 92 %»
+ * con el 72 % gastado, quien lo leyó se lo repitió a Munir como gasto y él lo
+ * pilló («estás mintiendo, va por el 73 %»; coordinadora de winshotx, 2026-11-15).
+ */
+function gastoYPrevision(c: CuentaViva, ahora: number, t: Translate, periodo?: string): string {
+  const leido =
+    c.gastado == null
+      ? t("sin dato de gasto, que se cuenta como 50 %")
+      : caducada(c, ahora)
+        ? t("con una lectura de antes de renovarse, que se cuenta como 50 %")
+        : periodo
+          ? t("al {n} % gastado de su {periodo}", { n: Math.round(c.gastado), periodo })
+          : t("al {n} % gastado", { n: Math.round(c.gastado) });
+  const n = c.abiertas ?? 0;
+  if (!n) return leido;
+  const previsto = Math.round(semanaDe(c, ahora).gastado);
+  return n === 1
+    ? t("{leido} (con 1 terminal abierta desde la última lectura, se calcula ~{previsto} %)", { leido, previsto })
+    : t("{leido} (con las {n} terminales abiertas desde la última lectura, se calcula ~{previsto} %)", { leido, n, previsto });
+}
+
 function retrato(c: CuentaViva, ahora: number, t: Translate): string {
   const { dias } = semanaDe(c, ahora);
-  const pct =
-    c.gastado == null
-      ? t("sin dato de gasto")
-      : caducada(c, ahora)
-        ? t("con una lectura de antes de renovarse (se cuenta como 50 %)")
-        : t("al {n} %", { n: Math.round(c.gastado) });
   const cuando = c.renueva && c.renueva > ahora ? t("se renueva {cuando}", { cuando: enCuanto(c.renueva, ahora, t) }) : t("sin fecha de renovación ({dias} días)", { dias });
-  const n = c.abiertas ?? 0;
-  const llevan = !n
-    ? ""
-    : n === 1
-      ? t(", más 1 terminal abierta desde entonces (+{peso})", { peso: PESO_TERMINAL })
-      : t(", más {n} terminales abiertas desde entonces (+{peso})", { n, peso: n * PESO_TERMINAL });
-  return t("«{label}» {pct}{llevan}, {cuando}", { label: c.cuenta.label, pct, llevan, cuando });
+  return t("«{label}» {gasto}, {cuando}", { label: c.cuenta.label, gasto: gastoYPrevision(c, ahora, t), cuando });
 }
 
 /**
@@ -444,7 +456,7 @@ export function elegirCuenta(lista: CuentaViva[], ahora: number, modelo?: ModelA
       ? viva.sesionRenueva
         ? t("parada por su tope de 5 horas hasta dentro de {falta}", { falta: cuantoFalta(viva.sesionRenueva, ahora, t) })
         : t("parada por su tope de 5 horas")
-      : t("al {n} % de su {periodo}", { n: Math.round(semanaDe(viva, ahora).gastado), periodo });
+      : gastoYPrevision(viva, ahora, t, periodo);
     porque = lista.length === 1
       ? t("Con «{label}», la única que hay, aunque está {motivo}.", { label, motivo })
       : t("No queda ninguna con sitio (todas paradas por su tope de 5 horas o por encima del {agotada} % de su {periodo}): va a «{label}», {motivo}, que es la menos mala.", { agotada: AGOTADA, periodo, label, motivo });
@@ -454,7 +466,7 @@ export function elegirCuenta(lista: CuentaViva[], ahora: number, modelo?: ModelA
     const otras = orden.slice(1, 3).map((o) => t("{retrato} ({p} al día)", { retrato: retrato(o.c, ahora, t), p: Math.round(o.p) }));
     const fuera = lista
       .filter((c) => !conSitio.includes(c))
-      .map((c) => parada(c, ahora) ? t("«{label}» está parada por su tope de 5 horas", { label: c.cuenta.label }) : t("«{label}» pasa del 92 %", { label: c.cuenta.label }));
+      .map((c) => parada(c, ahora) ? t("«{label}» está parada por su tope de 5 horas", { label: c.cuenta.label }) : t("«{label}» no entra por llegar al {agotada} %: {gasto}", { label: c.cuenta.label, agotada: AGOTADA, gasto: gastoYPrevision(c, ahora, t) }));
     const p = Math.round(orden[0].p);
     const cuanto = otras.length ? t("{p} puntos al día, frente a {otras}", { p, otras: otras.join(t(" y ")) }) : t("{p} puntos al día", { p });
     porque = t("Con {retrato}: es la que más cuota perdería sin usar ({cuanto}){fuera}.", {

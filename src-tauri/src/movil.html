@@ -1754,6 +1754,9 @@ const MASCOTA = (() => {
 const ANCHO = 20;
 const ALTO = 14;
 const AIRE = 2;
+function recorridoDe(menosMovimiento) {
+    return menosMovimiento ? 0.25 : 1;
+}
 const CUERPO = [
     "......BBBBBBBB......",
     "......BBBWWBBB......",
@@ -1840,10 +1843,10 @@ const COSAS = {
     tecladoDer: teclado([17, 18]),
     tecladoDos: teclado([1, 2, 17, 18]),
 };
-function cuadrosDe(pose, mirada = "", tinte) {
+function cuadrosDe(pose, mirada = "", tinte, recorrido = 1) {
     const cuerpo = tinte?.cuerpo ?? AZUL;
     const brazo = tinte?.brazo ?? BRAZO_COLOR;
-    const sube = pose.salta ? 1 : 0;
+    const sube = pose.salta ? recorrido : 0;
     const ojo = pose.ojo === "abierto" && mirada ? mirada : pose.ojo;
     const parpado = ojo in PARPADOS ? PARPADOS[ojo] : null;
     const pupila = parpado ?? OJOS[ojo];
@@ -2122,7 +2125,7 @@ function avanzar(m, ahora, azar) {
 function reaccionar(m, cual) {
     return { ...m, cola: [...REACCIONES[cual], ...m.cola] };
 }
-return { ANCHO, ALTO, GUIONES, REACCIONES, cuadrosDe, reposoDe, arrancar, avanzar, reaccionar };
+return { ANCHO, ALTO, GUIONES, REACCIONES, cuadrosDe, recorridoDe, reposoDe, arrancar, avanzar, reaccionar };
 })();
 // </mascota-generada>
 
@@ -2147,8 +2150,10 @@ function marchaDe(clave, animo) {
   }
   return m;
 }
+/** Con «reducir movimiento», los mismos gestos y el salto a un cuarto (G1, 2026-11-15). */
+const MENOS_MOVIMIENTO = matchMedia("(prefers-reduced-motion: reduce)");
 const cuadrosHtml = (m) =>
-  MASCOTA.cuadrosDe(sinMovimiento() ? MASCOTA.reposoDe(m.animo) : m.marcha.pose, m.mirada)
+  MASCOTA.cuadrosDe(sinMovimiento() ? MASCOTA.reposoDe(m.animo) : m.marcha.pose, m.mirada, undefined, MASCOTA.recorridoDe(MENOS_MOVIMIENTO.matches))
     .map((q) => `<rect x="${q.x}" y="${q.y}" width="1.02" height="1.02" fill="${q.c}"/>`).join("");
 /** `clave` es quién es esta mascota en la página; dos con la misma clave son la misma. */
 function mascota(animo, alto = 26, clave = animo) {

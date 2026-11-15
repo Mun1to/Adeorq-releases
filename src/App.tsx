@@ -45,6 +45,7 @@ import {
   quitarFondo,
 } from "./lib/fondo";
 import { anclarColumnas } from "./lib/redimension";
+import { useAdeoDonde } from "./lib/adeoDonde";
 import { useAnchoDeBarra } from "./lib/anchoBarra";
 import { dividers, useCosturas } from "./lib/costuras";
 import { useMoverPanel } from "./lib/moverPanel";
@@ -55,7 +56,8 @@ import { CloseIcon, EstadoIcon, MinimizeIcon, UnminimizeIcon, PlusIcon, StreamIc
 import IconoPestana from "./components/IconoPestana";
 import { PESTANAS, pestanaDe, type View } from "./lib/vistas";
 import { leerApagadas, pestanasEncendidas, seVe, usePartes, vistaPosible, type TerminalesPorVista } from "./lib/partes";
-import { pendientes, useDecisiones } from "./lib/decisiones";
+import { useDecisiones } from "./lib/decisiones";
+import { recordarVuelta, useTeToca, vueltaDeDecisiones } from "./lib/teToca";
 import { useBarraQueCabe } from "./lib/barraQueCabe";
 import { STREAM_KEY, useAtajosGlobales } from "./lib/atajosGlobales";
 import { encargoDeGuia } from "./lib/guia";
@@ -64,6 +66,7 @@ import { useDiscordConfig } from "./lib/discordConfig";
 import {
   addPane as layoutAdd,
   applyPreset,
+  colocarNueva,
   presetFor,
   rects as layoutRects,
   removePane as layoutRemove,
@@ -169,6 +172,7 @@ import { planDeArranque } from "./lib/arranque";
 import { actaDeRelevo } from "./lib/relevo";
 import { type Hit } from "./lib/redact";
 import { perezoso } from "./lib/perezoso";
+import { entornoDeCaja, nombreDeCaja } from "./lib/cajas";
 import "@xterm/xterm/css/xterm.css";
 import "./App.css";
 
@@ -234,7 +238,7 @@ function App() {
   // a la que la sustituye, venga de donde venga la orden.
   const [apagadas, cambiarPartes] = usePartes();
   const vivasRef = useRef<TerminalesPorVista>({ cabina: 0, lienzo: 0 });
-  const setView = useCallback((v: View) => setVistaCruda(vistaPosible(v, leerApagadas(), vivasRef.current)), []);
+  const setView = useCallback((v: View) => setVistaCruda((antes) => (recordarVuelta(antes), vistaPosible(v, leerApagadas(), vivasRef.current))), []);
   /** La vista de ahora, para quien la necesita sin querer volver a crearse cada
    *  vez que cambias de pestaña. La lee `addPane` para saber dónde estás. */
   const viewRef = useRef<View>("panel");
@@ -415,11 +419,9 @@ function App() {
   vivasRef.current = vivas;
   // Si la vista de ahora deja de existir (se apagó, o cerró su última terminal), a la que la sustituye.
   useEffect(() => setVistaCruda((v) => vistaPosible(v, apagadas, vivasRef.current)), [apagadas, panes.length, canvasPanes.length]);
-  const [showForeman, setShowForeman] = useState(false);
-  /** Cierto cuando quien abre el Asistente es el atajo del dictado: nace
-      grabando. Se apaga al cerrarlo, para que la siguiente vez que lo abras a
-      mano no se ponga a grabar por su cuenta. */
-  const [dictarAlAbrir, setDictarAlAbrir] = useState(false);
+  // Adeo, y si se abre en la barra de la derecha o flotando (B1, `lib/adeoDonde.ts`).
+  const { showForeman, adeoLateral, enBarra: adeoEnBarra, ponerAdeo, cerrarAdeo, dictarAlAbrir, setDictarAlAbrir, caraVista, elegirCara } =
+    useAdeoDonde(viewRef);
   // META 6: extra Claude Code accounts, each one a config folder of its own.
   const [accounts, setAccounts] = useState<Account[]>(() => {
     try {
@@ -879,6 +881,11 @@ function App() {
     [],
   );
 
+  /** Las abiertas que no se ven (minimizadas o de un grupo apartado), para que
+      una terminal nueva mire la forma del mosaico con lo que se ve
+      (`colocarNueva`). Se pone al día abajo, junto a `apartadas`. */
+  const noSeVenRef = useRef<ReadonlySet<number>>(new Set());
+
   const addPane = useCallback(
     (
       name: string,
@@ -896,8 +903,8 @@ function App() {
       /** `quieto`: abrirla sin moverte de donde estás. Lo usa el conserje del
           chat, que abre sesiones de trabajo mientras hablas con él: llevarte a
           la Cabina en cada una sería sacarte de la conversación que las pidió.
-          `abiertaPor`: la sesión que la pidió por el MCP (`lib/puenteMcp.ts`). */
-      opciones?: { quieto?: boolean; abiertaPor?: string },
+          `abiertaPor`: quien la pidió por el MCP; `espejo`: el espejo que retoma. */
+      opciones?: { quieto?: boolean; abiertaPor?: string; espejo?: string },
     ) => {
       const id = nextId.current++;
       const inferido = entornoDePane(command, account);
@@ -905,6 +912,7 @@ function App() {
       const etiqueta = inferido.etiqueta;
       // También la que retoma la conversación de una delegada (Reanimar, la barra).
       const abiertaPor = delegacionDe(id, command, opciones?.abiertaPor);
+      const espejo = opciones?.espejo ?? (shadow ? `${id}-${Date.now().toString(36)}` : undefined); // con nombre desde que nace, el tablero la devuelve en su copia
 
       /* Estando en el LIENZO, la terminal nace en el lienzo.
          Antes esto acababa siempre en `setView("cabina")`, así que pulsar
@@ -922,7 +930,7 @@ function App() {
       if ((viewRef.current === "lienzo" && !at && !team) || !seVe("cabina", leerApagadas(), vivasRef.current)) {
         setCanvasPanes((prev) => [
           ...prev,
-          { id, cwd, name, command, env, account: etiqueta, abiertaPor },
+          { id, cwd, name, command, env, account: etiqueta, shadow, espejo, abiertaPor },
         ]);
         if (!opciones?.quieto) setView("lienzo");
         return { id, donde: "lienzo" as const };
@@ -930,9 +938,14 @@ function App() {
 
       setPanes((prev) => [
         ...prev,
-        { id, cwd, name, command, env, account: etiqueta, team, shadow, grupo, abiertaPor },
+        { id, cwd, name, command, env, account: etiqueta, team, shadow, espejo, grupo, abiertaPor },
       ]);
-      setCols((prev) => layoutAdd(prev, id, () => nextCol.current++, at));
+      // Partir un panel es decir dónde; sin eso, cae ordenada (`colocarNueva`).
+      setCols((prev) =>
+        at
+          ? layoutAdd(prev, id, () => nextCol.current++, at)
+          : colocarNueva(prev, id, () => nextCol.current++, noSeVenRef.current),
+      );
       if (!opciones?.quieto) {
         setFocusedId(id);
         setView("cabina");
@@ -1222,12 +1235,15 @@ function App() {
         });
 
       const n = Math.max(1, Math.min(l.count, openAllCap));
+      // caja: el nombre lo dice, y la marca del entorno la convierte Rust en un
+      // `docker run` (`lib/cajas.ts`).
+      const enCaja = l.caja ? ` · caja ${nombreDeCaja(l.caja) ?? ""}` : "";
       for (let i = 0; i < n; i++) {
-        const label = n === 1 ? `${l.name} · ${tag}` : `${l.name} · ${tag} ${i + 1}`;
+        const label = n === 1 ? `${l.name} · ${tag}${enCaja}` : `${l.name} · ${tag}${enCaja} ${i + 1}`;
         // Staggered: nine CLIs starting at the same instant fight for the CPU
         // and every one of them feels slow.
         window.setTimeout(
-          () => addPane(label, l.cwd, commandFor(), undefined, l.account),
+          () => addPane(label, l.cwd, commandFor(), undefined, l.account, undefined, undefined, undefined, entornoDeCaja(l.caja)),
           i * OPEN_ALL_STAGGER_MS,
         );
       }
@@ -1667,7 +1683,7 @@ function App() {
       // consola vacía, es una herramienta puesta a andar.
       // Con `viva`, el tablero que vuelve solo recoge una terminal que
       // aguantó una caída (`lib/reenganche.ts`).
-      propio?: { name?: string; command?: string[]; viva?: Recogida },
+      propio?: { name?: string; command?: string[]; viva?: Recogida; espejo?: string },
       /** En qué cuenta nace, cuando la eligió el router. Sin esto el lienzo
           abría siempre en la principal. */
       cuenta?: Account,
@@ -1699,8 +1715,8 @@ function App() {
         // La del lienzo que vuelve con la conversación de una delegada, también.
         abiertaPor: delegacionDe(id, command),
         // Si corría dentro de un espejo, vuelve siendo de espejo y con ESE.
-        shadow: propio?.viva?.espejo ? true : undefined,
-        espejo: propio?.viva?.espejo,
+        shadow: (propio?.viva?.espejo ?? propio?.espejo) ? true : undefined,
+        espejo: propio?.viva?.espejo ?? propio?.espejo,
       };
       setCanvasPanes((prev) => [...prev, pane]);
       return pane;
@@ -1722,7 +1738,7 @@ function App() {
     [],
   );
   const volverASuConversacion = useCallback(
-    (cwd: string, command?: string[]) => resumeCommandFor({ name: "", cwd, command }),
+    (cwd: string, command?: string[], espejo?: string) => resumeCommandFor({ name: "", cwd, command, espejo }),
     [],
   );
 
@@ -2287,7 +2303,7 @@ function App() {
     setView,
   });
 
-  useAtajosGlobales({ focusedId, panes, addPane, splitPane, onToggleMax, showForeman, setDictarAlAbrir, setShowForeman, setPanic, setStream });
+  useAtajosGlobales({ focusedId, panes, addPane, splitPane, onToggleMax, showForeman, setDictarAlAbrir, setShowForeman: ponerAdeo, setPanic, setStream, irAVista: setView });
 
   useEffect(() => {
     if (!stream) {
@@ -2429,6 +2445,7 @@ function App() {
   /** Lo que hay fuera del mosaico, para la tira del pie: es la única respuesta
       a «cuántos agentes tengo apartados» que no obliga a contarlos a mano. */
   const apartadas = useMemo(() => panes.filter(oculto), [panes, oculto]);
+  noSeVenRef.current = new Set(apartadas.map((p) => p.id));
 
   // La plantilla es para lo que se ve: lo apartado se reparte detrás, sin
   // ocupar un sitio que dejaría un hueco en la pantalla.
@@ -2640,7 +2657,7 @@ function App() {
   const cuentaDe: Partial<Record<View, number>> = {
     cabina: panes.length,
     lienzo: canvasPanes.length,
-    decisiones: pendientes(decisiones),
+    decisiones: useTeToca(decisiones),
   };
 
   /* El idioma se reparte por contexto, y React reparte por IDENTIDAD del valor:
@@ -2733,7 +2750,7 @@ function App() {
             se ve, que es el icono de la app; a 20 px perdía la proa. Va sola,
             sin «Adeorq» al lado (Munir, 2026-10-12): ya lo dice la ventana. */}
         <span className="brand">
-          <Campana enfocado={focusedId} irATerminal={(id) => irATerminal(id, canvasPanesRef.current.some((p) => p.id === id))} />
+          <Campana enfocado={focusedId} irATerminal={(id) => irATerminal(id, canvasPanesRef.current.some((p) => p.id === id))} onAbrirDecisiones={() => setView("decisiones")} />
         </span>
         <nav className="tabs">
           {tabsVisibles.map((tab) => (
@@ -2835,7 +2852,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           data-tip={t("Llamar a Adeo (Ctrl+Mayús+A · Ctrl+Mayús+M para dictarle)")}
           onClick={() => {
             setDictarAlAbrir(false);
-            setShowForeman((v) => !v);
+            ponerAdeo((v) => !v);
           }}
         >
           <Orbe estado={showForeman ? "escucha" : "reposo"} size={28} />
@@ -3255,8 +3272,22 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           )}
         </div>
         <PanelDerecho
-          cara={cara}
-          onCara={cambiarCara}
+          cara={caraVista(cara)}
+          onCara={(c) => elegirCara(c, cambiarCara)}
+          adeo={
+            adeoEnBarra ? (
+              <Foreman
+                enLateral
+                onRepartir={(texto) => {
+                  ponerAdeo(false);
+                  setReparto({ texto });
+                }}
+                exec={foremanExec}
+                dictarAlAbrir={dictarAlAbrir}
+                onClose={cerrarAdeo}
+              />
+            ) : null
+          }
           onWeb={() => nav.alternar(view === "cabina")}
           webAbierta={nav.abierto}
           web={
@@ -3363,7 +3394,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           onCuentaAdeo={(id) => mutateAccounts((prev) => ({ ...prev, def: id }))}
         />
       )}
-      {view === "decisiones" && <DecisionesView decisiones={decisiones} />}
+      {view === "decisiones" && <DecisionesView decisiones={decisiones} irATerminal={(id) => irATerminal(id, canvasPanesRef.current.some((p) => p.id === id))} irA={setView} onVolver={() => setView(vueltaDeDecisiones())} onHacer={hacerConsejo} />}
       {/* El Perfil, y la vuelta a él encima de sus cuatro secciones, que siguen aquí debajo tal cual. */}
       {pestanaDe(view) === "perfil" && <PerfilView vista={view} irA={setView} cuentas={cuentasDeUso} apagadas={apagadas} />}
       {view === "agenda" && (
@@ -3372,7 +3403,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           onOpenProject={goProject}
           modeloLocal={modeloLocal}
           onResume={onResume}
-          onHacer={hacerConsejo}
+          onPropuestas={() => setView("decisiones")}
           cuentas={accounts}
         />
       )}
@@ -3747,18 +3778,16 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
         </div>
       )}
 
-      {showForeman && (
+      {/* Flotando solo fuera de la Cabina: allí va en la barra de la derecha. */}
+      {showForeman && !adeoLateral && (
         <Foreman
           onRepartir={(texto) => {
-            setShowForeman(false);
+            ponerAdeo(false);
             setReparto({ texto });
           }}
           exec={foremanExec}
           dictarAlAbrir={dictarAlAbrir}
-          onClose={() => {
-            setShowForeman(false);
-            setDictarAlAbrir(false);
-          }}
+          onClose={cerrarAdeo}
         />
       )}
     </div>

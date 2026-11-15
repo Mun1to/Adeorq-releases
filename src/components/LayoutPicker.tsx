@@ -121,7 +121,7 @@ export default function LayoutPicker({
         ref={btn}
         className="tab layout-btn"
         data-active={open}
-        data-tip={t("Repartir las terminales en una plantilla")}
+        data-tip={t("Ordenar las terminales")}
         aria-label={t("Disposición")}
         onClick={() => {
           const r = btn.current?.getBoundingClientRect();
@@ -139,7 +139,7 @@ export default function LayoutPicker({
       {open &&
         createPortal(
           <div className="layout-pop" style={{ top: at.top, right: at.right }}>
-            <div className="layout-pop-title">{t("Reparte lo que tienes abierto")}</div>
+            <div className="layout-pop-title">{t("Ordena lo que tienes abierto")}</div>
             <div className="layout-rejilla" onMouseLeave={() => setSobre(null)}>
               {CASILLAS.map(({ c, r }) => (
                 <button

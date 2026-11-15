@@ -170,7 +170,7 @@ From left to right:
 |---|---|
 | **Adeo, the mascot** | It is the notification bell and stands alone, without the app's name next to it. Its pose tells you the most urgent thing going on, in this order: it calls you if a terminal is waiting for you, is left in doubt if a decision is waiting for you, celebrates if someone finished without you having seen it, frets if a scheduled order has stopped, types if your agents are working, dances if music is playing, stays still if nothing is going on and sleeps if no terminal is open. If you click it, it hops, and on the third click in a row a heart comes out. The number it carries on top is the notices you have not seen. Clicking it opens **Notifications**, with which terminal it is, whether it "finished" or "is waiting for you" and how long ago; a row takes you to that terminal. **The list empties itself**: what was waiting for you goes when you answer it or close the terminal, and what finished goes when you close the list or enter that terminal. |
 | **The seven tabs** | Dashboard, Cockpit, Chat, Decisions, Canvas, Profile and Settings. If the window is narrow they shrink to the icon and the name shows when you hover. They are explained in [section 3](#3-the-seven-tabs). |
-| **A number on a tab** | On Cockpit and Canvas, how many terminals you have open there. On Decisions, how many are waiting for you (in amber). |
+| **A number on a tab** | On Cockpit and Canvas, how many terminals you have open there. On Decisions, how many things are your turn (in amber). |
 | **Today's goals** | An icon that opens a floating panel with what you want to get closed today. You can drag it wherever you like, fold it down to just the counter (for example 2/3) and close it with Esc. More in [section 13](#13-agenda). |
 | **The Pulse** | A pill with three figures: what Adeorq and its agents use in CPU, in memory (RAM) and how many agents are alive (AG). It turns amber when Adeorq uses a quarter or more of the machine's CPU or memory, and red when the whole machine is at 90% or Adeorq alone goes over 50% CPU. A click opens **What Adeorq is using**, with the detail. It measures the whole tree of processes, not just the window. |
 | **The music strip** | Only appears if something is playing on the PC: title, artist, previous, pause and next. The volume stays in the system mixer. It is not there on Linux and Mac. |
@@ -196,8 +196,8 @@ model and the project. It is explained field by field in
   centre, a strip of tools on the right.
 - **Chat** (beta): the same conversations as the Cockpit, read like a chat, and on
   top Adeo, who opens sessions for you.
-- **Decisions**: what your agents ask you with options, so you can answer on the
-  spot.
+- **Decisions**: everything that needs your finger in a single list: what is your
+  turn, what finished and the ideas from your agents.
 - **Canvas**: a free board where terminals move around, connect with arrows and
   live next to notes, drawing and tools.
 - **Profile**: you (name, @ and photo), your usage and four sections that live
@@ -447,20 +447,37 @@ What is worth knowing:
 
 ## 7. Decisions
 
-When an agent needs you to choose something, it asks you here instead of in the
-chat. The tab lists **Waiting for you** and **Earlier**. Each question brings from
-two to six numbered options (the recommended one carries "Recommended", and none
-comes ticked) and a box **Something else, in your own words**.
+Everything that needs your finger, in a single list and like an email program: the
+list on the left and what you open on the right. Each row starts with a word that
+says what it is, in this order:
 
-- **Send answer** waits five seconds with **Undo** and then types it into the
-  terminal that asked, if it is still the same one. If not, the agent reads it when
-  it looks again.
+- **Your turn**: a terminal stopped on a question or a permission (**Answer**), a
+  question from an agent with options (**Decide**) and a scheduled job the brake
+  stopped (**Stopped**). This is what the amber number on the tab counts.
+- **Finished**: the finished turns you have not looked at yet (**Look**).
+- **Ideas from your agents**: what they leave written down for you while they work
+  (**Idea**). You accept it (a step goes into its project's `METAS.md` and an idea into
+  the brújula), discard it or, if it brings an action, do it.
+- **Past**: the questions already answered, discarded or that no one waits for any
+  more. They delete themselves after a week.
+
+When an agent needs you to choose something, it asks you here instead of in the
+chat. Each question brings from two to six numbered options (the recommended one
+carries "Recommended", and none comes ticked) and a box **Something else, in your
+own words**.
+
+- **Send answer**, in the bar at the bottom, waits five seconds with **Undo** and then
+  types it into the terminal that asked, if it is still the same one. If not, the
+  agent reads it when it looks again.
 - **Discard** sets it aside without answering and warns the terminal that was
   waiting.
-- The earlier ones delete themselves after a week.
-- The notice is an amber count on the tab and Adeo with a doubtful face. On the
-  paired phone a notification arrives and you answer from there
-  ([section 19](#19-on-your-phone)).
+- **With the keyboard**: **J** and **K** (or the arrows) to go down and up, **Enter**
+  to open, **1** to **9** to choose, **Tab** to move to the next question, **O** to
+  write in your own words, **Ctrl+Enter** to send and **Esc** to go back to where you
+  were. **?** shows all the keys, and **Ctrl+Shift+B** opens Decisions from anywhere.
+- The notice is the amber count on the tab and Adeo with a doubtful face; its list
+  ends in **Open Decisions**. On the paired phone a notification arrives and you
+  answer from there ([section 19](#19-on-your-phone)).
 
 ---
 
@@ -701,7 +718,9 @@ Adeorq watches the screen of each terminal and turns the cryptic into buttons.
    has already been compacted twice, it offers a new one instead of a third.
 6. **Shadow Mode**: a terminal born in shadow works on a separate branch, and its
    button opens **Shadow proposals** with *Accept* and *Discard*. It is chosen when
-   opening; it cannot be turned on midway.
+   opening; it cannot be turned on midway. The terminals its agent opens are born
+   inside the same copy, and the list also shows what the agent already saved in
+   commits. Scheduled orders are born this way on their own.
 
 If you use a program in the **alternate screen** (the "fullscreen" mode of Claude
 Code), Adeorq behaves like a normal terminal: the wheel goes to the program.
@@ -910,10 +929,10 @@ a calendar of the month that marks on each day how many goals you did.
   session here**. If you have chosen a local model in Settings, each one carries a line
   about what it needs from you.
 - **From your agents** (the tray): while they work, loose ends come up that are not
-  for now. Instead of interrupting you, the agents write them down there, one at a
-  time, and you choose **Accept** (a step is written into the project's `METAS.md`),
-  **Discard** or **Later**. An agent can propose things there without touching any of
-  your credentials.
+  for now. Instead of interrupting you, the agents write them down there, and the
+  number takes you to **Decisions**, where you accept or discard them
+  ([section 7](#7-decisions)). An agent can propose things there without touching any
+  of your credentials.
 - **Next steps**: the goals in the `docs/METAS.md` of the project you choose and its
   parked items.
 - **Ideas and external dates**: they come from the **compass**, a separate service
@@ -940,6 +959,12 @@ model and a name.
   85% or more, that time is skipped and it does not count as a failure.
 - It is born in auto mode; if it asks something, the question reaches the phone.
   There is a limit of twenty orders.
+- **In a separate copy**: since nobody watches it while it works, if its folder is a
+  git repository it is born in **Shadow Mode**, and whatever its agent opens is born
+  inside that same copy. Your folder is not touched: in the morning the terminal is
+  still there with its Shadow button, and you accept or discard what it did. With
+  work not yet accepted, no agent and not even the clock closes it (you can, with the
+  X). In a folder without git it works in that folder, as always.
 
 The clock works on Windows, Linux and macOS; on Linux and Mac it has not been tested
 yet on a real desktop.
@@ -1044,6 +1069,8 @@ names appear below so you can jump to one.
 - **At 450,000 tokens of context**: warn and wait for the button, compact by itself
   without commits, or compact by itself with the whole `/fin`
   ([section 10](#10-what-appears-inside-a-terminal)).
+- **Tell the terminal that opened others when they finish, get blocked or ask** (on by
+  default): see [section 17](#17-what-an-outside-program-can-do).
 - **Start Adeorq when the computer boots.**
 - **When you close the window**: *Ask every time*, *Keep running in the background*
   (the window hides, the agents carry on and an icon is left next to the clock) or
@@ -1146,7 +1173,7 @@ Adeorq has a local door, the **MCP**, through which an AI program can look at an
 handle your terminals: list projects and terminals, read what is on screen in one,
 open a new one, write to it, ask you something with options (which reaches
 [Decisions](#7-decisions) and the phone), check your quota and the house memory.
-There are eighteen tools, spread over three tiers named in plain words:
+There are twenty-two tools, spread over three tiers named in plain words:
 
 - **Look only**: reads terminals, projects, the agenda, the quota and memory. It
   changes nothing.
@@ -1154,6 +1181,16 @@ There are eighteen tools, spread over three tiers named in plain words:
   canvas, asks you questions and closes **the ones that same program opened**. It does
   not write into other people's.
 - **All**: also writes into any terminal, closes it and can compact it.
+
+**When a terminal opens others**, it does not have to keep watching them. At the end of
+each one's brief, Adeorq asks it to say how it ended (done, blocked, failed or that it
+needs you) with the `entregar` tool, and if it stops without saying so, asks something
+or closes, Adeorq sees that too. All of it is typed into the terminal that opened it in
+ONE line starting with `[adeorq]`, as soon as that one stops with an empty input box:
+never while it works, never over something you are typing and, for now, only if it is a
+Claude Code (for another CLI Adeorq cannot tell whether its box is empty, and it does not
+type blind). At most twenty an hour for each; past that, only the bell. It is turned off
+in **Settings › Terminals**.
 
 **How you connect your Claude Code to these tools.** With a button: the welcome has a
 step, **Connect your Claude Code**, and the same is in **Settings › Terminals › Connect
@@ -1522,6 +1559,7 @@ the shortcuts written out.
 | Ctrl+Shift+F | Maximise or restore the active terminal |
 | Ctrl+Shift+A | Call or close Adeo |
 | Ctrl+Shift+M | Call Adeo and dictate to it |
+| Ctrl+Shift+B | Open Decisions: your turn |
 | Ctrl+Shift+E | Streaming mode |
 | Ctrl+Shift+P | The curtain: covers the whole window |
 | Alt (held) | Look at what streaming mode covers |

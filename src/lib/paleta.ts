@@ -56,6 +56,7 @@ export const ATAJOS: Array<{ texto: string; key: string; atajo: string }> = [
   { texto: "Maximizar o restaurar el panel", key: "F", atajo: "Ctrl+Mayús+F" },
   { texto: "Llamar a Adeo", key: "A", atajo: "Ctrl+Mayús+A" },
   { texto: "Dictarle a Adeo", key: "M", atajo: "Ctrl+Mayús+M" },
+  { texto: "Abrir Decisiones: lo que te toca", key: "B", atajo: "Ctrl+Mayús+B" },
   { texto: "Modo emisión: tapar rutas, claves y datos", key: "E", atajo: "Ctrl+Mayús+E" },
   { texto: "Tapar la pantalla entera", key: "P", atajo: "Ctrl+Mayús+P" },
 ];

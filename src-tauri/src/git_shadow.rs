@@ -101,18 +101,7 @@ pub struct ShadowFileStatus {
 #[tauri::command]
 pub async fn shadow_init(project_path: String, pane_id: String) -> Result<HashMap<String, String>, String> {
     id_valido(&pane_id)?;
-
-    // Que sea un repo, antes de nada: sin git no hay espejo que montar.
-    run_git(&project_path, &["rev-parse", "--git-dir"])
-        .map_err(|_| "esta carpeta no es un repositorio de git".to_string())?;
-
-    let base_branch = run_git(&project_path, &["branch", "--show-current"])?
-        .trim()
-        .to_string();
-    if base_branch.is_empty() {
-        // HEAD suelto: no hay rama a la que volver, así que no se empieza.
-        return Err("el repositorio no está en ninguna rama (HEAD suelto)".into());
-    }
+    let base_branch = rama_base(&project_path)?;
 
     let rama = rama_de(&pane_id);
     let ruta = ruta_espejo(&project_path, &pane_id);
@@ -131,6 +120,7 @@ pub async fn shadow_init(project_path: String, pane_id: String) -> Result<HashMa
     }
 
     std::fs::create_dir_all(ruta.parent().unwrap_or(&ruta)).map_err(|e| e.to_string())?;
+    fuera_de_tu_git(&project_path);
 
     // Si la rama existe de antes, se engancha; si no, se crea desde HEAD.
     let existe = run_git(&project_path, &["rev-parse", "--verify", &rama]).is_ok();
@@ -145,7 +135,7 @@ pub async fn shadow_init(project_path: String, pane_id: String) -> Result<HashMa
     // pequeños; las dependencias (node_modules, target) NO se copian ni se
     // enlazan a propósito: son gigantes, y enlazarlas es lo que la propia
     // documentación de Cursor recomienda no hacer.
-    for nombre in [".env", ".env.local", ".env.development"] {
+    for nombre in COPIADOS {
         let origen = Path::new(&project_path).join(nombre);
         if origen.is_file() {
             let _ = std::fs::copy(&origen, ruta.join(nombre));
@@ -158,6 +148,103 @@ pub async fn shadow_init(project_path: String, pane_id: String) -> Result<HashMa
     res.insert("worktreePath".into(), ruta_txt);
     res.insert("reutilizado".into(), "false".into());
     Ok(res)
+}
+
+/// La rama de la que nacería un espejo, o por qué no se puede montar: sin repo
+/// no hay espejo, y con HEAD suelto no hay rama a la que volver.
+///
+/// Y el repo tiene que ser SUYO: `C:\proyectos` es un repo, y una carpeta de
+/// dentro sin repo propio (Moneorq, `_docs`…) pasaba el `rev-parse`, así que el
+/// `worktree add` copiaba `C:\proyectos` entero, sin sus ficheros, y Aceptar
+/// fusionaba en la rama del de fuera (revisión del 2026-11-15).
+fn rama_base(project_path: &str) -> Result<String, String> {
+    let raiz = run_git(project_path, &["rev-parse", "--show-toplevel"])
+        .map_err(|_| "esta carpeta no es un repositorio de git".to_string())?;
+    if !misma_carpeta(raiz.trim(), project_path) {
+        return Err(format!("esta carpeta no tiene su propio repositorio de git (está dentro del de {})", raiz.trim()));
+    }
+    let rama = run_git(project_path, &["branch", "--show-current"])?.trim().to_string();
+    if rama.is_empty() {
+        return Err("el repositorio no está en ninguna rama (HEAD suelto)".into());
+    }
+    Ok(rama)
+}
+
+/// Que `.adeorq/` no salga en TU `git status`. Va al `info/exclude` del repo,
+/// que no se versiona: tu `.gitignore` no se toca. Sin esto, un proyecto que no
+/// lo ignora enseña `?? .adeorq/`, y un `git add .` despistado mete el árbol
+/// del espejo como un repo dentro de otro.
+fn fuera_de_tu_git(project_path: &str) {
+    use std::io::Write;
+    let Ok(comun) = run_git(project_path, &["rev-parse", "--path-format=absolute", "--git-common-dir"]) else {
+        return;
+    };
+    let excluir = Path::new(comun.trim()).join("info").join("exclude");
+    // Uno que no se puede leer (otra codificación) no se toca: reescribirlo
+    // como vacío se llevaba lo que tenías. Se AÑADE al final, nunca se reescribe.
+    let hay = match std::fs::read(&excluir) {
+        Ok(b) => String::from_utf8_lossy(&b).into_owned(),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(_) => return,
+    };
+    if hay.lines().any(|l| matches!(l.trim(), ".adeorq" | ".adeorq/" | "/.adeorq" | "/.adeorq/")) {
+        return;
+    }
+    let _ = std::fs::create_dir_all(excluir.parent().unwrap_or(&excluir));
+    let salto = if hay.is_empty() || hay.ends_with('\n') { "" } else { "\n" };
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&excluir) {
+        let _ = write!(f, "{salto}/.adeorq/\n");
+    }
+}
+
+/// La misma carpeta, venga como venga escrita: git la da con `/` y Windows con
+/// `\`, y una unidad hecha con `subst` se compara por lo que es de verdad.
+fn misma_carpeta(a: &str, b: &str) -> bool {
+    let plano = |s: &str| s.replace('\\', "/").trim_end_matches('/').to_lowercase();
+    if plano(a) == plano(b) {
+        return true;
+    }
+    matches!((std::fs::canonicalize(a), std::fs::canonicalize(b)), (Ok(x), Ok(y)) if x == y)
+}
+
+/// Lo que Adeorq copió al montar el espejo (`shadow_init`): suelto en un
+/// proyecto que no lo ignora, no es trabajo del agente.
+const COPIADOS: [&str; 3] = [".env", ".env.local", ".env.development"];
+
+/// Si en esta carpeta se puede montar un espejo, antes de abrir la terminal:
+/// una que nace sin él cuando lo pidió no se abre (`TerminalPane`), y un
+/// encargo de la noche en una carpeta sin git tiene que nacer como siempre.
+#[tauri::command]
+pub async fn shadow_disponible(project_path: String) -> Result<String, String> {
+    rama_base(&project_path)
+}
+
+/// Lo que el espejo tiene sin aceptar: ficheros sueltos y commits que su rama
+/// lleva por delante de la base. Los dos cuentan: un agente que hace commit en
+/// su árbol deja el `status` limpio y el trabajo entero en la rama.
+#[derive(Serialize)]
+pub struct Pendiente {
+    pub sueltos: usize,
+    pub commits: usize,
+}
+
+#[tauri::command]
+pub async fn shadow_pendiente(worktree_path: String, base_branch: String) -> Result<Pendiente, String> {
+    // Borrada a mano: no queda nada que aceptar, y sin esto esa terminal no se
+    // podía cerrar nunca.
+    if !Path::new(&worktree_path).is_dir() {
+        return Ok(Pendiente { sueltos: 0, commits: 0 });
+    }
+    let sueltos = run_git(&worktree_path, &["--no-optional-locks", "status", "--porcelain"])?
+        .lines()
+        .filter_map(partir_estado)
+        .filter(|(estado, ruta)| !(estado == "??" && COPIADOS.contains(&ruta.as_str())))
+        .count();
+    let commits = run_git(&worktree_path, &["rev-list", "--count", &format!("{base_branch}..HEAD")])?
+        .trim()
+        .parse()
+        .unwrap_or(0);
+    Ok(Pendiente { sueltos, commits })
 }
 
 /// El diff del espejo contra su base. Se lee DENTRO del worktree.
@@ -198,16 +285,36 @@ pub(crate) fn partir_estado(linea: &str) -> Option<(String, String)> {
 }
 
 #[tauri::command]
-pub async fn shadow_status(worktree_path: String) -> Result<Vec<ShadowFileStatus>, String> {
+pub async fn shadow_status(worktree_path: String, base_branch: Option<String>) -> Result<Vec<ShadowFileStatus>, String> {
     // Se relee en cada campana del panel, dentro del árbol donde el agente hace
     // sus commits: sin coger su `index.lock`.
     let status_out = run_git(&worktree_path, &["--no-optional-locks", "status", "--porcelain"])?;
-    let files = status_out
+    let mut files: Vec<ShadowFileStatus> = status_out
         .lines()
         .filter_map(partir_estado)
         .map(|(status, path)| ShadowFileStatus { status, path })
         .collect();
+    // Y lo que ya guardó en commits de su rama, que el `status` no ve: un agente
+    // que hace commit en su árbol (el de la noche lo hace) dejaba la lista en
+    // cero con todo su trabajo dentro.
+    if let Some(base) = base_branch.filter(|b| !b.is_empty()) {
+        let hechos = run_git(&worktree_path, &["diff", "--name-status", &format!("{base}...HEAD")]).unwrap_or_default();
+        for (status, path) in hechos.lines().filter_map(partir_hecho) {
+            if !files.iter().any(|f| f.path == path) {
+                files.push(ShadowFileStatus { status, path });
+            }
+        }
+    }
     Ok(files)
+}
+
+/// Una línea de `git diff --name-status`: «M\truta», o «R100\tvieja\tnueva» en
+/// un renombre, que cuenta por la nueva.
+pub(crate) fn partir_hecho(linea: &str) -> Option<(String, String)> {
+    let (estado, resto) = linea.split_once('\t')?;
+    let ruta = resto.rsplit('\t').next()?.trim();
+    let letra: String = estado.chars().take(1).collect();
+    (!ruta.is_empty() && !letra.is_empty()).then(|| (letra, ruta.to_string()))
 }
 
 /**
@@ -303,7 +410,74 @@ fn limpiar(project_path: &str, worktree_path: &str, rama: &str) -> Result<(), St
 
 #[cfg(test)]
 mod tests {
-    use super::partir_estado;
+    use super::{partir_estado, partir_hecho};
+
+    #[test]
+    fn lo_guardado_en_commits_cuenta_por_su_ruta_nueva() {
+        assert_eq!(partir_hecho("M\tsrc/Añadir.tsx"), Some(("M".into(), "src/Añadir.tsx".into())));
+        assert_eq!(partir_hecho("R087\tviejo.txt\tnuevo.txt"), Some(("R".into(), "nuevo.txt".into())));
+        assert_eq!(partir_hecho("A\t"), None);
+        assert_eq!(partir_hecho(""), None);
+    }
+
+    /// Un repo de verdad en `%TEMP%`: el espejo nace, el agente deja un fichero
+    /// suelto y un commit, y los dos cuentan como pendientes; tu `git status`
+    /// no enseña `.adeorq/` aunque el proyecto no lo ignore.
+    #[test]
+    fn el_espejo_cuenta_lo_suelto_y_lo_guardado_y_no_ensucia_tu_status() {
+        use std::process::Command;
+        let dir = std::env::temp_dir().join(format!("adeorq-pendiente-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let p = dir.to_string_lossy().into_owned();
+        let git = |d: &str, args: &[&str]| {
+            let ok = Command::new("git").args(["-C", d, "-c", "user.name=lab", "-c", "user.email=lab@lab"]).args(args).status().unwrap().success();
+            assert!(ok, "git {args:?}");
+        };
+        git(&p, &["init", "-q", "-b", "main"]);
+        std::fs::write(dir.join("a.txt"), "uno").unwrap();
+        git(&p, &["add", "a.txt"]);
+        git(&p, &["commit", "-q", "-m", "base"]);
+        // Un `.env` que el proyecto no ignora: Adeorq lo copia, y no es trabajo del agente.
+        std::fs::write(dir.join(".env"), "CLAVE=x").unwrap();
+        // Y una carpeta de dentro sin repo propio, como Moneorq en `C:\proyectos`.
+        std::fs::create_dir_all(dir.join("sub")).unwrap();
+        let dentro = tauri::async_runtime::block_on(super::shadow_disponible(dir.join("sub").to_string_lossy().into_owned()));
+
+        assert_eq!(tauri::async_runtime::block_on(super::shadow_disponible(p.clone())).unwrap(), "main");
+        let s = tauri::async_runtime::block_on(super::shadow_init(p.clone(), "9-lab".into())).unwrap();
+        let arbol = s["worktreePath"].clone();
+        let pend = |a: &str| tauri::async_runtime::block_on(super::shadow_pendiente(a.into(), "main".into())).unwrap();
+        let al_nacer = (pend(&arbol).sueltos, pend(&arbol).commits);
+
+        std::fs::write(std::path::Path::new(&arbol).join("b.txt"), "dos").unwrap();
+        assert_eq!(pend(&arbol).sueltos, 1);
+        git(&arbol, &["add", "b.txt"]);
+        git(&arbol, &["commit", "-q", "-m", "del agente"]);
+        let (sueltos, commits) = (pend(&arbol).sueltos, pend(&arbol).commits);
+        let lista = tauri::async_runtime::block_on(super::shadow_status(arbol.clone(), Some("main".into()))).unwrap();
+        let tuyo = Command::new("git").args(["-C", &p, "status", "--porcelain"]).output().unwrap();
+        let tuyo = String::from_utf8_lossy(&tuyo.stdout).into_owned();
+        let _ = tauri::async_runtime::block_on(super::shadow_discard(p.clone(), arbol.clone(), "9-lab".into()));
+        let tirado = (pend(&arbol).sueltos, pend(&arbol).commits);
+        let _ = std::fs::remove_dir_all(&dir);
+
+        assert!(dentro.as_ref().is_err_and(|e| e.contains("propio repositorio")), "una carpeta sin repo propio no tiene espejo: {dentro:?}");
+        assert_eq!(al_nacer, (0, 0), "lo que copia Adeorq al nacer no cuenta como trabajo");
+        assert_eq!(tirado, (0, 0), "una copia que ya no está no deja nada pendiente");
+        assert_eq!((sueltos, commits), (0, 1), "el commit del agente cuenta aunque el status esté limpio");
+        assert!(lista.iter().any(|f| f.path == "b.txt"), "la lista enseña lo que ya está en commits");
+        assert!(!tuyo.contains(".adeorq"), "tu status enseña el espejo: {tuyo}");
+    }
+
+    #[test]
+    fn sin_repo_no_hay_espejo() {
+        let dir = std::env::temp_dir().join(format!("adeorq-sin-git-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let r = tauri::async_runtime::block_on(super::shadow_disponible(dir.to_string_lossy().into_owned()));
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(r.unwrap_err().contains("no es un repositorio"));
+    }
 
     /// El corte por bytes de antes (`linea[..2]`, `linea[3..]`) reventaba en
     /// cuanto la ruta traía una tilde en el sitio justo. Es el mismo error que

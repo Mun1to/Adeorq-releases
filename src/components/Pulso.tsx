@@ -37,6 +37,8 @@ const CADA_MS = 5000;
 /** El ancho del detalle, el de `.pulso-detalle` en `13-agenda.css`. */
 const ANCHO = 320;
 
+const PULSO_SE_QUEDA_MS = 30_000;
+
 export default function Pulso() {
   const { t, lang } = useT();
   const [d, setD] = useState<Datos | null>(null);
@@ -44,6 +46,9 @@ export default function Pulso() {
   const [sitio, setSitio] = useState({ x: 0, y: 0 });
   const boton = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
+  /** La última vez que estuvo en ámbar o en rojo: se queda un rato a la vista
+      al bajar, para no parpadear con una CPU que ronda la raya. */
+  const caliente = useRef(0);
 
   useEffect(() => {
     const leer = () => void invoke<Datos>("pulso").then(setD).catch(() => {});
@@ -90,6 +95,11 @@ export default function Pulso() {
   // máquina él solo: con la CPU dentro, lo segundo pasa más que lo primero.
   const nivel =
     d.sistemaPct >= 90 || d.cpuPct >= 50 ? "alto" : d.ramPct >= 25 || d.cpuPct >= 25 ? "medio" : "";
+  // Solo sale en ámbar o en rojo (Munir, C1 del 2026-11-15: «si algo sale en
+  // pantalla es que hay que mirarlo»), y medio minuto más al bajar. Abierto, no
+  // se va de debajo del dedo.
+  if (nivel) caliente.current = Date.now();
+  if (!nivel && !abierto && Date.now() - caliente.current > PULSO_SE_QUEDA_MS) return null;
 
   return (
     <div className="pulso-caja">

@@ -188,7 +188,7 @@ try {
 
   // 2b. R3.2: la segunda seguida, con la misma foto, cuenta la que ya abrió.
   const segunda = await abrir({ name: "segunda" });
-  dice(/más 1 terminal abierta desde entonces \(\+10\)/.test(segunda.texto ?? ""), "una segunda apertura seguida cuenta la que ya abrió en esa cuenta", segunda.texto ?? segunda.error);
+  dice(/con 1 terminal abierta desde la última lectura, se calcula ~\d+ %/.test(segunda.texto ?? ""), "una segunda apertura seguida cuenta la que ya abrió en esa cuenta", segunda.texto ?? segunda.error);
   // 2b bis. Dos A LA VEZ, que es lo que pide el propio MCP («at the same time»):
   // dos agentes distintos, o un cliente que lanza en paralelo. Las dos pasan por
   // la misma foto y ninguna ha nacido aún cuando decide la otra.

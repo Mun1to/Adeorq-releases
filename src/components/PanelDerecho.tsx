@@ -14,12 +14,14 @@
 
 import { useT } from "../lib/i18n";
 import { BookIcon, BrowserIcon, FolderIcon, GaugeIcon } from "./Icons";
+import Orbe from "./Orbe";
 
 /** Qué panel se está viendo. Vacío es «ninguno, solo la franja». Hubo una
     cara «actividad» (skills, MCP y llamadas al modelo de la terminal enfocada)
     hasta el 2026-10-18: Munir la quitó porque Archivos ya enseña lo que toca
-    el agente, y con animaciones. */
-export type Cara = "" | "uso" | "skills" | "archivos";
+    el agente, y con animaciones. «adeo» es la ventana de Adeo (B1, 2026-11-15):
+    la lleva `App` aparte, porque se abre también con su atajo y su bola. */
+export type Cara = "" | "uso" | "skills" | "archivos" | "adeo";
 
 interface Props {
   cara: Cara;
@@ -32,6 +34,11 @@ interface Props {
       antes vivía al fondo de Skills, que no tiene nada que ver. */
   uso: React.ReactNode;
   archivos: React.ReactNode;
+  /** Adeo, cuando se le llama desde la Cabina (Munir, B1, 2026-11-15: «Adeo se
+      abre en la barra de la derecha, como Uso, Skills y Archivos, y las
+      terminales siguen a la vista»; antes era una ventana que oscurecía todo).
+      Sin esto, la franja no enseña su icono. */
+  adeo?: React.ReactNode;
   /** Abrir o cerrar el navegador. Su botón vive en la franja desde que Munir lo
       pidió ahí (2026-08-15): la franja es «lo que puedes abrir». */
   onWeb?: () => void;
@@ -48,6 +55,7 @@ const CARAS: Array<{ id: Exclude<Cara, "">; titulo: string; icono: React.ReactNo
   { id: "skills", titulo: "Skills", icono: <BookIcon size={16} /> },
   { id: "archivos", titulo: "Archivos", icono: <FolderIcon size={16} /> },
 ];
+const ADEO = { id: "adeo" as const, titulo: "Adeo", icono: <Orbe estado="reposo" size={18} /> };
 
 export default function PanelDerecho({
   cara,
@@ -55,12 +63,14 @@ export default function PanelDerecho({
   skills,
   uso,
   archivos,
+  adeo,
   onWeb,
   web,
   webAbierta = false,
 }: Props) {
   const { t } = useT();
-  const actual = CARAS.find((c) => c.id === cara);
+  const caras = adeo !== undefined ? [ADEO, ...CARAS] : CARAS;
+  const actual = caras.find((c) => c.id === cara);
 
   // Un solo hijo y no dos sueltos. La Cabina es un flex y le daba igual, pero
   // el Chat es un grid de tres columnas: con el panel y la franja como hermanos
@@ -70,7 +80,7 @@ export default function PanelDerecho({
   return (
     <div className="lateral-zona">
       {actual && (
-        <aside className="lateral">
+        <aside className="lateral" data-cara={cara}>
           {/* Sin botón de cerrar. Lo llevaba, y sobraba desde que la franja
               existe: el icono de la cara abierta ya la cierra al volver a
               pulsarlo, así que eran dos botones para lo mismo y uno de ellos
@@ -82,7 +92,7 @@ export default function PanelDerecho({
             </span>
           </div>
           <div className="lateral-cuerpo">
-            {cara === "uso" ? uso : cara === "skills" ? skills : archivos}
+            {cara === "adeo" ? adeo : cara === "uso" ? uso : cara === "skills" ? skills : archivos}
           </div>
         </aside>
       )}
@@ -90,7 +100,7 @@ export default function PanelDerecho({
       {web}
 
       <nav className="franja">
-        {CARAS.map((c) => (
+        {caras.map((c) => (
           <button
             key={c.id}
             className="franja-btn"

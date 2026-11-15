@@ -59,6 +59,9 @@ pub struct Delegada {
     /// La cerraron: con `close_pane` o a mano.
     #[serde(default)]
     pub cierre: Option<Cierre>,
+    /// Lo último que dijo ella misma de cómo acabó (`entregar`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub entrega: Option<super::entregar::Entrega>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -315,6 +318,7 @@ mod tests {
             abierta_ms,
             salida: None,
             cierre: None,
+            entrega: None,
         }
     }
 

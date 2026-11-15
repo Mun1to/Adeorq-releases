@@ -41,6 +41,9 @@ export interface PedidoMcp {
   escribe?: boolean;
   /** El nombre del bot conectado que la abre (`bots_conexion.rs`). Lo pone Rust. */
   deBot?: string | null;
+  /** La caja aparte donde nace la terminal de `open_pane` (`docker:ubuntu`,
+      `docker:fedora` o `docker:debian`). La valida Rust (`caja.rs`). */
+  caja?: string | null;
   to?: number | null;
   auto?: boolean;
   /** La terminal sobre la que va el pedido, cuando no se abre una nueva
@@ -50,11 +53,33 @@ export interface PedidoMcp {
   /** `close_pane` de un relevo por cuota (`lib/relevoCuota.ts`): su conversación
    *  sigue en la nueva, así que no se olvida que es delegada. Lo pone Rust. */
   relevo?: boolean;
+  /** `open_pane` de un encargo programado: que nazca en una copia aparte (el
+   *  Modo Espejo) si su carpeta es un repo de git (`lib/copiaAparte.ts`). Lo
+   *  pone `programados.rs`, nunca un agente. */
+  espejo?: boolean;
   /** `compactarme`: lo que se pega detrás de `/compact` (Rust ya lo limpió
    *  de teclas) y lo que se le escribe al acabar (`null`, el de la casa). */
   mensaje?: string;
   seguir?: string | null;
+  /** `entrega`: lo que entregó la hija `paneId` a su madre (`entregar`, ya
+   *  validado en `mcp/entregar.rs`). */
+  madre?: number;
+  estado?: string;
+  resumen?: string;
 }
+
+/**
+ * Lo que va al final del encargo de una terminal que abre un agente, para que
+ * diga cómo acabó (`entregar`) y su madre no tenga que mirar su pantalla. Va en
+ * el encargo y no en las instrucciones del MCP porque así le llega a cualquier
+ * CLI, y las instrucciones ya rozan el tope viejo de 2.048 caracteres. Con el
+ * `[adeorq]` delante, como lo que Adeorq le teclea a la madre, para que no se
+ * lea como parte de lo que pidió quien la abrió.
+ */
+export const COLA_DE_ENTREGA =
+  "\n\n[adeorq] Te abrió esta terminal otro agente. Cuando acabes, te bloquees, falle o necesites a Munir, " +
+  "deja tu traspaso donde lo guarde el proyecto y llama a la herramienta `entregar` del MCP de Adeorq con cómo acabó: " +
+  "así se entera sin mirar tu pantalla.";
 
 /** Lo que se le devuelve a Rust, que se lo devuelve al agente. */
 export interface RespuestaMcp {
@@ -182,7 +207,7 @@ export function parteDeApertura(a: {
   if (!a.conEncargo) {
     lineas.push(
       escribe
-        ? `«${a.cli}» no admite el encargo al arrancar, así que ha nacido vacía: mándaselo tú con send_command(${a.paneId}, "...") en cuanto veas por read_pane_transcript que ya está lista.`
+        ? `«${a.cli}» no admite el encargo al arrancar, así que ha nacido vacía: mándaselo tú con send_command(${a.paneId}, "...") en cuanto veas por read_pane_transcript que ya está lista, y pídele en él que al acabar llame a entregar.`
         : `«${a.cli}» no admite el encargo al arrancar, así que ha nacido vacía, y tú no puedes escribir en ella: tendrá que dárselo quien usa Adeorq.`,
     );
   }

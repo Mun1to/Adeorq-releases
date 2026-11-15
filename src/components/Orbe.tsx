@@ -190,11 +190,12 @@ export default function Orbe({ estado = "reposo", size = 22, onClick, title }: P
   espera.current = esperaEntrePasos(estado);
 
   useEffect(() => {
-    /** Quien pide menos movimiento no lo pierde: se le va a la mitad de
-        velocidad. Es la regla de la casa para las webs de Munir y aquí vale
-        igual, porque este punto no es un adorno, es el estado del Asistente:
-        apagarlo del todo quitaría información en vez de quitar molestia. */
-    const lento = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 2.5 : 1;
+    /** Quien pide menos movimiento no lo pierde: va a un cuarto de velocidad,
+        el mismo cuarto que el salto de la mascota (G1, 2026-11-15). Es la regla
+        de la casa para las webs de Munir y aquí vale igual, porque este punto no
+        es un adorno, es el estado de Adeo: apagarlo del todo quitaría
+        información en vez de quitar molestia. */
+    const lento = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 4 : 1;
     /** El ángulo se ACUMULA en vez de calcularse desde el reloj: así, al
         cambiar de velocidad, sigue desde donde iba y no salta. */
     let angulo = 0;

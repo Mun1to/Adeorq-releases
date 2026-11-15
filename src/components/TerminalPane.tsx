@@ -33,6 +33,7 @@ import {
   type ShadowFile,
 } from "../lib/pty";
 import { raiz } from "../lib/perfil";
+import { apuntarCopia, copiaCerrada, proyectoDe, soltarCopia } from "../lib/copiaAparte";
 import { borrarSesionDePanel, useSesionAgy } from "../lib/borrarSesion";
 import { useT } from "../lib/i18n";
 import { useMenu } from "./Overlays";
@@ -89,7 +90,7 @@ import { sessionIdOf } from "../lib/comandos";
 import { propsDeVelo } from "../lib/velo";
 import { proveedorDe, sabe } from "../lib/providers";
 import { olvidarTerminal, registrarTerminal } from "../lib/terminales";
-import { enPantalla, esperaEnSuCaja, finDesconocidoEnPantalla, nivelDeContexto, trabajaEnPantalla, useContextoDeSesion, useTraspaso, useTraspasoDelMovil } from "../lib/contexto";
+import { contextoAlaVista, enPantalla, esperaEnSuCaja, finDesconocidoEnPantalla, nivelDeContexto, trabajaEnPantalla, useContextoDeSesion, useTraspaso, useTraspasoDelMovil } from "../lib/contexto";
 import { apuntarFin, engancharFinDeTurno } from "../lib/finDeTurno";
 import AvisoContexto from "./AvisoContexto";
 import { useNombreSolo } from "../lib/nombreSolo";
@@ -529,22 +530,14 @@ export default function TerminalPane({
 
   // Helper for SVFS: get project root path from cwd. The projects folder is a
   // setting now, so this cannot match a fixed C:\proyectos any more.
-  const getProjectRoot = (cwdStr: string) => {
-    const base = raiz().replace(/[\\/]+$/, "");
-    if (!base) return cwdStr;
-    const plano = (s: string) => s.replace(/\\/g, "/").toLowerCase();
-    if (!plano(cwdStr).startsWith(`${plano(base)}/`)) return cwdStr;
-    // Only separators and case change above, so the offset still lines up.
-    const dentro = cwdStr.replace(/\//g, "\\").slice(base.length + 1).split("\\")[0];
-    return dentro ? `${base}\\${dentro}` : cwdStr;
-  };
+  const getProjectRoot = (cwdStr: string) => proyectoDe(cwdStr, raiz());
 
   const refreshShadowStatus = () => {
     if (!shadowActiveRef.current || !shadowSessionRef.current) return;
     // Se pregunta al ÁRBOL DEL ESPEJO, no a la carpeta del proyecto: son
     // ficheros distintos, y preguntándole a la tuya salía tu propio trabajo
     // listado como si lo hubiera hecho el agente.
-    shadowStatus(shadowSessionRef.current.worktreePath)
+    shadowStatus(shadowSessionRef.current.worktreePath, shadowSessionRef.current.baseBranch)
       .then((files) => {
         setShadowFiles(files);
         if (files.length > 0) {
@@ -578,6 +571,7 @@ export default function TerminalPane({
 
     shadowAccept(projRoot, shadowSession.worktreePath, espejoRef.current)
       .then((resumen) => {
+        copiaCerrada(shadowSession.worktreePath);
         setShadowActive(false);
         setShadowSession(null);
         setShowDiff(false);
@@ -602,6 +596,7 @@ export default function TerminalPane({
 
     shadowDiscard(projRoot, shadowSession.worktreePath, espejoRef.current)
       .then(() => {
+        copiaCerrada(shadowSession.worktreePath);
         setShadowActive(false);
         setShadowSession(null);
         setShowDiff(false);
@@ -934,7 +929,9 @@ export default function TerminalPane({
   // sesión (`useContextoDeSesion`). Con título, el panel deja de llamarse
   // «proyecto · claude»; solo si se sabe cuál es SU sesión, que sin id se lee
   // la más reciente de la carpeta y puede ser la de otro (Codex: la aprendida).
-  const ctx = useContextoDeSesion(kind, cwd, joined, sessionIdOf(joined) ?? sidAprendido);
+  // En el Modo Espejo el CLI corre en el árbol de la copia, y su conversación se
+  // guarda por ESA carpeta: leída por la tuya, el estado era «no se sabe».
+  const ctx = useContextoDeSesion(kind, shadowSession?.worktreePath ?? cwd, joined, sessionIdOf(joined) ?? sidAprendido);
   ctxRef.current = ctx;
   /** La sesión que se llevaría la papelera de la cabecera: la del transcript
    *  (Claude, y Codex con la suya aprendida) o la conversación de agy. */
@@ -1055,7 +1052,9 @@ export default function TerminalPane({
     let timer = 0;
     let stop = false;
     const mira = () => {
-      codexSessionSince(cwd, nacidoRef.current)
+      // En espejo, no antes de que exista su árbol: en tu carpeta aprendería la de otro.
+      if (shadow && !shadowSessionRef.current) return void (timer = window.setTimeout(mira, 5_000));
+      codexSessionSince(shadowSessionRef.current?.worktreePath ?? cwd, nacidoRef.current)
         .then((sid) => {
           if (stop) return;
           if (sid) {
@@ -1511,6 +1510,9 @@ export default function TerminalPane({
         .then((sess) => {
           setShadowActive(true);
           setShadowSession(sess);
+          // Para que lo que abra su agente nazca en esta misma copia, y para que
+          // nadie la cierre por el MCP con trabajo dentro (`lib/copiaAparte.ts`).
+          apuntarCopia(id, { proyecto: projRoot, arbol: sess.worktreePath, base: sess.baseBranch, duena: id });
           // AQUÍ está el aislamiento: la terminal nace DENTRO del árbol espejo,
           // no en la carpeta del proyecto. Arrancándola en `cwd`, como se hacía
           // antes, el agente escribía en tus ficheros y el «modo espejo» era
@@ -2110,7 +2112,11 @@ export default function TerminalPane({
       // Salvo que se esté MUDANDO a otra ventana. Esta terminal desaparece de
       // aquí, pero su agente sigue trabajando al otro lado; matarlo ahora sería
       // perder el trabajo por haberla sacado de sitio (ver lib/mudanza.ts).
-      if (!seMuda(id)) void killPty(id);
+      // Su copia aparte, igual: mudada, el freno de cerrar y sus hijas siguen.
+      if (!seMuda(id)) {
+        void killPty(id);
+        soltarCopia(id);
+      }
       olvidarTerminal(id, term);
       term.dispose();
       termRef.current = null;
@@ -2477,10 +2483,10 @@ export default function TerminalPane({
                 than none. It looked broken because it only ever showed live ones
                 and a session with no subagents has nothing to show. */}
             <AgentesDePanel live={crew.live} total={crew.total} exact={crew.exact} cwd={cwd} sessionId={sidPropio} />
-            {ctx && ctx.percent > 0 && (
+            {ctx && contextoAlaVista(ctx) && (
               <span
                 className="pane-ctx"
-                data-hot={ctxNivel >= 3}
+                data-nivel={ctxNivel >= 2 ? "rojo" : ctxNivel === 1 ? "ambar" : undefined}
                 data-tip={`${t("Contexto")}: ${ctx.used.toLocaleString()} / ${ctx.window.toLocaleString()} tokens (${ctx.percent}% ${t("de contexto usado")})\n${t("Cada mensaje en esta sesión vuelve a pagar esos {n} tokens.", { n: ctx.used.toLocaleString() })}${
                   ctxNivel >= 3
                     ? `\n${t("A este nivel, compactar cuesta más que abrir una terminal nueva.")}`
@@ -2561,7 +2567,7 @@ export default function TerminalPane({
           {onMinimizar && (
             <button
               className="pane-btn"
-              data-tip={t("Minimizar: baja a la tira de abajo y sigue trabajando")}
+              data-tip={t("Minimizar (sigue trabajando)")}
               onClick={() => onMinimizar(id)}
             >
               <MinimizeIcon />
@@ -2573,7 +2579,7 @@ export default function TerminalPane({
           {onSacar && (
             <button
               className="pane-btn"
-              data-tip={t("Sacar a su propia ventana: el agente sigue trabajando, solo cambia dónde lo ves")}
+              data-tip={t("Abrir en otra ventana (sigue trabajando)")}
               onClick={() => onSacar(id)}
             >
               <SacarIcon />
@@ -2600,9 +2606,7 @@ export default function TerminalPane({
           {sidBorrable && (
             <button
               className="pane-btn pane-bin"
-              data-tip={t(
-                "Borrar esta sesión: cierra la terminal y su conversación se va a la papelera",
-              )}
+              data-tip={t("Borrar la sesión (va a la papelera)")}
               onClick={() => setBorrando(true)}
             >
               <TrashIcon />
@@ -2614,7 +2618,7 @@ export default function TerminalPane({
           data-suelta={suelta || undefined}
           data-tip={
             suelta
-              ? t("Devolver a Adeorq: la terminal vuelve al mosaico y el agente ni se entera")
+              ? t("Devolver a Adeorq (sigue trabajando)")
               : t("Cerrar terminal")
           }
           onClick={() => onClose(id)}
@@ -2698,7 +2702,7 @@ export default function TerminalPane({
               </span>
               <button
                 className="pane-close"
-                data-tip={t("Ocultar (puedes responder con el teclado: 1, 2 o 3)")}
+                data-tip={t("Ocultar (o responde con 1, 2 o 3)")}
                 onClick={() => setAsk(null)}
               >
                 ×

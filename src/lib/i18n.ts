@@ -394,6 +394,30 @@ const EN: Record<string, string> = {
   "Usa solo letras, números, espacios, guiones o puntos":
     "Use only letters, numbers, spaces, hyphens or dots",
   "Cuántas a la vez": "How many at once",
+  "Dónde corre": "Where it runs",
+  "En tu PC": "On your PC",
+  "Caja {n}": "{n} box",
+  "caja {n}": "{n} box",
+  "En una caja, la terminal nace en un Linux nuevo que solo ve esta carpeta, y se tira al cerrarla. La primera vez tarda unos minutos: Docker se enciende y prepara la caja.":
+    "In a box, the terminal starts in a fresh Linux that only sees this folder, and is thrown away when you close it. The first time takes a few minutes: Docker starts and prepares the box.",
+  "Valla del ratón": "Mouse fence",
+  "Encierra el ratón en una pantalla o en una ventana, para que un agente que lo mueve ":
+    "Keeps the mouse inside one screen or one window, so an agent that moves it ",
+  "no se salga de ahí": "can't leave it",
+  ". Se quita con ": ". Take it off with ",
+  ", aunque el ratón no llegue a este botón.": ", even when the mouse can't reach this button.",
+  "Puesta: el ratón no sale de esta pantalla.": "On: the mouse stays on this screen.",
+  "Puesta: se suelta sola si minimizas o cierras la ventana.": "On: it lets go by itself if you minimise or close the window.",
+  "Se quitó con Ctrl+Alt+L.": "Taken off with Ctrl+Alt+L.",
+  "Se quitó sola: la ventana se minimizó o se cerró.": "It let go by itself: the window was minimised or closed.",
+  "Pantalla {n}": "Screen {n}",
+  "la principal": "the main one",
+  "aquí tienes el ratón": "the mouse is here",
+  "Encerrar aquí": "Fence it here",
+  "Una ventana": "A window",
+  "El ratón no sale de ella, y la sigue si la mueves.": "The mouse stays inside it, and follows it if you move it.",
+  "Elegir": "Choose",
+  "No hay ninguna ventana a la vista.": "There is no window in sight.",
   "a todas solo admite comandos con /": "to all only takes / commands",
   "orden vacía": "empty order",
   "hasta {n}": "up to {n}",
@@ -596,8 +620,7 @@ const EN: Record<string, string> = {
   Archivos: "Files",
   "Ver la web en un panel (localhost)": "See the site in a pane (localhost)",
   "Devolver a Adeorq": "Return to Adeorq",
-  "Devolver a Adeorq: la terminal vuelve al mosaico y el agente ni se entera":
-    "Return to Adeorq: the terminal goes back to the mosaic and the agent never notices",
+  "Devolver a Adeorq (sigue trabajando)": "Back to Adeorq (it keeps working)",
   "Abre un proyecto para ver sus archivos.": "Open a project to see its files.",
   "Esta carpeta está vacía.": "This folder is empty.",
   "En conflicto: git no sabe juntar los cambios": "In conflict: git cannot merge the changes",
@@ -944,8 +967,8 @@ const EN: Record<string, string> = {
 
   // Layout
   Disposición: "Layout",
-  "Repartir las terminales en una plantilla": "Deal the terminals into a template",
-  "Reparte lo que tienes abierto": "Re-deal what you have open",
+  "Ordenar las terminales": "Arrange the terminals",
+  "Ordena lo que tienes abierto": "Arrange what you have open",
   "Arrastra la barra de una terminal sobre otra para intercambiarlas, y los bordes entre ellas para repartir el espacio.":
     "Drag a terminal's bar onto another to swap them, and the seams between them to share out the space.",
   "Arrastra para repartir el ancho": "Drag to share out the width",
@@ -1078,8 +1101,7 @@ const EN: Record<string, string> = {
     "It is opening the code and seeing who calls whom. A couple of minutes.",
 
   // Sacar una terminal a su propia ventana de Windows.
-  "Sacar a su propia ventana: el agente sigue trabajando, solo cambia dónde lo ves":
-    "Pop out into its own window: the agent keeps working, only where you see it changes",
+  "Abrir en otra ventana (sigue trabajando)": "Open in its own window (it keeps working)",
   "Esta terminal ya no existe.": "This terminal is gone.",
 
   Preguntar: "Ask",
@@ -1599,8 +1621,7 @@ const EN: Record<string, string> = {
   "¿Cerrar {n}?": "Close {n}?",
   "Apartar sus terminales (siguen trabajando)": "Set its terminals aside (they keep working)",
   Minimizadas: "Minimised",
-  "Minimizar: baja a la tira de abajo y sigue trabajando":
-    "Minimise: drops to the strip below and keeps working",
+  "Minimizar (sigue trabajando)": "Minimise (it keeps working)",
   "Traerla de vuelta al mosaico": "Bring it back to the mosaic",
   Apartadas: "Set aside",
   "Traer todas": "Bring them all back",
@@ -1977,8 +1998,7 @@ const EN: Record<string, string> = {
   "Permitir (y)": "Allow (y)",
   "Denegar (n)": "Deny (n)",
   "Responder {n} en la terminal": "Answer {n} in the terminal",
-  "Ocultar (puedes responder con el teclado: 1, 2 o 3)":
-    "Hide (you can answer with the keyboard: 1, 2 or 3)",
+  "Ocultar (o responde con 1, 2 o 3)": "Hide (or answer with 1, 2 or 3)",
 
   // Los avisos flotantes de una terminal (setNote), que llegan a t() por
   // variable (t(note)): mismo motivo que arriba, a mano.
@@ -2139,6 +2159,8 @@ const EN: Record<string, string> = {
   "Compactar solo, sin commits": "Compact on its own, without commits",
   "Compactar solo, con el /fin entero": "Compact on its own, with the full /fin",
   "Sugerir compactar al acabar una tarea grande, desde los 200.000 tokens": "Suggest compacting after a big task, from 200,000 tokens",
+  "Contarle a la terminal que abrió otras cuándo acaban, se bloquean o preguntan":
+    "Tell the terminal that opened others when they finish, get blocked or ask",
   Compactar: "Compact",
   "Nueva con traspaso": "New with handoff",
   "Primero el /fin; al acabar, una terminal nueva aquí mismo que empieza con su bloque «Retomar», y esta se archiva al cerrarla":
@@ -2272,8 +2294,7 @@ const EN: Record<string, string> = {
   // con el mismo diálogo que la de la barra en vez de armarse con dos clics.
   "Se cierra esta terminal y su conversación deja de estar en disco.":
     "This terminal closes and its conversation stops being on disk.",
-  "Borrar esta sesión: cierra la terminal y su conversación se va a la papelera":
-    "Delete this session: it closes the terminal and its conversation goes to the bin",
+  "Borrar la sesión (va a la papelera)": "Delete the session (it goes to the bin)",
   Reanimar: "Revive",
   "Empezar limpia": "Start fresh",
   "⚡ Reanimar (si se ha quedado colgada)": "⚡ Revive (if it has wedged)",
@@ -3179,24 +3200,24 @@ const EN: Record<string, string> = {
   "1 día": "1 day",
   "{d} días": "{d} days",
   "en {falta}": "in {falta}",
-  "sin dato de gasto": "no spending data",
-  "con una lectura de antes de renovarse (se cuenta como 50 %)": "with a reading from before it renewed (counted as 50 %)",
-  "al {n} %": "at {n} %",
+  "sin dato de gasto, que se cuenta como 50 %": "no spending data, counted as 50 %",
+  "con una lectura de antes de renovarse, que se cuenta como 50 %": "with a reading from before it renewed, counted as 50 %",
+  "al {n} % gastado de su {periodo}": "at {n} % of its {periodo} spent",
+  "al {n} % gastado": "at {n} % spent",
+  "{leido} (con 1 terminal abierta desde la última lectura, se calcula ~{previsto} %)": "{leido} (with 1 terminal opened since the last reading, estimated at ~{previsto} %)",
+  "{leido} (con las {n} terminales abiertas desde la última lectura, se calcula ~{previsto} %)": "{leido} (with the {n} terminals opened since the last reading, estimated at ~{previsto} %)",
   "se renueva {cuando}": "renews {cuando}",
   "sin fecha de renovación ({dias} días)": "no renewal date ({dias} days)",
-  ", más 1 terminal abierta desde entonces (+{peso})": ", plus 1 open terminal since then (+{peso})",
-  ", más {n} terminales abiertas desde entonces (+{peso})": ", plus {n} open terminals since then (+{peso})",
-  "«{label}» {pct}{llevan}, {cuando}": "“{label}” {pct}{llevan}, {cuando}",
+  "«{label}» {gasto}, {cuando}": "“{label}” {gasto}, {cuando}",
   "parada por su tope de 5 horas hasta dentro de {falta}": "held at its 5-hour limit for another {falta}",
   "parada por su tope de 5 horas": "held at its 5-hour limit",
-  "al {n} % de su {periodo}": "at {n} % of its {periodo}",
   "Con «{label}», la única que hay, aunque está {motivo}.": "With “{label}”, the only one there is, though it is {motivo}.",
   "No queda ninguna con sitio (todas paradas por su tope de 5 horas o por encima del {agotada} % de su {periodo}): va a «{label}», {motivo}, que es la menos mala.":
     "None has room left (all held at their 5-hour limit or above {agotada} % of their {periodo}): it goes to “{label}”, {motivo}, the least bad.",
   "Con «{label}», la única que hay.": "With “{label}”, the only one there is.",
   "{retrato} ({p} al día)": "{retrato} ({p} a day)",
   "«{label}» está parada por su tope de 5 horas": "“{label}” is held at its 5-hour limit",
-  "«{label}» pasa del 92 %": "“{label}” is past 92 %",
+  "«{label}» no entra por llegar al {agotada} %: {gasto}": "“{label}” is left out for reaching {agotada} %: {gasto}",
   " y ": " and ",
   "{p} puntos al día, frente a {otras}": "{p} points a day, against {otras}",
   "{p} puntos al día": "{p} points a day",
@@ -3543,6 +3564,48 @@ const EN: Record<string, string> = {
   "La copia de cómo estaba está estropeada, así que no la pongo.": "The copy of how it was is damaged, so I do not put it back.",
   "Ese aviso ya no está.": "That warning is gone.",
   "No encuentro la lista de archivos protegidos (lista.json).": "I cannot find the list of protected files (lista.json).",
+  // La lista única de Decisiones (A1, 2026-11-15): sus partes, sus palabras y sus teclas.
+  "1 te toca": "1 for you",
+  "{n} te tocan": "{n} for you",
+  "Nada te toca": "Nothing for you",
+  "Nada te toca ahora": "Nothing is your turn now",
+  "Te toca": "Your turn",
+  "Terminó": "Finished",
+  "Ideas de tus agentes": "Ideas from your agents",
+  "Ya pasó": "Past",
+  "Sin nadie detrás": "No one behind it",
+  "Hablada": "Talked over",
+  "Contestada": "Answered",
+  "Descartada": "Discarded",
+  "Resuelta": "Resolved",
+  "Descartada: «{texto}».": "Discarded: «{texto}».",
+  "Abrir Decisiones": "Open Decisions",
+  "Abrir Decisiones: lo que te toca": "Open Decisions: your turn",
+  "Abrirlo en la Agenda": "Open it in the Agenda",
+  "Cuando un agente te pregunte algo, termine o te deje una idea, sale aquí.": "When an agent asks you something, finishes or leaves you an idea, it shows up here.",
+  "Es un encargo programado que falló tres veces seguidas: el freno lo paró para que no siga gastando cuota. {motivo}": "It is a scheduled job that failed three times in a row: the brake stopped it so it does not keep spending quota. {motivo}",
+  "Está parada esperándote: te pregunta algo o te pide permiso. Se contesta en su terminal.": "It is stopped waiting for you: it asks you something or asks for permission. You answer it in its terminal.",
+  "Ir a la terminal": "Go to the terminal",
+  "Las teclas de Decisiones": "Decisions keys",
+  "Lo demás está a la izquierda, por si quieres repasarlo.": "The rest is on the left, in case you want to go over it.",
+  "Lo que ya pasó se borra solo a la semana.": "What already happened deletes itself after a week.",
+  "Pulsa ? para ver las teclas.": "Press ? to see the keys.",
+  "Quitar de la lista": "Remove from the list",
+  "Terminó su turno y todavía no lo has mirado.": "It finished its turn and you have not looked at it yet.",
+  "lo paró el freno {cuando}": "the brake stopped it {cuando}",
+  "un paso para su METAS.md": "a step for its METAS.md",
+  "un paso que te propone un agente": "a step an agent proposes",
+  "una idea que te deja un agente": "an idea an agent leaves you",
+  "una idea": "an idea",
+  "Bajar y subir por la lista": "Move down and up the list",
+  "Abrir: contestar la decisión, o ir a su terminal": "Open: answer the decision, or go to its terminal",
+  "Elegir esa opción en la pregunta que tienes delante": "Pick that option in the question in front of you",
+  "Pasar a la pregunta siguiente o a la anterior": "Go to the next or the previous question",
+  "Escribir otra cosa, con tus palabras": "Write something else, in your own words",
+  "Enviar la respuesta (con cinco segundos para deshacer)": "Send the answer (with five seconds to undo)",
+  "Quitar de la lista un turno que terminó": "Remove a finished turn from the list",
+  "Salir de la caja de texto; otra vez, volver adonde estabas": "Leave the text box; again, go back to where you were",
+  "Abrir Decisiones desde cualquier sitio": "Open Decisions from anywhere",
 };
 
 export function detectLang(): Lang {

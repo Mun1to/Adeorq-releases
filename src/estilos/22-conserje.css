@@ -36,11 +36,10 @@
   box-shadow: 0 0 7px color-mix(in srgb, var(--cj-c, var(--ok)) 60%, transparent);
   animation: cj-late 1.6s ease-in-out infinite;
 }
+/* Late también con «reducir movimiento»: es solo opacidad, que no marea, y Adeo
+   no se queda quieto (G1, 2026-11-15). */
 @keyframes cj-late {
   50% { opacity: 0.45; }
-}
-@media (prefers-reduced-motion: reduce) {
-  [data-estado="trabajando"] .cj-punto { animation: none; }
 }
 
 .cj-estado {

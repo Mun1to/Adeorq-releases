@@ -12,7 +12,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  BoltIcon,
   BulbIcon,
   CalendarIcon,
   CheckIcon,
@@ -38,9 +37,7 @@ import {
 } from "../lib/brujula";
 import {
   addParked,
-  dropInbox,
   loadUiState,
-  inboxWhere,
   listProjects,
   projectIcons,
   readInbox,
@@ -69,11 +66,8 @@ import {
   type Goal,
   type GoalCount,
 } from "../lib/goals";
-import { accionDe, olvidarAccion, type AccionConsejo } from "../lib/acciones";
 import { abrirEnlacesFuera } from "../lib/enlacesFuera";
 import { hueOf } from "../lib/colors";
-import { providerOf } from "../lib/providers";
-import { indiceValido, siguienteNota } from "../lib/agenda";
 import { mesDe, mesVecino, rejillaDelMes } from "../lib/calendario";
 import type { Account, SessionInfo } from "../lib/pty";
 
@@ -84,13 +78,9 @@ interface Props {
   /** El modelo local elegido en Ajustes, para la línea de «qué necesita». */
   modeloLocal: string;
   onResume: (s: SessionInfo) => void;
-  /** Hacer lo que una propuesta del copiloto propone: abrir el otro cliente,
-      dejar escrito el cambio de cerebro, abrir el chat con ese modelo. Devuelve
-      la frase de qué ha pasado, para poder enseñarla donde ya se enseñan las
-      demás. Es opcional porque la pantalla tiene que seguir en pie sin ella:
-      una nota sin acción es lo normal, y sin este callback simplemente no sale
-      el botón. */
-  onHacer?: (a: AccionConsejo) => Promise<string>;
+  /** Las propuestas de tus agentes se atienden en Decisiones, en «Ideas de tus
+      agentes» (A1, 2026-11-15): la cifra de la portada lleva allí. */
+  onPropuestas?: () => void;
   /** Las cuentas de Cuentas: un encargo programado elige con cuál nace. */
   cuentas?: Account[];
 }
@@ -124,10 +114,9 @@ function richLine(text: string): React.ReactNode[] {
 }
 
 /** La portada, y una pantalla por cifra. */
-type Modo = null | "propuestas" | "sesiones" | "objetivos" | "fechas" | "metas" | "ideas" | "programados";
+type Modo = null | "sesiones" | "objetivos" | "fechas" | "metas" | "ideas" | "programados";
 
 const TITULOS: Record<NonNullable<Modo>, string> = {
-  propuestas: "De tus agentes",
   sesiones: "Tus sesiones",
   objetivos: "Objetivos de hoy",
   fechas: "Calendario",
@@ -329,7 +318,7 @@ function Cifra({
   );
 }
 
-export default function AgendaView({ current, onOpenProject, modeloLocal, onResume, onHacer, cuentas = [] }: Props) {
+export default function AgendaView({ current, onOpenProject, modeloLocal, onResume, onPropuestas, cuentas = [] }: Props) {
   const { t, lang } = useT();
   const [projects, setProjects] = useState<Project[]>([]);
   const [icons, setIcons] = useState<Record<string, string>>({});
@@ -355,7 +344,6 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
   const [showPast, setShowPast] = useState(false);
   // What his agents have proposed from inside their sessions.
   const [notes, setNotes] = useState<Note[]>([]);
-  const [trayPath, setTrayPath] = useState("");
   /** What the rail calls each project: one name for the same thing everywhere. */
   const [alias, setAlias] = useState<Record<string, string>>({});
   const shownName = (name: string) => alias[name] || name;
@@ -365,8 +353,6 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
   const siguiente = elSiguiente(programados?.encargos ?? [], new Date());
   /** En qué está mirando. `null` es la portada: seis cifras y nada más. */
   const [modo, setModo] = useState<Modo>(null);
-  /** Qué propuesta se está revisando, dentro del modo propuestas. */
-  const [rev, setRev] = useState(0);
   /** Cuántas sesiones te esperan. Se cuenta aquí y no dentro de la pantalla de
       sesiones porque esa solo se monta al entrar, y la cifra de la portada
       tiene que ser verdad ANTES de entrar. Es leer disco: ni un token. */
@@ -426,7 +412,6 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
 
   useEffect(() => {
     loadNotes();
-    inboxWhere().then(setTrayPath).catch(() => {});
     // Cheap enough to re-read on a slow beat: it is one small text file, and
     // an agent can drop a note at any moment while he is looking at this.
     return latido(loadNotes, 20_000);
@@ -500,12 +485,6 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
   const pasos = useMemo(() => notes.filter((n) => n.kind === "paso").length, [notes]);
   const metasVivas = metas?.metas.filter((m) => !m.done).length ?? 0;
 
-  /* Las dos reglas del índice viven en `lib/agenda.ts` con sus casos, porque
-     son justo las que no se ven leyendo el JSX. */
-  useEffect(() => {
-    setRev((r) => indiceValido(r, notes.length));
-  }, [notes.length]);
-
   const condOf = (id: string | null) => (id ? conds.find((c) => c.id === id) : undefined);
   const path = projects.find((p) => p.name === project)?.path;
 
@@ -520,78 +499,6 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
       setError(String(e));
     }
   };
-
-  /**
-   * Accepting a note is where it stops being a suggestion: an idea goes into
-   * the brújula, a paso into that project's METAS.md. Either way the line
-   * leaves the tray, and only after the write succeeded.
-   */
-  const acceptNote = async (n: Note) => {
-    try {
-      if (n.kind === "paso") {
-        const target = projects.find((p) => p.name === n.project)?.path;
-        if (!target) {
-          setError(t("No encuentro la carpeta de {p}, así que no sé dónde apuntarlo.", { p: n.project }));
-          return;
-        }
-        await addParked(target, n.text);
-        setNote(t("Apuntado en el METAS.md de {p}.", { p: n.project }));
-        if (target === path) readMetas(target).then(setMetas).catch(() => {});
-      } else {
-        await addIdea(n.text, n.project);
-        setNote(t("Idea guardada en tu brújula."));
-        load();
-      }
-      await dropInbox(n.line);
-      loadNotes();
-    } catch (e) {
-      setError(String(e instanceof Error ? e.message : e));
-    }
-  };
-
-  const dropNote = async (n: Note) => {
-    await dropInbox(n.line).catch((e) => setError(String(e)));
-    olvidarAccion(n.text);
-    loadNotes();
-  };
-
-  /**
-   * Y la cuarta salida, la que faltaba: HACERLO.
-   *
-   * Las otras tres deciden qué pasa con la NOTA (a las metas, a la basura, para
-   * luego). Esta hace lo que la nota propone, que es lo que uno quiere hacer
-   * nueve de cada diez veces cuando lee «Codex está más fresco, ¿sigues ahí?».
-   * Sin ella el consejo estaba a medias: te daba la respuesta y te dejaba el
-   * recado de ejecutarla a mano.
-   *
-   * Solo aparece si la nota trae acción, y eso solo pasa con las que escribe el
-   * copiloto. Una nota escrita a mano por un agente sigue teniendo sus tres
-   * salidas de siempre y ninguna más.
-   */
-  const hacerNota = async (n: Note, a: AccionConsejo) => {
-    if (!onHacer) return;
-    try {
-      const dicho = await onHacer(a);
-      // Se borra DESPUÉS de que haya salido bien: si abrir la terminal falla,
-      // la propuesta sigue en la bandeja y se puede volver a intentar.
-      await dropInbox(n.line);
-      olvidarAccion(n.text);
-      setNote(dicho);
-      loadNotes();
-    } catch (e) {
-      setError(String(e instanceof Error ? e.message : e));
-    }
-  };
-
-  /** Qué pone el botón. Cada acción dice lo que va a pasar al pulsarla, con el
-      nombre concreto dentro: «Hacerlo» no dice si abre algo, escribe algo o
-      gasta dinero, y esas tres cosas no se pulsan con la misma confianza. */
-  const rotuloDe = (a: AccionConsejo): string =>
-    a.hacer === "abrirCli"
-      ? t("Abrir {c} aquí", { c: providerOf(a.cli).label })
-      : a.hacer === "cambiarModelo"
-        ? t("Cambiar a {m}", { m: a.modelo })
-        : t("Probarlo en el chat");
 
   const saveIdea = async () => {
     if (!idea.trim()) return;
@@ -610,8 +517,8 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
      pareciendo mucho texto, la Agenda debe aclarar las cosas, no hacerlas más
      difíciles». Trece notas de doscientos caracteres son un documento, y un
      documento no se lee de un vistazo. Así que el texto no aparece hasta que
-     se entra a algo, y las propuestas se revisan de UNA EN UNA, porque cada
-     una es una decisión y doce decisiones a la vez no se toman. */
+     se entra a algo. Las propuestas se atienden en Decisiones desde el
+     2026-11-15, una lista que se recorre con el teclado. */
   /* Los dos cálculos del calendario viven AQUÍ, en el cuerpo de la vista, y no
      dentro de `Calendario`. Ese dejó de ser un componente para no remontarse en
      cada render (el porqué está en el bloque de justo debajo), y un `useMemo`
@@ -652,8 +559,6 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
     // no se llega: la cifra que abría la de ideas no sale.
     if (enTienda && (modo === "ideas" || modo === "fechas")) return null;
     switch (modo) {
-      case "propuestas":
-        return Revision();
       case "sesiones":
         return <AgendaSesiones modelo={modeloLocal} onResume={onResume} />;
       case "objetivos":
@@ -711,11 +616,6 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
               ? diaLargo(diaElegido, lang)
               : t(TITULOS[modo])}
           </h1>
-          {modo === "propuestas" && notes.length > 0 && (
-            <span className="ag-quedan">
-              {t("{i} de {n}", { i: rev + 1, n: notes.length })}
-            </span>
-          )}
           {modo === "fechas" && link === "in" && (
             <button className="mini ag-salir" onClick={() => void leave()}>
               {t("Salir de la brújula")}
@@ -794,7 +694,7 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
                 ? t("{p} pasos · {i} ideas", { p: pasos, i: notes.length - pasos })
                 : t("nada apuntado")
             }
-            onClick={() => setModo("propuestas")}
+            onClick={() => onPropuestas?.()}
           />
           <Cifra
             n={metasVivas}
@@ -922,87 +822,6 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
           })}
         </div>
       </section>
-    );
-  }
-
-  /** Una cifra de la portada. El número manda, la frase lo explica y el pie da
-      el matiz que evita tener que entrar solo para comprobar algo. */
-  /** Las propuestas, de una en una: la nota entera, y tres salidas. */
-  function Revision() {
-    const n = notes[rev];
-    if (!n) {
-      return (
-        <p className="ag-fin">
-          {t("No queda ninguna propuesta. Tus agentes escribirán más mientras trabajan.")}
-        </p>
-      );
-    }
-    // Lo que esa nota permite hacer, si permite algo. Se lee aquí y no al
-    // cargar la lista: es una lectura de localStorage por nota pintada, y solo
-    // hay una en pantalla a la vez.
-    const acc = accionDe(n.text);
-    return (
-      <div className="ag-uno">
-        <div className="ag-caja" data-kind={n.kind}>
-          <span className="ag-caja-cab">
-            <span className="ag-k">{n.kind === "paso" ? t("paso") : t("idea")}</span>
-            {shownName(n.project)}
-          </span>
-          <p className="ag-caja-texto stream-hide">{n.text}</p>
-          {/* Las tres salidas van DENTRO de la tarjeta, no flotando debajo:
-              sueltas caían sobre el fondo de escritorio con un 5 % de blanco y
-              «Luego» era invisible del todo (Munir, 2026-08-11: «se ve como a
-              los botones más transparentes»). Dentro heredan la superficie
-              opaca de la caja y el conjunto se lee como una sola decisión. */}
-          <div className="ag-botones">
-            {/* La cuarta salida, y va primero porque es la que se quiere pulsar
-                cuando existe: si el copiloto dice que Codex está más fresco, lo
-                que uno hace al estar de acuerdo es abrir Codex, no apuntar en
-                un fichero que Codex estaba más fresco. Solo sale en las notas
-                que traen acción, que son las suyas. */}
-            {acc && onHacer && (
-              <button
-                className="ag-hacer"
-                data-tip={t("Hacerlo ahora. La propuesta se va de la bandeja.")}
-                onClick={() => void hacerNota(n, acc)}
-              >
-                <BoltIcon size={14} />
-                {rotuloDe(acc)}
-              </button>
-            )}
-            {/* Una idea se guarda en la brújula; sin ella (la Tienda) no se puede
-                aceptar, solo descartar o dejar para luego. Un paso va al METAS.md
-                y sigue igual. */}
-            {!(enTienda && n.kind !== "paso") && (
-              <button
-                className="ag-si"
-                data-tip={
-                  n.kind === "paso"
-                    ? t("Escribirlo en el METAS.md de {p}", { p: n.project })
-                    : t("Guardarlo como idea en tu brújula")
-                }
-                onClick={() => void acceptNote(n)}
-              >
-                <CheckIcon size={14} />
-                {t("Aceptar")}
-              </button>
-            )}
-            <button
-              data-tip={t("Descartar: se borra de la bandeja y ya está")}
-              onClick={() => void dropNote(n)}
-            >
-              {t("Descartar")}
-            </button>
-            <button
-              data-tip={t("Dejarla para otro rato y ver la siguiente")}
-              onClick={() => setRev((r) => siguienteNota(r, notes.length))}
-            >
-              {t("Luego")}
-            </button>
-          </div>
-          <p className="card-hint ag-donde stream-hide">{trayPath}</p>
-        </div>
-      </div>
     );
   }
 

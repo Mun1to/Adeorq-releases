@@ -7,7 +7,7 @@
 //   2. `send_command` no manda trabajo nuevo a una que pasa de 300k sin
 //      `confirm: true`, y avisa cuando lo manda;
 //   3. a quien la abrió se le avisa una vez al cruzar los 400k, y la delegada
-//      se compacta sola a su campana (`/fin sin commits` y `/compact`) aunque
+//      se compacta sola a su campana (el `/fin` entero y `/compact`) aunque
 //      el ajuste de Munir diga «no»; la de Munir, con «no», no;
 //   4. `close_pane` y `open_pane` dicen el contexto;
 //   5. `compactar_terminal` espera a que pare (transcript y pantalla), y no
@@ -266,7 +266,7 @@ try {
   // ── 3. El aviso a quien la abrió, una vez ───────────────────────────────
   escribir(SID_D, 420);
   r = await llamar("get_projects");
-  dice(new RegExp(`Aviso de Adeorq: la terminal ${idD} que abriste .*420\\.000 tokens.*/fin sin commits`).test(r.texto), "a 420k, la siguiente llamada de quien la abrió lleva el aviso", r.texto);
+  dice(new RegExp(`Aviso de Adeorq: la terminal ${idD} que abriste .*420\\.000 tokens.*/fin \(`).test(r.texto), "a 420k, la siguiente llamada de quien la abrió lleva el aviso", r.texto);
   r = await llamar("get_projects");
   dice(!/Aviso de Adeorq/.test(r.texto), "y la siguiente ya no lo repite");
   // R5. Rondando la raya: baja a 390k y vuelve a 425k sin haber compactado.
@@ -284,7 +284,7 @@ try {
   await campana(SID_M);
   dice(ordenes(SID_M).length === 0, "la terminal de Munir con su ajuste en «no» no se compacta sola", JSON.stringify(ordenes(SID_M)));
   await campana(SID_D);
-  dice(JSON.stringify(ordenes(SID_D)) === JSON.stringify(["/fin sin commits"]), "la delegada a 420k manda /fin sin commits a su campana, aunque el ajuste diga «no»", JSON.stringify(ordenes(SID_D)));
+  dice(JSON.stringify(ordenes(SID_D)) === JSON.stringify(["/fin"]), "la delegada a 420k manda el /fin entero a su campana, aunque el ajuste diga «no»", JSON.stringify(ordenes(SID_D)));
   escribir(SID_D, 430);
   await campana(SID_D);
   let o = ordenes(SID_D);
@@ -294,7 +294,7 @@ try {
   // ── 5b. compactar_terminal en una delegada ──────────────────────────────
   escribir(SID_D, 380, "a_medias");
   r = await llamar("compactar_terminal", { paneId: idD });
-  dice(!r.error && /pedido\. Lleva 380\.000 tokens/.test(r.texto) && /\/fin sin commits/.test(r.texto), "compactar_terminal lo pide y dice lo que hará", JSON.stringify(r));
+  dice(!r.error && /pedido\. Lleva 380\.000 tokens/.test(r.texto) && /\/fin para/.test(r.texto), "compactar_terminal lo pide y dice lo que hará", JSON.stringify(r));
   r = await llamar("compactar_terminal", { paneId: idD });
   dice(/ya tenía un traspaso en marcha/.test(r.texto), "pedido dos veces, no empieza otro", JSON.stringify(r));
   await dormir(3000);
@@ -306,7 +306,7 @@ try {
   await pintar("quieto", SID_D);
   await campana(SID_D);
   o = ordenes(SID_D);
-  dice(o.length === 3 && o[2] === "/fin sin commits", "parada de verdad, /fin sin commits", JSON.stringify(o));
+  dice(o.length === 3 && o[2] === "/fin", "parada de verdad, el /fin entero", JSON.stringify(o));
   escribir(SID_D, 390);
   await campana(SID_D);
   o = ordenes(SID_D);

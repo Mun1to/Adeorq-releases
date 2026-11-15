@@ -44,6 +44,10 @@ mod chat;
 mod openrouter;
 mod voz;
 mod portapapeles;
+// Las cajas: terminales que nacen en un contenedor aparte (`docs/contexto/cajas.md`).
+mod caja;
+// La valla del ratón, en Ajustes › Terminales (`valla.rs`).
+mod valla;
 mod pty;
 /// El proceso de terminales (`adeorq.exe --terminales`), ver `docs/contexto/terminales-fuera.md`.
 pub mod terminales;
@@ -580,6 +584,7 @@ pub fn run() {
             rastros::rastro_de_la_x,
             rastros::rastro_de_relevo,
             mcp::delegadas_guardadas,
+            mcp::madres_de_delegadas,
             compactaciones::session_compactions,
             decisiones::decisiones_listar,
             decisiones::decision_responder,
@@ -625,6 +630,11 @@ pub fn run() {
             pty::pty_send,
             pty::pty_resize,
             pty::pty_kill,
+            caja::cajas_disponibles,
+            valla::valla_estado,
+            valla::valla_sitios,
+            valla::valla_poner,
+            valla::valla_quitar,
             pty::pty_historial,
             pty::pty_vivas,
             pty::pty_primer_libre,
@@ -848,7 +858,9 @@ pub fn run() {
             git_shadow::shadow_diff,
             git_shadow::shadow_status,
             git_shadow::shadow_accept,
-            git_shadow::shadow_discard
+            git_shadow::shadow_discard,
+            git_shadow::shadow_disponible,
+            git_shadow::shadow_pendiente
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
@@ -857,6 +869,7 @@ pub fn run() {
             // ventana: los agentes seguían vivos por detrás, y al volver a
             // abrir aparecían «todavía activos» sin panel al que pertenecer.
             if matches!(event, tauri::RunEvent::Exit) {
+                valla::al_salir();
                 pty::kill_all(app);
             }
         });

@@ -511,13 +511,22 @@
   color: color-mix(in srgb, var(--warn) 80%, #fff);
 }
 
-/* Past 80% the CLI is close to auto-compacting: say so before it happens. */
-.pane-ctx[data-hot="true"] {
+/* Munir, C1 del 2026-11-15: sale desde 100.000 tokens (`contextoAlaVista`), en
+   ámbar desde 350.000 y en rojo desde 450.000, las mismas rayas del aviso. */
+.pane-ctx[data-nivel="ambar"] {
   color: color-mix(in srgb, var(--warn) 80%, #fff);
 }
 
-.pane-ctx[data-hot="true"] .ctx-bar::after {
+.pane-ctx[data-nivel="ambar"] .ctx-bar::after {
   background: var(--warn);
+}
+
+.pane-ctx[data-nivel="rojo"] {
+  color: color-mix(in srgb, var(--mal) 85%, #fff);
+}
+
+.pane-ctx[data-nivel="rojo"] .ctx-bar::after {
+  background: var(--mal);
 }
 
 /* Adeorq's own tooltip: fast, themed and able to carry a second line, unlike
@@ -531,6 +540,11 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  /* Su ancho es el de su texto, no el que queda hasta el borde: un `fixed` con
+     `left` cerca del borde derecho se encogía a ese hueco, y en los botones de
+     la esquina «Ordenar las terminales» salía en tres renglones (2026-11-15).
+     Ya medido, `Overlays.tsx` lo mete dentro de la ventana. */
+  width: max-content;
   max-width: 340px;
   padding: 7px 11px;
   border-radius: var(--r-btn);

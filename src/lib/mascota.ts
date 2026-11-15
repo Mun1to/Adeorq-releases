@@ -26,6 +26,20 @@ export const ALTO = 14;
 /** Cuántas filas de aire hay encima del cuerpo. */
 const AIRE = 2;
 
+/**
+ * Cuánto sube el salto, en cuadros, según el sistema pida menos movimiento.
+ *
+ * Con «reducir movimiento» de Windows, Adeo se quedaba quieto en la postura de
+ * su ánimo. Munir eligió el 2026-11-15 (G1) que hiciera sus mismos gestos con un
+ * cuarto del recorrido y que nunca se quedara quieto, que es la regla de la casa
+ * para el movimiento: se le baja la amplitud, no se apaga. Los gestos (brazos,
+ * ojo, pie, lo que le sale encima) no son recorrido, son forma, y siguen igual;
+ * lo único que lo desplaza entero es el salto, y ese baja a un cuarto.
+ */
+export function recorridoDe(menosMovimiento: boolean): number {
+  return menosMovimiento ? 0.25 : 1;
+}
+
 /** El cuerpo. B cuerpo, W blanco del ojo. La pupila la pone cada mirada. */
 const CUERPO = [
   "......BBBBBBBB......",
@@ -190,11 +204,12 @@ export interface Tinte {
  *
  * `mirada` solo se aplica si la postura tiene el ojo abierto de frente: una
  * que está tecleando (mira abajo) o parpadeando no gira el ojo por el ratón.
+ * `recorrido` es cuánto sube el salto (`recorridoDe`).
  */
-export function cuadrosDe(pose: Pose, mirada: Mirada = "", tinte?: Tinte): Cuadro[] {
+export function cuadrosDe(pose: Pose, mirada: Mirada = "", tinte?: Tinte, recorrido = 1): Cuadro[] {
   const cuerpo = tinte?.cuerpo ?? AZUL;
   const brazo = tinte?.brazo ?? BRAZO_COLOR;
-  const sube = pose.salta ? 1 : 0;
+  const sube = pose.salta ? recorrido : 0;
   const ojo: Ojo = pose.ojo === "abierto" && mirada ? mirada : pose.ojo;
   const parpado = ojo in PARPADOS ? PARPADOS[ojo as keyof typeof PARPADOS] : null;
   const pupila = parpado ?? OJOS[ojo as keyof typeof OJOS];

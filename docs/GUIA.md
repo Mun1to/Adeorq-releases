@@ -168,7 +168,7 @@ De izquierda a derecha:
 |---|---|
 | **Adeo, la mascota** | Es la campana de avisos y va sola, sin el nombre de la app al lado. Su postura dice lo más urgente que pasa, por este orden: te llama si una terminal te espera, se queda con la duda si hay una decisión esperándote, celebra si alguien terminó sin que lo hayas visto, se apura si un encargo programado se ha parado, teclea si tus agentes trabajan, baila si suena música, se queda quieta si no pasa nada y duerme si no hay ninguna terminal abierta. Si la pulsas da un brinco, y a la tercera seguida le sale un corazón. El número que lleva encima son los avisos sin ver. Al pulsarla sale **Avisos**, con qué terminal es, si «terminó» o «te espera» y hace cuánto; una fila te lleva a esa terminal. **La lista se limpia sola**: lo que te esperaba se va cuando le contestas o cierras la terminal, y lo que terminó, cuando cierras la lista o entras en esa terminal. |
 | **Las siete pestañas** | Panel, Cabina, Chat, Decisiones, Lienzo, Perfil y Ajustes. Si la ventana es estrecha se quedan en el icono y el nombre sale al pasar el ratón. Se explican en el [punto 3](#3-las-siete-pestañas). |
-| **Un número en una pestaña** | En Cabina y Lienzo, cuántas terminales tienes abiertas ahí. En Decisiones, cuántas te esperan (en ámbar). |
+| **Un número en una pestaña** | En Cabina y Lienzo, cuántas terminales tienes abiertas ahí. En Decisiones, cuántas cosas te tocan a ti (en ámbar). |
 | **Objetivos de hoy** | Un icono que abre un panel flotante con lo que quieres dejar cerrado hoy. Se arrastra donde quieras, se pliega a solo el contador (por ejemplo 2/3) y se cierra con Esc. Más en el [punto 13](#13-agenda). |
 | **El Pulso** | Una píldora con tres cifras: lo que gasta Adeorq con sus agentes en CPU, en memoria (RAM) y cuántos agentes hay vivos (AG). Se pone ámbar cuando Adeorq usa un cuarto o más de la CPU o de la memoria del equipo, y roja cuando el equipo entero va al 90 % o Adeorq por sí solo pasa del 50 % de CPU. Un clic abre **Lo que gasta Adeorq**, con el detalle. Mide el árbol entero de procesos, no solo la ventana. |
 | **La tira de música** | Solo aparece si algo suena en el PC: título, artista, anterior, pausa y siguiente. El volumen se queda en el mezclador del sistema. En Linux y Mac no está. |
@@ -194,8 +194,8 @@ modelo y el proyecto. Está explicada campo por campo en el
   una franja de herramientas a la derecha.
 - **Chat** (beta): las mismas conversaciones de la Cabina, leídas como un chat, y
   arriba Adeo, que abre sesiones por ti.
-- **Decisiones**: lo que tus agentes te preguntan con opciones, para contestar en
-  el momento.
+- **Decisiones**: todo lo que necesita tu dedo en una sola lista: lo que te toca,
+  lo que terminó y las ideas de tus agentes.
 - **Lienzo**: un tablero libre donde las terminales se mueven, se conectan con
   flechas y conviven con notas, dibujo y herramientas.
 - **Perfil**: tú (nombre, @ y foto), tu uso y cuatro secciones que viven dentro:
@@ -432,19 +432,36 @@ Lo que conviene saber:
 
 ## 7. Decisiones
 
-Cuando un agente necesita que elijas algo, te lo pregunta aquí en lugar de por el
-chat. La pestaña lista **Te esperan** y **Anteriores**. Cada pregunta trae de dos a
-seis opciones numeradas (la recomendada lleva «Recomendada», y ninguna viene
-marcada) y una caja **Otra cosa, con tus palabras**.
+Todo lo que necesita tu dedo, en una sola lista y como un programa de correo: la
+lista a la izquierda y lo que abras a la derecha. Cada fila empieza por una palabra
+que dice qué es, y va en este orden:
 
-- **Enviar respuesta** espera cinco segundos con **Deshacer** y luego la teclea en
-  la terminal que preguntó, si sigue siendo la misma. Si no, el agente la lee cuando
-  vuelva a mirar.
+- **Te toca**: una terminal parada en una pregunta o un permiso (**Contesta**), una
+  pregunta de un agente con opciones (**Decide**) y un encargo programado que el freno
+  paró (**Parado**). Es lo que cuenta el número ámbar de la pestaña.
+- **Terminó**: los turnos acabados que todavía no has mirado (**Mira**).
+- **Ideas de tus agentes**: lo que te dejan apuntado mientras trabajan (**Idea**). Lo
+  aceptas (un paso va al `METAS.md` de su proyecto y una idea a la brújula), lo
+  descartas o, si trae una acción, la haces.
+- **Ya pasó**: las preguntas contestadas, descartadas o que ya no espera nadie. Se
+  borran solas a la semana.
+
+Cuando un agente necesita que elijas algo, te lo pregunta aquí en lugar de por el
+chat. Cada pregunta trae de dos a seis opciones numeradas (la recomendada lleva
+«Recomendada», y ninguna viene marcada) y una caja **Otra cosa, con tus palabras**.
+
+- **Enviar respuesta**, en la barra de abajo, espera cinco segundos con **Deshacer** y
+  luego la teclea en la terminal que preguntó, si sigue siendo la misma. Si no, el
+  agente la lee cuando vuelva a mirar.
 - **Descartar** la aparta sin contestar y avisa a la terminal que esperaba.
-- Las anteriores se borran solas a la semana.
-- El aviso es una cuenta ámbar en la pestaña y Adeo con cara de duda. En el móvil
-  emparejado llega un aviso y se contesta desde allí
-  ([punto 19](#19-en-el-móvil)).
+- **Con el teclado**: **J** y **K** (o las flechas) para bajar y subir, **Intro** para
+  abrir, **1** a **9** para elegir, **Tab** para pasar de pregunta, **O** para escribir
+  con tus palabras, **Ctrl+Intro** para enviar y **Esc** para volver adonde estabas.
+  **?** enseña todas las teclas, y **Ctrl+Mayús+B** abre Decisiones desde cualquier
+  sitio.
+- El aviso es la cuenta ámbar en la pestaña y Adeo con cara de duda; su lista acaba
+  en **Abrir Decisiones**. En el móvil emparejado llega un aviso y se contesta desde
+  allí ([punto 19](#19-en-el-móvil)).
 
 ---
 
@@ -679,7 +696,9 @@ Adeorq vigila la pantalla de cada terminal y traduce lo críptico a botones.
    compactó dos veces, ofrece una nueva en vez de una tercera.
 6. **Modo Espejo**: una terminal nacida en espejo trabaja en una rama aparte, y su
    botón abre **Propuestas en la sombra** con *Aceptar* y *Descartar*. Se elige al
-   abrir; no se puede activar a mitad.
+   abrir; no se puede activar a mitad. Las terminales que abra su agente nacen dentro
+   de la misma copia, y la lista enseña también lo que el agente ya guardó en commits.
+   Los encargos programados nacen así solos.
 
 Si usas un programa en **pantalla alternativa** (el modo «fullscreen» de Claude Code),
 Adeorq se comporta como una terminal normal: la rueda va al programa.
@@ -880,9 +899,9 @@ hecho.
   aquí**. Si has elegido un modelo local en Ajustes, cada una lleva una línea de
   qué necesita de ti.
 - **De tus agentes** (la bandeja): mientras trabajan salen cabos sueltos que no son de
-  ahora. En vez de interrumpirte, los agentes los apuntan ahí, de uno en uno, y tú
-  eliges **Aceptar** (un paso se escribe en el `METAS.md` de su proyecto), **Descartar**
-  o **Luego**. Un agente puede proponer ahí sin tocar ninguna credencial tuya.
+  ahora. En vez de interrumpirte, los agentes los apuntan ahí, y la cifra te lleva a
+  **Decisiones**, donde los aceptas o los descartas ([punto 7](#7-decisiones)). Un
+  agente puede proponer ahí sin tocar ninguna credencial tuya.
 - **Próximos pasos**: las metas de `docs/METAS.md` del proyecto que elijas y su
   aparcadero.
 - **Ideas y fechas externas**: salen de la **brújula**, un servicio aparte que es
@@ -908,6 +927,12 @@ o Codex**), la cuenta (si hay dos o más de ese agente), el modelo y un nombre.
   85 % o más, esa vez se salta y no cuenta como fallo.
 - Nace en modo auto; si pregunta algo, la pregunta llega al móvil. Hay un tope de
   veinte encargos.
+- **En una copia aparte**: como nadie lo mira mientras trabaja, si su carpeta es un
+  repositorio de git nace en el **Modo Espejo**, y lo que abra su agente nace dentro
+  de esa misma copia. Tu carpeta no se toca: por la mañana la terminal sigue ahí con
+  su botón del Espejo, y tú aceptas o descartas lo que hizo. Con trabajo sin aceptar,
+  ningún agente ni el propio reloj la cierra (tú sí, con la X). En una carpeta sin git
+  trabaja en ella, como siempre.
 
 El reloj funciona en Windows, Linux y macOS; en Linux y Mac no se ha probado todavía en
 un escritorio real.
@@ -1010,6 +1035,8 @@ salen sus nombres para saltar a una.
   (Google, Brave Search o DuckDuckGo).
 - **A los 450.000 tokens de contexto**: avisar y esperar al botón, compactar solo sin
   commits, o compactar solo con el `/fin` entero ([punto 10](#10-lo-que-sale-dentro-de-una-terminal)).
+- **Contarle a la terminal que abrió otras cuándo acaban, se bloquean o preguntan** (de
+  fábrica sí): ver el [punto 17](#17-lo-que-puede-hacer-un-programa-de-fuera).
 - **Arrancar Adeorq al encender el ordenador.**
 - **Al cerrar la ventana**: *Preguntar cada vez*, *Seguir en segundo plano* (la ventana se
   esconde, los agentes siguen y queda un icono junto al reloj) o *Cerrar todo*.
@@ -1107,7 +1134,7 @@ Adeorq tiene una puerta local, el **MCP**, por la que un programa de IA puede mi
 manejar tus terminales: listar proyectos y terminales, leer lo que se ve en una, abrir
 una nueva, escribirle, preguntarte algo con opciones (que llega a
 [Decisiones](#7-decisiones) y al móvil), consultar tu cuota y la memoria de la casa.
-Son dieciocho herramientas, repartidas en tres escalones con nombres sencillos:
+Son veintidós herramientas, repartidas en tres escalones con nombres sencillos:
 
 - **Solo mirar**: lee terminales, proyectos, la agenda, la cuota y la memoria. No
   cambia nada.
@@ -1115,6 +1142,15 @@ Son dieciocho herramientas, repartidas en tres escalones con nombres sencillos:
   lienzo, te hace preguntas y cierra **las que abrió ese mismo programa**. No escribe en
   las de otros.
 - **Todo**: además escribe en cualquier terminal, la cierra y puede compactarla.
+
+**Cuando una terminal abre otras**, no tiene que quedarse mirándolas. Al final del encargo
+de cada una, Adeorq le pide que diga cómo acabó (hecho, bloqueada, falla o que te necesita
+a ti) con la herramienta `entregar`, y si se para sin decirlo, se pregunta o se cierra,
+Adeorq lo ve igual. Todo eso se le escribe a la terminal que la abrió en UNA línea que
+empieza por `[adeorq]`, en cuanto esta para con su caja vacía: nunca mientras trabaja, nunca
+encima de algo que estés escribiendo tú y, por ahora, solo si es un Claude Code (de otro CLI
+no se sabe ver si su caja está vacía, y a ciegas no se le escribe). Como mucho veinte por hora
+a cada una; pasado eso, solo la campana. Se apaga en **Ajustes › Terminales**.
 
 **Cómo conectas tu Claude Code a estas herramientas.** Con un botón: la bienvenida tiene
 un paso, **Conectar tu Claude Code**, y lo mismo está en **Ajustes › Terminales › Conectar
@@ -1470,6 +1506,7 @@ Adeorq no usa los menús del navegador: son suyos, en tu idioma y con los atajos
 | Ctrl+Mayús+F | Maximizar o restaurar la terminal activa |
 | Ctrl+Mayús+A | Llamar o cerrar a Adeo |
 | Ctrl+Mayús+M | Llamar a Adeo y dictarle |
+| Ctrl+Mayús+B | Abrir Decisiones: lo que te toca |
 | Ctrl+Mayús+E | Modo emisión |
 | Ctrl+Mayús+P | La cortina: tapa la ventana entera |
 | Alt (mantenido) | Mirar lo que tapa el modo emisión |

@@ -3,7 +3,6 @@
 // identical text rows is a list you have to read; a wall of marks is one you
 // recognise.
 import { useEffect, useState } from "react";
-import { hueOf } from "../lib/colors";
 
 /** "Adeorq" → "Ad", "CCC Alex Web" → "CA", "layco-core" → "LC". */
 export function initials(name: string): string {
@@ -68,7 +67,7 @@ export default function ProjectAvatar({ name, src, className }: Props) {
     <span
       className={`pavatar${className ? ` ${className}` : ""}`}
       data-plate={src ? (dark ? "light" : "none") : "tint"}
-      style={{ ["--c" as string]: hueOf(name) }}
+      style={{ ["--c" as string]: "var(--accent)" }}
       aria-hidden="true"
     >
       {src ? <img src={src} alt="" draggable={false} /> : initials(name)}

@@ -801,7 +801,8 @@
   height: 18px;
 }
 
-/* No logo: the initials wear the project's identity colour. Sueltas, sin la
+/* No logo: the initials, all in one tone (Munir, E1 del 2026-11-15: el color de la
+   barra se guarda para avisar; antes, un tono por proyecto). Sueltas, sin la
    placa tintada ni su borde: Munir eligió soltarlas el 2026-10-17 viendo las
    dos fotos («Cárceles por decidir», la D). Un logo, igual, sin placa. */
 .pavatar[data-plate="tint"] {

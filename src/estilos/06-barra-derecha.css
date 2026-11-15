@@ -36,6 +36,35 @@
     -14px 0 40px -10px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
+/* Adeo en la barra (B1, 2026-11-15): más ancho que las otras caras, porque su
+   plan lleva una ficha con el encargo, a quién va y en qué cuenta. */
+.lateral[data-cara="adeo"] {
+  width: 380px;
+}
+
+/* Su ventana, sin marco de ventana: el marco ya es la barra. Se queda con su
+   contenido y su scroll. */
+.foreman-box.foreman-lateral {
+  width: auto;
+  max-height: none;
+  flex: 1;
+  min-height: 0;
+  padding: 2px 12px 12px;
+  background: none;
+  backdrop-filter: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  animation: none;
+}
+
+/* En 380 px los tres botones no caben en una fila: el tercero baja entero en vez
+   de salirse por el borde (sus botones no ceden ancho, `08-movil-y-avisos.css`). */
+.foreman-lateral .foreman-row {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
 /* Solo el título: el botón de cerrar se fue el 2026-08-15, porque el icono de
    la franja ya hace las dos cosas. */
 .lateral-head {

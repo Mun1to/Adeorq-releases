@@ -744,11 +744,7 @@ pub fn arrancar(app: tauri::AppHandle) {
         loop {
             if instalado() {
                 match una_vuelta(&mut enumerada) {
-                    Ok(nuevas) => {
-                        for a in nuevas {
-                            avisar(&app, &a);
-                        }
-                    }
+                    Ok(nuevas) => avisar(&app, &nuevas),
                     Err(e) => {
                         let _ = con_vigilante(|v| v.error = Some(e));
                     }
@@ -771,22 +767,62 @@ fn una_vuelta(enumerada: &mut Option<Instant>) -> Result<Vec<vigilante::Alerta>,
     con_vigilante(|v| v.vuelta(rutas, &huella_lista, ahora_ms() as u64, Instant::now()))
 }
 
-/// Un aviso del escritorio, una vez por cambio, y la lista de Ajustes al día.
-fn avisar(app: &tauri::AppHandle, a: &vigilante::Alerta) {
-    use tauri::Emitter;
-    use tauri_plugin_notification::NotificationExt;
-    let p = Path::new(&a.ruta);
-    let nombre = match (p.parent().and_then(|d| d.file_name()), p.file_name()) {
-        (Some(d), Some(f)) => format!("{}\\{}", d.to_string_lossy(), f.to_string_lossy()),
-        _ => a.ruta.clone(),
-    };
-    let texto = if a.despues.is_none() {
+/// La carpeta y el archivo, que es lo que se reconoce en un aviso.
+fn nombre_corto(ruta: &str) -> String {
+    // A mano y no con `Path`: en Linux `Path` no parte por `\`, y la ruta se
+    // escribe con la barra que traía (la prueba de Linux de GitHub, 2026-11-15).
+    let barra = if ruta.contains('\\') { '\\' } else { '/' };
+    match ruta.split(['/', '\\']).filter(|s| !s.is_empty()).collect::<Vec<_>>().as_slice() {
+        [.., d, f] => format!("{d}{barra}{f}"),
+        _ => ruta.to_string(),
+    }
+}
+
+/// Lo que dice el rastro de un cambio.
+fn texto_de(a: &vigilante::Alerta) -> String {
+    let nombre = nombre_corto(&a.ruta);
+    if a.despues.is_none() {
         format!("Han borrado {nombre} sin pasar por el escudo. Míralo en Ajustes › Escudo, donde puedes deshacerlo.")
     } else {
         format!("Ha cambiado {nombre} sin pasar por el escudo. Míralo en Ajustes › Escudo, donde puedes deshacerlo.")
-    };
-    crate::anotar(&format!("escudo: {texto}"));
-    let _ = app.emit("escudo-cambio", json!({ "ruta": a.ruta }));
+    }
+}
+
+/// El ÚNICO aviso del escritorio de una vuelta, por muchos cambios que traiga.
+/// El 2026-11-14 salieron 178 avisos de Windows en dos tandas (142 a las 04:42
+/// y 36 a las 07:28), uno por archivo, por las skills de claude.ai: Claude Code
+/// reescribe `skills\synced` él solo, y un cubo de skills movido de una cuenta
+/// a otra borra de golpe todo lo que llevaba. Cada cambio sigue en Ajustes ›
+/// Escudo y en el rastro; el aviso solo dice que hay que mirar.
+fn aviso_de_la_vuelta(nuevas: &[vigilante::Alerta]) -> Option<String> {
+    match nuevas {
+        [] => None,
+        [una] => Some(texto_de(una)),
+        varias => {
+            let n = varias.len();
+            if varias.iter().all(|a| a.norm.contains("/skills/synced/")) {
+                Some(format!(
+                    "Han cambiado {n} archivos de tus skills de claude.ai (skills\\synced), que Claude Code pone al día solo. Si no lo esperabas, míralos en Ajustes › Escudo, donde puedes deshacerlos."
+                ))
+            } else {
+                let nombre = nombre_corto(&varias[0].ruta);
+                Some(format!(
+                    "Han cambiado {n} archivos sin pasar por el escudo, entre ellos {nombre}. Míralos en Ajustes › Escudo, donde puedes deshacerlos."
+                ))
+            }
+        }
+    }
+}
+
+/// Cada cambio al rastro y a la lista de Ajustes, y un solo aviso del escritorio.
+fn avisar(app: &tauri::AppHandle, nuevas: &[vigilante::Alerta]) {
+    use tauri::Emitter;
+    use tauri_plugin_notification::NotificationExt;
+    for a in nuevas {
+        crate::anotar(&format!("escudo: {}", texto_de(a)));
+        let _ = app.emit("escudo-cambio", json!({ "ruta": a.ruta }));
+    }
+    let Some(texto) = aviso_de_la_vuelta(nuevas) else { return };
     if de_laboratorio() {
         return;
     }
@@ -879,6 +915,38 @@ fn traer(puerto: u16, peticion: &Value) -> Result<Value, String> {
 #[cfg(test)]
 mod pruebas {
     use super::*;
+
+    fn alerta(ruta: &str, borrado: bool) -> vigilante::Alerta {
+        vigilante::Alerta {
+            ruta: ruta.into(),
+            norm: lista::normalizar(ruta),
+            cuando: 1,
+            antes: Some("a".into()),
+            despues: (!borrado).then(|| "b".into()),
+            estado: vigilante::EstadoAlerta::Nueva,
+        }
+    }
+
+    #[test]
+    fn una_vuelta_con_muchos_cambios_da_un_solo_aviso() {
+        assert_eq!(aviso_de_la_vuelta(&[]), None);
+        let una = aviso_de_la_vuelta(&[alerta(r"C:\Users\M\.claude\CLAUDE.md", false)]).unwrap();
+        assert!(una.starts_with(r"Ha cambiado .claude\CLAUDE.md sin pasar"), "{una}");
+        let linux = aviso_de_la_vuelta(&[alerta("/home/m/.claude/CLAUDE.md", false)]).unwrap();
+        assert!(linux.starts_with("Ha cambiado .claude/CLAUDE.md sin pasar"), "{linux}");
+        // Las 36 de las 07:28: todo dentro de skills\synced.
+        let synced: Vec<_> = (0..36)
+            .map(|i| alerta(&format!(r"C:\Users\M\.claude\skills\synced\org_user\s{i}\SKILL.md"), true))
+            .collect();
+        let t = aviso_de_la_vuelta(&synced).unwrap();
+        assert!(t.contains("36 archivos de tus skills de claude.ai"), "{t}");
+        // Con uno de fuera ya no se le echa la culpa a Claude Code.
+        let mut mezcla = synced.clone();
+        mezcla.insert(0, alerta(r"C:\proyectos\Adeorq\AGENTS.md", false));
+        let t = aviso_de_la_vuelta(&mezcla).unwrap();
+        assert!(t.starts_with(r"Han cambiado 37 archivos sin pasar por el escudo, entre ellos Adeorq\AGENTS.md"), "{t}");
+        assert!(!t.contains("claude.ai"), "{t}");
+    }
 
     /// La carpeta del escudo para las pruebas que la necesitan. Esas pruebas
     /// van en fila (`en_fila`), porque comparten esto y el turno.

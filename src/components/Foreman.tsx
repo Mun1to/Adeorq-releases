@@ -151,6 +151,12 @@ interface Props {
    * de chat no cabe, pero eso ya no es cosa de quien pregunta.
    */
   onRepartir?: (texto: string) => void;
+  /**
+   * Dentro de la barra de la derecha y no flotando sobre toda la app (B1,
+   * 2026-11-15): sin velo y sin su título, que ya lo pone la cabecera de la
+   * barra, para que las terminales sigan a la vista y se puedan usar.
+   */
+  enLateral?: boolean;
 }
 
 type Phase = "idle" | "thinking" | "plan" | "done" | "error";
@@ -665,7 +671,7 @@ function actionLabel(c: Checked): string {
   return `Antigravity en ${a.proyecto} con encargo`;
 }
 
-export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Props) {
+export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir, enLateral }: Props) {
   const { t } = useT();
   // El borrador sobrevive al cierre. El Asistente se cierra con Esc, pinchando
   // fuera y con el aspa, y hasta ahora cerrarlo tiraba lo que estuvieras
@@ -1739,6 +1745,20 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
       )}
     </>
   );
+
+  if (enLateral) {
+    return (
+      <div
+        className="foreman-box foreman-lateral"
+        onKeyDown={(e) => {
+          if (e.key === "Escape") onClose?.();
+        }}
+      >
+        {body}
+        <AvisoIA donde="plan" />
+      </div>
+    );
+  }
 
   // A `document.body` y no donde cae en el árbol: esto es una ventana flotante
   // sobre TODA la app, y `position: fixed` deja de mirar a la ventana en cuanto

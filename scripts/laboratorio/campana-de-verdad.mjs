@@ -17,9 +17,9 @@
 //   B. «terminal_bell» (en su `.claude/settings.local.json`): la campana llega
 //      al minuto, no al acabar; el brillo y el aviso, al acabar y UNA vez (la
 //      campana del minuto no vuelve a avisar).
-//   E. `compactar_terminal` de quien la abrió: tras su `/fin sin commits`, el
+//   E. `compactar_terminal` de quien la abrió: tras su `/fin`, el
 //      `/compact` llega sin campana.
-//   F. La raya roja: una delegada a 420k compacta sola, `/fin sin commits` y
+//   F. La raya roja: una delegada a 420k compacta sola, `/fin` y
 //      luego `/compact`, sin campana.
 //
 // Cada pasada es una carpeta de proyecto y su propio Claude Code, a la vez. Los
@@ -283,9 +283,9 @@ try {
     const av = avisosDe(letra);
     debe(av.length === 1 && tras(letra, av[0].en) < 15_000, `${letra}: un solo aviso de «terminó», al acabar`, av.map((x) => seg(tras(letra, x.en))).join(", ") || "ninguno");
   }
-  debe(Boolean(api.E?.fin), "E: compactar_terminal manda su /fin sin commits", (api.E?.orden ?? []).join(" → "));
+  debe(Boolean(api.E?.fin), "E: compactar_terminal manda su /fin", (api.E?.orden ?? []).join(" → "));
   debe(Boolean(api.E?.resumen) && api.E.resumen > api.E.fin, "E: y al acabar el /fin, el /compact llega sin campana", (api.E?.orden ?? []).join(" → "));
-  debe(Boolean(api.F?.fin), "F: a 420k, la delegada empieza sola con /fin sin commits", (api.F?.orden ?? []).join(" → "));
+  debe(Boolean(api.F?.fin), "F: a 420k, la delegada empieza sola con /fin", (api.F?.orden ?? []).join(" → "));
   debe(Boolean(api.F?.resumen) && api.F.resumen > api.F.fin, "F: y luego se compacta", (api.F?.orden ?? []).join(" → "));
   for (const letra of ["E", "F"]) {
     const n = (api[letra]?.orden ?? []).filter((x) => x === "resumen").length;

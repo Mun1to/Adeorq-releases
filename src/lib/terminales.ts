@@ -21,6 +21,12 @@ export function olvidarTerminal(id: number, term?: Terminal): void {
   if (!term || vivas.get(id) === term) vivas.delete(id);
 }
 
+/** La xterm viva de un panel, para mirar su pantalla con las llaves de
+ *  `contexto.ts` (`enPantalla`), que necesitan las celdas y no solo el texto. */
+export function xtermDe(id: number): Terminal | null {
+  return vivas.get(id) ?? null;
+}
+
 /** Las filas de la pantalla tal como se ven, de arriba abajo, sin el espacio
  *  sobrante a la derecha ni las filas vacías del final. */
 export function pantallaDe(id: number): string[] | null {

@@ -104,6 +104,8 @@ impl Salida for SalidaVentana {
         let _ = self.0.emit("pty-exit", PtyExit { id, code });
         // Una delegada cuyo proceso sale solo: que lo sepa quien la abrió.
         crate::mcp::al_salir(&self.0, id, code);
+        // caja: la que acabó se tira (`caja.rs`).
+        crate::caja::al_terminar(id);
     }
     fn mudo(&self, id: u32) {
         let _ = self.0.emit("pty-mudo", PtyMudo { id });
@@ -828,6 +830,22 @@ pub async fn pty_spawn(
     let clave = ClaveDePanel::nueva().ok_or("no se pudo crear la contraseña de esta terminal")?;
     let env = entorno_al_nacer(command.is_some(), env);
     let alta = Alta { id, cwd, cols, rows, command, env, clave: Some(clave) };
+    // caja: con `ADEORQ_CAJA` en su entorno nace dentro de un contenedor
+    // (`caja.rs`, `docs/contexto/cajas.md`). Lo que tarda prepararla se cuenta en
+    // el propio panel. Si ya está viva (la ventana suelta), no se toca.
+    let alta = if alta.env.as_ref().is_some_and(|e| e.contains_key(crate::caja::VARIABLE)) && !existe(&app, id) {
+        let a = app.clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            let avisar = |t: &str| {
+                let _ = a.emit("pty-data", PtyData { id, data: format!("\x1b[2m[caja] {t}\x1b[0m\r\n") });
+            };
+            crate::caja::preparar(alta, &avisar, &|p| existe(&a, p))
+        })
+        .await
+        .map_err(|e| e.to_string())??
+    } else {
+        alta
+    };
     if let Some(r) = crate::terminales::remoto(&app) {
         return tauri::async_runtime::spawn_blocking(move || r.crear(alta)).await.map_err(|e| e.to_string())?;
     }
@@ -1773,6 +1791,8 @@ pub async fn pty_kill(app: AppHandle, state: State<'_, PtyState>, id: u32) -> Re
     if existe(&app, id) {
         apuntar_cerrada(id);
     }
+    // caja: su contenedor no muere con el cliente de Docker (`caja.rs`).
+    crate::caja::al_cerrar(id);
     if let Some(r) = crate::terminales::remoto(&app) {
         tauri::async_runtime::spawn_blocking(move || r.matar(id)).await.map_err(|e| e.to_string())??;
         return Ok(());
@@ -1818,10 +1838,16 @@ pub fn kill_all(app: &AppHandle) {
     // Con el proceso de terminales, cerrar Adeorq de verdad es despedirse: el
     // proceso mata a todas y se va. Una caída no llega aquí, y entonces
     // aguantan (Munir, 2026-10-11).
-    if let Some(r) = crate::terminales::remoto(app) {
-        crate::terminales::al_cerrar_la_app(&r);
+    let remoto = crate::terminales::remoto(app);
+    if let Some(r) = &remoto {
+        crate::terminales::al_cerrar_la_app(r);
     }
     matar_todas(&app.state::<PtyState>().0);
+    // caja: sus contenedores también, salvo al actualizar con el proceso de
+    // terminales, que se queda con ellas para la versión nueva.
+    if remoto.is_none() || !crate::terminales::se_actualiza() {
+        crate::caja::tirar_todas();
+    }
 }
 
 /// Los proyectos del panel: las subcarpetas de la carpeta madre, más los que el

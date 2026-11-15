@@ -14,6 +14,8 @@ import { kindDeComando } from "../components/KindIcon";
 import { lineaDeArranque, lineaDeRetomar, type Provider } from "./providers";
 import { lineaConEncargo, planDeArranque, type Peticion, type Plan } from "./arranque";
 import { cargarDelegadas, delegadaDe } from "./delegadas";
+import { arbolDe } from "./copiaAparte";
+import { raiz } from "./perfil";
 
 /** Una línea con un encargo escrito por una persona al final. Va SIEMPRE por
  *  PowerShell (o bash), nunca por el cmd ligero: en cmd un «&» dictado
@@ -119,7 +121,7 @@ export function newClaudeCommand(extra = "", mode?: PermissionMode, encargo?: st
 }
 
 /** Turns a pane's command into the one that brings its conversation back. */
-export async function resumeCommandFor<P extends { command?: string[]; cwd: string }>(
+export async function resumeCommandFor<P extends { command?: string[]; cwd: string; espejo?: string }>(
   pane: P,
 ): Promise<string[] | undefined> {
   const joined = pane.command?.join(" ") ?? "";
@@ -133,7 +135,9 @@ export async function resumeCommandFor<P extends { command?: string[]; cwd: stri
   }
   // A session that never got a message has no transcript, and --resume on it
   // fails with "No conversation found": reopen it as a fresh one instead.
-  const exists = await transcriptExists(pane.cwd, id).catch(() => false);
+  // La que trabajaba en una copia aparte la guardó por la carpeta de su árbol.
+  const donde = pane.espejo ? arbolDe(pane.cwd, pane.espejo, raiz()) : pane.cwd;
+  const exists = await transcriptExists(donde, id).catch(() => false);
   await cargarDelegadas();
   const modo = modoAlRetomar(pane.command);
   // Restoring the board is exactly where the effort went missing, so it is

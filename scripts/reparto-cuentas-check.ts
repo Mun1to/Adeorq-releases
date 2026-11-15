@@ -248,5 +248,32 @@ comprueba("en Codex, nada (no comparte esa casa)", loQueNoVe("codex", lista[1], 
   comprueba("y con dos, tampoco «semana»", !/semana/.test(dos), dos);
 }
 
+// 20. Lo gastado y lo previsto, por separado. La coordinadora de winshotx, el
+// 2026-11-15: `open_pane` dijo «"Principal" pasa del 92 %» con el 72 % gastado
+// (el 92 era el 72 más 10 por cada una de las 2 terminales recién abiertas), y
+// ella se lo repitió a Munir como gasto.
+{
+  const principal = viva("Principal", { gastado: 72, renueva: AHORA + 3 * DIA, abiertas: 2 });
+  const fuera = elegirCuenta([principal, viva("Otra", { gastado: 40, renueva: AHORA + 5 * DIA })], AHORA)?.porque ?? "";
+  comprueba(
+    "la que queda fuera por la previsión dice su gasto y lo calculado, aparte",
+    fuera.includes("«Principal» no entra por llegar al 92 %: al 72 % gastado (con las 2 terminales abiertas desde la última lectura, se calcula ~92 %)"),
+    fuera,
+  );
+  comprueba("y no dice que pase del 92 % a secas", !/pasa del 92/.test(fuera), fuera);
+  const menosMala = elegirCuenta([principal, viva("Llena", { gastado: 95, renueva: AHORA + 5 * DIA })], AHORA)?.porque ?? "";
+  comprueba(
+    "«la menos mala» también separa lo gastado de lo calculado",
+    menosMala.includes("va a «Principal», al 72 % gastado de su semana (con las 2 terminales abiertas desde la última lectura, se calcula ~92 %), que es la menos mala"),
+    menosMala,
+  );
+  const una = elegirCuenta([principal], AHORA)?.porque ?? "";
+  comprueba("y con una sola, igual", una.includes("aunque está al 72 % gastado de su semana (con las 2 terminales") && una.includes("~92 %"), una);
+  const elegida = elegirCuenta([viva("A", { gastado: 40, renueva: AHORA + 2 * DIA, abiertas: 1 }), viva("B", { gastado: 30, renueva: AHORA + 6 * DIA })], AHORA)?.porque ?? "";
+  comprueba("la elegida con una abierta lo dice igual", elegida.includes("«A» al 40 % gastado (con 1 terminal abierta desde la última lectura, se calcula ~50 %)"), elegida);
+  const llena = elegirCuenta([viva("Llena", { gastado: 93, renueva: AHORA + 0.5 * DIA }), viva("Normal", { gastado: 70, renueva: AHORA + 6 * DIA })], AHORA)?.porque ?? "";
+  comprueba("sin terminales abiertas no se inventa ninguna previsión", llena.includes("«Llena» no entra por llegar al 92 %: al 93 % gastado") && !/se calcula/.test(llena), llena);
+}
+
 console.log(fallos ? `\n${fallos} FALLAN` : "\nTodo bien.");
 if (fallos) process.exit(1);

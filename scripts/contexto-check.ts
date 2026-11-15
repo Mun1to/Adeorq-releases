@@ -30,6 +30,8 @@ import { sabe } from "../src/lib/providers";
 import {
   bloqueRetomar,
   CADUCA_MS,
+  contextoAlaVista,
+  CORTAR_TRAS_MS,
   crearTraspaso,
   esDelegada,
   esperaEnSuCaja,
@@ -152,6 +154,9 @@ function panel(o: Partial<{
     },
     abrirNueva: (encargo) => nuevas.push(encargo),
     alSugerir: (p) => sugerencias.push(p),
+    cortar: async () => {
+      mandado.push("<Esc>");
+    },
     // El reloj corre lo que se espera: el asiento tras la campana pasa de verdad.
     esperar: async (ms) => {
       if (s.manual && ms === VIGILA_COMPACTAR_MS) await new Promise<void>((r) => vueltas.push(r));
@@ -226,7 +231,15 @@ async function main() {
   // ── Lo que Munir eligió el 2026-10-22 (A1, B1) ──────────────────────────
   // «y que cuando todavía esté trabajando no compactar auto»: además del
   // transcript, el pie de turno del CLI en pantalla.
-  es("de fábrica, el 60 % compacta solo y sin commits", leerModoSolo(), "sin-commits");
+  es("de fábrica, el 60 % compacta solo con el /fin entero (R1, 2026-11-15)", leerModoSolo(), "fin");
+
+  // C1 del 2026-11-15: la píldora de la cabecera sale desde 100.000 tokens.
+  ok("a 40k de 1M (el 4 %) la píldora no sale", !contextoAlaVista({ used: 40_000, window: 1_000_000 }));
+  ok("a 120k de 1M, sí", contextoAlaVista({ used: 120_000, window: 1_000_000 }));
+  ok("en Haiku (200k), desde el 15 %: a 35k sí", contextoAlaVista({ used: 35_000, window: 200_000 }));
+  ok("sin tokens (Codex), nunca", !contextoAlaVista({ used: 0, window: 0 }) && !contextoAlaVista(null));
+  es("a 360k, ámbar (nivel 1)", nivelDeContexto({ used: 360_000, window: 1_000_000 }), 1);
+  es("a 460k, rojo (nivel 2)", nivelDeContexto({ used: 460_000, window: 1_000_000 }), 2);
   const pantalla = (...l: string[]) => (i: number) => l[i] ?? "";
   ok("el pie de turno de Claude en pantalla es trabajar", trabajaEnPantalla(pantalla("", "✻ Pensando… (12s · esc to interrupt)", "> "), 3));
   ok("una pantalla quieta, no", !trabajaEnPantalla(pantalla("Hecho.", "", "> "), 3));
@@ -367,6 +380,92 @@ async function main() {
     es("pero el /compact espera a la cuota", p.mandado, []);
   }
 
+  // ── Una delegada pasada de 600k en un turno que no acaba ───────────────
+  // Orquio General, 2026-11-01: la «seguridad14-core» pasó de 600.000 y siguió
+  // 48 minutos más, hasta 930.958, en UN turno; la raya roja esperaba a que
+  // acabase. Munir: que se cumpla aunque el turno no acabe.
+  {
+    const p = panel({ delegada: true, k: 650, estado: "a_medias", trabajando: true });
+    await p.tr.alPasarse();
+    es("a 650k y trabajando, primero se le deja acabar", p.mandado, []);
+    p.s.reloj += CORTAR_TRAS_MS - 1;
+    await p.tr.alPasarse();
+    es("todavía dentro del margen, nada", p.mandado, []);
+    p.s.reloj += 2;
+    await p.tr.alPasarse();
+    es("pasado el margen y sin acabar, un Escape", p.mandado, ["<Esc>"]);
+    es("y se queda esperando a que pare", p.tr.fase(), "esperando");
+    await p.vuelta();
+    es("mientras la pantalla diga que trabaja, no se teclea nada más", p.mandado, ["<Esc>"]);
+    // Parado: el transcript acaba en «[Request interrupted by user]» («tuya»).
+    p.s.trabajando = false;
+    p.s.estado = "tuya";
+    await p.vuelta();
+    es("parada en su caja, el /fin entero", p.mandado, ["<Esc>", "/fin"]);
+    // El turno del /fin: hasta que acaba de verdad, no hay /compact.
+    p.s.estado = "tuya";
+    p.s.k = 655;
+    await p.tr.alSonar();
+    es("tras el /fin, una lectura que no es «lista» no compacta", p.mandado.length, 2);
+    p.s.estado = "lista";
+    p.s.k = 660;
+    await p.tr.alSonar();
+    ok("con el /fin acabado, el /compact", p.mandado.length === 3 && p.mandado[2].startsWith("/compact "), JSON.stringify(p.mandado));
+  }
+  {
+    const p = panel({ delegada: false, k: 650, estado: "a_medias", trabajando: true });
+    await p.tr.alPasarse();
+    p.s.reloj += CORTAR_TRAS_MS + 1;
+    await p.tr.alPasarse();
+    es("una terminal tuya no se corta nunca", p.mandado, []);
+  }
+  {
+    const p = panel({ delegada: true, k: 550, estado: "a_medias", trabajando: true });
+    await p.tr.alPasarse();
+    p.s.reloj += CORTAR_TRAS_MS + 1;
+    await p.tr.alPasarse();
+    es("por debajo de 600k no se corta (la raya roja espera al turno)", p.mandado, []);
+  }
+  {
+    const p = panel({ delegada: true, k: 650, estado: "a_medias", trabajando: true, pregunta: true });
+    await p.tr.alPasarse();
+    p.s.reloj += CORTAR_TRAS_MS + 1;
+    await p.tr.alPasarse();
+    es("con un menú suyo en pantalla no se corta: el Escape lo contestaría", p.mandado, []);
+  }
+  {
+    const p = panel({ delegada: true, k: 650, estado: "a_medias", trabajando: true, sinCuota: true });
+    await p.tr.alPasarse();
+    p.s.reloj += CORTAR_TRAS_MS + 1;
+    await p.tr.alPasarse();
+    es("parada por cuota no se corta", p.mandado, []);
+  }
+  {
+    const p = panel({ delegada: true, k: 650, estado: "a_medias", trabajando: true, veces: 2 });
+    await p.tr.alPasarse();
+    p.s.reloj += CORTAR_TRAS_MS + 1;
+    await p.tr.alPasarse();
+    es("compactada ya dos veces no se corta para una tercera", p.mandado, []);
+  }
+  {
+    const p = panel({ delegada: true, k: 650, estado: "a_medias", trabajando: true });
+    await p.tr.alPasarse();
+    p.s.reloj += CORTAR_TRAS_MS - 10_000;
+    p.s.trabajando = false;
+    p.s.estado = "lista";
+    await p.tr.alPasarse();
+    es("si acaba el turno dentro del margen, no se corta (lo coge la campana)", p.mandado, []);
+    p.s.trabajando = true;
+    p.s.estado = "a_medias";
+    await p.tr.alPasarse();
+    p.s.reloj += 20_000;
+    await p.tr.alPasarse();
+    es("y un turno nuevo empieza su margen de cero", p.mandado, []);
+    p.s.reloj += CORTAR_TRAS_MS;
+    await p.tr.alPasarse();
+    es("pasado su margen, sí", p.mandado, ["<Esc>"]);
+  }
+
   // ── El botón, a mano ───────────────────────────────────────────────────
   {
     const p = panel({ modo: "no", estado: "a_medias" });
@@ -440,14 +539,14 @@ async function main() {
   {
     const p = panel({ modo: "no", delegada: true });
     await p.tr.alSonar();
-    es("una delegada a 470k compacta sola aunque el ajuste diga «no»", p.mandado, ["/fin sin commits"]);
+    es("una delegada a 470k compacta sola aunque el ajuste diga «no»", p.mandado, ["/fin"]);
     await p.tr.alSonar();
     ok("y al acabar el /fin, su /compact", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "), JSON.stringify(p.mandado));
   }
   {
     const p = panel({ modo: "fin", delegada: true });
     await p.tr.alSonar();
-    es("con el ajuste en «fin», una delegada sigue sin commits", p.mandado, ["/fin sin commits"]);
+    es("con el ajuste en «fin», una delegada hace el /fin entero", p.mandado, ["/fin"]);
   }
   for (const [nombre, o] of [
     ["trabajando en pantalla", { trabajando: true }],
@@ -481,14 +580,14 @@ async function main() {
     es("con la pantalla diciendo que trabaja, tampoco", p.mandado, []);
     p.s.trabajando = false;
     await p.tr.alSonar();
-    es("al parar de verdad, /fin SIN commits aunque el ajuste diga «fin»", p.mandado, ["/fin sin commits"]);
+    es("al parar de verdad, el /fin entero (R1, 2026-11-15)", p.mandado, ["/fin"]);
     await p.tr.alSonar();
     ok("y cuando acaba el /fin, el /compact", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "), JSON.stringify(p.mandado));
   }
   {
     const p = panel({ k: 120 });
     await p.tr.pedirDeAgente();
-    es("parada, lo empieza en el acto aunque vaya por 120k: lo pidió el agente", p.mandado, ["/fin sin commits"]);
+    es("parada, lo empieza en el acto aunque vaya por 120k: lo pidió el agente", p.mandado, ["/fin"]);
   }
   {
     const p = panel({ sinDato: true });
@@ -676,7 +775,7 @@ async function main() {
     await p.tr.pedirDeAgente();
     ok(
       "si contesta que no conoce /fin, va el texto de traspaso de la casa",
-      p.mandado.length === 2 && p.mandado[0] === "/fin sin commits" && p.mandado[1].startsWith("Antes de compactar"),
+      p.mandado.length === 2 && p.mandado[0] === "/fin" && p.mandado[1].startsWith("Antes de compactar"),
       JSON.stringify(p.mandado),
     );
     es("y sigue esperando para el /compact", p.tr.fase(), "cerrando");
@@ -691,7 +790,7 @@ async function main() {
   {
     const p = panel();
     await p.tr.pedirDeAgente();
-    es("con /fin conocido no se manda nada más", p.mandado, ["/fin sin commits"]);
+    es("con /fin conocido no se manda nada más", p.mandado, ["/fin"]);
   }
   ok("la pantalla de 2026-11-09 se reconoce", finDesconocidoEnPantalla((i) => ["❯ /fin sin commits", "  ⎿  Unknown command: /fin. Did you mean /run?"][i] ?? "", 2));
   ok("y una pantalla normal no", !finDesconocidoEnPantalla((i) => ["❯ ", "  ? for shortcuts"][i] ?? "", 2));
@@ -765,7 +864,7 @@ async function main() {
     await new Promise((r) => setTimeout(r, 0));
     soltar();
     await Promise.all([campana, agente]);
-    es("a 120k la campana no empieza nada y el pedido del agente manda su /fin, sin /compact", p.mandado, ["/fin sin commits"]);
+    es("a 120k la campana no empieza nada y el pedido del agente manda su /fin, sin /compact", p.mandado, ["/fin"]);
   }
 
   // 3. Nada se teclea si la pantalla no es la de Claude Code esperando en su
@@ -1040,7 +1139,7 @@ async function main() {
     es("compactar_terminal sin campana, trabajando: nada", p.mandado, []);
     p.s.estado = "lista";
     await p.vuelta();
-    es("al pararse, su /fin sin commits", p.mandado, ["/fin sin commits"]);
+    es("al pararse, su /fin entero", p.mandado, ["/fin"]);
     p.s.estado = "a_medias";
     await p.vuelta();
     p.s.estado = "lista";
@@ -1055,7 +1154,7 @@ async function main() {
     await p.tr.pedirDeAgente();
     p.s.estado = "lista";
     await p.vuelta();
-    es("(el /fin, al verla parada)", p.mandado, ["/fin sin commits"]);
+    es("(el /fin, al verla parada)", p.mandado, ["/fin"]);
     await p.vuelta();
     await p.vuelta();
     es("una «lista» que no se movió desde el /fin no vale para mandar el /compact", p.mandado.length, 1);
@@ -1068,7 +1167,7 @@ async function main() {
     await p.tr.pedirDeAgente();
     p.s.estado = "lista";
     await p.tr.alSonar();
-    es("con campana Y mirando a la vez: un solo /fin", p.mandado, ["/fin sin commits"]);
+    es("con campana Y mirando a la vez: un solo /fin", p.mandado, ["/fin"]);
     p.s.estado = "a_medias";
     await p.vuelta();
     p.s.estado = "lista";
@@ -1108,7 +1207,7 @@ async function main() {
       if (f.mirar(vista(PARADA)).fin) await p.tr.alSonar();
     };
     await acaba();
-    es("raya roja sin campana: el detector ve acabar el turno y empieza el /fin sin commits", p.mandado, ["/fin sin commits"]);
+    es("raya roja sin campana: el detector ve acabar el turno y empieza el /fin entero", p.mandado, ["/fin"]);
     p.s.estado = "a_medias";
     await acaba();
     ok("y al acabar el /fin, su /compact", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "), JSON.stringify(p.mandado));

@@ -12,6 +12,7 @@ import { haceCuanto } from "../lib/estados";
 import { useT, type Translate } from "../lib/i18n";
 import { cortados } from "../lib/programados";
 import { useSuena } from "../lib/suena";
+import { conectarVueltaArriba } from "../lib/vueltaArribaVivo";
 import { useProgramados } from "./AgendaProgramados";
 import { EstadoIcon } from "./Icons";
 import Mascota from "./Mascota";
@@ -44,10 +45,13 @@ function pista(t: Translate, animo: Animo, cuantos: number, decisiones: number):
 export default function Campana({
   irATerminal,
   enfocado,
+  onAbrirDecisiones,
 }: {
   irATerminal: (id: number) => void;
   /** La terminal en la que estás: al entrar en una, su «terminó» ya está visto. */
   enfocado: number | null;
+  /** El último renglón de la lista: a Decisiones, donde está todo. */
+  onAbrirDecisiones?: () => void;
 }) {
   const { t } = useT();
   const lista = useAvisos((s) => s.lista);
@@ -62,6 +66,9 @@ export default function Campana({
   const panel = useRef<HTMLDivElement>(null);
 
   useEffect(() => conectarAvisos(), []);
+  // Y lo de las terminales que abrió un agente, a ese agente (`vueltaArribaVivo.ts`):
+  // aquí porque la campana está siempre montada.
+  useEffect(() => conectarVueltaArriba(), []);
   // Solo al CAMBIAR de terminal, que es algo que haces tú: si un agente termina
   // en la que ya tenías delante, puede que no estés mirando.
   useEffect(() => {
@@ -169,6 +176,17 @@ export default function Campana({
                   );
                 })}
               </ul>
+            )}
+            {onAbrirDecisiones && (
+              <button
+                className="avisos-pie"
+                onClick={() => {
+                  cerrar();
+                  onAbrirDecisiones();
+                }}
+              >
+                {t("Abrir Decisiones")}
+              </button>
             )}
           </div>,
           document.body,

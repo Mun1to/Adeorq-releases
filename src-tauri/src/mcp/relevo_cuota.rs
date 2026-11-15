@@ -487,6 +487,9 @@ fn relevar(app: &tauri::AppHandle, id: u32, cwd: &str, cmd: &[String], sesion: &
         app,
         "relevo_abrir",
         json!({
+            // La vieja, para que la nueva herede su sitio en una copia aparte
+            // sin hacerse dueña de la de su madre (`abrirElRelevo`).
+            "paneId": id,
             "cli": CLI,
             "cuenta": cuenta,
             "cwd": cwd,

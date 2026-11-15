@@ -1,6 +1,6 @@
 [package]
 name = "adeorq"
-version = "0.9.255"
+version = "0.9.256"
 description = "El ADE de la casa: panel de vibe coding con terminales reales"
 authors = ["Munir Torres Athayde"]
 # PolyForm Shield 1.0.0 no está en la lista SPDX, así que se apunta al archivo.
@@ -131,6 +131,11 @@ windows-sys = { version = "0.61.2", features = [
     # QueryUnbiasedInterruptTime: cuánto durmió el equipo, para que el vigía de
     # la ventana (`vigia_ventana.rs`) no confunda un portátil cerrado con un parón.
     "Win32_System_WindowsProgramming",
+    # La valla del ratón (`valla.rs`): las pantallas (Gdi), lo que se ve de una
+    # ventana sin su borde invisible (Dwm) y Ctrl+Alt+L para quitarla.
+    "Win32_Graphics_Gdi",
+    "Win32_Graphics_Dwm",
+    "Win32_UI_Input_KeyboardAndMouse",
 ] }
 # WinRT media transport controls (what is playing, next/previous) plus Core
 # Audio for per-app volume: no Spotify account, no OAuth, no Premium needed.

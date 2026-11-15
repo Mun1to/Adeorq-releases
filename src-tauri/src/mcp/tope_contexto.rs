@@ -233,9 +233,18 @@ pub fn aviso_a_quien_la_abrio(id: u32, carpeta: &str, c: &Carga, veces: u32) -> 
              anterior y pierde detalle). Ciérrala con close_pane y su rastro y abre otra con el traspaso o, si quieres \
              seguir en ella, compáctala tú con compactar_terminal({id})."
         )
+    } else if nivel(c.usados, c.ventana) >= 3 {
+        // Pasada la de la nueva, el turno no se espera para siempre (`alPasarse`
+        // en `contexto.ts`, la orden de Munir del 2026-11-01).
+        format!(
+            "{cabeza}. Si su turno no acaba en 3 minutos, Adeorq se lo corta con un Escape y le escribe /fin (su cierre: \
+             traspaso y commits de su trabajo, sin subir nada), y luego /compact; si acaba antes, lo mismo al acabar. No le \
+             mandes trabajo nuevo hasta entonces. Si su tarea ya está hecha, mejor ciérrala con close_pane y su rastro."
+        )
     } else {
         format!(
-            "{cabeza}. En cuanto acabe su turno, Adeorq le escribe solo /fin sin commits y luego /compact (nunca mientras \
+            "{cabeza}. En cuanto acabe su turno, Adeorq le escribe solo /fin (su cierre: traspaso y commits de su trabajo, \
+             sin subir nada) y luego /compact (nunca mientras \
              trabaja): no le mandes trabajo nuevo hasta entonces. Si su tarea ya está hecha, mejor ciérrala con close_pane \
              y su rastro."
         )
@@ -282,7 +291,8 @@ pub fn parte_de_compactar(id: u32, c: Option<&Carga>, antes: &str, veces: u32) -
     };
     format!(
         "Terminal {id}: pedido.{lleva} En cuanto acabe su turno (si está trabajando se espera: nunca se le teclea a mitad), \
-         Adeorq le escribe /fin sin commits para que deje su traspaso y, cuando ese acabe, /compact. Mírala con \
+         Adeorq le escribe /fin para que deje su traspaso y guarde su trabajo en git sin subirlo y, cuando ese acabe, \
+         /compact. Mírala con \
          read_pane_screen({id}); si en {CADUCA_MIN} minutos no ha parado, el pedido caduca y hay que volver a pedirlo.{de_mas}"
     )
 }
@@ -494,11 +504,15 @@ mod tests {
     #[test]
     fn el_aviso_dice_si_se_compactara_sola() {
         let t = aviso_a_quien_la_abrio(3, "C:\\proyectos\\Web", &carga(462, 1_000_000), 0);
-        for frase in ["terminal 3", "C:\\proyectos\\Web", "462.000", "/fin sin commits", "/compact", "close_pane"] {
+        for frase in ["terminal 3", "C:\\proyectos\\Web", "462.000", "/fin (", "sin subir nada", "/compact", "close_pane"] {
             assert!(t.contains(frase), "falta «{frase}»: {t}");
         }
         let t = aviso_a_quien_la_abrio(3, "C:\\x", &carga(462, 1_000_000), 2);
         assert!(t.contains("2 veces") && t.contains("no se compacta sola") && t.contains("compactar_terminal(3)"), "{t}");
+        // Pasada la de la nueva, el turno se le corta (2026-11-01, «sí o sí»).
+        let t = aviso_a_quien_la_abrio(3, "C:\\x", &carga(612, 1_000_000), 0);
+        assert!(t.contains("3 minutos") && t.contains("Escape") && t.contains("/fin (") && !t.contains("sin commits"), "{t}");
+        assert!(!t.contains("nunca mientras"), "{t}");
     }
 
     /// D8: en las terminales de Munir, sin su clic no se compacta.
@@ -514,7 +528,7 @@ mod tests {
     #[test]
     fn compactar_dice_que_espera_y_lo_que_va_a_teclear() {
         let t = parte_de_compactar(3, Some(&carga(462, 1_000_000)), "nada", 0);
-        for frase in ["462.000", "/fin sin commits", "/compact", "acabe su turno", "read_pane_screen(3)", "30 minutos"] {
+        for frase in ["462.000", "/fin para", "sin subirlo", "/compact", "acabe su turno", "read_pane_screen(3)", "30 minutos"] {
             assert!(t.contains(frase), "falta «{frase}»: {t}");
         }
         let t = parte_de_compactar(3, None, "cerrando", 0);

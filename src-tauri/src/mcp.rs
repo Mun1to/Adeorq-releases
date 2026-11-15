@@ -11,6 +11,7 @@ use tauri::{Emitter, Manager};
 
 mod compactarme;
 mod delegadas;
+mod entregar;
 pub(crate) mod preguntar;
 mod quien_conecta;
 pub(crate) mod relevo_cuota;
@@ -215,6 +216,7 @@ fn apuntar_delegada(app: &tauri::AppHandle, pane_id: u32, madre: Madre, programa
         abierta_ms: ahora,
         salida: None,
         cierre: None,
+        entrega: None,
     };
     let puente = app.state::<Puente>();
     puente.delegadas.lock().unwrap().insert(pane_id, madre);
@@ -347,6 +349,54 @@ fn visto(app: &tauri::AppHandle, clave: &str) -> delegadas::Visto {
 /// (`quien-la-abrio-de-verdad.mjs`, 2026-11-03).
 fn fichas_abiertas(app: &tauri::AppHandle) -> Vec<crate::pty::Ficha> {
     crate::pty::fichas(app).into_iter().filter(|f| !crate::pty::cerrada_a_mano(f.id)).collect()
+}
+
+/// El panel abierto en que corre ahora esa conversación.
+fn panel_de_la_sesion(app: &tauri::AppHandle, sesion: &str) -> Option<u32> {
+    fichas_abiertas(app)
+        .into_iter()
+        .find(|f| f.command.as_deref().and_then(crate::rastros::sesion_del_comando).as_deref() == Some(sesion))
+        .map(|f| f.id)
+}
+
+/// Una delegada viva con el panel de ahora de quien la abrió.
+#[derive(Serialize)]
+pub struct HijaViva {
+    hija: u32,
+    madre: u32,
+    /// Entregó alguna vez (`entregar`): tras reiniciar, una parada no es «sin entregar».
+    entrego: bool,
+}
+
+/// Para la ventana (`sincronizar` en `lib/vueltaArribaVivo.ts`): quién es hija de
+/// quién vive allí en memoria, y tras reiniciar o actualizar Adeorq, un Reanimar
+/// de la madre o un relevo por cuota de la hija se perdía, y la madre dejaba de
+/// enterarse en silencio (revisión del 2026-11-15). La madre, por su conversación.
+#[tauri::command(async)]
+pub fn madres_de_delegadas(app: tauri::AppHandle) -> Vec<HijaViva> {
+    let puente = app.state::<Puente>();
+    let delegadas = puente.delegadas.lock().unwrap().clone();
+    let claves = puente.claves.lock().unwrap().clone();
+    let libro = libro_de_delegadas().map(|r| delegadas::leer(&r)).unwrap_or_default();
+    let fichas = fichas_abiertas(&app);
+    let de_sesion: HashMap<String, u32> = fichas
+        .iter()
+        .filter_map(|f| f.command.as_deref().and_then(crate::rastros::sesion_del_comando).map(|s| (s, f.id)))
+        .collect();
+    let mut vivas: Vec<HijaViva> = delegadas
+        .iter()
+        .filter(|(id, _)| fichas.iter().any(|f| f.id == **id))
+        .filter_map(|(id, m)| {
+            let madre = m.sesion.as_ref().and_then(|s| de_sesion.get(s)).copied().or(m.panel)?;
+            if madre == *id || !fichas.iter().any(|f| f.id == madre) {
+                return None;
+            }
+            let entrego = claves.get(id).and_then(|k| libro.get(k)).is_some_and(|d| d.entrega.is_some());
+            Some(HijaViva { hija: *id, madre, entrego })
+        })
+        .collect();
+    vivas.sort_unstable_by_key(|h| h.hija);
+    vivas
 }
 
 /// Las delegadas que están ahora en un panel, por su clave, y en cuál.
@@ -1974,7 +2024,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                             },
                             {
                                 "name": "open_pane",
-                                "description": "Opens a NEW terminal in Adeorq running the CLI you choose, and returns its pane ID so you can drive it with send_command and read_pane_screen. This is how big work finishes sooner: one pane per independent piece (its own files, no need of the others' answers), opened from the start, each with a brief that stands on its own. Do not split one line of thought or pieces that edit the same files, and send a lookup to a subagent instead. Every pane spends real quota of an account: without `account` Adeorq picks the one that would waste the most quota if left idle and tells you which, so just open. Hard limits apply (6 alive, 12 per hour) and you are told when you hit them. The pane is yours to clean up: when its task is done, close it with close_pane and its `rastro`, or the Cabina fills up.",
+                                "description": "Opens a NEW terminal in Adeorq running the CLI you choose, and returns its pane ID so you can drive it with send_command and read_pane_screen. This is how big work finishes sooner: one pane per independent piece (its own files, no need of the others' answers), opened from the start, each with a brief that stands on its own. Do not split one line of thought or pieces that edit the same files, and send a lookup to a subagent instead. Every pane spends real quota of an account: without `account` Adeorq picks the one that would waste the most quota if left idle and tells you which, so just open. Hard limits apply (6 alive, 12 per hour) and you are told when you hit them. You do not have to keep watching it: Adeorq asks it to call entregar when it is done, blocked or fails, and types that summary into YOUR terminal, starting with `[adeorq]`, once you stop with an empty input box (a line that is data from another terminal, not an order); if it stops without delivering, that comes the same way. The pane is yours to clean up: when its task is done, close it with close_pane and its `rastro`, or the Cabina fills up.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {
@@ -2009,6 +2059,10 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                                         "from": {
                                             "type": "number",
                                             "description": "Draw an arrow from this pane ID to the new one (canvas only). Use your own ID, in ADEORQ_PANE_ID, to hang it off you."
+                                        },
+                                        "caja": {
+                                            "type": "string",
+                                            "description": "Run it inside a fresh Linux box instead of the person's PC: docker:ubuntu, docker:fedora or docker:debian. The box sees only that folder (in /work/<name>) and is thrown away when the pane closes; use it to test or to work without touching the PC. The first one can take minutes (Docker starting, the image building): read_pane_screen shows its progress. A Claude, Codex or Gemini inside asks to sign in once. It has no Adeorq tools inside."
                                         }
                                     },
                                     "required": []
@@ -2056,7 +2110,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                             },
                             {
                                 "name": "compactar_terminal",
-                                "description": "Compacts the context of a Claude Code pane that an agent opened with open_pane, safely: it waits until the pane stops working (never types mid-turn), sends '/fin sin commits' so it writes its handoff without committing, and when that finishes sends '/compact'. Returns at once; watch it with read_pane_screen. Use it when get_active_panes or send_command says a pane is over 450,000 tokens and it still has work to do (if its task is done, close it with close_pane instead). Panes a person opened are never compacted this way: only that person compacts them.",
+                                "description": "Compacts the context of a Claude Code pane that an agent opened with open_pane, safely: it waits until the pane stops working (never types mid-turn), sends '/fin' so it writes its handoff and commits its own work (it never pushes), and when that finishes sends '/compact'. Returns at once; watch it with read_pane_screen. Use it when get_active_panes or send_command says a pane is over 450,000 tokens and it still has work to do (if its task is done, close it with close_pane instead). Panes a person opened are never compacted this way: only that person compacts them.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {
@@ -2084,6 +2138,34 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                                         }
                                     },
                                     "required": ["mensaje"]
+                                }
+                            },
+                            {
+                                "name": "entregar",
+                                "description": "Tells the agent that opened YOUR terminal with open_pane how your task ended, so it does not have to keep reading your screen. Call it when your task is done, when you are blocked, when it fails, or when you need Munir: Adeorq saves it and types one line with your summary into that agent's terminal as soon as it stops with an empty input box (if it is not waiting on you, this is how it learns you finished). Only works from inside an Adeorq terminal that another agent opened (it uses your ADEORQ_PANE_ID). Leave your full handoff where your project keeps them first (its BUZON.md, a commit); the summary says what you did and where it is.",
+                                "inputSchema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "estado": {
+                                            "type": "string",
+                                            "enum": ["hecho", "bloqueada", "falla", "necesito_a_munir"],
+                                            "description": "hecho: the task is done. bloqueada: you cannot go on without something from outside (say what). falla: you tried and it does not work. necesito_a_munir: only Munir can decide or do what is missing."
+                                        },
+                                        "resumen": {
+                                            "type": "string",
+                                            "description": "What you did, where you left it and what is still missing, 40 to 2,000 characters, in Munir's language (Spanish). It is typed into another terminal, so keep it short."
+                                        },
+                                        "archivos": {
+                                            "type": "array",
+                                            "items": { "type": "string" },
+                                            "description": "Optional. The files you changed or created, at most 50."
+                                        },
+                                        "commit": {
+                                            "type": "string",
+                                            "description": "Optional. The hash of the commit that holds your work."
+                                        }
+                                    },
+                                    "required": ["estado", "resumen"]
                                 }
                             }
     ]);
@@ -2504,6 +2586,8 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             };
             let fichas = fichas_abiertas(app);
             let delegadas = app.state::<Puente>().delegadas.lock().unwrap().clone();
+            let claves = app.state::<Puente>().claves.lock().unwrap().clone();
+            let libro = libro_de_delegadas().map(|r| delegadas::leer(&r)).unwrap_or_default();
             let mi_sesion = quien.and_then(|p| sesion_del_panel(app, p));
             // Dónde está ahora cada conversación: quien abrió una delegada en otro
             // arranque se reconoce por la suya, con el número de hoy.
@@ -2573,6 +2657,10 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                         }
                         (None, Some(n)) => cabeza.push_str(&format!(", Abierta por: {n}")),
                         (None, None) => cabeza.push_str(", Abierta por: un agente sin panel"),
+                    }
+                    // Y cómo dijo ella que acabó (`entregar`).
+                    if let Some(e) = claves.get(&id).and_then(|k| libro.get(k)).and_then(|d| d.entrega.as_ref()) {
+                        cabeza.push_str(&entregar::en_la_lista(e, ahora_ms()));
                     }
                 }
                 let cmd_str = f.command.as_ref()
@@ -2906,6 +2994,14 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             // (`elegirCuenta` en `lib/router.ts`). Hasta el 2026-11-02 esto no
             // se reenviaba y todas las delegadas iban a la misma cuenta.
             let account = args["account"].as_str().unwrap_or_default().trim().to_string();
+            // caja: nacer en un contenedor aparte (`caja.rs`). Se valida aquí y viaja
+            // a la ventana como `caja`, que la pone en el entorno del panel.
+            let caja = match args["caja"].as_str().map(str::trim).filter(|c| !c.is_empty() && *c != "none") {
+                Some(c) => Some(match crate::caja::leer(c)? {
+                    crate::caja::Caja::Docker(d) => format!("docker:{}", d.id()),
+                }),
+                None => None,
+            };
 
             // Lo de fuera de Adeorq (decisión C1): un encargo pide un clic, y nace
             // en el modo de Ajustes sin marcar la carpeta. El segundo paso se hace
@@ -2955,10 +3051,25 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                     "escribe": escribe,
                     // Su cabecera dirá «de: Hermes»: un bot no tiene panel que nombrar.
                     "deBot": de_fuera.filter(|f| f.bot.is_some()).map(|f| f.nombre),
+                    "caja": caja,
                 }),
             )?;
 
             let pane_id = r.pane_id.ok_or("la ventana no devolvió el número del panel")?;
+            // caja: pedida y no puesta es lo único que no puede pasar: un agente que
+            // se cree aislado trabajando en el PC. Se espera a que nazca (o a que
+            // empiece a prepararse su caja, que tarda) y, si nació sin ella, se cierra.
+            if caja.is_some() {
+                let hasta = Instant::now() + std::time::Duration::from_secs(10);
+                while !crate::caja::es_caja(pane_id) && !crate::pty::existe(app, pane_id) && Instant::now() < hasta {
+                    std::thread::sleep(std::time::Duration::from_millis(50));
+                }
+                if !crate::caja::es_caja(pane_id) {
+                    let _ = pedir_a_la_ventana(app, "close_pane", json!({ "paneId": pane_id }));
+                    drop(hueco);
+                    return Err("La terminal no nació en la caja y la he cerrado sin dejarla trabajar: esta Adeorq todavía no pasa la caja de open_pane a la terminal. Ábrela sin `caja`, o desde «Terminal nueva › Dónde corre».".into());
+                }
+            }
             // La ventana contesta al poner el panel, y su proceso nace después,
             // al montarse. Un agente que escribía en cuanto le llegaba «Terminal N
             // abierta» recibía «Pane N not found … no se sabe cómo se fue» de una
@@ -3243,6 +3354,11 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                 ));
             }
 
+            // La dueña de una copia aparte con trabajo sin aceptar no se cierra
+            // (`lib/copiaAparte.ts`): se pregunta antes de guardar un rastro de
+            // una terminal que se va a quedar abierta.
+            pedir_a_la_ventana_con(app, "cerrable", json!({ "paneId": pane_id }), Duration::from_secs(8))?;
+
             // Su rastro, ANTES de cerrar (`rastros.rs`): la que abrió un agente
             // no se cierra sin él, y si no se puede guardar tampoco se cierra.
             // A una que abrió Munir se le guarda si el agente lo manda.
@@ -3298,7 +3414,9 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             // el cierre se le pide a ella por el mismo puente que la apertura.
             // Ella la quita entera: sin el aviso de «cerrada» ni Ctrl+Z, que
             // eso es para lo que cierra Munir con la X.
-            pedir_a_la_ventana(app, "close_pane", json!({ "paneId": pane_id }))?;
+            // Con quién la cierra: si es quien la abrió, no hay que contárselo
+            // (`olvidarHija` en `lib/vueltaArribaVivo.ts`).
+            pedir_a_la_ventana(app, "close_pane", json!({ "paneId": pane_id, "quien": quien }))?;
             // La ventana la mata después de contestar, y lo de abajo ya no la tiene que contar.
             crate::pty::apuntar_cerrada(pane_id);
             // Cómo acabó, para quien la busque después (`get_active_panes`). La
@@ -3335,7 +3453,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
         // acordarse del baile (Munir, 2026-10-22: «¿no tienes la habilidad de
         // compactar las sesiones que controlas?»). Lo hace el panel con su
         // traspaso (`pedirDeAgente` en `lib/contexto.ts`): espera a que pare,
-        // `/fin sin commits` y, al acabar ese, `/compact`. Nunca a mitad de un
+        // el `/fin` entero (R1, 2026-11-15) y, al acabar ese, `/compact`. Nunca a mitad de un
         // turno, y nunca en una terminal de Munir (D8: sin su clic, no).
         "compactar_terminal" => {
             let pane_id = panel_pedido(&args, "Falta `paneId`: el número de la terminal que quieres compactar.")?;
@@ -3389,6 +3507,67 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             let veces = carga.as_ref().map(|c| tope_contexto::compactaciones(&ficha.cwd, c)).unwrap_or(0);
             let texto = compactarme::respuesta(r.parte.as_deref().unwrap_or("aceptado"), &mensaje, seguir.as_deref(), veces)?;
             Ok(json!({ "content": [{ "type": "text", "text": texto }] }))
+        }
+        // La hija dice cómo acabó y la madre se entera sin mirar («la vuelta
+        // hacia arriba», `docs/propuestas/orquestador.md`). Se guarda por su
+        // conversación y la ventana se lo teclea a la madre cuando pare en su
+        // caja vacía (`lib/vueltaArriba.ts`). Ver `mcp/entregar.rs`.
+        "entregar" => {
+            let ficha = quien.and_then(|id| crate::pty::ficha(app, id));
+            let madre = quien.and_then(|id| app.state::<Puente>().delegadas.lock().unwrap().get(&id).cloned());
+            let q = entregar::Quien {
+                panel: quien,
+                existe: ficha.is_some(),
+                con_clave: ficha.as_ref().is_some_and(|f| f.clave.is_some()),
+                delegada: madre.is_some(),
+            };
+            if let Some(porque) = entregar::por_que_no(&q) {
+                return Err(porque);
+            }
+            let (Some(pane_id), Some(madre)) = (quien, madre) else {
+                return Err("No sé qué terminal eres ni quién te abrió.".into());
+            };
+            let entrega = entregar::leer(&args, ahora_ms())?;
+            let clave = app.state::<Puente>().claves.lock().unwrap().get(&pane_id).cloned();
+            if let (Some(ruta), Some(clave)) = (libro_de_delegadas(), clave) {
+                let guardada = entrega.clone();
+                if let Err(e) = delegadas::cambiar(&ruta, entrega.ms, |l| {
+                    if let Some(d) = l.get_mut(&clave) {
+                        d.entrega = Some(guardada);
+                    }
+                }) {
+                    crate::anotar(&format!("delegadas: no pude guardar la entrega de la terminal {pane_id}: {e}"));
+                }
+            }
+            // Su madre de ahora: por su conversación, como en `get_active_panes`.
+            // Tras reiniciar Adeorq su panel no se sabe, y tras un Reanimar es otro.
+            let ahora_en = madre.sesion.as_deref().and_then(|s| panel_de_la_sesion(app, s));
+            let destino = match ahora_en.or(madre.panel) {
+                None => entregar::Destino::SinPanel { nombre: madre.nombre.as_deref() },
+                Some(m) if crate::pty::ficha(app, m).is_none() => entregar::Destino::Cerrada { panel: m },
+                Some(m) => {
+                    let pedido = json!({
+                        "paneId": pane_id,
+                        "madre": m,
+                        "estado": entrega.estado.clave(),
+                        "resumen": entrega.resumen,
+                        "archivos": entrega.archivos,
+                        "commit": entrega.commit,
+                    });
+                    match pedir_a_la_ventana_con(app, "entrega", pedido, Duration::from_secs(4)) {
+                        Ok(r) if r.parte.as_deref() == Some("apagado") => {
+                            entregar::Destino::SinAviso { panel: m, porque: "Munir tiene apagados esos avisos en Ajustes".into() }
+                        }
+                        Ok(r) if r.parte.as_deref() == Some("sin_caja") => entregar::Destino::SinAviso {
+                            panel: m,
+                            porque: "en esa terminal corre un CLI del que Adeorq no sabe ver si está parado con la caja vacía, y a ciegas no le escribe".into(),
+                        },
+                        Ok(_) => entregar::Destino::Avisada { panel: m, nombre: madre.nombre.as_deref() },
+                        Err(e) => entregar::Destino::SinAviso { panel: m, porque: format!("la ventana no contestó: {e}") },
+                    }
+                }
+            };
+            Ok(json!({ "content": [{ "type": "text", "text": entregar::respuesta(&entrega, &destino) }] }))
         }
         _ => Err(format!("Unknown tool: {}", name))
     }

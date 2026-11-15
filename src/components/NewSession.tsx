@@ -35,6 +35,7 @@ import ProjectAvatar from "./ProjectAvatar";
 import ProviderMark, { tieneMarca } from "./ProviderMark";
 import { propsDeVelo } from "../lib/velo";
 import { ChevronIcon, FolderIcon, RefreshIcon, UnlinkIcon } from "./Icons";
+import { CAJAS, cabeEnCaja, cajasDisponibles, nombreDeCaja, type Caja } from "../lib/cajas";
 
 /** Everything needed to open one terminal, once both steps are answered. */
 export interface Launch {
@@ -54,6 +55,8 @@ export interface Launch {
   account?: Account;
   /** How many of them, placed in a grid: the wall of terminals in one go. */
   count: number;
+  /** caja: nace en un Linux aparte (`lib/cajas.ts`); sin esto, en el PC. */
+  caja?: Caja;
 }
 
 interface Props {
@@ -126,6 +129,10 @@ export default function NewSession({
   /** Si `ollama` está en el PATH. Distinto de tener modelos: se puede tener el
    *  programa y ninguno descargado, y ahí lo útil es decirlo, no esconderlo. */
   const [tieneLocal, setTieneLocal] = useState(false);
+  /** caja: dónde corre. Vacío es en el PC, como siempre; la fila solo sale si
+   *  hay Docker (`cajasDisponibles`). */
+  const [caja, setCaja] = useState<Caja | "">("");
+  const [hayCajas, setHayCajas] = useState(false);
   /** Ver lib/velo.ts: distingue pinchar el velo de soltar ahi un arrastre. */
   const bajoEnVelo = useRef(false);
 
@@ -160,6 +167,7 @@ export default function NewSession({
       })
       .catch((e) => setError(String(e)));
     findAgy().then(setAgy).catch(() => {});
+    void cajasDisponibles().then(setHayCajas);
     homeDir()
       .then((h) => setCasa(h.replace(/[\\/]+$/, "")))
       .catch(() => {});
@@ -210,6 +218,9 @@ export default function NewSession({
     accountId && accountId !== "main"
       ? usable.find((a) => a.id === accountId)
       : undefined;
+
+  /** caja: la elegida, si ese programa corre en un Linux (`cabeEnCaja`). */
+  const enCaja = hayCajas && cabeEnCaja(provider) ? caja : "";
 
   const browse = () => {
     pickFolder({ directory: true, defaultPath: raiz(), title: t("Elige la carpeta") })
@@ -349,6 +360,7 @@ export default function NewSession({
       plan: sabe(provider, "modoPlan") && planMode ? true : undefined,
       account: chosenAccount,
       count,
+      caja: enCaja || undefined,
     });
   };
 
@@ -806,6 +818,28 @@ export default function NewSession({
               </>
             )}
 
+            {/* caja: en el PC o en un Linux nuevo que solo ve esta carpeta. */}
+            {hayCajas && cabeEnCaja(provider) && (
+              <>
+                <p className="wiz-label">{t("Dónde corre")}</p>
+                <div className="chip-row">
+                  <button className="choice" data-on={!caja} onClick={() => setCaja("")}>
+                    {t("En tu PC")}
+                  </button>
+                  {CAJAS.map((c) => (
+                    <button key={c.id} className="choice" data-on={caja === c.id} onClick={() => setCaja(c.id)}>
+                      {t("Caja {n}", { n: c.nombre })}
+                    </button>
+                  ))}
+                </div>
+                <p className="card-hint">
+                  {t(
+                    "En una caja, la terminal nace en un Linux nuevo que solo ve esta carpeta, y se tira al cerrarla. La primera vez tarda unos minutos: Docker se enciende y prepara la caja.",
+                  )}
+                </p>
+              </>
+            )}
+
             <p className="wiz-label">{t("Cuántas a la vez")}</p>
             <div className="chip-row">
               {[1, 2, 4, 6, 9].filter((n) => n <= maxPanes).map((n) => (
@@ -854,6 +888,7 @@ export default function NewSession({
               {sabe(provider, "modelo") && model ? ` · ${model}` : ""}
               {sabe(provider, "modoPlan") && planMode ? ` · ${t("modo plan")}` : ""}
               {chosenAccount ? ` · ${chosenAccount.label}` : ""}
+              {enCaja ? ` · ${t("caja {n}", { n: nombreDeCaja(enCaja) ?? "" })}` : ""}
             </p>
           </>
         )}

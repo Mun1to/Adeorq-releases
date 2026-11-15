@@ -217,15 +217,21 @@ window.ADEORQ_I18N_EXTRA = {
 
     /* -------------------------------- DECISIONES ------------------------- */
     'guia.dec.h': 'Decisions',
-    'guia.dec.p': 'When an agent needs you to choose something, it asks you here instead of in the chat. The tab ' +
-                  'lists <b>Waiting for you</b> and <b>Earlier</b>. Each question comes with two to six numbered ' +
-                  'options (the recommended one says "Recommended") and a box, <b>Something else, in your own ' +
-                  'words</b>.',
+    'guia.dec.p': 'Everything that needs your finger, in a single list and like an email program: first ' +
+                  '<b>Your turn</b> (a terminal asking you something, a decision from an agent, a scheduled job ' +
+                  'the brake stopped), then <b>Finished</b>, the <b>Ideas from your agents</b> and what is ' +
+                  '<b>Past</b>. When an agent needs you to choose something, it asks you here instead of in the ' +
+                  'chat, with two to six numbered options (the recommended one says "Recommended") and a box, ' +
+                  '<b>Something else, in your own words</b>.',
     'guia.dec.l1': '<b>Send answer</b> waits five seconds, with <b>Undo</b>, and then types it into the terminal ' +
                    'that asked, if it is still the same one. If not, the agent reads it when it looks again.',
     'guia.dec.l2': '<b>Discard</b> sets it aside without answering and tells the terminal that was waiting.',
-    'guia.dec.l3': 'The earlier ones delete themselves after a week.',
-    'guia.dec.l4': 'The alert is an amber number on the tab and Adeo looking doubtful. On a paired phone you get a ' +
+    'guia.dec.l3': 'What is past deletes itself after a week.',
+    'guia.dec.l5': 'It works with the keyboard: <b>J</b> and <b>K</b> to go down and up, <b>1</b> to <b>9</b> to ' +
+                   'choose, <b>Ctrl+Enter</b> to send and <b>?</b> to see every key. <b>Ctrl+Shift+B</b> opens it ' +
+                   'from anywhere.',
+    'guia.dec.l4': 'The alert is an amber number on the tab and Adeo looking doubtful, whose list ends in <b>Open ' +
+                   'Decisions</b>. On a paired phone you get a ' +
                    'notification and can answer from there (<a href="#movil">On your phone</a>).',
 
     /* ---------------------------------- PERFIL --------------------------- */
@@ -265,11 +271,13 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.agenda.l4': '<b>Next steps</b>: the <code>METAS.md</code> of the project you are looking at, read ' +
                       'from its folder and extendable from here.',
     'guia.agenda.l5': '<b>Scheduled orders</b>: an order that launches by itself, on the days and at the hour ' +
-                      'you set or every so many hours. After three failures in a row it stops and tells you, ' +
-                      'and it does not run again until you re-arm it. For now, on Windows and with Claude.',
+                      'you set or every so many hours, with Claude Code or Codex. After three failures in a row ' +
+                      'it stops and tells you, and it does not run again until you re-arm it. Since nobody watches ' +
+                      'it while it works, in a git repository it works in a separate copy (mirror mode), and in the ' +
+                      'morning you accept or discard what it did.',
     'guia.agenda.caja': '<span class="doc-caja__titulo">The tray.</span> ' +
                         'Loose ends turn up while you work that are not for right now. Instead of interrupting ' +
-                        'you, they drop into a tray you review whenever you like: you accept what is useful and ' +
+                        'you, they drop into a tray you review in Decisions whenever you like: you accept what is useful and ' +
                         'discard the rest. An agent can propose things there without touching any credential of yours.',
 
     /* -------------------------------- OBJETIVOS -------------------------- */
@@ -398,14 +406,15 @@ window.ADEORQ_I18N_EXTRA = {
                      'your terminals: list projects and terminals, read what shows in one, open a new one, type ' +
                      'into it, ask you something with options (which reaches ' +
                      '<a href="#decisiones">Decisions</a> and your phone) and check your quota and your notes in ' +
-                     'Memory. There are eighteen tools, split into three tiers:',
+                     'Memory. There are twenty-two tools, split into three tiers:',
     'guia.fuera.th1': 'Tier',
     'guia.fuera.th2': 'What it can do',
     'guia.fuera.e1': 'Look only',
     'guia.fuera.e1d': 'Reads terminals, projects, the agenda, the quota and the memory. Changes nothing.',
     'guia.fuera.e2': 'Open and look',
     'guia.fuera.e2d': 'Also opens new terminals, draws arrows between two on the canvas, asks you questions and ' +
-                      'closes the ones that same program opened. It does not type into anyone else’s.',
+                      'closes the ones that same program opened. It does not type into anyone else’s. Each ' +
+                      'terminal it opens tells it how it ended in a line starting with [adeorq].',
     'guia.fuera.e3': 'All',
     'guia.fuera.e3d': 'Also types into any terminal, closes it and can compact it.',
     'guia.fuera.conecta': '<b>How you connect your Claude Code to these tools.</b> With a button: the welcome has ' +

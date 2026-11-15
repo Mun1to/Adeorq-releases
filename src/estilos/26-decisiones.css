@@ -1,59 +1,56 @@
 /* ============================================================ las Decisiones
-   Lo que te preguntan tus agentes con `ask_decision` (DecisionesView.tsx).
-   Dos cajas de cristal, centradas: la lista a la izquierda (con el título
-   dentro, que suelto encima de la foto no se leía) y la decisión abierta a la
-   derecha, que es una hoja de lectura más su ficha: si alguien la espera, lo
-   que llevas elegido y el botón de mandarlo, siempre a la vista.
+   La lista única de lo que necesita tu dedo (DecisionesView.tsx, A1 del
+   2026-11-15): lo que te toca, lo que terminó y las ideas de tus agentes.
 
-   Munir, 2026-10-11, con la pestaña delante: «a la derecha hay mucho espacio
-   en blanco». La hoja se quedaba en 720 px dentro de una caja de 1.500, y el
-   botón de enviar, debajo de la última pregunta.
+   Como un programa de correo, de borde a borde: un solo cristal pegado al
+   menú y hasta abajo, la lista a la izquierda con una línea fina y el detalle a
+   la derecha, sin cajas alrededor ni dentro. Antes eran dos recuadros
+   centrados con media pantalla vacía (`docs/propuestas/diseno-ade.md`, «La
+   bandeja, una sola»), y Munir lo tiene dicho para toda pantalla de lista y
+   lectura: «haz que no sea un recuadro que ocupe todo el espacio».
 
-   El ámbar `--ask` es el de «esto te está esperando» en toda la app, así que
-   marca las pendientes y nada más. La opción marcada va en el acento, que es
-   «lo que has elegido tú»; la recomendada lleva solo una etiqueta, nunca la
-   marca puesta (GOV.UK: «Do not pre-select radio options»). */
+   La categoría es la primera palabra de cada fila, en negrita y con su color:
+   «Contesta» y «Decide» en el ámbar `--ask` (te toca a ti), «Parado» en rojo,
+   «Mira» en el acento (terminó) e «Idea» en la tinta de siempre. Nada late:
+   lo único que se mueve es Adeo en la barra. La opción marcada va en el
+   acento, que es «lo que has elegido tú»; la recomendada lleva solo su
+   palabra, nunca la marca puesta (GOV.UK: «Do not pre-select radio options»). */
 .dec {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .dec-cuerpo {
   flex: 1;
   min-height: 0;
   display: flex;
-  gap: 18px;
-  width: 100%;
-  max-width: 1520px;
-  margin: 0 auto;
-  padding: 18px 22px;
-  box-sizing: border-box;
+  background: color-mix(in srgb, var(--popover) 86%, transparent);
+  backdrop-filter: var(--glass-blur);
 }
 
 .dec-lista,
 .dec-doc {
   min-height: 0;
   overflow-y: auto;
-  border-radius: var(--r-caja);
-  border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--popover) 86%, transparent);
-  backdrop-filter: var(--glass-blur);
 }
 
 /* ------------------------------------------------------------ la lista */
 .dec-lista {
   flex: none;
-  width: 300px;
+  width: 330px;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 8px;
+  padding: 10px 8px 14px;
+  border-right: 1px solid var(--border);
+  box-sizing: border-box;
 }
 
 .dec-head {
-  padding: 10px 10px 8px;
+  padding: 10px 10px 4px;
 }
 .dec-head h1 {
   margin: 0;
@@ -66,17 +63,24 @@
   color: var(--muted);
 }
 
+.dec-parte {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* El nombre de cada parte, en minúscula como una frase: nada de rótulos en
+   mayúsculas espaciadas. */
 .dec-lista-eti {
-  padding: 14px 10px 6px;
-  font-size: 11px;
+  margin: 0;
+  padding: 16px 10px 6px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--muted);
 }
 
 .dec-lista-nota {
-  margin: 8px 10px 4px;
+  margin: 10px 10px 0;
   font-size: 12px;
   line-height: 1.45;
   color: var(--muted);
@@ -89,7 +93,6 @@
   gap: 3px;
   text-align: left;
   border: 0;
-  border-left: 2px solid transparent;
   background: none;
   color: inherit;
   font: inherit;
@@ -104,24 +107,35 @@
 .dec-fila[data-on="true"] {
   background: color-mix(in srgb, var(--accent) 15%, transparent);
 }
-/* Las que te esperan, con la raya de «te está esperando» a la izquierda. */
-.dec-fila[data-espera="true"] {
-  border-left-color: var(--ask);
-}
 .dec-fila:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
 .dec-fila-titulo {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.dec-fila[data-espera="false"] .dec-fila-titulo {
+.dec-palabra {
+  font-weight: 700;
+}
+.dec-fila[data-clase="contesta"] .dec-palabra,
+.dec-fila[data-clase="decide"] .dec-palabra {
+  color: var(--ask);
+}
+.dec-fila[data-clase="parado"] .dec-palabra {
+  color: var(--mal);
+}
+.dec-fila[data-clase="mira"] .dec-palabra {
+  color: var(--accent);
+}
+/* Lo que ya pasó se apaga, y no se borra solo enseguida. */
+.dec-fila[data-clase="pasada"] .dec-palabra,
+.dec-fila[data-clase="pasada"] .dec-fila-titulo {
   font-weight: 500;
-  color: color-mix(in srgb, var(--text) 80%, var(--muted));
+  color: color-mix(in srgb, var(--text) 72%, var(--muted));
 }
 .dec-fila-de {
   font-size: 12px;
@@ -131,29 +145,38 @@
   white-space: nowrap;
 }
 
-/* ------------------------------------------------------------ la decisión */
+/* ------------------------------------------------------------ el detalle */
 .dec-doc {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
   container-type: inline-size;
 }
 
-/* La hoja y su ficha. La hoja no pasa de una columna de lectura: un formulario
-   de mil píxeles de ancho obliga a barrer con la cabeza para ir de la opción a
-   su detalle. */
 .dec-abierta {
-  display: grid;
-  grid-template-columns: minmax(0, 780px) 320px;
-  justify-content: center;
-  align-items: start;
-  gap: 32px;
-  padding: 26px 30px 30px;
+  display: flex;
+  flex-direction: column;
+}
+/* La de una decisión crece hasta abajo: su barra va siempre pegada al pie. */
+.dec-abierta[data-decision] {
+  flex: 1;
+}
+
+.dec-hoja {
+  flex: 1;
+  max-width: 1400px;
+  padding: 26px 32px 24px;
+  box-sizing: border-box;
+}
+.dec-abierta > .dec-abierta-cab {
+  padding: 26px 32px 0;
 }
 
 .dec-abierta-cab {
   display: grid;
   gap: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
 }
 .dec-abierta-cab h2 {
   margin: 0;
@@ -167,33 +190,56 @@
   font-size: 13px;
   color: var(--muted);
 }
-.dec-contexto {
+/* Los textos de leer no pasan de una columna cómoda; las opciones, sí. */
+.dec-contexto,
+.dec-vigencia,
+.dec-hecha,
+.dec-propuesta {
   margin: 0;
+  max-width: 82ch;
   font-size: 14px;
   line-height: 1.55;
-  color: color-mix(in srgb, var(--text) 86%, var(--muted));
   white-space: pre-wrap;
+}
+.dec-contexto {
+  color: color-mix(in srgb, var(--text) 86%, var(--muted));
+}
+/* Si sigue viva o no, en texto: ámbar si te espera, apagado si ya no. */
+.dec-vigencia {
+  color: var(--muted);
+}
+.dec-vigencia[data-v="viva"] {
+  color: var(--ask);
+  font-weight: 600;
+}
+.dec-hecha {
+  color: var(--accent);
+  font-weight: 600;
+}
+.dec-propuesta {
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--text);
 }
 
 .dec-pregunta {
-  margin: 0 0 16px;
-  padding: 14px 16px 16px;
+  margin: 0 0 26px;
+  padding: 0;
   min-width: 0;
-  border-radius: var(--r-caja);
-  border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--row) 45%, transparent);
+  border: 0;
   scroll-margin-top: 16px;
 }
 .dec-pregunta legend {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  padding: 0 6px;
+  padding: 0;
+  margin-bottom: 10px;
   font-size: 16px;
   font-weight: 650;
 }
 .dec-pregunta > .dec-contexto {
-  margin: 2px 2px 12px;
+  margin: -2px 0 12px;
 }
 .dec-letra {
   color: var(--accent);
@@ -201,12 +247,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Las opciones, en fila mientras quepan y repartiéndose el ancho: el detalle
+   es ancho, y una columna de 780 px dejaba la otra mitad vacía. */
+.dec-opciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 8px;
+}
 .dec-opcion {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  margin: 0 0 6px;
-  padding: 10px 12px;
+  padding: 11px 12px;
   border-radius: var(--r-btn);
   border: 1px solid var(--border);
   cursor: pointer;
@@ -245,13 +297,11 @@
   font-size: 14px;
   line-height: 22px;
 }
-/* La etiqueta de recomendada va en la misma línea que la opción: en una línea
-   propia separaba el título de su detalle. */
 .dec-opcion-linea {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 8px;
+  align-items: baseline;
+  gap: 2px 8px;
 }
 .dec-opcion-txt b {
   font-weight: 600;
@@ -261,15 +311,13 @@
   line-height: 1.5;
   color: var(--muted);
 }
+/* «Recomendada» en texto, detrás de la opción: la palabra en negrita y en el
+   acento, sin borde. */
 .dec-rec {
-  padding: 0 8px;
-  border-radius: var(--r-pastilla);
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  color: color-mix(in srgb, var(--accent) 70%, var(--text));
-  font-size: 11.5px;
+  color: var(--accent);
+  font-size: 13px;
   font-style: normal;
-  font-weight: 600;
-  line-height: 18px;
+  font-weight: 700;
 }
 
 /* Contestada: se lee lo que elegiste, lo demás se apaga. */
@@ -287,7 +335,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 8px 2px;
+  margin: 10px 0 8px;
   font-size: 12px;
   color: var(--muted);
 }
@@ -319,66 +367,34 @@
   border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
 }
 
-/* ------------------------------------------------------------ la ficha */
-.dec-ficha {
+/* ------------------------------------------------------------ la barra del pie */
+.dec-barra {
   position: sticky;
-  top: 24px;
-  display: grid;
-  gap: 12px;
-  padding: 16px;
-  border-radius: var(--r-caja);
-  border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--row) 55%, transparent);
-}
-
-.dec-ficha-eti {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.dec-hecha {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: var(--r-btn);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-/* Si sigue viva o no: es lo primero que hay que saber antes de contestar.
-   Ámbar si te espera, apagado si ya no. */
-.dec-vigencia {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: var(--r-btn);
-  border: 1px solid var(--border);
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--muted);
-}
-.dec-vigencia[data-v="viva"] {
-  color: var(--text);
-  border-color: color-mix(in srgb, var(--ask) 42%, transparent);
-  background: color-mix(in srgb, var(--ask) 12%, transparent);
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding: 12px 32px;
+  border-top: 1px solid var(--border);
+  background: var(--popover);
 }
 
 .dec-resumen {
-  display: grid;
-  gap: 2px;
-  margin: -4px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  margin: 0;
   padding: 0;
   list-style: none;
+  min-width: 0;
 }
 .dec-resumen-q {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  width: 100%;
-  padding: 7px 8px;
+  gap: 8px;
+  max-width: 320px;
+  padding: 5px 8px;
   border: 0;
   border-radius: var(--r-btn);
   background: none;
@@ -394,69 +410,80 @@
   outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
-.dec-resumen-txt {
-  display: grid;
-  gap: 2px;
+.dec-elegido {
+  display: flex;
+  gap: 6px;
   min-width: 0;
-}
-.dec-resumen-titulo {
-  font-size: 12px;
-  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.dec-elegido {
-  display: grid;
-  gap: 2px;
-  font-size: 13.5px;
-  line-height: 1.4;
-}
 .dec-elegido b {
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .dec-elegido i {
   font-style: normal;
   color: color-mix(in srgb, var(--text) 80%, var(--muted));
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .dec-elegido[data-falta="true"] {
   color: var(--muted);
 }
 
-.dec-pie {
-  display: grid;
-  gap: 10px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-}
 .dec-estado {
+  flex: 1;
+  min-width: 12ch;
   margin: 0;
-  min-height: 1.4em;
   font-size: 13px;
   line-height: 1.4;
   color: var(--muted);
 }
-.dec-estado:empty {
-  display: none;
-}
 .dec-pie-botones {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 10px;
+  margin-left: auto;
 }
 .dec-deshacer {
   padding: 0 14px;
 }
 
-/* ------------------------------------------------------------ nada te espera */
+/* ------------------------------------------------------------ terminal, encargo e idea */
+.dec-pantalla {
+  margin: 0 32px 20px;
+  padding: 12px 14px;
+  border-radius: var(--r-btn);
+  background: var(--row);
+  color: var(--text);
+  font-family: var(--mono, ui-monospace, "Cascadia Mono", Consolas, monospace);
+  font-size: 12.5px;
+  line-height: 1.45;
+  white-space: pre;
+  overflow-x: auto;
+}
+.dec-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 0 32px 24px;
+}
+.dec-dicho {
+  margin: 0 32px 20px;
+}
+
+/* ------------------------------------------------------------ nada te toca */
 .dec-calma {
   display: grid;
   justify-items: center;
   gap: 10px;
   max-width: 46ch;
-  margin: 12vh auto 0;
+  margin: 14vh auto 0;
   padding: 0 24px;
   text-align: center;
 }
@@ -472,20 +499,67 @@
   color: var(--muted);
 }
 
-/* Estrecho, la ficha baja debajo de la hoja y deja de ir pegada. */
-@container (max-width: 900px) {
-  .dec-abierta {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 4px;
-    padding: 22px 22px 26px;
+/* ------------------------------------------------------------ la chuleta del «?» */
+.dec-teclas {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  z-index: 5;
+  display: grid;
+  gap: 12px;
+  width: min(460px, calc(100% - 48px));
+  padding: 18px 20px;
+  border-radius: var(--r-caja);
+  border: 1px solid var(--border-strong);
+  background: var(--popover);
+  box-shadow: var(--glass-edge), var(--sombra-3);
+}
+.dec-teclas h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+}
+.dec-teclas dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+.dec-teclas dl > div {
+  display: grid;
+  grid-template-columns: 9.5em 1fr;
+  gap: 12px;
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+.dec-teclas dt {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: pre;
+}
+.dec-teclas dd {
+  margin: 0;
+  color: color-mix(in srgb, var(--text) 86%, var(--muted));
+}
+.dec-teclas .mini {
+  justify-self: end;
+}
+
+/* Estrecho, la lista se queda más estrecha y el detalle con menos margen. */
+@container (max-width: 700px) {
+  .dec-hoja,
+  .dec-abierta > .dec-abierta-cab {
+    padding-left: 20px;
+    padding-right: 20px;
   }
-  .dec-ficha {
-    position: static;
+  .dec-barra,
+  .dec-acciones {
+    padding-left: 20px;
+    padding-right: 20px;
   }
 }
 
-/* La cuenta de la pestaña: en ámbar, porque son cosas que te esperan a ti, y
-   no en el acento de la Cabina, que cuenta lo que hay abierto. */
+/* La cuenta de la pestaña: en ámbar, porque son cosas que te tocan a ti, y no
+   en el acento de la Cabina, que cuenta lo que hay abierto. */
 .tab-count[data-espera="true"] {
   color: var(--ask);
 }

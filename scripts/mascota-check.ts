@@ -15,11 +15,14 @@ import {
   avanzar,
   cuadrosDe,
   reaccionar,
+  recorridoDe,
   reposoDe,
   type Marcha,
   type Paso,
   type Pose,
 } from "../src/lib/mascota";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 let fallos = 0;
 // El lanzador solo enseña las últimas líneas: los rojos se repiten al final.
@@ -156,6 +159,24 @@ ok(
     trasToque.poses[REACCIONES.toque.length] === huella(GUIONES.trabaja.bucle[1][0]),
 );
 ok("un ánimo sin gestos (dormida) gira en su bucle sin romperse", correr(arrancar("dormida", 0, () => 0), 12, () => 0).poses.length === 12);
+
+// Con «reducir movimiento» (G1, 2026-11-15): los mismos gestos, el salto a un
+// cuarto, y nunca quieta.
+ok("con menos movimiento el recorrido es un cuarto, y sin él entero", recorridoDe(true) === 0.25 && recorridoDe(false) === 1);
+const salto = todos.find(([, [pose]]) => pose.salta)![1][0];
+const enPie = { ...salto, salta: false };
+const alturaDe = (qs: ReturnType<typeof cuadrosDe>) => Math.min(...qs.filter((q) => q.c === PUPILA).map((q) => q.y));
+const subeEntero = alturaDe(cuadrosDe(enPie)) - alturaDe(cuadrosDe(salto));
+const subeUnCuarto = alturaDe(cuadrosDe(enPie, "", undefined, recorridoDe(true))) - alturaDe(cuadrosDe(salto, "", undefined, recorridoDe(true)));
+ok("el salto sube un cuadro entero, y con menos movimiento un cuarto", subeEntero === 1 && subeUnCuarto === 0.25, `entero ${subeEntero}, con menos movimiento ${subeUnCuarto}`);
+ok(
+  "con menos movimiento los gestos son los mismos: solo cambia la altura del salto",
+  JSON.stringify(cuadrosDe(enPie, "", undefined, 0.25)) === JSON.stringify(cuadrosDe(enPie)),
+);
+// Desde la raíz del repo: el banco se compila a un temporal y `__dirname` apunta allí.
+const componente = readFileSync(join(process.cwd(), "src", "components", "Mascota.tsx"), "utf8");
+const quietaEn = componente.match(/const quieta = [^;]*;/)?.[0] ?? "";
+ok("el componente no se queda quieto por «reducir movimiento», solo con la ventana tapada", quietaEn.includes("document.hidden") && !quietaEn.includes("reduced-motion"), quietaEn);
 
 console.log(fallos ? `\n${fallos} FALLOS: ${rojos.join("; ")}` : "\nTODO BIEN");
 process.exit(fallos ? 1 : 0);

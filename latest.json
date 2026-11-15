@@ -1,11 +1,11 @@
 {
-  "version": "0.9.255",
-  "notes": "Relevo por cuota en otra cuenta, la web del PC en vivo en el movil, Para ver se limpia sola, compactar a los 450.000 con el fin y tu Retomar, y sin cuota no se compacta",
-  "pub_date": "2026-11-14T06:25:25Z",
+  "version": "0.9.256",
+  "notes": "Encargos de la noche en una copia aparte del Modo Espejo, Decisiones como lista unica de lo que te toca, la madre se entera cuando una delegada entrega, cajas Docker y valla del raton, y el tablero se reparte solo al abrir una terminal",
+  "pub_date": "2026-11-15T21:44:53Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzh1OTJIR2VIQloxRWlTdittT256bXM5aDZlY2lwNEI2MGlLV2dqUi81czU5L2ZLa01TcEJMSTdObHl4UUxWOUpGSTB4QVF4eFZ6Ni80Tkg3bHZGNkEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0NjM3NTExCWZpbGU6QWRlb3JxXzAuOS4yNTVfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNTUKT1VXTU9GLzkxN0dHL1NJTTFSTTVFOCt3Mmp1TW5IaFVKRi8zYXZIR2MxdW1ObThvekxEbGFZcGNwVEJVS1Vid0xNVlBJQTFGSVcrdjhtYWF5UGpFRHc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.255/Adeorq_0.9.255_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzlGdzhtMlNlRnVHa1hzbUpxSEdWL1JweFQ5aWs5blQ0SXN1MUhRV0N1WnJMMFg3VTRrTEZjOW56eG9UcG5BNXhmanE3WHRGZTV6a3FGOFNvbmMrTEFJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0Nzc5MDc3CWZpbGU6QWRlb3JxXzAuOS4yNTZfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNTYKZm5PbEE1OUlTOG9IanNiUjdZRWg2SkdnUUhFbW5FcWU4Sm9kTDJZUGFhQ1lVTkN0Q3hqK3pUMkcycGtVTlFOa1RvTlNhdGtIOUcxK2pqTUVFQ2loRHc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.256/Adeorq_0.9.256_x64-setup.exe"
     }
   }
 }

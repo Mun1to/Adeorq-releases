@@ -25,7 +25,7 @@ const PAGINA = path.join(RAIZ, "src-tauri", "src", "movil.html");
 export const ABRE = "// <mascota-generada>";
 export const CIERRA = "// </mascota-generada>";
 /** Lo que la página usa del módulo. Si falta uno en el `.ts`, se dice aquí y no en el móvil. */
-export const SALE = ["ANCHO", "ALTO", "GUIONES", "REACCIONES", "cuadrosDe", "reposoDe", "arrancar", "avanzar", "reaccionar"];
+export const SALE = ["ANCHO", "ALTO", "GUIONES", "REACCIONES", "cuadrosDe", "recorridoDe", "reposoDe", "arrancar", "avanzar", "reaccionar"];
 
 /** El bloque entero, con sus marcas, a partir del texto de `mascota.ts`. */
 export function generar(fuente) {

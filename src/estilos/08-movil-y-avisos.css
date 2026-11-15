@@ -766,4 +766,22 @@
 .avisos-vacio p {
   margin: 0;
 }
+/* El último renglón: a la lista entera, que es Decisiones (A1, 2026-11-15).
+   La campana es la vista de un vistazo; lo que se contesta, se contesta allí. */
+.avisos-pie {
+  margin: 0 6px 6px;
+  padding: 9px 8px;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--r-chico) var(--r-chico);
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.avisos-pie:hover {
+  background: var(--row);
+}
 

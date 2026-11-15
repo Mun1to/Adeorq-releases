@@ -182,12 +182,23 @@ sin su clic no (D8). Las rayas son las de la D7 (300k aviso, 400k compacta, 600k
   aviso sin `confirm: true` (ver `escribir-a-una-sesion.md`).
 - **A quien la abrió se le avisa** en la respuesta de su siguiente llamada al MCP, una vez por raya
   desde los 400k (`aviso_de_tus_terminales`, `Puente::avisadas`), y se olvida al bajar.
-- **La delegada se compacta sola** a la campana de un turno acabado, con `/fin sin commits` y
-  luego `/compact`, aunque el ajuste de Munir diga «no» o «fin» (`esDelegada` en
+- **La delegada se compacta sola** a la campana de un turno acabado, con el `/fin` entero (su traspaso y los commits de su propio trabajo, sin subir nada; Munir, R1 del 15-nov-2026: antes era `/fin sin commits`) y
+  luego `/compact`, aunque el ajuste de Munir diga «no» o «sin commits» (`esDelegada` en
   `lib/contexto.ts`, que apunta `lib/puenteMcp.ts` al abrirla). Con las mismas llaves que el
   automático de siempre: transcript en «lista», sin subagentes, sin menú, sin borrador y sin «esc
   to interrupt» en pantalla. Ya compactada dos veces no lo hace una tercera (D4): el aviso le dice
   a quien la abrió que la cierre con su rastro o la compacte él.
+- **Y si el turno no acaba, se le corta** (orden de Munir del 1-nov-2026, «sí o sí»: la
+  «seguridad14-core» pasó de 600.000 y siguió 48 minutos más en un solo turno, hasta 930.958).
+  Pasada la raya de la nueva (600k) y trabajando todavía, el panel la mira cada 30 s
+  (`alPasarse` en `lib/contexto.ts`); si a los 3 minutos (`CORTAR_TRAS_MS`) sigue en el mismo
+  turno, un Escape lo corta y sigue el baile de siempre: el `/fin`, que deja en el
+  traspaso lo que llevaba, y `/compact`. Tras el Escape el transcript no dice «lista» sino
+  «[Request interrupted by user]», así que lo que dice que paró es la pantalla (sin «esc to
+  interrupt», en su caja). No se corta con un menú suyo en pantalla (el Escape lo contestaría),
+  parada por cuota, ni compactada ya dos veces, y nunca en una terminal de Munir. El aviso a quien
+  la abrió lo dice (`aviso_a_quien_la_abrio`). Prueba: «Una delegada pasada de 600k en un turno que
+  no acaba» en `scripts/contexto-check.ts` (sin el Escape, 6 rojos).
 - **`compactar_terminal(paneId)`** (escalón «auto», como `send_command`): el mismo baile pedido
   por el agente, sin esperar a la raya. Solo en delegadas de Claude Code; en una de Munir contesta
   que sin su clic no. Si ya hay un traspaso en marcha no empieza otro; el pedido caduca a los 30
@@ -240,7 +251,7 @@ se autocompacte con el skill de fin mensaje de compactación + que se retome aut
   transcript con Claude Code parado en su caja, y le escribe `seguir` (sin él, el de la casa:
   `seguirTrasCompactar`; vacío, nada). Si en el minuto siguiente a compactar no se queda parada,
   alguien siguió con ella y el «sigue» no se le echa encima. Si ya iba a seguir en una terminal
-  nueva, contesta `nueva` y no compacta; si había un `/fin sin commits` de la raya o de
+  nueva, contesta `nueva` y no compacta; si había un `/fin` de la raya o de
   `compactar_terminal`, lo sustituye y no hay dos `/compact`.
 - **Sin campana:** Claude Code 2.1.322 no toca la campana al acabar un turno, así que esto mira
   cada 3 s además de oírla. Desde el mismo día lo hacen también el botón, la raya roja y
@@ -253,6 +264,71 @@ se autocompacte con el skill de fin mensaje de compactación + que se retome aut
   `node scripts/laboratorio/compactarme-de-verdad.mjs`, con un Claude Code 2.1.322 de verdad
   contra una API de mentira: 13 de 13; antes de mirar sin campana, 6 en rojo (el `/compact` no
   llegaba nunca). NO PROBADO con una sesión de Munir y su modelo de verdad.
+
+## La hija dice cómo acabó y la madre se entera sin mirar: `entregar` (2026-11-15)
+
+Era el paso 5 de abajo y el único punto en que los rivales iban por delante
+(`docs/propuestas/orquestador.md`, «la vuelta hacia arriba»): la madre gastaba turnos en
+`read_pane_screen` y `get_active_panes` para saber si sus hijas habían acabado.
+
+- **`entregar({ estado, resumen, archivos?, commit? })`** (escalón «plan», `mcp/entregar.rs`):
+  `estado` es `hecho`, `bloqueada`, `falla` o `necesito_a_munir`; el resumen, de 40 a 2.000
+  caracteres y limpio de teclas; como mucho 50 rutas; el commit, un hash. Solo una terminal que
+  está en `Puente::delegadas` y que presenta SU contraseña. Se guarda en `delegadas.json`
+  (`Delegada::entrega`, por su conversación) y sale en `get_active_panes` («Entregó: hecho hace
+  4 min («…»)»). Si su madre tiene panel abierto, se le pide a la ventana (`entrega`); a la hija
+  se le contesta a quién se lo entregó, o que se guardó si su madre no tiene terminal (el
+  Capataz, un programado, un bot) o ya no está, o que Munir apagó los avisos.
+- **A la hija se le pide**: al final de su encargo va `COLA_DE_ENTREGA` (`lib/supremo.ts`), una
+  línea `[adeorq]` que le dice que llame a `entregar`. No en las instrucciones del MCP, que ya
+  rozan su tope de 2.048 caracteres (`al_conectarse_se_le_dice_que_reparta_lo_que_se_parte`), y
+  así le llega a cualquier CLI. No va en una de otra cuenta (no ve el MCP) ni en lo que abre una
+  persona desde fuera. La descripción de `open_pane` le dice a la madre que no tiene que mirar.
+- **La madre se entera** (`lib/vueltaArriba.ts`, puro, y `vueltaArribaVivo.ts`, montado desde la
+  campana): quién es hija de quién lo apunta `puenteMcp.ts` al abrir (`p.quien`). A la cola de la
+  madre van la entrega, «paró sin entregar» (un minuto en «lista» sin haber entregado desde que
+  empezó a trabajar), «se paró a preguntar» (un menú, o acabar preguntando sin haber entregado)
+  y «se cerró» (la X, o su proceso terminó; si la cierra su madre con `close_pane`, no). Cada 3 s,
+  a la madre con cola se le teclea UNA línea (`sendPty`, Intro aparte) si está en «lista», sin
+  subagentes, sin «esc to interrupt» en pantalla y con su caja vacía (`esperaEnSuCaja`). Hace
+  falta esa prueba positiva, y hoy solo se sabe leer en Claude Code: a una madre Codex, Gemini o
+  Kimi, a una consola o a una terminal sacada a su ventana no se le teclea nada (la hija oye
+  «sin_caja» y queda en `get_active_panes`). La revisión aparte del 2026-11-15 lo cazó: con «si
+  no se ve una consola», la línea iba detrás de un borrador de Munir o se ejecutaba en un
+  `cmd.exe` con el `&` del resumen. Tope de 20 por hora y madre; pasado, solo la campana. Tras
+  teclear, espera a verla trabajar (o 45 s). Quién es hija de quién lo rehace la ventana desde
+  Rust cada 30 s (`madres_de_delegadas`, con la madre por su conversación): tras reiniciar, un
+  Reanimar o un relevo por cuota no se pierde, y un relevo no se cuenta como «se cerró».
+  Interruptor en Ajustes › Terminales, encendido de fábrica (`adeorq-vuelta-arriba`).
+- **Medido:** `cargo test --lib entregar` (7) y los de `mcp_clientes`; `pnpm bancos vuelta-arriba`
+  (con la consola dada por buena, en rojo); y `node scripts/laboratorio/entregar-de-verdad.mjs`,
+  con dos Claude Code 2.1.325 de verdad (madre e hija) contra una API de mentira: 13 de 13 (un
+  agente sin terminal no puede; la hija recibe la línea `[adeorq]` en su encargo, entrega y se le
+  dice a quién; a la madre le llega la línea después de acabar su turno; `get_active_panes` dice
+  «Entregó: hecho»; cerrada por otro, «se cerró» una vez y nada más), repetido tras los arreglos
+  de la revisión. NO PROBADO: el modelo de verdad decidiendo cuándo entregar, y la resincronía
+  tras reiniciar. **Una madre que no es Claude Code** no recibe la línea: 🔓 cuando haya, para
+  ese CLI, un detector de «parado con la caja vacía» como `esperaEnSuCaja`, medido en su pantalla.
+
+## La hija de una terminal en copia aparte nace en esa copia, y la dueña no se cierra con trabajo dentro (2026-11-15)
+
+- **Por qué:** los encargos programados trabajan en el Modo Espejo (`docs/contexto/programados.md`,
+  «En una copia aparte»), y una hija que abriera en la carpeta de verdad se saldría de la copia por
+  la puerta de atrás. Vale para toda terminal que vive en una copia, también la que abrió Munir en
+  Modo Espejo.
+- **Dónde nace:** `dondeNace` (`src/lib/copiaAparte.ts`, puro, `pnpm bancos copia-aparte`). Con
+  `p.quien` en una copia y la carpeta pedida en su proyecto (la de verdad o una de dentro), nace en
+  la misma carpeta DENTRO del árbol, sin espejo propio, y se apunta en el registro con la misma
+  dueña (así sus nietas también). En otro proyecto, su propio espejo allí (si es repo de git). Su
+  encargo lleva `notaDeCopia` antes de la línea de `entregar`, y la respuesta lo dice.
+- **Cerrar:** `close_pane` pregunta primero a la ventana `cerrable` (antes de escribir el rastro,
+  que si no quedaría el de una terminal viva) y la ventana se niega con la DUEÑA de una copia con
+  ficheros sueltos o commits en su rama (`shadow_pendiente`), o si no puede mirarlo; el agente recibe
+  el porqué. Las hijas que trabajan dentro se cierran como siempre. El relevo por cuota (`relevo:
+  true`) cierra, y la nueva nace con `shadow` y ESE espejo (`abrirElRelevo`).
+- **Medido:** con el laboratorio de los programados (`scripts/laboratorio/copia-aparte-de-verdad.mjs`):
+  la hija pedida en la carpeta de verdad arranca en la copia de su madre, lo que escribe queda ahí,
+  la madre no se deja cerrar por el MCP y la hija sí.
 
 ## Quién la abrió sobrevive a reiniciar, y las que ya no están se dicen (2026-10-30)
 
@@ -565,7 +641,8 @@ Ajustes».
 3. **`open_pane`**, con el CLI como parámetro: por aquí entra el multi-proveedor.
 4. **`link_panes`**, que apoya el árbol en las flechas que ya funcionan.
 5. **La vuelta hacia arriba**: al terminar un hijo, una nota en el buzón del
-   padre. Es lo único conceptualmente nuevo y va al final a propósito.
+   padre. Es lo único conceptualmente nuevo y va al final a propósito. Hecha el
+   2026-11-15 como `entregar` y una línea tecleada a la madre (ver arriba).
 
 ## Riesgos anotados
 

@@ -71,6 +71,7 @@ import AjustesBotsConexion from "./AjustesBotsConexion";
 import AjustesClaudeConexion from "./AjustesClaudeConexion";
 import AjustesMcp from "./AjustesMcp";
 import AjustesClavesAgente from "./AjustesClavesAgente";
+import AjustesValla from "./AjustesValla";
 import AjustesEscudo, { type EstadoEscudo } from "./AjustesEscudo";
 import AjustesMods from "./AjustesMods";
 import AjustesPartes from "./AjustesPartes";
@@ -1370,6 +1371,7 @@ export default function SettingsView({
               <AjustesClaudeConexion cuentas={cuentas} />
               <AjustesMcp />
               <AjustesClavesAgente />
+              <AjustesValla />
             </>
           )}
           {seccion === "avisos" && (

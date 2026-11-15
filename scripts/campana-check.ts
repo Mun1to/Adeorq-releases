@@ -6,7 +6,7 @@
 //
 //   pnpm bancos campana
 
-import { alCambiar, animoDe, SALTO_MS, sinLeer, TOPE, trasEntrar, trasVerla, type Aviso } from "../src/lib/campana";
+import { alCambiar, animoDe, SALTO_MS, sinLeer, TOPE, trasEntrar, trasQuitar, trasVerla, type Aviso } from "../src/lib/campana";
 import type { PaneStatus, WorkState } from "../src/lib/pty";
 
 let fallos = 0;
@@ -128,6 +128,8 @@ es("cuenta lo que no has visto, nada más", sinLeer(mezcla), 2);
 es("cierras la lista: lo que terminó se va y lo que te espera se queda, leído", resumen(trasVerla(mezcla)), ["1:espera(leído)", "2:espera(leído)"]);
 const yaVista = trasVerla(mezcla);
 ok("y si no hay nada que quitar ni que marcar, devuelve la misma lista", trasVerla(yaVista) === yaVista);
+es("lo quitas de Decisiones: su «terminó» se va", resumen(trasQuitar(mezcla, 3)), ["1:espera", "2:espera(leído)"]);
+ok("un «te espera» no se quita así: sigue esperándote", trasQuitar(mezcla, 1) === mezcla);
 es("entras en la terminal que terminó: su aviso se va", resumen(trasEntrar(mezcla, 3, SALTO_MS)), ["1:espera", "2:espera(leído)"]);
 ok("entras en una que te espera: su aviso se queda hasta que le contestes", trasEntrar(mezcla, 1, SALTO_MS) === mezcla);
 ok("entras en una sin avisos: la misma lista", trasEntrar(mezcla, 9, SALTO_MS) === mezcla);

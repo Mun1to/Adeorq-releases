@@ -154,7 +154,7 @@ try {
   await campana();
   dice(ordenes().length === 0, "con el modo «no» la campana no teclea nada", JSON.stringify(ordenes()));
 
-  // ── 400k de fábrica (Munir, A1: solo y sin commits), a mitad de una tarea ─
+  // ── 400k de fábrica (Munir, R1 del 15-nov: solo y con el /fin entero), a mitad de una tarea ─
   await a.v.js(`localStorage.removeItem("adeorq-compactar-solo"); "ok"`);
   escribir(420, "a_medias");
   await campana();
@@ -175,10 +175,10 @@ try {
   await campana();
   dice(ordenes().length === 0, "con «esc to interrupt» en pantalla la campana no teclea nada, aunque el transcript diga lista", JSON.stringify(ordenes()));
 
-  // ── El turno acaba de verdad: /fin sin commits, y luego /compact ─────────
+  // ── El turno acaba de verdad: el /fin, y luego /compact ─────────
   await pintar("quieto");
   await campana();
-  dice(JSON.stringify(ordenes()) === JSON.stringify(["/fin sin commits"]), "con el turno acabado la campana manda /fin sin commits", JSON.stringify(ordenes()));
+  dice(JSON.stringify(ordenes()) === JSON.stringify(["/fin"]), "con el turno acabado la campana manda el /fin entero", JSON.stringify(ordenes()));
   w = await aviso();
   dice(w?.fase === "cerrando" && /traspaso/.test(w?.texto ?? ""), "y el aviso dice que está escribiendo el traspaso", JSON.stringify(w));
   await foto("cerrando");
@@ -198,7 +198,7 @@ try {
   w = await hasta(async () => ((await aviso())?.nivel === "3" ? aviso() : null), 30_000, 1000);
   dice(w?.nivel === "3" && w?.botones.includes("Nueva con traspaso"), "y vuelve en la subida siguiente (610k, el 61 %), con Nueva con traspaso", JSON.stringify(w));
   await foto("600k");
-  dice((await a.v.js(`document.querySelector("[data-pane-id] .pane-ctx")?.dataset.hot ?? ""`)) === "true", "y la píldora de la cabecera se pone al rojo a la vez (antes, al 80 %)");
+  dice((await a.v.js(`document.querySelector("[data-pane-id] .pane-ctx")?.dataset.nivel ?? ""`)) === "rojo", "y la píldora de la cabecera va en rojo (desde 450k, C1 del 15-nov)");
 
   // ── «Ahora no» lo para ───────────────────────────────────────────────────
   await a.v.js(`[...document.querySelectorAll("[data-pane-id] .pane-ctx-warn button")].find((b) => b.textContent.trim() === "Ahora no")?.click(); "ok"`);

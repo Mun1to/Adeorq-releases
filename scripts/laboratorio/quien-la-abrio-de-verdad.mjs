@@ -302,11 +302,11 @@ try {
   }
 
   // El tope de contexto de `1954cf0` sigue valiendo tras reiniciar: a los 400k,
-  // a su campana, /fin sin commits aunque el ajuste de Munir diga «no».
+  // a su campana, el /fin entero aunque el ajuste de Munir diga «no».
   escribir(uno.sid, 420);
   await tocar("campana", uno.sid);
   await dormir(4500);
-  dice(recibido(uno.sid).includes("/fin sin commits"), "tras reiniciar se compacta sola a los 400k", JSON.stringify(recibido(uno.sid)));
+  dice(recibido(uno.sid).includes("/fin"), "tras reiniciar se compacta sola a los 400k", JSON.stringify(recibido(uno.sid)));
   const sinRastro = await madre2.llamar("close_pane", { paneId: id1 });
   dice(/Falta `rastro`/.test(sinRastro.error ?? ""), "y close_pane le sigue pidiendo su rastro", JSON.stringify(sinRastro));
 

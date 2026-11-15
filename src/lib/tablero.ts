@@ -20,7 +20,7 @@ import { dejarVolcado } from "./mudanza";
 import { parsear } from "./canvasFile";
 import {
   entregarAlLienzo,
-  espejoDe,
+  espejoPropio,
   panelesDelLienzo,
   repartir,
   siguienteLibre,
@@ -130,6 +130,9 @@ export interface SavedPane {
       existieran no las trae y vuelve con la de siempre. */
   webTabs?: string[];
   webActiva?: number;
+  /** El nombre de su copia aparte (el Modo Espejo): vuelve en ella, con su
+      botón y su conversación, y no en tu carpeta con una nueva. */
+  espejo?: string;
 }
 
 /** The whole board: which panes, and the mosaic they were arranged in. */
@@ -230,6 +233,7 @@ export function useTableroGuardado({
         web: pane.web,
         webTabs: pane.webTabs,
         webActiva: pane.webActiva,
+        espejo: terminal ? pane.espejo : undefined,
       });
     });
     const layout: SavedLayout = {
@@ -285,7 +289,7 @@ export function useTableroGuardado({
       const recogidas = new Map<string, Recogida>();
       for (const [i, v] of delLienzo) {
         dejarVolcado(v.id, await ptyHistorial(v.id).catch(() => ""));
-        recogidas.set(lienzo[i].nodo, { id: v.id, command: v.command ?? undefined, espejo: espejoDe(v.cwd)?.nombre });
+        recogidas.set(lienzo[i].nodo, { id: v.id, command: v.command ?? undefined, espejo: espejoPropio(v.cwd, v.id)?.nombre });
       }
       entregarAlLienzo(recogidas);
       if (cancelled || (!saved.panes.length && !sueltas.length)) return;
@@ -313,7 +317,7 @@ export function useTableroGuardado({
           ids.push(id);
           dejarVolcado(id, await ptyHistorial(id).catch(() => ""));
           // Si corría dentro de un espejo, vuelve siendo de espejo y con ESE.
-          const espejo = espejoDe(viva.cwd)?.nombre;
+          const espejo = espejoPropio(viva.cwd, id)?.nombre;
           const command = viva.command ?? pane.command;
           setPanes((prev) => [
             ...prev,
@@ -377,7 +381,10 @@ export function useTableroGuardado({
           setRestoring((n) => n - 1);
           continue;
         }
-        const command = await resumeCommandFor(pane);
+        // Su copia aparte, si trabajaba en una. Viene del disco y acaba en un
+        // nombre de rama: con la forma que acepta `id_valido` en Rust, o nada.
+        const espejo = typeof pane.espejo === "string" && /^[A-Za-z0-9_-]{1,32}$/.test(pane.espejo) ? pane.espejo : undefined;
+        const command = await resumeCommandFor({ ...pane, espejo });
         const id = nextId.current++;
         ids.push(id);
         // env comes back with the pane: a terminal that belonged to an account
@@ -395,6 +402,8 @@ export function useTableroGuardado({
             team: pane.team,
             grupo: pane.grupo,
             abiertaPor: delegacionDe(id, command),
+            shadow: espejo ? true : undefined,
+            espejo,
           },
         ]);
         // Lo apartado sigue apartado: el id es nuevo, así que se marca aquí,

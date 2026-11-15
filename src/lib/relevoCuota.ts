@@ -24,6 +24,8 @@ import { cuantoFalta, elegirCuenta, type CuentaViva } from "./router";
 import { mainAccount, type Account } from "./pty";
 import { sabe } from "./providers";
 import { apuntarDelegada, delegadaDe } from "./delegadas";
+import { espejoDe, espejoPropio } from "./reenganche";
+import { apuntarCopia, copiaDe } from "./copiaAparte";
 
 const MODOS: PermissionMode[] = ["acceptEdits", "auto", "bypassPermissions", "manual", "dontAsk", "plan"];
 
@@ -134,10 +136,10 @@ export interface ManosDelRelevo {
     at?: undefined,
     account?: Account,
     team?: undefined,
-    shadow?: undefined,
+    shadow?: boolean,
     grupo?: undefined,
     envOverride?: Record<string, string>,
-    opciones?: { abiertaPor?: string },
+    opciones?: { abiertaPor?: string; espejo?: string },
   ) => { id: number; donde: "lienzo" | "cabina" } | null | undefined;
   /** Las cuentas de esa CLI con su cuota (`fotoRapida` con las suyas abiertas). */
   vivas: (cli: string) => Promise<CuentaViva[]>;
@@ -173,7 +175,7 @@ export async function elegirParaRelevo(p: { paneId?: number; cli?: string; agota
 
 /** `relevo_abrir`: la nueva, con la misma conversación o con el acta. */
 export async function abrirElRelevo(
-  p: { cli?: string; cuenta?: { id?: string; label?: string; dir?: string }; cwd?: string; nombre?: string; sesion?: string | null; sesionVieja?: string; comando?: string[]; agotada?: string; tipo?: string | null; renueva?: number | null },
+  p: { paneId?: number; cli?: string; cuenta?: { id?: string; label?: string; dir?: string }; cwd?: string; nombre?: string; sesion?: string | null; sesionVieja?: string; comando?: string[]; agotada?: string; tipo?: string | null; renueva?: number | null },
   m: ManosDelRelevo,
 ): Promise<Respuesta> {
   const cli = String(p.cli ?? "");
@@ -200,8 +202,16 @@ export async function abrirElRelevo(
   // al verla; con el acta es otra conversación, y se apunta como delegada nueva.
   const abiertaPor = delegadaDe(p.comando)?.abiertaPor;
   if (!p.sesion) apuntarDelegada(command, abiertaPor);
-  const abierto = m.addPane(nombre, cwd, command, undefined, cuenta, undefined, undefined, undefined, ENTORNO_DEL_RELEVO, { abiertaPor });
+  // La dueña de un espejo sigue en ESE, con su botón de aceptar o tirar: abierta
+  // a secas en el árbol trabajaría en la copia sin poder aceptarla. Una hija que
+  // trabaja en la copia de su madre sigue dentro, sin hacerse dueña de ella.
+  const vieja = typeof p.paneId === "number" ? copiaDe(p.paneId) : undefined;
+  const enEspejo = vieja ? (vieja.duena === p.paneId ? espejoDe(cwd) : null) : typeof p.paneId === "number" ? espejoPropio(cwd, p.paneId) : espejoDe(cwd);
+  const abierto = enEspejo
+    ? m.addPane(nombre, enEspejo.proyecto, command, undefined, cuenta, undefined, true, undefined, ENTORNO_DEL_RELEVO, { abiertaPor, espejo: enEspejo.nombre })
+    : m.addPane(nombre, cwd, command, undefined, cuenta, undefined, undefined, undefined, ENTORNO_DEL_RELEVO, { abiertaPor });
   if (!abierto) return { error: "no pude abrir la terminal" };
+  if (vieja && vieja.duena !== p.paneId) apuntarCopia(abierto.id, vieja);
   m.marcar(abierto.id);
   return {
     pane_id: abierto.id,

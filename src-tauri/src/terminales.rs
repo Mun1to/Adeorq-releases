@@ -841,6 +841,11 @@ pub fn terminales_por_actualizar(app: tauri::AppHandle) {
 /// Lo que hace `pty::kill_all` al cerrarse la app con el proceso de terminales:
 /// despedirse (se cierran todas), o, si se va para actualizarse, cortar sin más
 /// (aguantan y la nueva las recoge).
+/// Si la app se va para actualizarse (las terminales se quedan): lo mira `caja.rs`.
+pub fn se_actualiza() -> bool {
+    POR_ACTUALIZAR.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 pub fn al_cerrar_la_app(r: &Remoto) {
     if POR_ACTUALIZAR.load(std::sync::atomic::Ordering::Relaxed) {
         crate::anotar("terminales: la app se cierra para actualizarse; las terminales se quedan para la versión nueva");

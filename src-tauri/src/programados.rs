@@ -334,7 +334,9 @@ pub enum Visto {
 pub trait Puertas {
     fn abrir(&mut self, e: &Encargo) -> Result<u32, String>;
     fn mirar(&mut self, panel: u32) -> Visto;
-    fn cerrar(&mut self, panel: u32);
+    /// Si se cerró. La ventana se niega con la de una copia aparte que tiene
+    /// trabajo sin aceptar (`lib/copiaAparte.ts`).
+    fn cerrar(&mut self, panel: u32) -> bool;
     /// El cortacircuitos acaba de saltar con este encargo.
     fn cortado(&mut self, e: &Encargo);
     /// Cuánto lleva gastado, de 0 a 100, la cuenta con la que nacería. `None`
@@ -462,10 +464,15 @@ pub fn vuelta(dir: &Path, ahora: u64, local: &Local, arranque: u64, p: &mut dyn 
 
         guardar(dir, &todos)?;
         // La de la vez anterior, si terminó y sigue ahí tal cual, se cierra al
-        // nacer la nueva. Si alguien siguió hablando con ella, no se toca.
+        // nacer la nueva. Si alguien siguió hablando con ella, no se toca. Y si
+        // trabajó en una copia aparte y aún no se ha aceptado, esta vez se salta:
+        // otra al lado partiría de tu rama sin ese trabajo, y cada hora sería una
+        // copia más que chocaría con las otras al aceptarlas.
         if let Some(c) = todos[i].corrida.take() {
-            if c.arranque == arranque && p.mirar(c.panel) == Visto::Termino {
-                p.cerrar(c.panel);
+            if c.arranque == arranque && p.mirar(c.panel) == Visto::Termino && !p.cerrar(c.panel) {
+                todos[i].corrida = Some(c);
+                apuntar(&mut todos[i], ahora, Resultado::Saltado, "la vez anterior tiene cambios sin aceptar en su copia aparte");
+                continue;
             }
         }
         match p.abrir(&todos[i]) {
@@ -622,7 +629,11 @@ impl Reales<'_> {
 
 impl Puertas for Reales<'_> {
     fn abrir(&mut self, e: &Encargo) -> Result<u32, String> {
-        let mut pedido = serde_json::json!({ "cli": e.cli, "cwd": e.cwd, "brief": e.encargo, "name": e.nombre });
+        // `espejo`: trabaja en una copia aparte de la carpeta (el Modo Espejo),
+        // porque nadie la mira mientras trabaja. Munir, 2026-11-15: «lo de noche
+        // no lo ve nadie, y ahí una copia te ahorra el susto por la mañana». Si
+        // la carpeta no es un repo de git, nace en ella como siempre.
+        let mut pedido = serde_json::json!({ "cli": e.cli, "cwd": e.cwd, "brief": e.encargo, "name": e.nombre, "espejo": true });
         if !e.cuenta.is_empty() {
             pedido["account"] = e.cuenta.clone().into();
         }
@@ -652,11 +663,21 @@ impl Puertas for Reales<'_> {
         }
     }
 
-    fn cerrar(&mut self, panel: u32) {
-        if crate::mcp::pedir_a_la_ventana(self.app, "close_pane", serde_json::json!({ "paneId": panel })).is_ok() {
-            crate::mcp::cerrada_por_programado(self.app, panel);
-        }
+    /// La ventana puede negarse: la de una copia aparte con trabajo sin aceptar
+    /// se queda abierta para que se acepte (`lib/copiaAparte.ts`), y nace la
+    /// nueva al lado.
+    fn cerrar(&mut self, panel: u32) -> bool {
         self.paneles = None;
+        match crate::mcp::pedir_a_la_ventana(self.app, "close_pane", serde_json::json!({ "paneId": panel })) {
+            Ok(_) => {
+                crate::mcp::cerrada_por_programado(self.app, panel);
+                true
+            }
+            Err(e) => {
+                crate::anotar(&format!("programados: la terminal {panel} se queda abierta: {}", limpio(&e, 200)));
+                false
+            }
+        }
     }
 
     fn cortado(&mut self, e: &Encargo) {
@@ -927,6 +948,8 @@ mod tests {
         dia_en_disco_al_abrir: Vec<String>,
         /// Lo que lleva gastado la cuenta, si se sabe.
         gastado: Option<u8>,
+        /// La ventana se niega a cerrar (una copia aparte con trabajo sin aceptar).
+        no_cierra: bool,
     }
 
     impl Puertas for Falsas {
@@ -941,8 +964,12 @@ mod tests {
         fn mirar(&mut self, panel: u32) -> Visto {
             self.visto.get(&panel).copied().unwrap_or(Visto::NoSeSabe)
         }
-        fn cerrar(&mut self, panel: u32) {
+        fn cerrar(&mut self, panel: u32) -> bool {
+            if self.no_cierra {
+                return false;
+            }
             self.cerradas.push(panel);
+            true
         }
         fn cortado(&mut self, e: &Encargo) {
             self.cortes.push(e.id.clone());
@@ -1119,6 +1146,36 @@ mod tests {
         p.nace = Some(9);
         vuelta(&d, 20_000, &lunes(1, "09:00"), 7, &mut p).unwrap();
         assert_eq!(p.cerradas, vec![4], "al nacer la del lunes siguiente se cierra la anterior");
+        assert_eq!(leer(&d).unwrap()[0].corrida.as_ref().map(|c| c.panel), Some(9));
+        std::fs::remove_dir_all(&d).ok();
+    }
+
+    /// La de la vez anterior trabajó en una copia aparte y nadie la ha
+    /// aceptado: no nace otra al lado (partiría sin ese trabajo), se salta sin
+    /// contar como fallo, y se vuelve a mirar la vez siguiente.
+    #[test]
+    fn con_la_copia_de_la_vez_anterior_sin_aceptar_no_nace_otra() {
+        let d = dir();
+        guardar(&d, &[encargo(los_lunes_a_las_9())]).unwrap();
+        let mut p = Falsas { nace: Some(4), ..Default::default() };
+        vuelta(&d, 10_000, &lunes(0, "09:00"), 7, &mut p).unwrap();
+        p.visto.insert(4, Visto::Termino);
+        vuelta(&d, 10_060, &lunes(0, "09:20"), 7, &mut p).unwrap();
+
+        p.no_cierra = true;
+        p.nace = Some(9);
+        assert!(vuelta(&d, 20_000, &lunes(1, "09:00"), 7, &mut p).unwrap());
+        let e = leer(&d).unwrap().remove(0);
+        assert_eq!(p.abiertas.len(), 1, "no nace otra al lado");
+        assert_eq!(e.ultimas[0].resultado, Resultado::Saltado);
+        assert!(e.ultimas[0].detalle.contains("sin aceptar"), "{}", e.ultimas[0].detalle);
+        assert_eq!(e.fallos_seguidos, 0, "no cuenta como fallo");
+        assert_eq!(e.corrida.as_ref().map(|c| c.panel), Some(4), "y se recuerda la de la copia");
+
+        // Aceptada (o tirada) la copia, ya se cierra y nace la nueva.
+        p.no_cierra = false;
+        vuelta(&d, 30_000, &lunes(2, "09:00"), 7, &mut p).unwrap();
+        assert_eq!(p.cerradas, vec![4]);
         assert_eq!(leer(&d).unwrap()[0].corrida.as_ref().map(|c| c.panel), Some(9));
         std::fs::remove_dir_all(&d).ok();
     }

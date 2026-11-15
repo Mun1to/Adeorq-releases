@@ -10,9 +10,10 @@
 // sin ventana. Además de su guion, reacciona a ti: sigue el ratón con el ojo,
 // te saluda si pasas por encima y da un brinco si la pulsas.
 //
-// Si el sistema pide menos movimiento, se queda en la postura de su ánimo y no
-// gasta ni un temporizador de animación. Con la ventana tapada tampoco se
-// mueve: nadie la ve.
+// Si el sistema pide menos movimiento, hace sus mismos gestos y sus saltos suben
+// un cuarto (`recorridoDe`): nunca se queda quieta (Munir, G1, 2026-11-15; hasta
+// entonces se quedaba en la postura de su ánimo). Con la ventana tapada sí se
+// para: nadie la ve.
 //
 // Con el modo rendimiento SÍ se mueve, y antes no. Ese modo se enciende solo
 // con cuatro terminales, que es un día normal de Munir, así que en la práctica
@@ -30,6 +31,7 @@ import {
   avanzar,
   cuadrosDe,
   reaccionar,
+  recorridoDe,
   reposoDe,
   type Marcha,
   type Mirada,
@@ -43,7 +45,9 @@ const REVISAR_MS = 1500;
 /** Cuánto sigue mirando hacia donde se fue el ratón. */
 const MIRADA_MS = 2500;
 
-const quieta = () => document.hidden || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+/** Con la ventana tapada no se anima: nadie la ve. */
+const quieta = () => document.hidden;
+const menosMovimiento = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** Tres toques en menos de esto son un mimo, y le sale un corazón. */
 const MIMO_MS = 1500;
@@ -167,7 +171,7 @@ export default function Mascota({
       // el saludo es para cuando no.
       onMouseEnter={() => (["espera", "duda", "lista", "apurada"].includes(animo) ? undefined : reacciona("hola"))}
     >
-      {cuadrosDe(pose, mirada, tinte).map((q, i) => (
+      {cuadrosDe(pose, mirada, tinte, recorridoDe(menosMovimiento())).map((q, i) => (
         // Un pelo más ancho que la celda, para que no se vea la rejilla entre cuadros.
         <rect key={i} x={q.x} y={q.y} width={1.02} height={1.02} fill={q.c} />
       ))}

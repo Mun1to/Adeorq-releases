@@ -74,6 +74,8 @@ const escenarios: Escenario[] = [
   { nombre: "única cuenta, y va por el 95 %", ex: ex("oficio"), mundo: { cuentas: [viva("Principal", { gastado: 95 })] } },
   { nombre: "única cuenta parada por su tope de 5 horas", ex: ex("oficio"), mundo: { cuentas: [viva("Principal", { gastado: 30, sesion: 100, sesionRenueva: AHORA + 3_600_000 * 2 })] } },
   { nombre: "única cuenta parada, sin fecha de su tope", ex: ex("oficio"), mundo: { cuentas: [viva("Principal", { gastado: 30, sesion: 100 })] } },
+  { nombre: "una queda fuera solo por lo calculado con sus terminales abiertas", ex: ex("oficio"), mundo: { cuentas: [viva("Principal", { gastado: 72, renueva: AHORA + 3 * DIA, abiertas: 2 }), viva("Otra", { gastado: 40, renueva: AHORA + 5 * DIA })] } },
+  { nombre: "todas sin sitio y la menos mala lo es por lo calculado", ex: ex("oficio"), mundo: { cuentas: [viva("Principal", { gastado: 72, renueva: AHORA + 3 * DIA, abiertas: 2 }), viva("Llena", { gastado: 95, renueva: AHORA + 5 * DIA })] } },
   { nombre: "todas sin sitio", ex: ex("oficio"), mundo: { cuentas: [viva("Principal", { gastado: 96 }), viva("Otra", { gastado: 97 })] } },
   { nombre: "todas sin sitio, con el periodo en mes", ex: ex("oficio"), mundo: { cuentas: [viva("Principal", { gastado: 96, periodo: "mes" }), viva("Otra", { gastado: 97, periodo: "mes" })] } },
   { nombre: "la semana apretada baja de opus", ex: ex("oficio"), pedido: "opus", mundo: { cuentas: [viva("Principal", { gastado: 80, plan: "max" })] } },

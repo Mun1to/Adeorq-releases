@@ -49,6 +49,10 @@ export interface NodoTerm {
       2026-11-02). Solo id, nombre, carpeta y CLI: nunca el entorno entero,
       que puede llevar una clave de API. */
   cuenta?: { id: string; label: string; dir: string; provider: string };
+  /** El nombre de su copia aparte (el Modo Espejo), y también solo en el
+      tablero que vuelve solo: sin él, una terminal de la noche volvía en tu
+      carpeta con una conversación nueva, y el trabajo de la copia sin botón. */
+  espejo?: string;
 }
 
 export interface NodoWidget {
@@ -297,6 +301,8 @@ export function parsear(raw: string): CanvasFile | null {
         cmd,
         pty: typeof r.pty === "number" && Number.isInteger(r.pty) && r.pty > 0 ? r.pty : undefined,
         cuenta: cuentaGuardada(r.cuenta),
+        // Acaba en un nombre de rama y de carpeta: lo mismo que acepta `id_valido` en Rust.
+        espejo: typeof r.espejo === "string" && /^[A-Za-z0-9_-]{1,32}$/.test(r.espejo) ? r.espejo : undefined,
       });
     } else if (r.tipo === "widget") {
       // Contra la lista de verdad: un widget que este Adeorq no conoce (de una

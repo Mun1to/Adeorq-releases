@@ -46,6 +46,17 @@ export function espejoDe(cwd: string): { proyecto: string; nombre: string } | nu
   return m ? { proyecto: m[1], nombre: m[2] } : null;
 }
 
+/**
+ * El espejo de `cwd` solo si es SUYO: su nombre empieza por el número del panel
+ * que lo montó (`<panel>-<arranque>`, `TerminalPane`). Una hija que trabaja en la
+ * copia de su madre corre en la misma carpeta, y recogida como dueña tendría
+ * Aceptar y Tirar de todo el trabajo de su madre.
+ */
+export function espejoPropio(cwd: string, id: number): { proyecto: string; nombre: string } | null {
+  const e = espejoDe(cwd);
+  return e && Number(e.nombre.split("-")[0]) === id ? e : null;
+}
+
 /** La carpeta del panel es el proyecto de ese espejo, o una de dentro. */
 function esDeSuEspejo(viva: string, panel: string): boolean {
   const e = espejoDe(viva);

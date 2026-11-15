@@ -104,14 +104,75 @@ export function addPane(
     next.push({ cid: nextCid(), w, panes: [id], hs: [1] });
     return next;
   }
-  // Full: feed the shortest column.
+  // Full: feed the shortest column. The new one is as tall as its neighbours
+  // there (their average): dividing by the count AFTER the push gave it a third
+  // of a column of one, and left the old one with two thirds.
   let si = 0;
   next.forEach((c, i) => {
     if (c.panes.length < next[si].panes.length) si = i;
   });
+  const media = next[si].hs.length ? sum(next[si].hs) / next[si].hs.length : 1;
   next[si].panes.push(id);
-  next[si].hs.push(sum(next[si].hs) / next[si].panes.length);
+  next[si].hs.push(media);
   return next;
+}
+
+/**
+ * Dónde cae una terminal nueva en la Cabina, sin que nadie diga dónde.
+ *
+ * Munir, 2026-11-15: «que cuando abran terminales nuevas se ordenen bien». Antes
+ * iban a una columna nueva hasta tres y luego se apilaban: la cuarta acababa
+ * debajo de la primera con un tercio del alto, y no dos arriba y dos abajo, que
+ * es como él las quiere de cuatro (2026-10-30).
+ *
+ * Si el mosaico sigue tal cual lo dejó una plantilla, la nueva entra
+ * repartiéndolo otra vez con esa misma forma:
+ * · el reparto de fábrica (`presetFor`) pasa al de una terminal más;
+ * · una rejilla que eligió él conserva sus columnas, y la nueva va a la más corta;
+ * · «una grande» sigue siendo una grande con una más al lado.
+ * Si lo arregló a mano (estiró una costura, movió un panel), el mosaico es suyo:
+ * la nueva va a la columna con menos, del alto de sus vecinas, y nada más se mueve.
+ *
+ * `fuera` son las abiertas que no se ven (minimizadas o de un grupo apartado): la
+ * forma se mira con lo que se ve, como en `applyPreset`.
+ */
+export function colocarNueva(
+  cols: Col[],
+  id: number,
+  nextCid: () => number,
+  fuera?: ReadonlySet<number>,
+): Col[] {
+  const vistas = cols
+    .map((c) => {
+      const i = c.panes.map((_, k) => k).filter((k) => !fuera?.has(c.panes[k]));
+      return { w: c.w, panes: i.map((k) => c.panes[k]), hs: i.map((k) => c.hs[k] ?? 1) };
+    })
+    .filter((c) => c.panes.length > 0);
+  const n = vistas.reduce((k, c) => k + c.panes.length, 0);
+  const aMano = () => addPane(cols, id, nextCid);
+  if (n === 0) return aMano();
+
+  const casi = (a: number, b: number) => Math.abs(a - b) <= 1e-6 * Math.max(1, Math.abs(a), Math.abs(b));
+  const filasParejas = vistas.every((c) => c.hs.every((h) => casi(h, c.hs[0])));
+  if (!filasParejas) return aMano();
+  const filas = vistas.map((c) => c.panes.length);
+  const mismas = (a: number[], b: number[]) => a.length === b.length && a.every((x, i) => x === b[i]);
+  const total = sum(vistas.map((c) => c.w));
+  const anchos = vistas.map((c) => c.w / total);
+  const anchosDe = (p: Preset) => {
+    const ws = p.rows.map((_, i) => p.weights?.[i] ?? 1);
+    const t = sum(ws);
+    return ws.map((w) => w / t);
+  };
+  const tieneForma = (p: Preset) => mismas(filas, p.rows) && anchosDe(p).every((w, i) => casi(w, anchos[i]));
+
+  // Para repartir, la nueva va la última: `applyPreset` respeta el orden en que
+  // están, y metida en la columna más corta se colaba delante de otras.
+  const alFinal = [...cols, { cid: nextCid(), w: 1, panes: [id], hs: [1] }];
+  if (tieneForma(presetFor(n))) return applyPreset(alFinal, presetFor(n + 1), nextCid, fuera);
+  if (n > 1 && tieneForma(unaGrande(n))) return applyPreset(alFinal, unaGrande(n + 1), nextCid, fuera);
+  if (anchos.every((w) => casi(w, anchos[0]))) return applyPreset(alFinal, { id: "suya", rows: filas }, nextCid, fuera);
+  return aMano();
 }
 
 export function removePane(cols: Col[], id: number): Col[] {

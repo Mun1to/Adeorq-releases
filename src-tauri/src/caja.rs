@@ -786,12 +786,17 @@ mod pruebas {
         env.insert("ANTHROPIC_API_KEY".to_string(), "@secreto:api:claude".to_string());
         env.insert("ADEORQ_PANE_ID".to_string(), "3".to_string());
         let c = v(&["cmd.exe", "/k", "chcp 65001 >nul && claude --session-id ab"]);
-        let p = plan(Caja::Docker(Distro::Fedora), 3, r"C:\proyectos\Mi Web", Some(&c), "lab-1", Path::new(r"C:\datos\cajas\casa"), "a1b2c3", &env).unwrap();
+        // Una ruta de verdad de cada sistema: en Linux la barra invertida no separa carpetas.
+        let cwd = if cfg!(windows) { r"C:\proyectos\Mi Web" } else { "/home/yo/proyectos/Mi Web" };
+        let casa = if cfg!(windows) { r"C:\datos\cajas\casa" } else { "/home/yo/datos/cajas/casa" };
+        let p = plan(Caja::Docker(Distro::Fedora), 3, cwd, Some(&c), "lab-1", Path::new(casa), "a1b2c3", &env).unwrap();
         let a = p.argumentos.join(" | ");
         assert!(p.con_agente);
         assert!(p.imagen.starts_with("adeorq-caja-fedora:"), "{}", p.imagen);
         assert_eq!(p.nombre, "adeorq-caja-lab-1-3-a1b2c3");
-        for trozo in ["run | --rm | -it | --init", "--label | adeorq.caja=1", "--label | adeorq.canal=lab-1", "--label | adeorq.panel=3", r"-v | C:\proyectos\Mi Web:/work/Mi-Web", r"-v | C:\datos\cajas\casa:/root", "-w | /work/Mi-Web", "-e | ANTHROPIC_API_KEY", "no-new-privileges"] {
+        let montaje = format!("-v | {cwd}:/work/Mi-Web");
+        let montaje_casa = format!("-v | {casa}:/root");
+        for trozo in ["run | --rm | -it | --init", "--label | adeorq.caja=1", "--label | adeorq.canal=lab-1", "--label | adeorq.panel=3", montaje.as_str(), montaje_casa.as_str(), "-w | /work/Mi-Web", "-e | ANTHROPIC_API_KEY", "no-new-privileges"] {
             assert!(a.contains(trozo), "falta «{trozo}» en {a}");
         }
         // La cuenta es una ruta del PC, y la contraseña del panel no entra nunca.

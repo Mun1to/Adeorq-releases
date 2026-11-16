@@ -152,6 +152,8 @@ pub fn programa_del_comando(argv: &[String]) -> Option<&'static str> {
         .filter(|t| !t.is_empty())
         .find_map(|t| {
             let base = t.rsplit(['\\', '/']).next().unwrap_or(t).to_ascii_lowercase();
+            // Sin la versión de npx: `npx @openai/codex@latest` deja «codex@latest».
+            let base = base.split('@').next().unwrap_or_default().to_string();
             let base = [".exe", ".cmd", ".ps1", ".bat"].iter().fold(base, |b, ext| b.strip_suffix(ext).map(str::to_string).unwrap_or(b));
             PROGRAMAS.iter().find(|(exe, _)| *exe == base).map(|(_, id)| *id)
         })
@@ -579,6 +581,8 @@ mod tests {
         assert_eq!(programa_del_comando(&v(&["cmd.exe", "/k", "chcp 65001 >nul && codex --model gpt"])), Some("codex"));
         assert_eq!(programa_del_comando(&v(&["C:\\Users\\x\\.local\\bin\\claude.exe", "--resume", "abc"])), Some("claude"));
         assert_eq!(programa_del_comando(&v(&["/bin/zsh", "-lc", "cursor-agent; exec /bin/zsh -i"])), Some("cursor"));
+        // Lanzado por npx con su versión detrás, sigue siendo Codex.
+        assert_eq!(programa_del_comando(&v(&["cmd.exe", "/k", "npx @openai/codex@latest"])), Some("codex"));
         // El encargo va detrás del programa y puede nombrar otros.
         assert_eq!(
             programa_del_comando(&v(&["powershell.exe", "-NoExit", "-Command", "gemini -i 'que lo revise claude y codex'"])),

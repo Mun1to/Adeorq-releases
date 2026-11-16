@@ -18,9 +18,10 @@ import { useCabina } from "./cabina";
 import { primerNumeroLibre, ptyHistorial, readBoard, terminalesVivas, type TerminalViva } from "./pty";
 import { dejarVolcado } from "./mudanza";
 import { parsear } from "./canvasFile";
+import { copiaYaCerrada } from "./copiaAparte";
 import {
   entregarAlLienzo,
-  espejoPropio,
+  espejoDeLaDuena,
   panelesDelLienzo,
   repartir,
   siguienteLibre,
@@ -289,7 +290,7 @@ export function useTableroGuardado({
       const recogidas = new Map<string, Recogida>();
       for (const [i, v] of delLienzo) {
         dejarVolcado(v.id, await ptyHistorial(v.id).catch(() => ""));
-        recogidas.set(lienzo[i].nodo, { id: v.id, command: v.command ?? undefined, espejo: espejoPropio(v.cwd, v.id)?.nombre });
+        recogidas.set(lienzo[i].nodo, { id: v.id, command: v.command ?? undefined, espejo: espejoDeLaDuena(v, lienzo[i].espejo) });
       }
       entregarAlLienzo(recogidas);
       if (cancelled || (!saved.panes.length && !sueltas.length)) return;
@@ -316,8 +317,8 @@ export function useTableroGuardado({
           const id = viva.id;
           ids.push(id);
           dejarVolcado(id, await ptyHistorial(id).catch(() => ""));
-          // Si corría dentro de un espejo, vuelve siendo de espejo y con ESE.
-          const espejo = espejoPropio(viva.cwd, id)?.nombre;
+          // Si era la dueña de un espejo y sigue en él, vuelve siendo de espejo y con ESE.
+          const espejo = espejoDeLaDuena(viva, pane.espejo);
           const command = viva.command ?? pane.command;
           setPanes((prev) => [
             ...prev,
@@ -385,6 +386,9 @@ export function useTableroGuardado({
         // nombre de rama: con la forma que acepta `id_valido` en Rust, o nada.
         const espejo = typeof pane.espejo === "string" && /^[A-Za-z0-9_-]{1,32}$/.test(pane.espejo) ? pane.espejo : undefined;
         const command = await resumeCommandFor({ ...pane, espejo });
+        // Aceptada o tirada, ya no es suya: vuelve en tu carpeta, con la conversación
+        // que `resumeCommandFor` le acaba de traer, y el tablero la olvida.
+        const suya = copiaYaCerrada(espejo) ? undefined : espejo;
         const id = nextId.current++;
         ids.push(id);
         // env comes back with the pane: a terminal that belonged to an account
@@ -402,8 +406,8 @@ export function useTableroGuardado({
             team: pane.team,
             grupo: pane.grupo,
             abiertaPor: delegacionDe(id, command),
-            shadow: espejo ? true : undefined,
-            espejo,
+            shadow: suya ? true : undefined,
+            espejo: suya,
           },
         ]);
         // Lo apartado sigue apartado: el id es nuevo, así que se marca aquí,

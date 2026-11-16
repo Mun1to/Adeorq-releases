@@ -133,6 +133,9 @@ export function cuandoArchivo(ruta: string): Promise<number> {
   return invoke("cuando_archivo", { ruta });
 }
 
+/** Si la ruta (un archivo o una carpeta) está en el disco. */
+export const existeRuta = (ruta: string) => cuandoArchivo(ruta).then((t) => t > 0, () => false);
+
 /** Una imagen lista para un `<img>` (`data:…`), o `null` si no lo es o pesa
     demasiado para traerla entera. */
 export function leerImagen(ruta: string): Promise<string | null> {
@@ -170,6 +173,9 @@ export function guardarArchivo(
    algo que existe es un error con su porqué, y borrar va a la papelera. */
 export const crearArchivo = (carpeta: string, nombre: string) => invoke<string>("crear_archivo", { carpeta, nombre });
 export const crearCarpeta = (carpeta: string, nombre: string) => invoke<string>("crear_carpeta", { carpeta, nombre });
+
+/** El disco para `carpetaParaNacer` (`lib/copiaAparte.ts`). */
+export const discoDeLaCopia = { existe: existeRuta, crear: crearCarpeta };
 export const renombrarRuta = (ruta: string, nombre: string) => invoke<string>("renombrar", { ruta, nombre });
 export const aLaPapelera = (ruta: string) => invoke<void>("a_la_papelera", { ruta });
 /** Una nota guardada como ficha en `<raiz>/docs/fichas/<nombre>`, sin pisar otra. */

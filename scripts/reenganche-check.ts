@@ -11,6 +11,7 @@
 import {
   emparejar,
   espejoDe,
+  espejoDeLaDuena,
   mismaCarpeta,
   panelesDelLienzo,
   repartir,
@@ -72,10 +73,26 @@ const enEspejo = "C:\\proyectos\\Adeorq\\.adeorq/espejo\\3-mv8cm5kg";
 es("de la carpeta de una viva sale su espejo", espejoDe(enEspejo), { proyecto: "C:\\proyectos\\Adeorq", nombre: "3-mv8cm5kg" });
 es("una carpeta normal no es un espejo", espejoDe("C:\\proyectos\\Adeorq"), null);
 es("ni una que solo se llama parecido", espejoDe("C:\\proyectos\\espejo\\3"), null);
+// Un encargo pedido en `Adeorq\web` corre en esa subcarpeta del árbol: antes no se reconocía
+// su espejo, y tras una caída volvía sin él.
+es("desde una subcarpeta del árbol también sale su espejo", espejoDe(`${enEspejo}\\web\\src`), { proyecto: "C:\\proyectos\\Adeorq", nombre: "3-mv8cm5kg" });
+const enSub = emparejar([{ pty: 3, cwd: "C:\\proyectos\\Adeorq\\web" }], [viva(3, `${enEspejo}\\web`)]);
+es("y se recoge por él", enSub.adoptadas.get(0)?.id, 3);
 const consola = emparejar([{ pty: 3, cwd: "C:\\proyectos\\Adeorq" }], [viva(3, enEspejo)]);
 es("una consola en espejo, sin comando que comparar, se recoge por su espejo", consola.adoptadas.get(0)?.id, 3);
 const deDentro = emparejar([{ pty: 3, cwd: "C:\\proyectos\\Adeorq\\src" }], [viva(3, enEspejo)]);
 es("y también desde una carpeta de dentro del proyecto", deDentro.adoptadas.get(0)?.id, 3);
+// La dueña es la que GUARDÓ ese espejo, no la del número de su nombre: tras cerrar Adeorq entera
+// los números vuelven a 1, la dueña retomada es la 2 con su copia «5-…» de antes, y una hija suya
+// puede nacer con el 5. Por el número, tras una caída la hija se quedaba Aceptar y Tirar de la
+// noche entera y la dueña se quedaba sin ellos (t206, 2026-11-16).
+const deAyer = "C:\\proyectos\\Adeorq\\.adeorq/espejo\\5-mv8cm5kg";
+es("la dueña recogida tras una caída sigue siendo dueña aunque hoy tenga otro número", espejoDeLaDuena(viva(2, deAyer), "5-mv8cm5kg"), "5-mv8cm5kg");
+es("y la hija que hoy tiene el número de su nombre no se hace dueña", espejoDeLaDuena(viva(5, deAyer), undefined), undefined);
+es("la dueña que trabaja en una subcarpeta de su copia también", espejoDeLaDuena(viva(2, `${deAyer}\\web`), "5-mv8cm5kg"), "5-mv8cm5kg");
+es("un espejo guardado que no es en el que corre no hace dueña de nada", espejoDeLaDuena(viva(2, enEspejo), "5-mv8cm5kg"), undefined);
+es("ni fuera de un espejo", espejoDeLaDuena(viva(2, "C:\\proyectos\\Adeorq"), "5-mv8cm5kg"), undefined);
+es("los nodos del lienzo traen el espejo que guardaron", panelesDelLienzo([{ tipo: "term", id: "2", ruta: "C:\\proyectos\\Adeorq", espejo: "5-mv8cm5kg" }])[0].espejo, "5-mv8cm5kg");
 const deOtro = emparejar([{ pty: 3, cwd: "C:\\proyectos\\Webs" }], [viva(3, enEspejo)]);
 es("el espejo de OTRO proyecto con el mismo número no es suyo", [deOtro.adoptadas.size, deOtro.sueltas.length], [0, 1]);
 const parecido = emparejar([{ pty: 3, cwd: "C:\\proyectos\\Adeorq2" }], [viva(3, enEspejo)]);

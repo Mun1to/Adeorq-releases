@@ -682,6 +682,7 @@ pub fn run() {
             sessions::session_agents,
             sessions::last_reply,
             sessions::transcript_exists,
+            sessions::conversacion_a_tu_carpeta,
             sessions::codex_session_since,
             sessions::agy_session_since,
             sessions::codex_context,

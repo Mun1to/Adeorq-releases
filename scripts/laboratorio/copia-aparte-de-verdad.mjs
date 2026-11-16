@@ -13,6 +13,10 @@
 //      reloj); a su hija sí.
 //   5. El reloj ve que terminó y lo apunta como hecho.
 //   6. Otro encargo en una carpeta sin git nace en ella, como siempre.
+//   7. Uno pedido en `demo\web` arranca en `web` dentro de su copia, y tras
+//      reiniciar vuelve ahí, con su conversación.
+//   9. Tirar esa copia con su Claude Code dentro no deja al git de dentro
+//      llegar a tu repo, y 10. tras otro reinicio vuelve en una copia de verdad.
 //
 //   cargo build --manifest-path src-tauri/Cargo.toml   (deja C:\ct\debug\adeorq.exe)
 //   node node_modules/vite/bin/vite.js --port 1420 --strictPort   (y apagarlo al acabar)
@@ -41,7 +45,7 @@ const debe = (bien, que, detalle = "") => {
 };
 
 // ─── La API de mentira ──────────────────────────────────────────────────────
-const api = { noche: null, escribio: null, abrio: null, hija: null, hijaEscribio: null, sinGit: null, rechazos: [] };
+const api = { noche: null, escribio: null, abrio: null, hija: null, hijaEscribio: null, sinGit: null, sub: null, rechazos: [] };
 let DEMO = "";
 const servidor = http.createServer((pet, res) => {
   let cuerpo = "";
@@ -109,6 +113,10 @@ const servidor = http.createServer((pet, res) => {
       if (!api.sinGit) api.sinGit = { encargo: ultimo, cwd };
       return texto("Hecho.");
     }
+    if (primero.includes("lab-sub")) {
+      if (!api.sub) api.sub = { encargo: ultimo, cwd };
+      return texto("Hecho.");
+    }
     if (primero.includes("lab-noche")) {
       if (!api.noche) {
         api.noche = { encargo: ultimo, cwd };
@@ -146,7 +154,10 @@ const sembrar = (datos) => {
   // El proyecto, con git y un commit: el espejo nace de su rama.
   git(demo, "init", "-q", "-b", "main");
   writeFileSync(join(demo, "README.md"), "demo\n");
-  git(demo, "add", "README.md");
+  // Una subcarpeta que git sigue, para el encargo que se pide en ella.
+  mkdirSync(join(demo, "web"), { recursive: true });
+  writeFileSync(join(demo, "web", "index.html"), "<p>demo</p>\n");
+  git(demo, "add", "README.md", "web/index.html");
   git(demo, "commit", "-q", "-m", "base");
   // De confianza solo las dos carpetas de verdad: la copia la hereda o no.
   const confiada = { hasTrustDialogAccepted: true, allowedTools: [] };
@@ -167,7 +178,11 @@ const sembrar = (datos) => {
   const encargo = (id, nombre, texto, cwd) => ({ id, nombre, encargo: texto, cwd, cli: "claude", cuando: { tipo: "cada", horas: 1 }, activo: true, creado, ultima: 0, ultimoDia: "", corrida: null, ultimas: [], fallosSeguidos: 0, cortado: null });
   writeFileSync(join(datos, "programados.json"), JSON.stringify({
     version: 1,
-    encargos: [encargo("pnoche", "Noche lab", "lab-noche: escribe noche.txt y abre una hija.", demo), encargo("psingit", "Sin git lab", "lab-sin-git: responde y para.", SIN_GIT)],
+    encargos: [
+      encargo("pnoche", "Noche lab", "lab-noche: escribe noche.txt y abre una hija.", demo),
+      encargo("psingit", "Sin git lab", "lab-sin-git: responde y para.", SIN_GIT),
+      encargo("psub", "Sub lab", "lab-sub: responde y para.", join(demo, "web")),
+    ],
   }));
 };
 
@@ -230,6 +245,21 @@ try {
   await v.js(`window.__TAURI_INTERNALS__.invoke("plugin:event|emit", { event: "mcp:pedido", payload: { peticion: 999999, clase: "close_pane", paneId: ${noche} } }).then(() => "ok", (e) => String(e))`);
   await dormir(4000);
   debe(new RegExp(`ID: ${noche}\\b`).test(await lista()), "ni por el camino del reloj: sigue abierta", await lista());
+  // Con la hija abierta dentro, sus botones no aceptan ni tiran la copia: lo que la hija
+  // escribiera después se perdía (`porQueNoSeSuelta`, 2026-11-16).
+  const clic = (sel) => v.js(`(() => { const b = document.querySelector('[data-pane-id="${noche}"] ${sel}'); if (!b) return "sin botón"; b.click(); return "ok"; })()`);
+  const nota = () => v.js(`document.querySelector('[data-pane-id="${noche}"] .pane-note')?.textContent ?? ""`);
+  debe((await clic(".pane-shadow-toggle")) === "ok", "la nocturna tiene su botón del Espejo");
+  await dormir(1500);
+  debe((await clic(".diff-btn-accept")) === "ok", "y su Aceptar");
+  await dormir(2000);
+  const noAcepta = await nota();
+  debe(/^No acepto la copia todavía/.test(noAcepta) && noAcepta.includes(`(panel ${hija})`), "con la hija abierta dentro no se acepta la copia, y dice cuál", noAcepta);
+  debe((await clic(".diff-btn-discard")) === "ok", "y su Descartar");
+  await dormir(2000);
+  const noTira = await nota();
+  debe(/^No tiro la copia todavía/.test(noTira) && noTira.includes(`(panel ${hija})`), "ni se tira", noTira);
+  debe(existsSync(join(copia, "noche.txt")) && existsSync(join(copia, "hija.txt")) && !existsSync(join(demo, "noche.txt")), "y la copia sigue entera, sin pasar a tu carpeta");
   const cierraHija = await agente.llamar("close_pane", { paneId: hija, rastro: "Laboratorio de la copia aparte: la hija trabajó dentro de la copia de su madre." });
   debe(/cerrada/.test(cierraHija.texto ?? ""), "a la hija, que trabaja dentro, sí se la cierra", cierraHija.texto ?? cierraHija.error);
 
@@ -245,22 +275,124 @@ try {
   const enSinGit = await cwdDe("Sin git lab");
   debe(igual(enSinGit, SIN_GIT), "el encargo en una carpeta sin git arranca en ella", `${enSinGit} frente a ${SIN_GIT}`);
   debe(!api.sinGit.encargo.includes("copia aparte"), "y sin la nota de la copia", api.sinGit.encargo);
+
+  // 7. Un encargo pedido en una subcarpeta del proyecto arranca en ESA subcarpeta de su copia
+  // (antes, en la raíz de la copia).
+  const llegoSub = !!(await hasta(() => api.sub, 120_000, 500));
+  debe(llegoSub, "el encargo de la subcarpeta llega a pedir", llegoSub ? "" : await lista());
+  const enSub = await cwdDe("Sub lab");
+  const arbolSub = /^(.+?[\\/]\.adeorq[\\/]espejo[\\/][^\\/]+)/.exec(enSub)?.[1] ?? "";
+  debe(!!arbolSub && arbolSub.toLowerCase().startsWith(demo.toLowerCase()) && igual(enSub, `${arbolSub}\\web`), "el encargo de la subcarpeta arranca en esa subcarpeta de su copia", enSub);
+  // Que su Claude Code trabaja ahí no se lee de la petición (este Claude Code ya no pone
+  // «working directory» donde se busca, y sale vacío): lo prueba el `--resume` de abajo, que
+  // solo sale si su conversación se guardó en esa subcarpeta.
+  debe(!!api.sub?.encargo?.includes("[adeorq] Trabajas en una copia aparte"), "con la nota de la copia", api.sub?.encargo);
   writeFileSync(join(FOTOS, "copia-1-nocturna.txt"), await pantalla(noche));
   await a.foto(null, "copia-2-ventana.png");
 
-  // 7. Cerrar y abrir Adeorq (un reinicio de madrugada): vuelve en su copia y con su conversación.
+  // 8. Cerrar y abrir Adeorq (un reinicio de madrugada): vuelve en su copia y con su conversación.
   await a.reiniciar();
   const otro = a.puente(null);
   await otro.pedir("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "laboratorio", version: "1" } });
   const vuelta = await hasta(async () => {
     const l = (await otro.llamar("get_active_panes", {})).texto ?? "";
-    return /Noche lab/.test(l) ? l : null;
+    return /Noche lab/.test(l) && (!llegoSub || /Sub lab/.test(l)) ? l : null;
   }, 60_000, 1000);
   const linea = (vuelta ?? "").split("\n").find((l) => /Noche lab/.test(l)) ?? "";
   const dondeVuelve = /, CWD: ([^\n]+?), Size:/.exec(linea)?.[1] ?? "";
   debe(!!copia && igual(dondeVuelve, copia), "tras reiniciar, la de la noche vuelve en su copia", `${dondeVuelve} frente a ${copia}`);
   debe(/--resume /.test(linea), "y con su conversación, no con una nueva", linea.slice(-300));
   debe(existsSync(join(copia, "noche.txt")), "y la copia sigue con su trabajo");
+  const lineaSub = (vuelta ?? "").split("\n").find((l) => /Sub lab/.test(l)) ?? "";
+  const subVuelve = /, CWD: ([^\n]+?), Size:/.exec(lineaSub)?.[1] ?? "";
+  debe(!!enSub && igual(subVuelve, enSub), "tras reiniciar, la de la subcarpeta vuelve en esa subcarpeta de su copia", `${subVuelve} frente a ${enSub}`);
+  debe(/--resume /.test(lineaSub), "y con su conversación, buscada donde se guardó", lineaSub.slice(-300));
+
+  // 8b. Reanimar la nocturna (la dueña de su copia): vuelve en ESA copia, con su conversación y su
+  // botón. Antes renacía en tu carpeta, sin encontrar su conversación y escribiendo en tus ficheros.
+  const idNoche = Number(/ID: (\d+)[^\n]*Noche lab/.exec(vuelta ?? "")?.[1] ?? 0);
+  // El menú lo pinta React después del clic derecho: se abre, se espera y luego se elige.
+  await a.v.js(`(() => {
+    const p = document.querySelector('[data-pane-id="${idNoche}"]');
+    p?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 200, clientY: 200 }));
+    return !!p;
+  })()`);
+  await dormir(800);
+  const reanimada = await a.v.js(`(() => {
+    const b = [...document.querySelectorAll(".ctx-menu .ctx-item")].find((x) => /Reanimar/.test(x.textContent ?? ""));
+    if (!b) return "sin Reanimar en el menú: " + [...document.querySelectorAll(".ctx-menu .ctx-item")].map((x) => x.textContent).join(" | ");
+    b.click();
+    return "ok";
+  })()`);
+  debe(reanimada === "ok", "la nocturna tiene su Reanimar", reanimada);
+  const nuevaNoche = await hasta(async () => {
+    const l = ((await otro.llamar("get_active_panes", {})).texto ?? "").split("\n").find((x) => /Noche lab/.test(x) && !new RegExp(`ID: ${idNoche}\\b`).test(x));
+    return l && /, CWD: /.test(l) ? l : null;
+  }, 30_000, 1000);
+  const dondeReanima = /, CWD: ([^\n]+?), Size:/.exec(nuevaNoche ?? "")?.[1] ?? "";
+  debe(!!copia && igual(dondeReanima, copia), "reanimada, la nocturna sigue en su copia", `${dondeReanima} frente a ${copia}`);
+  debe(/--resume /.test(nuevaNoche ?? ""), "y con su conversación", (nuevaNoche ?? "").slice(-300));
+  const idReanimada = Number(/ID: (\d+)/.exec(nuevaNoche ?? "")?.[1] ?? 0);
+  await dormir(3000);
+  debe(await a.v.js(`!!document.querySelector('[data-pane-id="${idReanimada}"] .pane-shadow-toggle')`), "y con su botón del Espejo");
+
+  // 9. Tirar la copia con su Claude Code corriendo dentro: Windows no deja borrar la carpeta en
+  // la que trabaja un programa, quedaba sin su `.git`, y el git de dentro subía hasta tu repo.
+  const idSub = Number(/ID: (\d+)[^\n]*Sub lab/.exec(vuelta ?? "")?.[1] ?? 0);
+  const clicSub = (sel) => a.v.js(`(() => { const b = document.querySelector('[data-pane-id="${idSub}"] ${sel}'); if (!b) return "sin botón"; b.click(); return "ok"; })()`);
+  debe((await clicSub(".pane-shadow-toggle")) === "ok", "la de la subcarpeta tiene su botón del Espejo");
+  await dormir(1500);
+  debe((await clicSub(".diff-btn-discard")) === "ok", "y su Descartar");
+  await dormir(3000);
+  const tirada = await a.v.js(`document.querySelector('[data-pane-id="${idSub}"] .pane-note')?.textContent ?? ""`);
+  debe(/descartados/.test(tirada), "la copia se tira", tirada);
+  const raizDentro = git(enSub, "rev-parse", "--show-toplevel");
+  debe(raizDentro.status !== 0 && !igual(raizDentro.stdout.trim(), demo), "tirada con su Claude dentro, el git de dentro no llega a tu repo", `${existsSync(arbolSub) ? "la carpeta sigue" : "la carpeta ya no está"}; ${raizDentro.stdout.trim() || raizDentro.stderr.trim()}`);
+  debe(!git(demo, "worktree", "list").stdout.toLowerCase().includes(arbolSub.replace(/\\/g, "/").toLowerCase()), "y tu repo ya no la tiene por copia");
+  debe(git(demo, "status", "--porcelain").stdout.trim() === "", "y tu git status sigue limpio");
+
+  // 9b. Reanimar la de la copia ya tirada: renace en TU carpeta, con su conversación mudada allí, y
+  // no monta otra copia con el mismo nombre (saldría de HEAD, sin lo que se aceptó; segunda revisión
+  // aparte, 2026-11-16).
+  const tuSub = join(demo, "web");
+  await a.v.js(`(() => {
+    const p = document.querySelector('[data-pane-id="${idSub}"]');
+    p?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 200, clientY: 200 }));
+  })()`);
+  await dormir(800);
+  const reanimadaSub = await a.v.js(`(() => {
+    const b = [...document.querySelectorAll(".ctx-menu .ctx-item")].find((x) => /Reanimar/.test(x.textContent ?? ""));
+    if (!b) return "sin Reanimar en el menú";
+    b.click();
+    return "ok";
+  })()`);
+  debe(reanimadaSub === "ok", "la de la copia tirada tiene su Reanimar", reanimadaSub);
+  const subReanimada = await hasta(async () => {
+    const l = ((await otro.llamar("get_active_panes", {})).texto ?? "").split("\n").find((x) => /Sub lab/.test(x) && !new RegExp(`ID: ${idSub}\\b`).test(x));
+    return l && /, CWD: /.test(l) ? l : null;
+  }, 30_000, 1000);
+  const dondeSub = /, CWD: ([^\n]+?), Size:/.exec(subReanimada ?? "")?.[1] ?? "";
+  debe(igual(dondeSub, tuSub), "reanimada tras tirar su copia, renace en tu carpeta y no en otra copia", `${dondeSub} frente a ${tuSub}`);
+  debe(/--resume /.test(subReanimada ?? ""), "y retomando su conversación", (subReanimada ?? "").slice(-300));
+  const idSubReanimada = Number(/ID: (\d+)/.exec(subReanimada ?? "")?.[1] ?? 0);
+  await dormir(15_000);
+  const pantallaSub = await pantalla(idSubReanimada);
+  debe(!/No conversation found/i.test(pantallaSub), "y su Claude Code la encuentra (mudada a tu carpeta)", pantallaSub.slice(-400));
+  debe(!(await a.v.js(`!!document.querySelector('[data-pane-id="${idSubReanimada}"] .pane-shadow-toggle')`)), "sin el botón del Espejo, que su copia ya no existe");
+  debe(!git(demo, "worktree", "list").stdout.toLowerCase().includes(arbolSub.replace(/\\/g, "/").toLowerCase()), "y no hay otra copia montada con su nombre");
+
+  // 10. Reiniciar: vuelve otra vez en tu carpeta, con su conversación, y sin copia.
+  await a.reiniciar();
+  const otra = a.puente(null);
+  await otra.pedir("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "laboratorio", version: "1" } });
+  const deNuevo = await hasta(async () => {
+    const l = ((await otra.llamar("get_active_panes", {})).texto ?? "").split("\n").find((x) => /Sub lab/.test(x));
+    return l && /, CWD: /.test(l) ? l : null;
+  }, 60_000, 1000);
+  const dondeDeNuevo = /, CWD: ([^\n]+?), Size:/.exec(deNuevo ?? "")?.[1] ?? "";
+  debe(igual(dondeDeNuevo, tuSub), "tras reiniciar, la de la copia tirada vuelve en tu carpeta", `${dondeDeNuevo} frente a ${tuSub}`);
+  debe(/--resume /.test(deNuevo ?? ""), "y con su conversación", (deNuevo ?? "").slice(-300));
+  debe(!git(demo, "worktree", "list").stdout.toLowerCase().includes(arbolSub.replace(/\\/g, "/").toLowerCase()), "y sin volver a montar su copia");
 } catch (e) {
   fallos.push(String(e?.message ?? e));
   console.log(`MAL   ${e?.stack ?? e}`);

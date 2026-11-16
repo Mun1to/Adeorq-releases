@@ -9,25 +9,30 @@
 // `DecisionAbierta.tsx`. La campana de Adeo sigue siendo la vista de un
 // vistazo, y su último renglón trae aquí.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useT, type Translate } from "../lib/i18n";
 import { useAvisos } from "../lib/campana";
-import type { Decision } from "../lib/decisiones";
+import { useReposo, type Decision } from "../lib/decisiones";
 import {
   ACABO,
   PALABRA,
   PARTES,
   TITULO_DE,
   carpeta,
+  cuandoVuelve,
   cuantasTeTocan,
+  diaDe,
   juntar,
   laAbierta,
+  plazos,
+  siguienteTrasApartar,
   vecina,
   type Cosa,
 } from "../lib/decisionesLista";
 import { accionDe, type AccionConsejo } from "../lib/acciones";
 import { enLaTienda, yaEnLaTienda } from "../lib/empaquetada";
 import { latido } from "../lib/latido";
+import { abrirAdeo, olvidarPlan, usePlanPendiente, type PlanPendiente } from "../lib/planPendiente";
 import { aceptarPropuesta, descartarPropuesta, hacerPropuesta } from "../lib/propuestas";
 import { providerOf } from "../lib/providers";
 import { listProjects, readInbox, type Note, type Project } from "../lib/pty";
@@ -60,7 +65,7 @@ const rotuloDe = (a: AccionConsejo, t: Translate): string =>
 /** La primera palabra de cada fila, en inglés. No pasa por el diccionario
     porque allí «Mira» ya es «Looks», el permiso de un bot que solo mira, y
     aquí es «mira esto». */
-const PALABRA_EN: typeof PALABRA = { contesta: "Answer", decide: "Decide", parado: "Stopped", mira: "Look", idea: "Idea" };
+const PALABRA_EN: typeof PALABRA = { contesta: "Answer", decide: "Decide", plan: "Approve", parado: "Stopped", mira: "Look", idea: "Idea" };
 
 /** Las teclas, para la chuleta del «?». */
 const TECLAS: Array<[string, string]> = [
@@ -70,10 +75,67 @@ const TECLAS: Array<[string, string]> = [
   ["Tab  Mayús+Tab", "Pasar a la pregunta siguiente o a la anterior"],
   ["O", "Escribir otra cosa, con tus palabras"],
   ["Ctrl+Intro", "Enviar la respuesta (con cinco segundos para deshacer)"],
+  ["H", "Posponer lo marcado, o traer de vuelta una pospuesta"],
+  ["U", "Marcar como vista o como no vista"],
   ["Retroceso", "Quitar de la lista un turno que terminó"],
   ["Esc", "Salir de la caja de texto; otra vez, volver adonde estabas"],
   ["Ctrl+Mayús+B", "Abrir Decisiones desde cualquier sitio"],
 ];
+
+/** Lo que admite H: lo que aún te pide algo y no duerme ya. */
+const sePospone = (c: Cosa | undefined): c is Cosa => !!c && c.clase !== "pasada" && c.parte !== "pospuesto";
+
+/** Dónde sale el menú de H abierto con el botón, en píxeles dentro de la pestaña. */
+interface Ancla {
+  left: number;
+  top?: number;
+  bottom?: number;
+}
+
+/** Junto al botón que lo abre, y dentro de la pestaña: encima si el botón está en la
+    mitad de abajo (la barra del pie de una decisión, sin taparla), debajo si está
+    arriba. Con la tecla H no hay botón y sale arriba a la derecha, como siempre. */
+function anclaDe(boton: HTMLElement, caja: HTMLElement | null): Ancla | undefined {
+  if (!caja) return undefined;
+  const d = caja.getBoundingClientRect();
+  const b = boton.getBoundingClientRect();
+  const fila = (boton.closest(".dec-barra, .dec-acciones") ?? boton).getBoundingClientRect();
+  const ancho = Math.min(360, d.width - 48);
+  const left = Math.round(Math.max(24, Math.min(b.left - d.left, d.width - ancho - 24)));
+  return b.top - d.top > d.height / 2 ? { left, bottom: Math.round(d.bottom - fila.top + 8) } : { left, top: Math.round(b.bottom - d.top + 8) };
+}
+
+/** El botón de posponer de lo que tienes abierto, para el ratón: abre el mismo menú
+    que H. En una pospuesta la trae de vuelta, y cambia de nombre (Munir, 2026-11-16:
+    «sí, pon el botón Posponer para el ratón»). */
+function BotonPosponer({ c, onPulsar }: { c: Cosa; onPulsar: (c: Cosa, boton: HTMLElement) => void }) {
+  const { t } = useT();
+  return (
+    <button className="mini" data-posponer onClick={(e) => onPulsar(c, e.currentTarget)}>
+      {c.parte === "pospuesto" ? t("Traer de vuelta") : t("Posponer")}
+    </button>
+  );
+}
+
+/** Si tienes la ventana delante: a la vista (no minimizada ni tapada del todo) y
+    con el foco en ella, no en otra app. */
+const aLaVista = () => !document.hidden && document.hasFocus();
+
+function useMirando(): boolean {
+  const [mirando, setMirando] = useState(aLaVista);
+  useEffect(() => {
+    const mirar = () => setMirando(aLaVista());
+    window.addEventListener("focus", mirar);
+    window.addEventListener("blur", mirar);
+    document.addEventListener("visibilitychange", mirar);
+    return () => {
+      window.removeEventListener("focus", mirar);
+      window.removeEventListener("blur", mirar);
+      document.removeEventListener("visibilitychange", mirar);
+    };
+  }, []);
+  return mirando;
+}
 
 function useNotas(): [Note[], () => void] {
   const [notas, setNotas] = useState<Note[]>([]);
@@ -92,14 +154,27 @@ function useNotas(): [Note[], () => void] {
 export default function DecisionesView({ decisiones, irATerminal, irA, onVolver, onHacer }: Props) {
   const { t, lang } = useT();
   const palabra = (c: keyof typeof PALABRA) => (lang === "en" ? PALABRA_EN : PALABRA)[c];
+  /** «Vuelve a las 15:20», «Vuelve mañana a las 9:00» o «Vuelve el lun 23 a las 9:00». */
+  const vuelveA = (hasta: number): string => {
+    const lugar = lang === "en" ? "en-GB" : "es-ES";
+    const hora = new Intl.DateTimeFormat(lugar, { hour: "numeric", minute: "2-digit" }).format(hasta);
+    const dia = diaDe(hasta, Date.now());
+    if (dia === "hoy") return t("Vuelve a las {hora}", { hora });
+    if (dia === "manana") return t("Vuelve mañana a las {hora}", { hora });
+    const cual = new Intl.DateTimeFormat(lugar, { weekday: "short", day: "numeric" }).format(hasta);
+    return t("Vuelve el {dia} a las {hora}", { dia: cual, hora });
+  };
   const deCuando = useHace();
   const avisos = useAvisos((s) => s.lista);
   const quitarAviso = useAvisos((s) => s.quitar);
   const [programados] = useProgramados();
   const [notas, releerNotas] = useNotas();
+  const plan = usePlanPendiente((s) => s.pendiente);
+  const reposo = useReposo((s) => s.reposo);
+  const ahora = useReposo((s) => s.ahora);
   const lista = useMemo(
-    () => juntar({ decisiones, avisos, programados: programados?.encargos ?? [], notas }),
-    [decisiones, avisos, programados, notas],
+    () => juntar({ decisiones, avisos, programados: programados?.encargos ?? [], notas, plan, reposo, ahora }),
+    [decisiones, avisos, programados, notas, plan, reposo, ahora],
   );
   const tocan = cuantasTeTocan(lista);
 
@@ -114,6 +189,21 @@ export default function DecisionesView({ decisiones, irATerminal, irA, onVolver,
     dondeEstaba.current = lista.indexOf(abierta);
     if (abierta.id !== abiertaId) setAbiertaId(abierta.id);
   }, [abierta, abiertaId, lista]);
+  // Lo que se te pone delante, aunque sea solo, lo has visto; pero solo con la
+  // ventana a la vista: minimizada o en otra app, lo que llega y se abre solo sigue
+  // nuevo hasta que vuelvas. Una vez por cada vez que se abre: U la deja sin ver y
+  // no se vuelve a marcar sola hasta que te vayas y vuelvas a ella.
+  const mirando = useMirando();
+  const vistaSola = useRef<string | null>(null);
+  useEffect(() => {
+    if (!abierta) {
+      vistaSola.current = null;
+      return;
+    }
+    if (!mirando || vistaSola.current === abierta.id) return;
+    vistaSola.current = abierta.id;
+    useReposo.getState().verla(abierta);
+  }, [abierta, mirando]);
 
   const mando = useRef<MandoDecision | null>(null);
   const raiz = useRef<HTMLDivElement>(null);
@@ -127,6 +217,10 @@ export default function DecisionesView({ decisiones, irATerminal, irA, onVolver,
     if (!c) return;
     setDicho(null);
     setAbiertaId(c.id);
+    // Abrirla tú es verla; U la devuelve a nueva y no se vuelve a marcar sola hasta
+    // que te vayas y vuelvas a ella.
+    vistaSola.current = c.id;
+    useReposo.getState().verla(c);
     if (foco) requestAnimationFrame(() => filaDe(c.id)?.focus());
   };
   /** Intro: lo que hace cada cosa al abrirla de verdad. */
@@ -134,7 +228,94 @@ export default function DecisionesView({ decisiones, irATerminal, irA, onVolver,
     if (c.clase === "decide" || c.clase === "pasada") mando.current?.entrar();
     else if (c.clase === "contesta" || c.clase === "mira") irATerminal(c.a.paneId);
     else if (c.clase === "parado") irA("agenda");
+    else if (c.clase === "plan") abrirAdeo();
     else requestAnimationFrame(() => raiz.current?.querySelector<HTMLButtonElement>(".dec-doc .dec-acciones button")?.focus());
+  };
+
+  // H: el menú de posponer, con sus plazos o una hora escrita. Es de la fila con la
+  // que se abrió (`id`), no de la que esté abierta: si esa fila se va de la lista o
+  // ya no se puede posponer (se contestó desde el móvil), el menú se cierra solo, en
+  // vez de pasar a la vecina. Lo que pasa al elegir (qué se abre después) vive en
+  // `dormir`.
+  const [posponer, setPosponer] = useState<null | { modo: "menu" | "hora"; id: string; ancla?: Ancla }>(null);
+  const [horaTexto, setHoraTexto] = useState("");
+  const [horaMal, setHoraMal] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const horaRef = useRef<HTMLInputElement>(null);
+  const delMenu = posponer ? lista.find((c) => c.id === posponer.id) : undefined;
+  const modo = posponer?.modo;
+  useEffect(() => {
+    if (modo === "menu") menuRef.current?.focus();
+    else if (modo === "hora") horaRef.current?.focus();
+  }, [modo]);
+  /** Abre el menú de H para `c`; con el botón, junto a él (`ancla`). */
+  const abrirMenu = (c: Cosa, ancla?: Ancla) => {
+    setChuleta(false);
+    setPosponer({ modo: "menu", id: c.id, ancla });
+  };
+  /** H o «Traer de vuelta» en una pospuesta: vuelve a su sitio, y como la tienes
+      delante, vista. */
+  const traerDeVuelta = (c: Cosa) => {
+    useReposo.getState().despertar(c.id);
+    useReposo.getState().verla(c);
+  };
+  /** El botón «Posponer» de lo abierto: lo mismo que H, y otra vez lo cierra. */
+  const alBoton = (c: Cosa, boton: HTMLElement) => {
+    if (c.parte === "pospuesto") return traerDeVuelta(c);
+    if (posponer) return cerrarMenu();
+    abrirMenu(c, anclaDe(boton, raiz.current));
+  };
+  const cerrarMenu = (foco = true) => {
+    const id = posponer?.id;
+    setPosponer(null);
+    setHoraTexto("");
+    setHoraMal(false);
+    if (foco && id) requestAnimationFrame(() => filaDe(id)?.focus());
+  };
+  // Un clic fuera del menú lo cierra, y también pasar el foco fuera (Tab desde
+  // «Cancelar»). El botón «Posponer» (`data-posponer`) no cuenta como fuera: lo abre
+  // y lo cierra él.
+  const esDelMenu = (n: EventTarget | null) =>
+    n instanceof Node && (!!menuRef.current?.contains(n) || (n instanceof Element && !!n.closest("[data-posponer]")));
+  const abiertoElMenu = !!posponer;
+  useEffect(() => {
+    if (!abiertoElMenu) return;
+    const fuera = (e: MouseEvent) => {
+      if (esDelMenu(e.target)) return;
+      setPosponer(null);
+      setHoraTexto("");
+      setHoraMal(false);
+    };
+    window.addEventListener("mousedown", fuera, true);
+    return () => window.removeEventListener("mousedown", fuera, true);
+    // `esDelMenu` solo lee la referencia del menú, que no cambia.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abiertoElMenu]);
+  const sinFila = !!posponer && !sePospone(delMenu);
+  useEffect(() => {
+    if (!sinFila) return;
+    setPosponer(null);
+    setHoraTexto("");
+    setHoraMal(false);
+  }, [sinFila]);
+  /** Pospone la fila del menú hasta `hasta` y pasa a la siguiente que aún pide algo;
+      si no queda ninguna, la calma. */
+  const dormir = (hasta: number) => {
+    const c = delMenu;
+    // Con su «Enviar» ya pulsado (el menú quedó abierto y llegó Ctrl+Intro), irse la mandaría ya.
+    if (!c || !sePospone(c) || (c.clase === "decide" && mando.current?.ocupada)) return cerrarMenu(false);
+    const sigue = siguienteTrasApartar(lista, c.id);
+    useReposo.getState().posponer(c, hasta);
+    cerrarMenu(false);
+    if (sigue) return abrir(sigue);
+    dondeEstaba.current = -1;
+    setAbiertaId(null);
+    requestAnimationFrame(() => raiz.current?.querySelector<HTMLButtonElement>(".dec-fila")?.focus());
+  };
+  const aplicarHora = () => {
+    const hasta = cuandoVuelve(horaTexto, Date.now());
+    if (hasta === null) return setHoraMal(true);
+    dormir(hasta);
   };
 
   // El teclado. Escucha en la ventana mientras la pestaña está montada (solo se
@@ -152,6 +333,44 @@ export default function DecisionesView({ decisiones, irATerminal, irA, onVolver,
         e.preventDefault();
         e.stopPropagation();
       };
+      if (posponer) {
+        // El menú de H va encima de todo: lo suyo primero y nada se cuela a la lista.
+        // Pero solo con el foco dentro de él y nunca con Ctrl: una tecla en otra caja
+        // (la de «otra cosa» de la decisión) o un Ctrl+1 no son suyos.
+        const enMenu = !el || el === document.body || !!menuRef.current?.contains(el);
+        if (!enMenu || e.ctrlKey) return;
+        const tecla = e.key.toLowerCase();
+        if (e.key === "Escape") {
+          hecho();
+          if (posponer.modo === "hora") {
+            setPosponer({ ...posponer, modo: "menu" });
+            setHoraTexto("");
+            setHoraMal(false);
+          } else cerrarMenu();
+          return;
+        }
+        if (posponer.modo === "hora") {
+          // Intro aplica la hora desde su caja; sobre «Cancelar» o una opción, es
+          // pulsar ese botón, como siempre.
+          if (e.key === "Enter" && el === horaRef.current) {
+            hecho();
+            aplicarHora();
+          }
+          return;
+        }
+        const plazo = /^[1-4]$/.test(e.key) ? plazos(Date.now())[Number(e.key) - 1] : undefined;
+        if (plazo) {
+          hecho();
+          dormir(plazo.hasta);
+        } else if (tecla === "o") {
+          hecho();
+          setPosponer({ ...posponer, modo: "hora" });
+        } else if (tecla === "h") {
+          hecho();
+          cerrarMenu();
+        }
+        return;
+      }
       if (e.key === "Enter" && e.ctrlKey) {
         if (mando.current) {
           hecho();
@@ -185,6 +404,20 @@ export default function DecisionesView({ decisiones, irATerminal, irA, onVolver,
       if (!enRadio && (k === "j" || e.key === "ArrowDown")) return (hecho(), abrir(vecina(lista, abierta?.id ?? null, 1)));
       if (!enRadio && (k === "k" || e.key === "ArrowUp")) return (hecho(), abrir(vecina(lista, abierta?.id ?? null, -1)));
       if (e.key === "?") return (hecho(), setChuleta((v) => !v));
+      if (k === "h" || k === "u") {
+        // H pospone lo marcado (en una pospuesta, la trae de vuelta); U la marca
+        // como vista o no vista. Lo que ya pasó no tiene ni una cosa ni otra.
+        if (!abierta || abierta.clase === "pasada" || (k === "h" && mando.current?.ocupada)) return;
+        hecho();
+        if (k === "h") {
+          if (abierta.parte === "pospuesto") traerDeVuelta(abierta);
+          else abrirMenu(abierta);
+        } else if (abierta.parte !== "pospuesto") {
+          if (abierta.vista) useReposo.getState().sinVerla(abierta.id);
+          else useReposo.getState().verla(abierta);
+        }
+        return;
+      }
       if (!abierta) return;
       if (e.key === "Enter" && (el === document.body || !!el?.classList.contains("dec-fila"))) return (hecho(), entrar(abierta));
       if (/^[1-9]$/.test(e.key) && mando.current?.elegir(Number(e.key))) return hecho();
@@ -217,6 +450,8 @@ export default function DecisionesView({ decisiones, irATerminal, irA, onVolver,
         return { palabra: palabra(c.clase), titulo: c.a.nombre, de: [carpeta(c.a.cwd), deCuando(c.a.cuando)] };
       case "parado":
         return { palabra: palabra("parado"), titulo: c.p.nombre, de: [carpeta(c.p.cwd), deCuando(c.cuando)] };
+      case "plan":
+        return { palabra: palabra("plan"), titulo: c.plan.plan.resumen || c.plan.pedido, de: [t("plan de Adeo"), deCuando(c.cuando)] };
       case "idea":
         return { palabra: palabra("idea"), titulo: c.n.text, de: [c.n.project, c.n.kind === "paso" ? t("un paso para su METAS.md") : t("una idea")] };
     }
@@ -244,6 +479,7 @@ export default function DecisionesView({ decisiones, irATerminal, irA, onVolver,
                       className="dec-fila"
                       data-id={c.id}
                       data-on={c.id === abierta?.id}
+                      data-nueva={c.vista === false}
                       data-clase={c.clase}
                       onClick={() => abrir(c, false)}
                       onDoubleClick={() => entrar(c)}
@@ -251,7 +487,7 @@ export default function DecisionesView({ decisiones, irATerminal, irA, onVolver,
                       <span className="dec-fila-titulo">
                         <b className="dec-palabra">{f.palabra}</b> <span className="stream-hide">{f.titulo}</span>
                       </span>
-                      <span className="dec-fila-de">{f.de.filter(Boolean).join(" · ")}</span>
+                      <span className="dec-fila-de">{[...f.de, c.hasta ? vuelveA(c.hasta) : ""].filter(Boolean).join(" · ")}</span>
                     </button>
                   );
                 })}
@@ -268,9 +504,20 @@ export default function DecisionesView({ decisiones, irATerminal, irA, onVolver,
           {!abierta ? (
             <Calma lista={lista} />
           ) : abierta.clase === "decide" || abierta.clase === "pasada" ? (
-            <DecisionAbierta key={abierta.id} d={abierta.d} mando={mando} />
+            <DecisionAbierta
+              key={abierta.id}
+              d={abierta.d}
+              mando={mando}
+              posponer={abierta.clase === "decide" ? <BotonPosponer c={abierta} onPulsar={alBoton} /> : undefined}
+            />
           ) : abierta.clase === "contesta" || abierta.clase === "mira" ? (
-            <Terminal key={abierta.id} c={abierta} onIr={() => irATerminal(abierta.a.paneId)} onQuitar={() => quitarAviso(abierta.a.paneId)} />
+            <Terminal
+              key={abierta.id}
+              c={abierta}
+              onIr={() => irATerminal(abierta.a.paneId)}
+              onQuitar={() => quitarAviso(abierta.a.paneId)}
+              posponer={<BotonPosponer c={abierta} onPulsar={alBoton} />}
+            />
           ) : abierta.clase === "parado" ? (
             <article className="dec-abierta">
               <header className="dec-abierta-cab">
@@ -286,12 +533,16 @@ export default function DecisionesView({ decisiones, irATerminal, irA, onVolver,
                 <button className="np-btn" onClick={() => irA("agenda")}>
                   {t("Abrirlo en la Agenda")}
                 </button>
+                <BotonPosponer c={abierta} onPulsar={alBoton} />
               </div>
             </article>
+          ) : abierta.clase === "plan" ? (
+            <PlanAbierto key={abierta.id} p={abierta.plan} posponer={<BotonPosponer c={abierta} onPulsar={alBoton} />} />
           ) : abierta.clase === "idea" ? (
             <Propuesta
               key={abierta.id}
               n={abierta.n}
+              posponer={<BotonPosponer c={abierta} onPulsar={alBoton} />}
               onHacer={onHacer}
               onHecho={(ok, texto) => {
                 setDicho({ ok, texto });
@@ -318,6 +569,62 @@ export default function DecisionesView({ decisiones, irATerminal, irA, onVolver,
           </button>
         </div>
       )}
+      {posponer && sePospone(delMenu) && (
+        <div
+          className="dec-posponer"
+          role="dialog"
+          aria-label={t("Posponer")}
+          tabIndex={-1}
+          ref={menuRef}
+          style={posponer.ancla ? { right: "auto", left: posponer.ancla.left, top: posponer.ancla.top ?? "auto", bottom: posponer.ancla.bottom ?? "auto", maxHeight: `calc(100% - ${(posponer.ancla.top ?? posponer.ancla.bottom ?? 0) + 24}px)` } : undefined}
+          onBlur={(e) => {
+            // Sin `relatedTarget` el foco no se va a ningún sitio (una caja que
+            // desaparece al volver de «otra hora»): eso no es salir del menú.
+            if (e.relatedTarget && !esDelMenu(e.relatedTarget)) cerrarMenu(false);
+          }}
+        >
+          <h2>{t("Posponer")}</h2>
+          <p className="dec-posponer-de stream-hide">{filas(delMenu).titulo}</p>
+          <ul>
+            {plazos(Date.now()).map((p) => (
+              <li key={p.tecla}>
+                <button className="dec-posponer-op" onClick={() => dormir(p.hasta)}>
+                  <b>{p.tecla}</b>
+                  <span>{t(p.clave)}</span>
+                </button>
+              </li>
+            ))}
+            <li>
+              <button className="dec-posponer-op" onClick={() => setPosponer({ ...posponer, modo: "hora" })}>
+                <b>O</b>
+                <span>{t("Otra hora")}</span>
+              </button>
+            </li>
+          </ul>
+          {posponer.modo === "hora" && (
+            <>
+              <input
+                ref={horaRef}
+                className="dec-hora"
+                value={horaTexto}
+                onChange={(e) => {
+                  setHoraTexto(e.target.value);
+                  setHoraMal(false);
+                }}
+                placeholder={t("16:30, +45 (minutos) o en 2 h")}
+                aria-label={t("Otra hora")}
+                spellCheck={false}
+                autoComplete="off"
+              />
+              {horaMal && <p className="np-err">{t("No entiendo esa hora. Prueba con 16:30, +45 o en 2 h.")}</p>}
+            </>
+          )}
+          <p className="dec-posponer-nota">{t("Vuelve antes si el agente dice algo nuevo.")}</p>
+          <button className="mini" onClick={() => cerrarMenu()}>
+            {t("Cancelar")}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -338,8 +645,52 @@ function Calma({ lista }: { lista: Cosa[] }) {
   );
 }
 
+/** Un plan de Adeo que cerraste sin contestar: qué pediste, qué haría y a Adeo. */
+function PlanAbierto({ p, posponer }: { p: PlanPendiente; posponer: ReactNode }) {
+  const { t } = useT();
+  const deCuando = useHace();
+  const n = p.plan.acciones.length;
+  return (
+    <article className="dec-abierta">
+      <header className="dec-abierta-cab">
+        <h2 className="stream-hide">{p.plan.resumen || p.pedido}</h2>
+        <p className="dec-de">{[t("plan de Adeo"), deCuando(p.cuando)].join(" · ")}</p>
+        <p className="dec-contexto">
+          {n === 1
+            ? t("Cerraste Adeo con este plan sin contestar, y no se ha abierto nada. Tiene 1 acción: ábrelo en Adeo para aprobarlo o cambiarlo.")
+            : t("Cerraste Adeo con este plan sin contestar, y no se ha abierto nada. Tiene {n} acciones: ábrelo en Adeo para aprobarlo o cambiarlo.", { n: String(n) })}
+        </p>
+      </header>
+      <ul className="dec-plan stream-hide">
+        {p.plan.acciones.map((a, i) => (
+          <li key={i}>{[a.proyecto, a.motivo ?? a.encargo ?? a.objetivo ?? a.prompt ?? a.comando].filter(Boolean).join(" · ").slice(0, 160)}</li>
+        ))}
+      </ul>
+      <div className="dec-acciones">
+        <button className="np-btn" onClick={() => abrirAdeo()}>
+          {t("Abrirlo en Adeo")}
+        </button>
+        {posponer}
+        <button className="mini" onClick={() => olvidarPlan()}>
+          {t("Tirarlo")}
+        </button>
+      </div>
+    </article>
+  );
+}
+
 /** Una terminal que te espera o que terminó: su pantalla de ahora, y a ella. */
-function Terminal({ c, onIr, onQuitar }: { c: Extract<Cosa, { clase: "contesta" | "mira" }>; onIr: () => void; onQuitar: () => void }) {
+function Terminal({
+  c,
+  onIr,
+  onQuitar,
+  posponer,
+}: {
+  c: Extract<Cosa, { clase: "contesta" | "mira" }>;
+  onIr: () => void;
+  onQuitar: () => void;
+  posponer: ReactNode;
+}) {
   const { t } = useT();
   const deCuando = useHace();
   const [filas, setFilas] = useState<string[] | null>(() => pantallaDe(c.a.paneId));
@@ -366,6 +717,7 @@ function Terminal({ c, onIr, onQuitar }: { c: Extract<Cosa, { clase: "contesta" 
         <button className="np-btn" onClick={() => onIr()}>
           {t("Ir a la terminal")}
         </button>
+        {posponer}
         {c.clase === "mira" && (
           <button className="mini" onClick={() => onQuitar()}>
             {t("Quitar de la lista")}
@@ -379,10 +731,12 @@ function Terminal({ c, onIr, onQuitar }: { c: Extract<Cosa, { clase: "contesta" 
 /** Una idea o un paso que te dejó un agente (la regla R): aceptarla, hacerla o descartarla. */
 function Propuesta({
   n,
+  posponer,
   onHacer,
   onHecho,
 }: {
   n: Note;
+  posponer: ReactNode;
   onHacer?: (a: AccionConsejo) => Promise<string>;
   onHecho: (ok: boolean, texto: string) => void;
 }) {
@@ -436,6 +790,7 @@ function Propuesta({
             {t("Aceptar")}
           </button>
         )}
+        {posponer}
         <button
           className="mini"
           disabled={ocupada}

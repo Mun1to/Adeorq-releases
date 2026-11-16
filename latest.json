@@ -1,11 +1,11 @@
 {
-  "version": "0.9.257",
-  "notes": "Un agente que pide una terminal nada mas arrancar Adeorq ya no espera 25 segundos a una ventana que aun no escucha",
-  "pub_date": "2026-11-15T23:56:01Z",
+  "version": "0.9.258",
+  "notes": "Decisiones: posponer con H o con su boton y lo pospuesto no cuenta en Adeo; una madre Codex o Gemini recibe la linea de sus hijas; en el Modo Espejo lo que un agente escribe tras cerrar su copia ya no se borra",
+  "pub_date": "2026-11-16T07:59:08Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzVod1p2blE3WHlJQkxvYkpqKzhhWkdRRGwzZkJJUmhnckZyK3lrOUdPMnZKVEhGYWl0THk4REVEZmhjNkloTzE2Y3h4TXo2SFA3MEtSMW1vb1FaM3dVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0Nzg2OTUxCWZpbGU6QWRlb3JxXzAuOS4yNTdfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNTcKWjFxNjBEc2N0SlZLa0QyZTBXaWpad1FKUVVTRTgyS2NHTzMzU2tCcmo2RlJTZEpXUGhtdjVRaUQxL2l6eDNOUmkzNFMxengxMzNqZE0xY290aUREREE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.257/Adeorq_0.9.257_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLysvejl5OHBqVU9QejhsekJ4QnhUMG1Qb05uUE9sWlhtK2hGRHUrdDcyTUM0R3VBNS82T1FIV0lsSms2OXNkcmwxcE93NC85NWYrWmt2Y1Q0T2pUNHdnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0ODE1OTM3CWZpbGU6QWRlb3JxXzAuOS4yNThfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNTgKZTJQMFBZcGJhVWVkZkR3dDJiNWdlNHlrOUUvN2M3TXhCQWpmRGg2NTVJcEgwVTJEVm9hNTdJTThzOGFpYlRRbm80ekJkbHhjWXZ4alVXa2FTeFMyREE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.258/Adeorq_0.9.258_x64-setup.exe"
     }
   }
 }

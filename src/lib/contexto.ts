@@ -267,12 +267,13 @@ export interface FilaXterm {
  * tecleaba solo: el 2026-11-14 dos terminales pasaron los 450.000 tokens con el
  * turno acabado y no se compactaron, y Munir: «¿por qué las sesiones tuyas no
  * las compactas tú?». Solo tras `❯`: las rayas y el pie pueden ir atenuados y
- * son los que dicen dónde está la caja.
+ * son los que dicen dónde está la caja. Y tras el `›` de Codex, que pinta igual
+ * de atenuado su ejemplo («Ask Codex to do anything»; medido en la 0.165.0).
  */
 export function sinSugerencia(fila: FilaXterm | undefined): string {
   if (!fila) return "";
   const texto = fila.translateToString(true);
-  if (!/^[❯>]/.test(texto) || !fila.getCell || fila.length == null) return texto;
+  if (!/^[❯>›]/.test(texto) || !fila.getCell || fila.length == null) return texto;
   let s = "";
   for (let x = 0; x < fila.length; x++) {
     const c = fila.getCell(x);

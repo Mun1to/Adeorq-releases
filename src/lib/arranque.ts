@@ -197,7 +197,7 @@ export function planDeArranque(p: Peticion): Plan {
 }
 
 /** Un id de sesión acuñado por Adeorq, como el `--session-id` de Claude. */
-function idDeSesionNuevo(): string {
+export function idDeSesionNuevo(): string {
   const c = globalThis.crypto;
   if (c?.randomUUID) return c.randomUUID();
   // Sin `crypto` (un banco viejo): algo único igual, con la misma forma.

@@ -103,23 +103,48 @@ pub fn read_inbox() -> Vec<Note> {
         .collect()
 }
 
-/// Removes one line, by the index it was read at. Accepting and discarding
-/// both end here: once he has decided, the note has done its job.
+/// Removes one note. Accepting and discarding both end here: once he has
+/// decided, the note has done its job.
+///
+/// With `text` (and `project`), the line removed is the one that still says
+/// that: the index alone was read earlier, and if the file changed since (two
+/// discards in a row before the list was read again, another surface removing
+/// one above) that index holds ANOTHER note, which was deleted instead.
 #[tauri::command(async)]
-pub fn drop_inbox(line: usize) -> Result<(), String> {
+pub fn drop_inbox(line: usize, text: Option<String>, project: Option<String>) -> Result<(), String> {
     let path = inbox_path().ok_or("no encuentro la carpeta de Adeorq")?;
-    let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    let kept: Vec<&str> = text
-        .lines()
+    let actual = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let out = quitar_nota(&actual, line, text.as_deref(), project.as_deref())?;
+    std::fs::write(&path, out).map_err(|e| e.to_string())
+}
+
+/// The file without that note: the one read at `line` if it still says
+/// `texto`, otherwise the first one that does. Without `texto`, by index.
+fn quitar_nota(actual: &str, line: usize, texto: Option<&str>, proyecto: Option<&str>) -> Result<String, String> {
+    let lineas: Vec<&str> = actual.lines().collect();
+    let dice = |i: usize| {
+        let l = lineas[i];
+        !l.trim_start().starts_with('#')
+            && parse_line(l, i).is_some_and(|n| Some(n.text.as_str()) == texto && proyecto.is_none_or(|p| n.project == p))
+    };
+    let quitar = match texto {
+        None => line,
+        Some(_) if line < lineas.len() && dice(line) => line,
+        Some(_) => (0..lineas.len())
+            .find(|&i| dice(i))
+            .ok_or("Esa nota ya no está en la bandeja: se quitó desde otro sitio.")?,
+    };
+    let kept: Vec<&str> = lineas
+        .iter()
         .enumerate()
-        .filter(|(i, _)| *i != line)
-        .map(|(_, l)| l)
+        .filter(|(i, _)| *i != quitar)
+        .map(|(_, l)| *l)
         .collect();
     let mut out = kept.join("\n");
     if !out.is_empty() {
         out.push('\n');
     }
-    std::fs::write(&path, out).map_err(|e| e.to_string())
+    Ok(out)
 }
 
 /// The path itself, to show it in the panel and in the rules.
@@ -246,6 +271,24 @@ mod tests {
         assert_eq!(notes[0].text, "uno");
         assert_eq!(notes[1].text, "tres");
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// «dos» was read at line 1; then «uno» went (another discard). By index,
+    /// line 1 is now «tres», and that is the one that went.
+    #[test]
+    fn a_note_is_dropped_by_what_it_says_not_by_where_it_was() {
+        let ahora = "- paso | B | dos\n- idea | C | tres\n";
+        assert_eq!(quitar_nota(ahora, 1, None, None).unwrap(), "- paso | B | dos\n", "by index, the wrong one goes");
+        assert_eq!(quitar_nota(ahora, 1, Some("dos"), Some("B")).unwrap(), "- idea | C | tres\n");
+        // Still where it was read: that very line, even if another says the same.
+        let doble = "- idea | A | igual\n- idea | A | igual\n";
+        assert_eq!(quitar_nota(doble, 1, Some("igual"), Some("A")).unwrap(), "- idea | A | igual\n");
+        // Gone from the file: an error, and nothing else is touched.
+        assert!(quitar_nota(ahora, 0, Some("uno"), Some("A")).is_err());
+        // Same text in another project is another note.
+        assert!(quitar_nota(ahora, 0, Some("dos"), Some("Otro")).is_err());
+        // A heading never counts as the note.
+        assert_eq!(quitar_nota("# dos\n- paso | B | dos\n", 0, Some("dos"), Some("B")).unwrap(), "# dos\n");
     }
 }
 

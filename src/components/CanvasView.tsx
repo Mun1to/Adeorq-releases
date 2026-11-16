@@ -126,6 +126,7 @@ import { useT } from "../lib/i18n";
 import { propsDeVelo } from "../lib/velo";
 import type { Pane } from "../lib/tablero";
 import { lasDelLienzo, type Recogida } from "../lib/reenganche";
+import { copiaYaCerrada } from "../lib/copiaAparte";
 import KanbanNode, { type AgenteVivo, type KanbanData, type Pendiente } from "./CanvasKanban";
 import ChatNode, { MODELO_DEFECTO, type ChatData } from "./CanvasChat";
 import { chatOlvidar } from "../lib/chat";
@@ -925,7 +926,6 @@ function Canvas({
     }),
     [],
   );
-
 
   // Los widgets no son terminales: no tienen PTY, ni sesión, ni proyecto. Solo
   // son un nodo más del lienzo, y por eso quitarlos es quitar el nodo y ya.
@@ -2805,7 +2805,7 @@ ${ruta}` : ruta;
             n.kind,
             { name: n.proyecto || n.ruta, path: n.ruta, hasGit: false },
             { x: n.x, y: n.y, w: n.w, h: n.h },
-            command || viva ? { command, viva, espejo: viva ? undefined : n.espejo } : undefined,
+            command || viva ? { command, viva, espejo: viva || copiaYaCerrada(n.espejo) ? undefined : n.espejo } : undefined, // aceptada o tirada, vuelve en tu carpeta
             // En su cuenta: App la acepta solo si sigue en Cuentas o es la principal.
             n.cuenta,
           );

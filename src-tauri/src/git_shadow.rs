@@ -106,17 +106,24 @@ pub async fn shadow_init(project_path: String, pane_id: String) -> Result<HashMa
     let rama = rama_de(&pane_id);
     let ruta = ruta_espejo(&project_path, &pane_id);
     let ruta_txt = ruta.to_string_lossy().to_string();
+    let candado = candado_de(&ruta);
+    let _turno = candado.lock().unwrap_or_else(|e| e.into_inner());
 
     // Un espejo de una sesión anterior que quedó colgado: se reutiliza en vez de
     // borrarlo. Dentro puede haber trabajo sin fusionar, y borrarlo sin mirar es
-    // exactamente lo que hacía la versión anterior con `branch -D`.
+    // exactamente lo que hacía la versión anterior con `branch -D`. Pero solo si
+    // sigue siendo una copia de git: la que Windows no dejó borrar al aceptarla
+    // o tirarla no lo es, y dentro el git del agente subía hasta tu repo.
     if ruta.is_dir() {
-        let mut res = HashMap::new();
-        res.insert("baseBranch".into(), base_branch);
-        res.insert("shadowBranch".into(), rama);
-        res.insert("worktreePath".into(), ruta_txt);
-        res.insert("reutilizado".into(), "true".into());
-        return Ok(res);
+        if copia_viva(&ruta) {
+            let mut res = HashMap::new();
+            res.insert("baseBranch".into(), base_branch);
+            res.insert("shadowBranch".into(), rama);
+            res.insert("worktreePath".into(), ruta_txt);
+            res.insert("reutilizado".into(), "true".into());
+            return Ok(res);
+        }
+        despejar(&ruta)?;
     }
 
     std::fs::create_dir_all(ruta.parent().unwrap_or(&ruta)).map_err(|e| e.to_string())?;
@@ -124,10 +131,16 @@ pub async fn shadow_init(project_path: String, pane_id: String) -> Result<HashMa
 
     // Si la rama existe de antes, se engancha; si no, se crea desde HEAD.
     let existe = run_git(&project_path, &["rev-parse", "--verify", &rama]).is_ok();
-    if existe {
-        run_git(&project_path, &["worktree", "add", &ruta_txt, &rama])?;
+    let montada = if existe {
+        run_git(&project_path, &["worktree", "add", &ruta_txt, &rama])
     } else {
-        run_git(&project_path, &["worktree", "add", "-b", &rama, &ruta_txt])?;
+        run_git(&project_path, &["worktree", "add", "-b", &rama, &ruta_txt])
+    };
+    // La carpeta puede seguir ahí, cogida por el agente de antes: sin copia
+    // encima, que su git no llegue al tuyo.
+    if let Err(e) = montada {
+        tapar(&ruta);
+        return Err(e);
     }
 
     // Los ficheros de entorno NO están en git, así que el árbol nuevo nace sin
@@ -143,6 +156,9 @@ pub async fn shadow_init(project_path: String, pane_id: String) -> Result<HashMa
     }
 
     let mut res = HashMap::new();
+    // Sin rama de antes, no lleva trabajo: si la terminal se cerró mientras se
+    // montaba, la ventana la tira (`copiaSinEstrenar`).
+    res.insert("nueva".into(), (!existe).to_string());
     res.insert("baseBranch".into(), base_branch);
     res.insert("shadowBranch".into(), rama);
     res.insert("worktreePath".into(), ruta_txt);
@@ -230,9 +246,10 @@ pub struct Pendiente {
 
 #[tauri::command]
 pub async fn shadow_pendiente(worktree_path: String, base_branch: String) -> Result<Pendiente, String> {
-    // Borrada a mano: no queda nada que aceptar, y sin esto esa terminal no se
-    // podía cerrar nunca.
-    if !Path::new(&worktree_path).is_dir() {
+    // Borrada a mano, o aceptada o tirada con el agente dentro (`limpiar`): no
+    // queda nada que aceptar, y sin esto esa terminal no se podía cerrar nunca.
+    // En la segunda, el `status` de abajo contaba lo tuyo sin guardar.
+    if !copia_viva(Path::new(&worktree_path)) {
         return Ok(Pendiente { sueltos: 0, commits: 0 });
     }
     let sueltos = run_git(&worktree_path, &["--no-optional-locks", "status", "--porcelain"])?
@@ -336,6 +353,11 @@ pub async fn shadow_accept(
     id_valido(&pane_id)?;
     espejo_de(&project_path, &worktree_path, &pane_id)?;
     let rama = rama_de(&pane_id);
+    // Sin su `.git`, el `add -A` y el `commit` de abajo caerían en TU repo, con
+    // lo tuyo sin guardar dentro.
+    if !copia_viva(Path::new(&worktree_path)) {
+        return Err(format!("«{worktree_path}» ya no es una copia de git, así que no hay nada que aceptar."));
+    }
 
     // 1. Cerrar lo que el agente haya dejado suelto, en SU árbol.
     let hay_algo = !run_git(&worktree_path, &["status", "--porcelain"])?
@@ -394,7 +416,20 @@ pub async fn shadow_discard(
 ) -> Result<(), String> {
     id_valido(&pane_id)?;
     espejo_de(&project_path, &worktree_path, &pane_id)?;
+    let candado = candado_de(&ruta_espejo(&project_path, &pane_id));
+    let _turno = candado.lock().unwrap_or_else(|e| e.into_inner());
     limpiar(&project_path, &worktree_path, &rama_de(&pane_id))
+}
+
+/// Un candado por copia, para montarla o tirarla de una en una. Dos montajes del
+/// mismo nombre a la vez (Ctrl+Z nada más cerrar la terminal, o un panel que se
+/// vuelve a montar al caerse) fallaban los dos: el que perdía el `worktree add`
+/// tapaba el `.git` del otro (medido en `dos_montajes_a_la_vez_de_la_misma_copia_no_la_tapan`).
+/// Uno por carpeta y no uno para todas: montar copias distintas no espera.
+fn candado_de(ruta: &Path) -> std::sync::Arc<std::sync::Mutex<()>> {
+    static CANDADOS: std::sync::OnceLock<std::sync::Mutex<HashMap<PathBuf, std::sync::Arc<std::sync::Mutex<()>>>>> = std::sync::OnceLock::new();
+    let mut candados = CANDADOS.get_or_init(Default::default).lock().unwrap_or_else(|e| e.into_inner());
+    candados.entry(ruta.to_path_buf()).or_default().clone()
 }
 
 /// Quitar el árbol y su rama. `--force` aquí es seguro: el directorio es de
@@ -403,8 +438,103 @@ fn limpiar(project_path: &str, worktree_path: &str, rama: &str) -> Result<(), St
     let _ = run_git(project_path, &["worktree", "remove", "--force", worktree_path]);
     // Por si el directorio quedó a medias y git ya no lo reconoce.
     let _ = std::fs::remove_dir_all(worktree_path);
+    // En Windows la carpeta sigue si un programa trabaja dentro (el agente de
+    // esta misma terminal, que la tiene de carpeta de trabajo): queda sin su
+    // `.git`, y lo que siga corriendo ahí llegaría con git a tu repo de verdad.
+    tapar(Path::new(worktree_path));
     let _ = run_git(project_path, &["worktree", "prune"]);
     let _ = run_git(project_path, &["branch", "-D", rama]);
+    Ok(())
+}
+
+/// El `.git` que deja `limpiar` en una copia que no pudo borrar. Git no lo
+/// entiende y se para ahí («invalid gitfile format»), en vez de subir hasta el
+/// repo de fuera; y quien lo abra para ver qué pasa lee por qué.
+const TAPON: &str = "Esta copia aparte ya se aceptó o se tiró en Adeorq: aquí no queda repositorio de git.\n";
+
+fn tapada(ruta: &Path) -> bool {
+    std::fs::read_to_string(ruta.join(".git")).is_ok_and(|t| t == TAPON)
+}
+
+fn tapar(ruta: &Path) {
+    if ruta.is_dir() {
+        let _ = std::fs::write(ruta.join(".git"), TAPON);
+    }
+}
+
+/// Que la carpeta siga siendo la copia de git que montó `shadow_init`: su
+/// `.git` es un fichero que apunta a una carpeta que existe. Sin preguntarle a
+/// git, para que un git que no arranca no se lea como «aquí no hay nada».
+fn copia_viva(ruta: &Path) -> bool {
+    let Ok(texto) = std::fs::read_to_string(ruta.join(".git")) else {
+        return false;
+    };
+    let Some(destino) = texto.trim().strip_prefix("gitdir:") else {
+        return false;
+    };
+    let destino = Path::new(destino.trim());
+    ruta.join(destino).is_dir()
+}
+
+/// Algo que no sea una carpeta, a cualquier profundidad. Un enlace cuenta como
+/// fichero y no se sigue: podría apuntar fuera.
+fn hay_ficheros(ruta: &Path) -> bool {
+    let Ok(dentro) = std::fs::read_dir(ruta) else {
+        return false;
+    };
+    dentro.flatten().any(|e| match e.file_type() {
+        Ok(t) if t.is_dir() => hay_ficheros(&e.path()),
+        _ => true,
+    })
+}
+
+/// Un fichero más nuevo que `t`, sin contar el tapón y sin seguir enlaces.
+fn escrito_despues(ruta: &Path, t: std::time::SystemTime) -> bool {
+    let Ok(dentro) = std::fs::read_dir(ruta) else {
+        return false;
+    };
+    dentro.flatten().any(|e| match e.file_type() {
+        Ok(ft) if ft.is_dir() => escrito_despues(&e.path(), t),
+        // La fecha, pidiéndosela al fichero: `DirEntry::metadata` en Windows es la
+        // del listado de la carpeta, que NTFS pone al día tarde en un fichero que
+        // alguien sigue escribiendo, y un log vivo parecería viejo. Sin poder
+        // leerla cuenta como escrito después: dudar aquí es no borrarlo.
+        _ => e.file_name() != ".git" && !std::fs::symlink_metadata(e.path()).and_then(|m| m.modified()).is_ok_and(|m| m <= t),
+    })
+}
+
+/// La carpeta de un espejo que ya no es una copia de git, antes de montar otra
+/// en su sitio. Con el tapón de `limpiar`, lo que quede dentro ya se aceptó o
+/// se tiró y se borra; sin él no se sabe de quién es, así que no se toca. Si la
+/// carpeta sigue cogida y vacía, `git worktree add` la acepta igual.
+fn despejar(ruta: &Path) -> Result<(), String> {
+    // Lo que el agente escribió DESPUÉS de cerrarla (su CLI sigue viva y nadie se
+    // lo dice) no se ha aceptado ni tirado: eso tampoco se borra.
+    let tapon = std::fs::metadata(ruta.join(".git")).and_then(|m| m.modified()).ok();
+    if tapada(ruta) && tapon.is_some_and(|t| escrito_despues(ruta, t)) {
+        return Err(format!(
+            "En «{}» hay ficheros escritos después de aceptar o tirar esa copia, así que no la borro \
+             para montar otra: míralos y borra esa carpeta si no te hacen falta.",
+            ruta.display()
+        ));
+    }
+    if !tapada(ruta) && hay_ficheros(ruta) {
+        return Err(format!(
+            "«{}» ya no es una copia de git y quedan ficheros dentro, así que no la uso: ahí el git \
+             del agente llegaría a tu repo de verdad. Mira lo que hay y borra esa carpeta si no te hace falta.",
+            ruta.display()
+        ));
+    }
+    let _ = std::fs::remove_dir_all(ruta);
+    let vacia = std::fs::read_dir(ruta).map_or(true, |mut d| d.next().is_none());
+    if !vacia {
+        tapar(ruta);
+        return Err(format!(
+            "«{}», de una copia anterior, sigue cogida por un programa (seguramente el agente que \
+             trabajaba dentro): ciérralo y vuelve a abrir esta terminal.",
+            ruta.display()
+        ));
+    }
     Ok(())
 }
 
@@ -468,6 +598,122 @@ mod tests {
         assert_eq!((sueltos, commits), (0, 1), "el commit del agente cuenta aunque el status esté limpio");
         assert!(lista.iter().any(|f| f.path == "b.txt"), "la lista enseña lo que ya está en commits");
         assert!(!tuyo.contains(".adeorq"), "tu status enseña el espejo: {tuyo}");
+    }
+
+    /// Tirar la copia con su agente aún dentro (su CLI tiene ahí su carpeta de
+    /// trabajo): Windows no deja borrar esa carpeta, quedaba vacía y sin su
+    /// `.git`, y el git de dentro subía hasta tu repo de verdad; al volver a
+    /// abrir esa terminal, `shadow_init` la daba por copia (2026-11-16).
+    #[test]
+    fn una_copia_tirada_con_el_agente_dentro_no_deja_paso_a_tu_repo() {
+        use std::process::{Command, Stdio};
+        fn block_on<F: std::future::Future>(f: F) -> F::Output {
+            tauri::async_runtime::block_on(f)
+        }
+        let dir = std::env::temp_dir().join(format!("adeorq-tapon-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let p = dir.to_string_lossy().into_owned();
+        let git = |d: &str, args: &[&str]| {
+            let ok = Command::new("git").args(["-C", d, "-c", "user.name=lab", "-c", "user.email=lab@lab"]).args(args).status().unwrap().success();
+            assert!(ok, "git {args:?}");
+        };
+        git(&p, &["init", "-q", "-b", "main"]);
+        std::fs::write(dir.join("a.txt"), "uno").unwrap();
+        git(&p, &["add", "a.txt"]);
+        git(&p, &["commit", "-q", "-m", "base"]);
+        let raiz_de = |a: &str| {
+            Command::new("git").args(["-C", a, "rev-parse", "--show-toplevel"]).output()
+                .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string()).unwrap_or_default()
+        };
+
+        let arbol = block_on(super::shadow_init(p.clone(), "4-lab".into())).unwrap()["worktreePath"].clone();
+        // El agente, dentro: un programa cualquiera con su carpeta de trabajo ahí.
+        let (prog, args): (&str, &[&str]) = if cfg!(windows) { ("ping", &["-n", "30", "127.0.0.1"]) } else { ("sleep", &["30"]) };
+        let mut agente = Command::new(prog).args(args).current_dir(&arbol).stdout(Stdio::null()).spawn().unwrap();
+        // Algo tuyo sin guardar: el `status` que subía hasta tu repo lo contaba como de la copia.
+        std::fs::write(dir.join("tuyo.txt"), "mío").unwrap();
+        let tirada = block_on(super::shadow_discard(p.clone(), arbol.clone(), "4-lab".into()));
+        let sigue_la_carpeta = std::path::Path::new(&arbol).is_dir();
+        let tras_tirar = raiz_de(&arbol);
+        let pendiente = block_on(super::shadow_pendiente(arbol.clone(), "main".into())).map(|x| (x.sueltos, x.commits));
+        // Lo que su agente escriba después de tirarla no se ha tirado: no se borra para montar otra.
+        let despues = std::path::Path::new(&arbol).join("despues.txt");
+        let con_despues = if sigue_la_carpeta {
+            std::fs::write(&despues, "de después").unwrap();
+            let r = block_on(super::shadow_init(p.clone(), "4-lab".into())).map(|s| s["reutilizado"].clone());
+            let sigue = despues.exists();
+            let _ = std::fs::remove_file(&despues);
+            Some((r, sigue))
+        } else {
+            None
+        };
+        let otra = block_on(super::shadow_init(p.clone(), "4-lab".into())).map(|s| s["reutilizado"].clone());
+        let raiz_otra = raiz_de(&arbol);
+        let _ = agente.kill();
+        let _ = agente.wait();
+        // Y una carpeta que no es copia, con ficheros que Adeorq no sabe de quién son.
+        let ajena = super::ruta_espejo(&p, "5-lab");
+        std::fs::create_dir_all(&ajena).unwrap();
+        std::fs::write(ajena.join("nota.txt"), "mía").unwrap();
+        let sobre_ajena = block_on(super::shadow_init(p.clone(), "5-lab".into()));
+        let sigue = ajena.join("nota.txt").exists();
+        let _ = block_on(super::shadow_discard(p.clone(), arbol.clone(), "4-lab".into()));
+        let _ = std::fs::remove_dir_all(&dir);
+
+        assert!(tirada.is_ok(), "{tirada:?}");
+        // En Windows la carpeta se queda (es la de trabajo del agente): si no, esto no prueba el tapón.
+        assert!(!cfg!(windows) || sigue_la_carpeta, "la carpeta se borró entera con un programa dentro");
+        if let Some((r, sigue)) = con_despues {
+            assert!(r.is_err_and(|e| e.contains("después")) && sigue, "borró lo que su agente escribió después de tirarla");
+        }
+        assert!(!super::misma_carpeta(&tras_tirar, &p), "tras tirarla, el git de dentro llega a tu repo");
+        assert_eq!(pendiente, Ok((0, 0)), "una copia tirada no deja nada pendiente");
+        assert_eq!(otra, Ok("false".into()), "volver a abrirla monta una copia nueva");
+        assert!(super::misma_carpeta(&raiz_otra, &arbol), "la que vuelve a abrir no es una copia de git: {raiz_otra}");
+        assert!(sobre_ajena.is_err_and(|e| e.contains("no la uso")), "se montó encima de una carpeta que no es copia");
+        assert!(sigue, "borró ficheros que no sabía de quién eran");
+    }
+
+    /// Dos montajes de la misma copia a la vez (Ctrl+Z nada más cerrarla, o un panel
+    /// que se vuelve a montar al caerse): el que perdía el `worktree add` tapaba el
+    /// `.git` de la copia viva del otro (cuarta revisión aparte, 2026-11-16).
+    #[test]
+    fn dos_montajes_a_la_vez_de_la_misma_copia_no_la_tapan() {
+        use std::process::Command;
+        let dir = std::env::temp_dir().join(format!("adeorq-a-la-vez-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let p = dir.to_string_lossy().into_owned();
+        let git = |args: &[&str]| {
+            let ok = Command::new("git").args(["-C", &p, "-c", "user.name=lab", "-c", "user.email=lab@lab"]).args(args).status().unwrap().success();
+            assert!(ok, "git {args:?}");
+        };
+        git(&["init", "-q", "-b", "main"]);
+        std::fs::write(dir.join("a.txt"), "uno").unwrap();
+        git(&["add", "a.txt"]);
+        git(&["commit", "-q", "-m", "base"]);
+        let mut malas = Vec::new();
+        for n in 0..4 {
+            let nombre = format!("{n}-par");
+            let salida = std::sync::Arc::new(std::sync::Barrier::new(2));
+            let hilos: Vec<_> = (0..2)
+                .map(|_| {
+                    let (p, nombre, salida) = (p.clone(), nombre.clone(), salida.clone());
+                    std::thread::spawn(move || {
+                        salida.wait();
+                        tauri::async_runtime::block_on(super::shadow_init(p, nombre)).map(|s| s["reutilizado"].clone())
+                    })
+                })
+                .collect();
+            let r: Vec<_> = hilos.into_iter().map(|h| h.join().unwrap()).collect();
+            let viva = super::copia_viva(&super::ruta_espejo(&p, &nombre));
+            if !viva || r.iter().any(|x| x.is_err()) {
+                malas.push((nombre, r, viva));
+            }
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(malas.is_empty(), "montajes a la vez que se pisan: {malas:?}");
     }
 
     #[test]

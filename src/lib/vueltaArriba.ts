@@ -131,32 +131,41 @@ export function cabe(enviados: number[], ahora: number): boolean {
 
 /** Lo que se mira de la madre para teclearle. */
 export interface Madre {
-  estado?: Pick<PaneStatus, "state" | "agentsLive">;
+  estado?: Pick<PaneStatus, "state" | "agentsLive" | "porque">;
   /** En su terminal corre un CLI de agente de la tabla (`proveedorDe`), y no
       una consola o algo que no se sabe. */
   deAgente: boolean;
-  /** Y es de los que pintan la caja que lee `esperaEnSuCaja` (los que
-      `compactaConTraspaso`, como en `TerminalPane`). */
+  /** Y Adeorq sabe leer su caja de la pantalla (`cajaEnPantalla`, con los
+      lectores de `lib/cajaDeEntrada.ts`: hoy Claude Code, Codex y Gemini). */
   conCaja: boolean;
-  /** Parado en esa caja, vacía (`esperaEnSuCaja`). */
+  /** Parado en esa caja, vacía. */
   enSuCaja: boolean;
-  /** Algo en pantalla dice que trabaja («esc to interrupt»). */
+  /** Algo en pantalla dice que trabaja («esc to interrupt», «esc to cancel»). */
   trabajando: boolean;
+  /** Su turno se lee del disco (el transcript de Claude, el rollout de Codex):
+      entonces «lista» lo dice él. Sin eso (Gemini) solo queda la pantalla. */
+  turnoEnDisco: boolean;
+  /** La mirada anterior, `MIRAR_MS` antes, ya la vio parada en su caja vacía. */
+  quietaAntes: boolean;
 }
 
 /**
  * ¿Se le puede teclear ya? Solo con una prueba de que está parada con la caja
- * vacía, nunca a falta de pruebas en contra: su turno acabado en «lista», sin
- * subagentes fuera, nada en pantalla que diga que trabaja y su caja vacía, ni
- * un borrador de Munir ni un menú (`esperaEnSuCaja`). Eso hoy solo se sabe leer
- * en Claude Code. En otro CLI, en una consola o sin pantalla (una terminal
- * sacada a su ventana), nunca: el resumen lo escribió otro agente, y a ciegas
- * podía ir detrás de un borrador o ejecutarse en un `cmd.exe` (revisión del
- * 2026-11-15). Ahí queda `get_active_panes`.
+ * vacía, nunca a falta de pruebas en contra: sin subagentes fuera, nada en
+ * pantalla que diga que trabaja y su caja vacía, ni un borrador de Munir ni un
+ * menú (`lib/cajaDeEntrada.ts`). Con el turno en disco, además, acabado en
+ * «lista». Sin él (Gemini), la pantalla sola, y vista igual en dos miradas
+ * seguidas: lo que no se sabe del turno, que no lo decida un instante entre dos
+ * pasos. En una consola, en un CLI cuya caja no se sabe leer o sin pantalla (una
+ * terminal sacada a su ventana), nunca: el resumen lo escribió otro agente, y a
+ * ciegas podía ir detrás de un borrador o ejecutarse en un `cmd.exe` (revisión
+ * del 2026-11-15). Ahí queda `get_active_panes`.
  */
 export function puedeTeclear(m: Madre): boolean {
-  if (!m.estado || m.estado.state !== "lista" || m.estado.agentsLive > 0 || m.trabajando) return false;
-  return m.deAgente && m.conCaja && m.enSuCaja;
+  if (!m.estado || m.estado.agentsLive > 0 || m.trabajando) return false;
+  if (!m.deAgente || !m.conCaja || !m.enSuCaja) return false;
+  if (m.turnoEnDisco) return m.estado.state === "lista";
+  return m.estado.state === "" && m.estado.porque !== PROCESO_TERMINADO && m.quietaAntes;
 }
 
 /** Lo que se sabe de cada hija, por su panel. */

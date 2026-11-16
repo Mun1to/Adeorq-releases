@@ -154,6 +154,19 @@ fn entorno_al_nacer(con_programa: bool, env: Option<HashMap<String, String>>) ->
     Some(env)
 }
 
+/// El `GIT_CEILING_DIRECTORIES` de un panel (el techo de su copia aparte, con el que
+/// traía el panel detrás: `conTechoDeGit`) más el que heredó Adeorq, sin repetir.
+/// Pisarlo dejaba sin su techo a quien ya lo tenía puesto en su sistema.
+fn juntar_techos(del_panel: &str, heredado: Option<&str>, sep: char) -> String {
+    let mut techos: Vec<&str> = del_panel.split(sep).filter(|t| !t.is_empty()).collect();
+    for t in heredado.unwrap_or_default().split(sep) {
+        if !t.is_empty() && !techos.contains(&t) {
+            techos.push(t);
+        }
+    }
+    techos.join(&sep.to_string())
+}
+
 /// Qué hacer con el entorno de una terminal que nace dentro de un AppImage. El
 /// arrancador del AppImage (`AppRun`) pone `LD_LIBRARY_PATH`, `PYTHONHOME`,
 /// `PERLLIB`, `GTK_PATH`, `XDG_DATA_DIRS`... apuntando a SU carpeta, y todo eso lo
@@ -1012,6 +1025,12 @@ pub fn abrir(mapa: &Mapa, alta: Alta, salida: std::sync::Arc<dyn Salida>) -> Res
             }
             continue;
         }
+        if key == "GIT_CEILING_DIRECTORIES" {
+            let sep = if cfg!(windows) { ';' } else { ':' };
+            let heredado = cmd.get_env(&key).and_then(|v| v.to_str()).map(String::from);
+            cmd.env(&key, juntar_techos(&value, heredado.as_deref(), sep));
+            continue;
+        }
         cmd.env(&key, &value);
     }
     // La contraseña de ESTA terminal, después del entorno del panel para que
@@ -1226,9 +1245,20 @@ fn retirar(mapa: &Mapa, id: u32) {
 /// tal cual, que ahí los corchetes saldrían pintados.
 /// ==========================================================================
 
-/// Entre dos teclas, o entre el texto y su Intro. El pegado de Claude Code se
-/// cierra en el tick siguiente; esto son muchos.
+/// Entre dos teclas, o entre una orden de barra y el bloque que va detrás. El
+/// pegado de Claude Code se cierra en el tick siguiente; esto son muchos.
 pub const ESPACIO_ENTRE_TECLAS: std::time::Duration = std::time::Duration::from_millis(120);
+
+/// Entre lo pegado y su Intro, más que entre dos teclas, y más cuanto más largo:
+/// Codex toma por salto de línea el Intro que llega en los 120 ms que siguen a
+/// un pegado (`PASTE_ENTER_SUPPRESS_WINDOW` en su `paste_burst.rs`), contados
+/// desde que ÉL lee el último carácter, y en Windows los lee uno a uno. Medido
+/// con Codex 0.165 (`scripts/laboratorio/intro-en-codex-de-verdad.mjs`): con
+/// 120 ms se quedaban en su caja las de 175 caracteres o más; con 400 fijos, las
+/// de 1.500 y 3.000.
+pub fn antes_del_intro(caracteres: usize) -> std::time::Duration {
+    std::time::Duration::from_millis((400 + caracteres as u64 / 2).min(4_000))
+}
 
 /// Los paneles que tienen terminal ahora mismo. Lo usan las decisiones para
 /// saber si quien preguntó sigue ahí (`decisiones::vigencia`).
@@ -1642,27 +1672,56 @@ pub fn orden_y_resto(texto: &str) -> Option<(&str, &str)> {
 /// Escribe el texto y, si se pide, pulsa Intro aparte. Duerme entre medias:
 /// nunca desde el hilo de la ventana.
 pub fn mandar_texto(app: &AppHandle, id: u32, texto: &str, enviar: bool) -> Result<Mandado, String> {
-    let pegado = ficha(app, id).ok_or(format!("Pane {} not found", id))?.pegado;
+    let f = ficha(app, id).ok_or(format!("Pane {} not found", id))?;
+    mandar_en_su_turno(id, |bytes| escribir_en_panel(app, id, bytes), f.pegado, es_codex(f.command.as_deref()), texto, enviar)
+}
+
+/// Si en el panel corre Codex, por su programa (`programa_del_comando`, que no
+/// lee el encargo). Mirando el comando entero, un Claude o un Gemini cuyo
+/// encargo dijera «codex» se llevaba la espera larga, y con ella el riesgo de
+/// que el Intro cayera en un menú. Un Codex arrancado a mano en una consola no
+/// se ve en el comando: va con los 120 ms de las demás.
+pub fn es_codex(comando: Option<&[String]>) -> bool {
+    comando.and_then(crate::mcp_clientes::programa_del_comando) == Some("codex")
+}
+
+/// El turno de cada terminal en `mandar_texto`. Dos a la vez sobre el mismo
+/// panel (dos agentes, o el móvil y un agente) se entrelazaban: el segundo texto
+/// caía en la espera del primero y el Intro del primero mandaba los dos juntos.
+/// Paneles distintos no se esperan entre ellos.
+fn turno_de(id: u32) -> std::sync::Arc<Mutex<()>> {
+    static TURNOS: std::sync::OnceLock<Mutex<HashMap<u32, std::sync::Arc<Mutex<()>>>>> = std::sync::OnceLock::new();
+    let mut turnos = TURNOS.get_or_init(Default::default).lock().unwrap_or_else(|e| e.into_inner());
+    turnos.entry(id).or_default().clone()
+}
+
+/// Lo de `mandar_texto` sin la app: `escribir` es la escritura en el panel. El
+/// turno cubre el texto, la espera y el Intro.
+fn mandar_en_su_turno(id: u32, escribir: impl Fn(Vec<u8>) -> Result<(), String>, pegado: bool, es_codex: bool, texto: &str, enviar: bool) -> Result<Mandado, String> {
+    let turno = turno_de(id);
+    let _mio = turno.lock().unwrap_or_else(|e| e.into_inner());
     // Solo en un programa que pidió el pegado entre corchetes, que es donde
     // hay menús así; en una consola, un «2» es un «2» y lleva su Intro.
     if pegado && es_tecla_de_menu(texto) {
-        escribir_en_panel(app, id, texto.trim().as_bytes().to_vec())?;
+        escribir(texto.trim().as_bytes().to_vec())?;
         return Ok(Mandado::Tecla);
     }
     match orden_y_resto(texto).filter(|_| pegado) {
         Some((orden, resto)) => {
-            escribir_en_panel(app, id, format!("{orden} ").into_bytes())?;
+            escribir(format!("{orden} ").into_bytes())?;
             std::thread::sleep(ESPACIO_ENTRE_TECLAS);
-            escribir_en_panel(app, id, envuelto_para_pegar(resto, true))?;
+            escribir(envuelto_para_pegar(resto, true))?;
         }
-        None if !texto.is_empty() => escribir_en_panel(app, id, envuelto_para_pegar(texto, pegado))?,
+        None if !texto.is_empty() => escribir(envuelto_para_pegar(texto, pegado))?,
         None => {}
     }
     if enviar {
         if !texto.is_empty() {
-            std::thread::sleep(ESPACIO_ENTRE_TECLAS);
+            // La espera larga solo con Codex, que es quien la necesita: en las demás, un
+            // Intro que tarda puede caer en un menú que salga en ese rato y elegir su 1.
+            std::thread::sleep(if es_codex { antes_del_intro(texto.chars().count()) } else { ESPACIO_ENTRE_TECLAS });
         }
-        escribir_en_panel(app, id, b"\r".to_vec())?;
+        escribir(b"\r".to_vec())?;
     }
     Ok(if pegado { Mandado::Pegado } else { Mandado::Escrito })
 }
@@ -1916,9 +1975,19 @@ pub fn list_projects(
 #[cfg(test)]
 mod tests {
     use super::{
-        entorno_al_nacer, envuelto_para_pegar, marcar_pantalla, orden_y_resto, recortar_historial, tomar, vaciar_pase_lo_que_pase,
-        Fin, HIST_OBJETIVO, HIST_TOPE, SIN_BUSCAR_EN_LA_CARPETA,
+        entorno_al_nacer, envuelto_para_pegar, juntar_techos, marcar_pantalla, orden_y_resto, recortar_historial, tomar,
+        vaciar_pase_lo_que_pase, Fin, HIST_OBJETIVO, HIST_TOPE, SIN_BUSCAR_EN_LA_CARPETA,
     };
+
+    #[test]
+    fn el_techo_de_git_que_ya_tenias_se_junta_con_el_de_la_copia() {
+        let copia = r"C:\p\Demo\.adeorq\espejo";
+        assert_eq!(juntar_techos(copia, None, ';'), copia, "sin heredado, el del panel");
+        assert_eq!(juntar_techos(copia, Some(""), ';'), copia);
+        assert_eq!(juntar_techos(copia, Some(r"D:\otro"), ';'), format!(r"{copia};D:\otro"), "el tuyo se queda");
+        assert_eq!(juntar_techos(&format!(r"{copia};D:\otro"), Some(r"D:\otro;E:\x"), ';'), format!(r"{copia};D:\otro;E:\x"), "sin repetir");
+        assert_eq!(juntar_techos("/u/Demo/.adeorq/espejo", Some("/srv"), ':'), "/u/Demo/.adeorq/espejo:/srv");
+    }
 
     #[test]
     fn una_terminal_con_programa_no_lo_busca_en_su_carpeta() {
@@ -2030,6 +2099,18 @@ mod tests {
             assert_eq!(envuelto_para_pegar("hola", false), b"hola".to_vec());
             // Un salto dentro del texto va como lo manda una terminal al pegar.
             assert_eq!(envuelto_para_pegar("a\nb\r\nc", true), b"\x1b[200~a\rb\rc\x1b[201~".to_vec());
+        }
+
+        /// Lo que se espera antes del Intro pasa siempre de la ventana de Codex
+        /// (120 ms), crece con lo pegado y no se va de las manos.
+        #[test]
+        fn el_intro_espera_mas_cuanto_mas_largo_es_lo_pegado() {
+            use super::super::antes_del_intro;
+            use std::time::Duration;
+            assert_eq!(antes_del_intro(0), Duration::from_millis(400));
+            assert_eq!(antes_del_intro(1_500), Duration::from_millis(1_150));
+            assert_eq!(antes_del_intro(3_000), Duration::from_millis(1_900));
+            assert_eq!(antes_del_intro(1_000_000), Duration::from_secs(4));
         }
 
         /// Un número suelto contesta a un menú; lo demás es un mensaje.
@@ -2352,6 +2433,85 @@ mod tests {
             hist.starts_with('y'),
             "deberia arrancar justo despues del salto de linea"
         );
+    }
+}
+
+/// `mandar_texto` con dos que escriben a la vez y con el encargo dentro del comando.
+#[cfg(test)]
+mod al_mandar_texto {
+    use super::{es_codex, mandar_en_su_turno};
+    use std::sync::{mpsc, Arc, Mutex};
+    use std::time::Duration;
+
+    /// Lo que va escribiendo cada uno, en el orden en que llega al panel, y
+    /// `tras_escribir` después de cada escritura.
+    fn mandar(id: u32, escrito: &Arc<Mutex<Vec<String>>>, texto: &'static str, tras_escribir: impl Fn() + Send + 'static) -> std::thread::JoinHandle<()> {
+        let escrito = escrito.clone();
+        std::thread::spawn(move || {
+            let escribir = |b: Vec<u8>| {
+                escrito.lock().unwrap().push(String::from_utf8(b).unwrap());
+                tras_escribir();
+                Ok(())
+            };
+            mandar_en_su_turno(id, escribir, false, false, texto, true).unwrap();
+        })
+    }
+
+    /// El segundo llega mientras el primero espera para pulsar su Intro: sin
+    /// turno, quedaba «primero», «segundo», Intro, Intro, y el primer Intro
+    /// mandaba los dos textos juntos.
+    #[test]
+    fn dos_textos_a_la_vez_a_un_panel_no_se_mezclan() {
+        let escrito = Arc::new(Mutex::new(Vec::new()));
+        let (aviso, escribio) = mpsc::channel();
+        let primero = mandar(4_000_001, &escrito, "primero", move || {
+            let _ = aviso.send(());
+        });
+        // El primero ya escribió su texto y duerme antes del Intro.
+        escribio.recv().unwrap();
+        let segundo = mandar(4_000_001, &escrito, "segundo", || {});
+        primero.join().unwrap();
+        segundo.join().unwrap();
+        assert_eq!(*escrito.lock().unwrap(), ["primero", "\r", "segundo", "\r"]);
+    }
+
+    /// Dos paneles distintos no se esperan: el primero, con su turno cogido, no
+    /// sigue hasta ver escribir al otro (o 5 s, y entonces falla el orden).
+    #[test]
+    fn dos_paneles_distintos_no_se_esperan() {
+        let escrito = Arc::new(Mutex::new(Vec::new()));
+        let (aviso, escribio) = mpsc::channel();
+        let (otro_aviso, otro_escribio) = mpsc::channel();
+        let uno = mandar(4_000_002, &escrito, "uno", move || {
+            let _ = aviso.send(());
+            let _ = otro_escribio.recv_timeout(Duration::from_secs(5));
+        });
+        escribio.recv().unwrap();
+        let otro = mandar(4_000_003, &escrito, "otro", move || {
+            let _ = otro_aviso.send(());
+        });
+        uno.join().unwrap();
+        otro.join().unwrap();
+        assert_eq!(escrito.lock().unwrap()[..2], ["uno", "otro"]);
+    }
+
+    /// Codex por su programa, no por lo que diga su encargo.
+    #[test]
+    fn la_espera_de_codex_es_por_el_programa_y_no_por_el_encargo() {
+        // Como lo arma `lineaConEncargo` (ver `rastros::el_encargo_no_cuenta_al_leer_el_comando`).
+        let ps = |encargo: &str, cli: &str| -> Vec<String> {
+            let linea = format!("$env:ADEORQ_ENCARGO = '{encargo}'; $adeorqExe = '{cli}'; $adeorqPre = @(); & $adeorqExe @adeorqPre --% \"%ADEORQ_ENCARGO%\"");
+            vec!["powershell.exe".into(), "-NoLogo".into(), "-NoExit".into(), "-Command".into(), linea]
+        };
+        let c = |s: &str| s.split(' ').map(String::from).collect::<Vec<_>>();
+        assert!(!es_codex(Some(&ps("pásale esto a codex cuando acabes", "claude"))), "un encargo que dice «codex» no hace Codex a un Claude");
+        assert!(!es_codex(Some(&ps("que lo revise codex", "gemini"))));
+        assert!(es_codex(Some(&ps("que lo mire claude después", "codex"))));
+        assert!(es_codex(Some(&c("codex --yolo"))));
+        assert!(es_codex(Some(&c("cmd.exe /k chcp 65001 >nul && codex"))));
+        assert!(!es_codex(Some(&c("claude --permission-mode auto"))));
+        assert!(!es_codex(Some(&c("powershell.exe -NoLogo"))), "una consola pelada no se sabe qué lleva");
+        assert!(!es_codex(None));
     }
 }
 

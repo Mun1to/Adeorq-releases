@@ -122,7 +122,8 @@
   font-weight: 700;
 }
 .dec-fila[data-clase="contesta"] .dec-palabra,
-.dec-fila[data-clase="decide"] .dec-palabra {
+.dec-fila[data-clase="decide"] .dec-palabra,
+.dec-fila[data-clase="plan"] .dec-palabra {
   color: var(--ask);
 }
 .dec-fila[data-clase="parado"] .dec-palabra {
@@ -135,6 +136,15 @@
 .dec-fila[data-clase="pasada"] .dec-palabra,
 .dec-fila[data-clase="pasada"] .dec-fila-titulo {
   font-weight: 500;
+  color: color-mix(in srgb, var(--text) 72%, var(--muted));
+}
+/* Nueva o vista (U): lo que no has mirado, en negrita; lo ya visto, en el peso de
+   siempre y con la misma tinta. Lo pospuesto se apaga como lo que ya pasó, pero
+   conserva el color de su palabra: va a volver. */
+.dec-fila[data-nueva="true"] .dec-fila-titulo {
+  font-weight: 700;
+}
+.dec-parte[data-parte="pospuesto"] .dec-fila-titulo {
   color: color-mix(in srgb, var(--text) 72%, var(--muted));
 }
 .dec-fila-de {
@@ -466,6 +476,18 @@
   white-space: pre;
   overflow-x: auto;
 }
+/* Las acciones de un plan de Adeo que cerraste sin contestar: una por renglón. */
+.dec-plan {
+  margin: 0 32px 20px;
+  padding: 0 0 0 18px;
+  max-width: 82ch;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
+}
+.dec-plan li + li {
+  margin-top: 4px;
+}
 .dec-acciones {
   display: flex;
   flex-wrap: wrap;
@@ -541,6 +563,106 @@
   color: color-mix(in srgb, var(--text) 86%, var(--muted));
 }
 .dec-teclas .mini {
+  justify-self: end;
+}
+
+/* ------------------------------------------------------------ posponer (H) */
+/* Con la tecla H, arriba a la derecha y no abajo como la chuleta: la barra de
+   enviar de una decisión vive en el pie, y esto no debe tapar sus botones. Con el
+   botón «Posponer», junto a él (`anclaDe`, en `DecisionesView.tsx`), por encima de
+   la barra del pie. */
+.dec-posponer {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 5;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100% - 48px));
+  max-height: calc(100% - 48px);
+  overflow-y: auto;
+  padding: 16px 18px;
+  border-radius: var(--r-caja);
+  border: 1px solid var(--border-strong);
+  background: var(--popover);
+  box-shadow: var(--glass-edge), var(--sombra-3);
+  outline: none;
+}
+.dec-posponer h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+}
+.dec-posponer-de {
+  margin: -4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dec-posponer ul {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dec-posponer-op {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--r-btn);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--t-rapida) ease;
+}
+.dec-posponer-op:hover {
+  background: var(--row);
+}
+.dec-posponer-op:focus-visible {
+  background: var(--row);
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.dec-posponer-op b {
+  flex: none;
+  min-width: 1.1em;
+  color: var(--accent);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+/* Opaca y sin tirador, como la caja de «otra cosa» de una decisión. */
+.dec-hora {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--border-strong);
+  background: var(--popover);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.dec-hora:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+}
+.dec-posponer-nota {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--text) 80%, var(--muted));
+}
+.dec-posponer .mini {
   justify-self: end;
 }
 

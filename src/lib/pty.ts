@@ -395,8 +395,10 @@ export function memoriaReglasRouter(): Promise<Array<{ linea: string; nota: stri
   return invoke("memoria_reglas_router");
 }
 
-export function codexSessionSince(cwd: string, since: number): Promise<string | null> {
-  return invoke("codex_session_since", { cwd, since });
+/** `casa` es el `CODEX_HOME` de la terminal: un Codex de otra cuenta guarda ahí,
+ *  no en `~/.codex`, y es ahí donde se aprende su sesión. */
+export function codexSessionSince(cwd: string, since: number, casa?: string): Promise<string | null> {
+  return invoke("codex_session_since", { cwd, since, casa: casa ?? null });
 }
 
 /** La conversación de agy empezada en `cwd` desde `since` (segundos de época),
@@ -1233,8 +1235,10 @@ export function readCrewInbox(cwd: string): Promise<CrewNote[]> {
   return invoke("read_crew_inbox", { cwd });
 }
 
-export function dropInbox(line: number): Promise<void> {
-  return invoke("drop_inbox", { line });
+/** Con lo que dice: si el archivo cambió desde que se leyó, en su número ya hay
+    otra nota, y era esa la que se borraba (`quitar_nota` en `inbox.rs`). */
+export function dropInbox(n: Pick<Note, "line" | "text" | "project">): Promise<void> {
+  return invoke("drop_inbox", { line: n.line, text: n.text, project: n.project });
 }
 
 export function inboxWhere(): Promise<string> {
@@ -1305,6 +1309,8 @@ export interface ShadowSession {
   worktreePath: string;
   /** "true" si se reenganchó a un espejo que quedó colgado de otra sesión. */
   reutilizado: string;
+  /** "true" si se acaba de crear desde HEAD, sin rama de antes: no lleva trabajo. */
+  nueva?: string;
 }
 
 export interface ShadowFile {
@@ -1313,8 +1319,13 @@ export interface ShadowFile {
 }
 
 export function shadowInit(projectPath: string, paneId: string): Promise<ShadowSession> {
+  montajes.set(paneId, (montajes.get(paneId) ?? 0) + 1);
   return invoke("shadow_init", { projectPath, paneId });
 }
+
+/** Cuántas terminales de esta ventana han pedido montar cada copia, para que la que
+    se cierra a medio montar no tire una que otra ya usa (`copiaSinEstrenar`). */
+const montajes = new Map<string, number>();
 
 // Leer va contra el ÁRBOL del espejo, no contra tu carpeta: son ficheros
 // distintos, y preguntarle a la tuya devolvía el estado de tu trabajo.
@@ -1352,6 +1363,19 @@ export function shadowDiscard(
   paneId: string,
 ): Promise<void> {
   return invoke("shadow_discard", { projectPath, worktreePath, paneId });
+}
+
+/** La copia de una terminal que se cerró mientras la montaba: recién creada desde
+    HEAD no lleva trabajo y se tira, para no dejar su árbol y su rama sin dueña; una
+    reenganchada puede llevarlo y se queda, y también la que otra terminal ya está
+    montando (Ctrl+Z nada más cerrarla la reabre con el mismo espejo). Es el error con
+    el que se corta su arranque. */
+export function copiaSinEstrenar(projectPath: string, s: ShadowSession, nombre: string): Error {
+  const otras = (montajes.get(nombre) ?? 1) - 1;
+  if (otras > 0) montajes.set(nombre, otras);
+  else montajes.delete(nombre);
+  if (s.nueva === "true" && nombre && otras <= 0) void shadowDiscard(projectPath, s.worktreePath, nombre).catch(() => {});
+  return new Error("la terminal se cerró mientras montaba su copia");
 }
 
 

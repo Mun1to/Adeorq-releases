@@ -27,13 +27,15 @@ import {
   shadowInit,
   shadowDiff,
   shadowStatus,
-  shadowAccept,
-  shadowDiscard,
+  shadowAccept, shadowDiscard, copiaSinEstrenar,
   type ShadowSession,
   type ShadowFile,
 } from "../lib/pty";
 import { raiz } from "../lib/perfil";
-import { apuntarCopia, copiaCerrada, proyectoDe, soltarCopia } from "../lib/copiaAparte";
+import { useCabina } from "../lib/cabina";
+import { discoDeLaCopia } from "../lib/archivos";
+import { apuntarCopia, archivoElegido, carpetaParaNacer, conTechoDeGit, copiaCerrada, copiaYaCerrada, porQueNoSeSuelta, proyectoDe, soltarCopia, vivasDentro } from "../lib/copiaAparte";
+import { traerSuConversacion } from "../lib/lanzar";
 import { borrarSesionDePanel, useSesionAgy } from "../lib/borrarSesion";
 import { useT } from "../lib/i18n";
 import { useMenu } from "./Overlays";
@@ -512,7 +514,7 @@ export default function TerminalPane({
   
   // Shadow Mode (SVFS v1) States
   const [shadowActive, setShadowActive] = useState(false);
-  const [shadowSession, setShadowSession] = useState<ShadowSession | null>(null);
+  const [shadowSession, setShadowSession] = useState<(ShadowSession & { carpeta: string }) | null>(null);
   const [showDiff, setShowDiff] = useState(false);
   const [shadowFiles, setShadowFiles] = useState<ShadowFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -540,21 +542,10 @@ export default function TerminalPane({
     shadowStatus(shadowSessionRef.current.worktreePath, shadowSessionRef.current.baseBranch)
       .then((files) => {
         setShadowFiles(files);
-        if (files.length > 0) {
-          setSelectedFile((curr) => {
-            if (!curr || !files.some(f => f.path === curr)) {
-              return files[0].path;
-            }
-            return curr;
-          });
-        } else {
-          setSelectedFile(null);
-          setFileDiffText("");
-        }
+        setSelectedFile((curr) => archivoElegido(curr, files));
+        if (!files.length) setFileDiffText("");
       })
-      .catch((err) => {
-        console.error("Error al leer status de sombra:", err);
-      });
+      .catch((err) => console.error("Error al leer status de sombra:", err));
   };
 
   // Only a terminal born in shadow has the button, so this only ever opens the
@@ -565,50 +556,44 @@ export default function TerminalPane({
     refreshShadowStatus();
   };
 
-  const handleAcceptShadow = () => {
-    if (!shadowSession) return;
-    const projRoot = getProjectRoot(cwd);
+  /** Si una hija sigue abierta dentro de la copia, lo dice en el aviso y no deja
+      soltarla (`porQueNoSeSuelta`). */
+  const hijaDentro = (que: "aceptar" | "tirar", arbol: string) => {
+    const no = porQueNoSeSuelta(que, vivasDentro(arbol, id, Object.values(useCabina.getState().estados)));
+    if (no) setNote(no);
+    return no !== null;
+  };
 
-    shadowAccept(projRoot, shadowSession.worktreePath, espejoRef.current)
-      .then((resumen) => {
-        copiaCerrada(shadowSession.worktreePath);
-        setShadowActive(false);
-        setShadowSession(null);
-        setShowDiff(false);
-        setShadowFiles([]);
-        setSelectedFile(null);
-        setFileDiffText("");
-        // Lo que dice Rust, no una frase fija: antes ponía «integrados con
-        // éxito» aunque el merge hubiera fallado, porque el error se ignoraba.
-        setNote(resumen);
-        setTimeout(() => setNote(null), 8000);
-      })
-      .catch((err) => {
-        // El espejo NO se cierra si falla: el trabajo del agente sigue en su
-        // árbol y en su rama, y se puede entrar a mirarlo.
-        setNote(`${err}`);
-      });
+  /** Aceptada o tirada, la copia ya no existe (ni para sus hijas): fuera el
+      espejo, y su aviso durante `ms`. */
+  const espejoCerrado = (arbol: string, nota: string, ms: number) => {
+    copiaCerrada(arbol);
+    setShadowActive(false);
+    // `shadowSession` se queda: su CLI sigue escribiendo la conversación en el árbol, y Reanimar la busca ahí.
+    setShowDiff(false);
+    setShadowFiles([]);
+    setSelectedFile(null);
+    setFileDiffText("");
+    setNote(nota);
+    setTimeout(() => setNote(null), ms);
+  };
+
+  const handleAcceptShadow = () => {
+    if (!shadowSession || hijaDentro("aceptar", shadowSession.worktreePath)) return;
+    // El aviso es lo que dice Rust, no una frase fija: antes ponía «integrados
+    // con éxito» aunque el merge hubiera fallado, porque el error se ignoraba.
+    // Si falla, el espejo NO se cierra: el trabajo del agente sigue en su árbol
+    // y en su rama, y se puede entrar a mirarlo.
+    shadowAccept(getProjectRoot(cwd), shadowSession.worktreePath, espejoRef.current)
+      .then((resumen) => espejoCerrado(shadowSession.worktreePath, resumen, 8000))
+      .catch((err) => setNote(`${err}`));
   };
 
   const handleDiscardShadow = () => {
-    if (!shadowSession) return;
-    const projRoot = getProjectRoot(cwd);
-
-    shadowDiscard(projRoot, shadowSession.worktreePath, espejoRef.current)
-      .then(() => {
-        copiaCerrada(shadowSession.worktreePath);
-        setShadowActive(false);
-        setShadowSession(null);
-        setShowDiff(false);
-        setShadowFiles([]);
-        setSelectedFile(null);
-        setFileDiffText("");
-        setNote("Cambios descartados y rama en la sombra eliminada.");
-        setTimeout(() => setNote(null), 4000);
-      })
-      .catch((err) => {
-        setNote(`Error al descartar cambios: ${err}`);
-      });
+    if (!shadowSession || hijaDentro("tirar", shadowSession.worktreePath)) return;
+    shadowDiscard(getProjectRoot(cwd), shadowSession.worktreePath, espejoRef.current)
+      .then(() => espejoCerrado(shadowSession.worktreePath, "Cambios descartados y rama en la sombra eliminada.", 4000))
+      .catch((err) => setNote(`Error al descartar cambios: ${err}`));
   };
 
   useEffect(() => {
@@ -931,7 +916,7 @@ export default function TerminalPane({
   // la más reciente de la carpeta y puede ser la de otro (Codex: la aprendida).
   // En el Modo Espejo el CLI corre en el árbol de la copia, y su conversación se
   // guarda por ESA carpeta: leída por la tuya, el estado era «no se sabe».
-  const ctx = useContextoDeSesion(kind, shadowSession?.worktreePath ?? cwd, joined, sessionIdOf(joined) ?? sidAprendido);
+  const ctx = useContextoDeSesion(kind, shadowSession?.carpeta ?? cwd, joined, sessionIdOf(joined) ?? sidAprendido);
   ctxRef.current = ctx;
   /** La sesión que se llevaría la papelera de la cabecera: la del transcript
    *  (Claude, y Codex con la suya aprendida) o la conversación de agy. */
@@ -1053,8 +1038,8 @@ export default function TerminalPane({
     let stop = false;
     const mira = () => {
       // En espejo, no antes de que exista su árbol: en tu carpeta aprendería la de otro.
-      if (shadow && !shadowSessionRef.current) return void (timer = window.setTimeout(mira, 5_000));
-      codexSessionSince(shadowSessionRef.current?.worktreePath ?? cwd, nacidoRef.current)
+      if (shadow && !copiaYaCerrada(espejo) && !shadowSessionRef.current) return void (timer = window.setTimeout(mira, 5_000));
+      codexSessionSince(shadowSessionRef.current?.carpeta ?? cwd, nacidoRef.current, envRef.current?.CODEX_HOME)
         .then((sid) => {
           if (stop) return;
           if (sid) {
@@ -1414,8 +1399,7 @@ export default function TerminalPane({
       );
     });
 
-    let disposed = false;
-
+    let disposed = false, mudada = false; // `mudada`: sacada a otra ventana, que adopta su PTY: el arranque sigue
     term.open(el);
     // El pintor de WebGL llega TARDE, y a propósito: son 249 kB, el trozo de
     // librería más gordo que quedaba en el arranque, y hasta que llega xterm
@@ -1486,11 +1470,10 @@ export default function TerminalPane({
         return `${term.cols}x${term.rows} ${b.type} baseY=${b.baseY} cursorY=${b.cursorY} viewportY=${b.viewportY} length=${b.length}`;
       }),
     );
-
     // env decides which account this terminal belongs to, and it can only be
     // set at birth: the CLI reads it once, on start.
     let arranque: Promise<void>;
-    if (shadow) {
+    if (shadow && !copiaYaCerrada(espejo)) {
       const projRoot = getProjectRoot(cwd);
       // El espejo se llama por el panel Y el arranque de Adeorq: los números
       // de panel vuelven a 1 al abrir la app, y con el número a secas una
@@ -1507,7 +1490,10 @@ export default function TerminalPane({
           espejoRef.current = nombre;
           return shadowInit(projRoot, espejoRef.current);
         })
+        // `carpeta`: la subcarpeta pedida, dentro del árbol, donde corre su CLI y guarda su conversación.
+        .then(async (s) => ({ ...s, carpeta: await carpetaParaNacer(cwd, projRoot, s.worktreePath, discoDeLaCopia) }))
         .then((sess) => {
+          if (disposed && !mudada) throw copiaSinEstrenar(projRoot, sess, espejoRef.current ?? ""); // ni agente suelto ni copia apuntada
           setShadowActive(true);
           setShadowSession(sess);
           // Para que lo que abra su agente nazca en esta misma copia, y para que
@@ -1518,20 +1504,20 @@ export default function TerminalPane({
           // antes, el agente escribía en tus ficheros y el «modo espejo» era
           // solo un cambio de rama que además le cambiaba la rama a los demás
           // paneles abiertos en ese proyecto.
-          return spawnPty(id, sess.worktreePath, term.cols, term.rows, command, envRef.current);
+          return spawnPty(id, sess.carpeta, term.cols, term.rows, command, conTechoDeGit(sess.carpeta, envRef.current));
         })
         .catch((e) => {
           // Sin espejo NO se abre la terminal igualmente. Antes se abría en tu
           // carpeta con el aviso perdido entre la salida del CLI: creías estar
           // en un sandbox y estabas escribiendo en tu proyecto.
-          term.writeln(`[adeorq] No he podido montar el Modo Espejo: ${e}`);
-          term.writeln(`[adeorq] La terminal NO se abre, para no escribir en tu carpeta creyendo que estás aislado.`);
+          if (!disposed) term.writeln(`[adeorq] No he podido montar el Modo Espejo: ${e}`);
+          if (!disposed) term.writeln(`[adeorq] La terminal NO se abre, para no escribir en tu carpeta creyendo que estás aislado.`);
           throw e;
         });
     } else {
-      arranque = spawnPty(id, cwd, term.cols, term.rows, command, envRef.current).catch(
+      arranque = traerSuConversacion({ cwd, espejo: shadow ? espejo : undefined, command }, id).then(() => (disposed && !mudada ? undefined : spawnPty(id, cwd, term.cols, term.rows, command, conTechoDeGit(cwd, envRef.current)))).catch(
         (e) => {
-          term.writeln(`[adeorq] error al abrir la terminal: ${e}`);
+          if (!disposed) term.writeln(`[adeorq] error al abrir la terminal: ${e}`);
           // Se vuelve a lanzar para que la cola de tamaños sepa que no hay PTY al
           // que hablarle y no se quede esperando a uno que no va a existir.
           throw e;
@@ -1566,6 +1552,7 @@ export default function TerminalPane({
     colaTamanoRef.current = colaTamano;
     void arranque
       .then(() => {
+        if (disposed) return void (mudada || killPty(id)); // se cerró mientras nacía: la limpieza ya pasó sin PTY que matar
         // Ya hay PTY. Se olvida lo que se diera por confirmado y se vuelve a
         // medir: es la única pasada que garantiza que las filas del proceso son
         // las que se ven en pantalla. Y hace falta sobre todo cuando la
@@ -2113,7 +2100,7 @@ export default function TerminalPane({
       // aquí, pero su agente sigue trabajando al otro lado; matarlo ahora sería
       // perder el trabajo por haberla sacado de sitio (ver lib/mudanza.ts).
       // Su copia aparte, igual: mudada, el freno de cerrar y sus hijas siguen.
-      if (!seMuda(id)) {
+      if (!(mudada = seMuda(id))) {
         void killPty(id);
         soltarCopia(id);
       }
@@ -2171,7 +2158,7 @@ export default function TerminalPane({
     setCtxVisto,
     onNueva: onNuevaConTraspaso,
     esClaude,
-    cwd,
+    cwd: shadowSession?.carpeta ?? cwd,
     // La de su comando y no la de `ctx`, que sin id es la más reciente de la carpeta.
     sesion: sessionIdOf(joined),
     nombre: name,

@@ -499,6 +499,11 @@ pub(crate) fn pedir_a_la_ventana(app: &tauri::AppHandle, clase: &str, datos: Val
     pedir_a_la_ventana_con(app, clase, datos, ESPERA)
 }
 
+/// Lo que devuelve `pedir_a_la_ventana_con` si se acaba la espera: la ventana
+/// puede hacerlo igual después (cerrar la terminal, por ejemplo), así que no es
+/// un «no» (`rastros::o_sin_rastro`).
+pub(crate) const NO_CONTESTO: &str = "la ventana de Adeorq no contestó a tiempo";
+
 /// Lo mismo, diciendo cuánto se espera: leer una pantalla o listar los paneles
 /// es instantáneo, y si la ventana no contesta en segundos no va a contestar.
 pub(crate) fn pedir_a_la_ventana_con(
@@ -511,7 +516,11 @@ pub(crate) fn pedir_a_la_ventana_con(
     // Recién arrancada, la ventana aún no escucha: se espera a que lo haga, dentro
     // del mismo tope, en vez de emitir a nadie.
     let hasta = Instant::now() + espera;
-    esperar_oyente(&puente.oyente, hasta);
+    if !esperar_oyente(&puente.oyente, hasta) {
+        // Emitido a nadie, se pierde: es un «no» seguro y no un «no contestó a
+        // tiempo», que dejaría el rastro de una terminal que nadie va a cerrar.
+        return Err("la ventana de Adeorq todavía no escucha: no ha llegado a pedirle nada".into());
+    }
     let peticion = puente.siguiente.fetch_add(1, Ordering::Relaxed) + 1;
     let (tx, rx) = mpsc::channel::<Respuesta>();
     puente.esperando.lock().unwrap().insert(peticion, tx);
@@ -533,7 +542,7 @@ pub(crate) fn pedir_a_la_ventana_con(
             // Se limpia SIEMPRE, o el mapa crece con peticiones muertas cada vez
             // que la ventana tarde de más.
             puente.esperando.lock().unwrap().remove(&peticion);
-            Err("la ventana de Adeorq no contestó a tiempo".into())
+            Err(NO_CONTESTO.into())
         }
     }
 }
@@ -3442,7 +3451,10 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             // eso es para lo que cierra Munir con la X.
             // Con quién la cierra: si es quien la abrió, no hay que contárselo
             // (`olvidarHija` en `lib/vueltaArribaVivo.ts`).
-            pedir_a_la_ventana(app, "close_pane", json!({ "paneId": pane_id, "quien": quien }))?;
+            // Si al final no la cierra, fuera el rastro recién escrito (`o_sin_rastro`).
+            crate::rastros::o_sin_rastro(guardado.as_deref(), || {
+                pedir_a_la_ventana(app, "close_pane", json!({ "paneId": pane_id, "quien": quien }))
+            })?;
             // La ventana la mata después de contestar, y lo de abajo ya no la tiene que contar.
             crate::pty::apuntar_cerrada(pane_id);
             // Cómo acabó, para quien la busque después (`get_active_panes`). La

@@ -24,8 +24,8 @@ import { cuantoFalta, elegirCuenta, type CuentaViva } from "./router";
 import { mainAccount, type Account } from "./pty";
 import { sabe } from "./providers";
 import { apuntarDelegada, delegadaDe } from "./delegadas";
-import { espejoDe, espejoPropio } from "./reenganche";
-import { apuntarCopia, copiaDe } from "./copiaAparte";
+import { espejoDe } from "./reenganche";
+import { apuntarCopia, carpetaDeVerdad, copiaDe, copiaYaCerrada, type Copia } from "./copiaAparte";
 
 const MODOS: PermissionMode[] = ["acceptEdits", "auto", "bypassPermissions", "manual", "dontAsk", "plan"];
 
@@ -151,12 +151,20 @@ export interface ManosDelRelevo {
 
 type Respuesta = { error?: string; datos?: unknown; pane_id?: number; donde?: "lienzo" | "cabina"; parte?: string };
 
+/** La copia de cada terminal que va a relevarse, apuntada al elegir la cuenta:
+    Rust la cierra ANTES de `relevo_abrir`, y al cerrarse su panel suelta su copia
+    (`soltarCopia`). Sin esto se adivinaba por el número del nombre del espejo,
+    que tras Reanimar o reiniciar no es el suyo: la dueña perdía su Aceptar y
+    Tirar, y una hija con ese número se quedaba con ellos. */
+const copiaDelRelevo = new Map<number, Copia | undefined>();
+
 /** `relevo_cuenta`: adónde va. Apunta la agotada antes de elegir. */
 export async function elegirParaRelevo(p: { paneId?: number; cli?: string; agotada?: string; tipo?: string | null; renueva?: number | null }, m: ManosDelRelevo): Promise<Respuesta> {
   const cli = String(p.cli ?? "");
   if (!sabe(cli, "relevo")) return { error: `«${cli || "?"}» no sabe seguir en otra cuenta` };
   const agotadaDir = typeof p.agotada === "string" ? p.agotada : "";
   apuntarAgotada(agotadaDir, p.renueva, p.tipo);
+  if (typeof p.paneId === "number") copiaDelRelevo.set(p.paneId, copiaDe(p.paneId));
   // Solo cuentas de la MISMA CLI: la conversación no sigue en la de otra.
   const vivas = (await m.vivas(cli)).filter((v) => v.cuenta.provider === cli && v.instalado && v.conectada);
   const deLaAgotada = [mainAccount(cli), ...m.lista()].find((a) => a.provider === cli && igual(a.dir, agotadaDir));
@@ -195,9 +203,6 @@ export async function abrirElRelevo(
     const { modelo, esfuerzo } = deSuComando(p.comando);
     command = comandoDe({ cli, encargo: acta, modelo, esfuerzo, desatendida: true });
   }
-  // Su carpeta, de confianza en la cuenta nueva: cada `CLAUDE_CONFIG_DIR` lleva
-  // su lista, y sin esto nace parada en «¿confías en esta carpeta?».
-  await m.confiar(cwd, cuenta.dir).catch(() => false);
   // El «de: …» de la vieja. Con la misma conversación lo pone solo `delegacionDe`
   // al verla; con el acta es otra conversación, y se apunta como delegada nueva.
   const abiertaPor = delegadaDe(p.comando)?.abiertaPor;
@@ -205,13 +210,26 @@ export async function abrirElRelevo(
   // La dueña de un espejo sigue en ESE, con su botón de aceptar o tirar: abierta
   // a secas en el árbol trabajaría en la copia sin poder aceptarla. Una hija que
   // trabaja en la copia de su madre sigue dentro, sin hacerse dueña de ella.
-  const vieja = typeof p.paneId === "number" ? copiaDe(p.paneId) : undefined;
-  const enEspejo = vieja ? (vieja.duena === p.paneId ? espejoDe(cwd) : null) : typeof p.paneId === "number" ? espejoPropio(cwd, p.paneId) : espejoDe(cwd);
+  // Sin copia apuntada no es dueña: en el árbol sin estar en el registro, nace
+  // dentro y sin botones, como antes de cerrarse. Salvo si esa copia ya se aceptó
+  // o se tiró con su agente dentro: lo que hiciera en el árbol muerto no lo acepta
+  // nadie, así que vuelve a tu carpeta con el nombre del espejo, que `TerminalPane`
+  // no remonta y del que le trae su conversación (`traerSuConversacion`).
+  const vieja = typeof p.paneId === "number" ? (copiaDe(p.paneId) ?? copiaDelRelevo.get(p.paneId)) : undefined;
+  if (typeof p.paneId === "number") copiaDelRelevo.delete(p.paneId);
+  // Cerrada se mira siempre, aunque se sepa su copia: se puede aceptar a mitad del relevo.
+  const cerrada = copiaYaCerrada(espejoDe(cwd)?.nombre);
+  const enEspejo = cerrada ? espejoDe(cwd) : vieja ? (vieja.duena === p.paneId ? espejoDe(cwd) : null) : typeof p.paneId === "number" ? null : espejoDe(cwd);
+  // Su carpeta, de confianza en la cuenta nueva: cada `CLAUDE_CONFIG_DIR` lleva
+  // su lista, y sin esto nace parada en «¿confías en esta carpeta?».
+  await m.confiar(cerrada ? carpetaDeVerdad(cwd) : cwd, cuenta.dir).catch(() => false);
+  // Con la subcarpeta de verdad en la que corría, no la raíz: el espejo la vuelve
+  // a poner dentro del árbol (`carpetaEnLaCopia`).
   const abierto = enEspejo
-    ? m.addPane(nombre, enEspejo.proyecto, command, undefined, cuenta, undefined, true, undefined, ENTORNO_DEL_RELEVO, { abiertaPor, espejo: enEspejo.nombre })
+    ? m.addPane(nombre, carpetaDeVerdad(cwd), command, undefined, cuenta, undefined, true, undefined, ENTORNO_DEL_RELEVO, { abiertaPor, espejo: enEspejo.nombre })
     : m.addPane(nombre, cwd, command, undefined, cuenta, undefined, undefined, undefined, ENTORNO_DEL_RELEVO, { abiertaPor });
   if (!abierto) return { error: "no pude abrir la terminal" };
-  if (vieja && vieja.duena !== p.paneId) apuntarCopia(abierto.id, vieja);
+  if (vieja && !cerrada && vieja.duena !== p.paneId) apuntarCopia(abierto.id, vieja);
   m.marcar(abierto.id);
   return {
     pane_id: abierto.id,

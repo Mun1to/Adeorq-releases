@@ -42,6 +42,7 @@ import {
   type Receta,
 } from "../lib/router";
 import { mirarMundo, mundoEnCache, reglasDeLaMemoria } from "../lib/mundo";
+import { dejarPlan, recogerPlan } from "../lib/planPendiente";
 import { leerPerfil } from "../lib/perfil";
 import { providerOf, sabe } from "../lib/providers";
 import { conUnaAbierta, cuentaDeLaReceta, esLaPrincipal, repartoDelPlan } from "../lib/cuentasDelPlan";
@@ -759,6 +760,30 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir, enLa
     listSkills().then(setSkills).catch(() => {});
     findAgy().then(setAgy).catch(() => {});
     inputRef.current?.focus();
+  }, []);
+
+  // Un plan sin contestar no se tira al cerrar: queda en «Te toca» de Decisiones
+  // y vuelve aquí como estaba, con la foto de las cuentas de ahora
+  // (`lib/planPendiente.ts`). También sobrevive a pasar de la barra a flotar.
+  const vivo = useRef({ phase, plan, text, shadowEnabled });
+  vivo.current = { phase, plan, text, shadowEnabled };
+  useEffect(() => {
+    const p = recogerPlan();
+    if (p) {
+      setText(p.pedido);
+      setPlan(p.plan);
+      setShadowEnabled(p.espejo);
+      setPhase("plan");
+      const cuentas = exec.cuentas();
+      void mirarMundo(cuentas)
+        .catch(() => mundoEnCache(cuentas))
+        .then((m) => montado.current && setMundo(m));
+    }
+    return () => {
+      const v = vivo.current;
+      if (v.phase === "plan" && v.plan) dejarPlan({ plan: v.plan, pedido: v.text, espejo: v.shadowEnabled, cuando: Date.now() });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // The panes are read when the plan is checked, not when it was asked: a pane

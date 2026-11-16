@@ -4,9 +4,22 @@
 // palabras, y se manda a los cinco segundos con «Deshacer» por medio.
 
 import { useEffect, useState } from "react";
+import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useCabina } from "./cabina";
+import {
+  SIN_REPOSO,
+  despertar as despertarFila,
+  podar,
+  posponer as posponerFila,
+  proximoDespertar,
+  reposoDe,
+  sinVerla as sinVerFila,
+  verla as verFila,
+  type Cosa,
+  type Reposo,
+} from "./decisionesLista";
 
 export interface Opcion {
   texto: string;
@@ -201,4 +214,82 @@ export function olvidarBorrador(id: string): void {
   } catch {
     // Nada que hacer.
   }
+}
+
+/* Lo que haces con cada fila de la lista: posponerla (H) y marcarla como vista o
+   no vista (U). La cuenta de lo pospuesto (`lib/decisionesLista.ts`) la leen la
+   pestaña de Decisiones y el número de la cabecera (`lib/teToca.ts`), que está
+   siempre puesto, así que esto vive en un almacén y no en la vista. */
+
+const CLAVE_REPOSO = "adeorq-decisiones-reposo";
+
+function leerReposo(): Reposo {
+  try {
+    return reposoDe(JSON.parse(localStorage.getItem(CLAVE_REPOSO) || "null"));
+  } catch {
+    return SIN_REPOSO;
+  }
+}
+
+interface EstadoReposo {
+  reposo: Reposo;
+  /** La hora que la lista da por buena: se pone al día cuando vuelve algo pospuesto
+      y al volver a la ventana, no en cada segundo. */
+  ahora: number;
+  verla: (c: Pick<Cosa, "id" | "cuando"> & { clase?: Cosa["clase"] }) => void;
+  sinVerla: (id: string) => void;
+  posponer: (c: Pick<Cosa, "id" | "cuando">, hasta: number) => void;
+  despertar: (id: string) => void;
+}
+
+export const useReposo = create<EstadoReposo>((set, get) => {
+  /** Guarda lo nuevo, olvida lo viejo y reprograma el reloj. */
+  const cambiar = (r: Reposo) => {
+    if (r === get().reposo) return;
+    const ahora = Date.now();
+    const limpio = podar(r, ahora);
+    try {
+      localStorage.setItem(CLAVE_REPOSO, JSON.stringify(limpio));
+    } catch {
+      // Sin sitio no se guarda: sigue valiendo mientras no cierres Adeorq.
+    }
+    set({ reposo: limpio, ahora });
+    despertarA();
+  };
+  return {
+    reposo: leerReposo(),
+    ahora: Date.now(),
+    verla: (c) => cambiar(verFila(get().reposo, c, Date.now())),
+    sinVerla: (id) => cambiar(sinVerFila(get().reposo, id)),
+    posponer: (c, hasta) => cambiar(posponerFila(get().reposo, c, hasta)),
+    despertar: (id) => cambiar(despertarFila(get().reposo, id)),
+  };
+});
+
+let reloj: number | undefined;
+
+/** Un solo aviso a la hora en que vuelve la primera pospuesta: cuando suena, la
+    lista se vuelve a calcular con la hora de verdad y se programa la siguiente. */
+function despertarA(): void {
+  if (typeof window === "undefined") return;
+  window.clearTimeout(reloj);
+  const ahora = Date.now();
+  const cuando = proximoDespertar(useReposo.getState().reposo, ahora);
+  if (cuando === undefined) return;
+  // Un `setTimeout` no pasa de unos 24 días, y se le da un respiro para no
+  // despertar medio segundo antes de la hora.
+  reloj = window.setTimeout(() => {
+    useReposo.setState({ ahora: Date.now() });
+    despertarA();
+  }, Math.min(cuando - ahora + 50, 2 ** 31 - 1));
+}
+
+if (typeof document !== "undefined") {
+  despertarA();
+  // Tras dormir el equipo un `setTimeout` suena tarde: al volver se mira otra vez.
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) return;
+    useReposo.setState({ ahora: Date.now() });
+    despertarA();
+  });
 }

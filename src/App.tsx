@@ -137,20 +137,19 @@ import { sessionIdOf, shellCommand } from "./lib/comandos";
 import { ponerBarraDelTema } from "./lib/barraMac";
 import {
   agyCommand,
-  claudeCommand,
+  carpetaDeSuConversacion,
+  comandoAlReanimar,
   comandoDe,
   comandoDelPlan,
   installCommand,
   lineaParaRetomar,
   loadEffort,
-  modoAlRetomar,
   modoGuardado,
   newClaudeCommand,
   PERMISSION_MODE_KEY,
   providerCommand,
   providerInner,
   resumeCommandFor,
-  withEffort,
   type PermissionMode,
 } from "./lib/lanzar";
 import { delegacionDe, olvidarDelegada } from "./lib/delegadas";
@@ -167,7 +166,7 @@ import {
   temaQueToca,
   type TemaSistema,
 } from "./lib/temaSistema";
-import { lineaDeArranque, lineaDeRetomar, lineasEnVivo, PROVIDERS, providerOf, sabe, type Provider } from "./lib/providers";
+import { lineaDeRetomar, lineasEnVivo, PROVIDERS, providerOf, sabe, type Provider } from "./lib/providers";
 import { planDeArranque } from "./lib/arranque";
 import { actaDeRelevo } from "./lib/relevo";
 import { type Hit } from "./lib/redact";
@@ -1329,8 +1328,9 @@ function App() {
       team?: Team,
       shadow?: boolean,
       /** Lo que añade el router: con cuánto esfuerzo nace, y en qué cuenta.
-          `quieto`, abrirla sin moverte de vista (ver `addPane`). */
-      extras?: { esfuerzo?: string; cuenta?: Account; quieto?: boolean },
+          `quieto`, abrirla sin moverte de vista (ver `addPane`). `espejo`, la
+          copia aparte en la que sigue la que la abre (con `shadow`). */
+      extras?: { esfuerzo?: string; cuenta?: Account; quieto?: boolean; espejo?: string },
     ): number | undefined => {
       // The model goes on the command line, not through /model afterwards: a
       // pane born on the right model never spends a token on the wrong one.
@@ -1362,6 +1362,7 @@ function App() {
       // es para convertirlo en una pestaña. En el lienzo no hay pestaña posible.
       const abierto = addPane(label, cwd, command, undefined, extras?.cuenta, team, shadow, team?.id, undefined, {
         quieto: extras?.quieto,
+        espejo: extras?.espejo,
       });
       return abierto.id;
     },
@@ -1388,19 +1389,22 @@ function App() {
   const relevar = useCallback(
     (
       cuenta: Account,
-      origen: { cwd: string; name?: string; sessionId?: string; account?: string },
+      origen: { cwd: string; name?: string; sessionId?: string; account?: string; espejo?: string },
     ) => {
       const proj = origen.cwd.split(/[\\/]/).filter(Boolean).pop() ?? "claude";
-      void actaDeRelevo(origen)
+      // La de una copia aparte sigue en ESA copia, y su conversación se lee de allí.
+      const espejo = origen.espejo;
+      void actaDeRelevo({ ...origen, cwd: carpetaDeSuConversacion(origen) })
         .then((acta) => {
-          openClaudePrompt(`${proj} · relevo`, origen.cwd, acta, undefined, undefined, undefined, {
+          openClaudePrompt(`${proj} · relevo`, origen.cwd, acta, undefined, undefined, espejo ? true : undefined, {
             cuenta,
+            espejo,
           });
         })
         .catch(() => {
           // Sin acta se abre igual: quedarse sin relevo porque no se pudo leer
           // un transcript sería el peor cambio posible.
-          addPane(`${proj} · ${cuenta.provider}`, origen.cwd, providerCommand(cuenta.provider), undefined, cuenta);
+          addPane(`${proj} · ${cuenta.provider}`, origen.cwd, providerCommand(cuenta.provider), undefined, cuenta, undefined, espejo ? true : undefined, undefined, undefined, { espejo });
         });
     },
     [addPane, openClaudePrompt],
@@ -1765,7 +1769,9 @@ function App() {
     (id: number, encargo?: string) => {
       const src = panesRef.current.find((p) => p.id === id) ?? canvasPanesRef.current.find((p) => p.id === id);
       if (!src) return;
-      openClaudePrompt(`${src.name} · sigue`, src.cwd, encargo ?? encargoDeRecuperar(t));
+      // La dueña de una copia aparte sigue en ESA copia: en tu carpeta, la nueva
+      // trabajaba en tus ficheros creyendo seguir en la copia.
+      openClaudePrompt(`${src.name} · sigue`, src.cwd, encargo ?? encargoDeRecuperar(t), undefined, undefined, src.espejo ? true : undefined, src.espejo ? { espejo: src.espejo } : undefined);
     },
     [openClaudePrompt, t],
   );
@@ -2052,26 +2058,16 @@ function App() {
     (id: number, sessionId: string | undefined, cwd: string, name: string, kind?: string) => {
       // En la MISMA cuenta en que vivía, leída de su entorno antes de cerrarlo:
       // su conversación está en la carpeta de esa cuenta (`cuentaDeSuEntorno`).
-      const cuenta = cuentaDeSuEntorno(
-        panesRef.current.find((p) => p.id === id)?.env,
-        kind || "claude",
-        accountsRef.current.list,
-      );
+      const viejo = panesRef.current.find((p) => p.id === id);
+      const cuenta = cuentaDeSuEntorno(viejo?.env, kind || "claude", accountsRef.current.list);
+      // Y en su copia aparte, si era la dueña de una: en tu carpeta no encontraba
+      // su conversación, y la nueva trabajaba en tus ficheros.
+      const espejo = viejo?.espejo;
       quitarPane(id, true, false); // ya mata la rama del panel; sin rastro, que vuelve
-      // Codex y Gemini se retoman con su propia línea (`retomar` en la tabla
-      // de proveedores); sin sesión, nacen de nuevo con la suya.
-      const ajena = kind && kind !== "claude" ? lineaDeRetomar(kind, sessionId ?? "") : undefined;
-      const command =
-        kind && kind !== "claude"
-          ? sessionId && ajena
-            ? shellCommand(ajena)
-            : shellCommand(lineaDeArranque(kind))
-          : sessionId
-            ? claudeCommand(withEffort(`--resume ${sessionId}`), modoAlRetomar(["--resume", sessionId]))
-            : newClaudeCommand();
+      const command = comandoAlReanimar(kind, sessionId, viejo);
       // Un respiro para que el cierre suelte el PTY y el proceso muera antes
       // de que el nuevo intente retomar el mismo transcript.
-      window.setTimeout(() => addPane(name, cwd, command, undefined, cuenta), 400);
+      window.setTimeout(() => addPane(name, cwd, command, undefined, cuenta, undefined, espejo ? true : undefined, undefined, undefined, espejo ? { espejo } : undefined), 400);
     },
     [quitarPane, addPane],
   );
@@ -2616,13 +2612,12 @@ function App() {
     onAll: (cmd: string) => {
       const line = cmd.trim();
       if (!line) return;
-      // Agent panes only: a plain PowerShell would just print "/effort: not
-      // recognized". A pane with no command IS a plain shell.
+      // Agent panes only: a pane with no command IS a plain shell, and would just
+      // print "/effort: not recognized". Each order goes like `send_command`, its
+      // Enter apart: with `line + "\r"` at once, Codex and Gemini kept it unsent.
       const targets = panes.filter((p) => !!p.command);
       targets.forEach((p, i) => {
-        window.setTimeout(() => {
-          void writePty(p.id, `${line}\r`).catch(() => {});
-        }, i * 120);
+        window.setTimeout(() => void sendPty(p.id, line).catch(() => {}), i * 120);
       });
       setView("cabina");
     },
@@ -3070,6 +3065,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                         name: p.name,
                         sessionId: sessionIdOf(p.command),
                         account: p.account,
+                        espejo: p.espejo,
                       })
                     }
                     dropTarget={drag?.over === p.id || soltandoEn === p.id}

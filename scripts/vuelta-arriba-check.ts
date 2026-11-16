@@ -99,15 +99,26 @@ es("con 20, ya no: solo la campana", cabe(Array(TOPE_POR_HORA).fill(1000), 2000)
 es("las de hace más de una hora no cuentan", cabe(Array(TOPE_POR_HORA).fill(0), hora + 1), true);
 
 // --- cuándo se le teclea a la madre ----------------------------------------------------------
-const lista = { state: "lista" as WorkState, agentsLive: 0 };
-const base = { estado: lista, deAgente: true, conCaja: true, enSuCaja: true, trabajando: false };
+const lista = { state: "lista" as WorkState, agentsLive: 0, porque: "lo dice el transcript" };
+const base = { estado: lista, deAgente: true, conCaja: true, enSuCaja: true, trabajando: false, turnoEnDisco: true, quietaAntes: false };
 es("Claude en «lista» con su caja vacía: sí", puedeTeclear(base), true);
 es("con un borrador o un menú en la caja: no", puedeTeclear({ ...base, enSuCaja: false }), false);
 es("trabajando según la pantalla: no", puedeTeclear({ ...base, trabajando: true }), false);
 es("con subagentes fuera: no", puedeTeclear({ ...base, estado: { ...lista, agentsLive: 1 } }), false);
 for (const s of ["a_medias", "pregunta", "ofrece", "tuya", ""] as WorkState[]) {
-  es(`en «${s || "no se sabe"}»: no`, puedeTeclear({ ...base, estado: { state: s, agentsLive: 0 } }), false);
+  es(`en «${s || "no se sabe"}»: no`, puedeTeclear({ ...base, estado: { state: s, agentsLive: 0, porque: "" } }), false);
+  es(`en «${s || "no se sabe"}» aunque la pantalla la vea quieta dos veces: no`, puedeTeclear({ ...base, estado: { state: s, agentsLive: 0, porque: "" }, quietaAntes: true }), false);
 }
+// Gemini no deja en disco cómo acaba un turno: su estado es «» siempre, y lo
+// que decide es la pantalla, vista igual en dos miradas seguidas.
+const sinTurno = { state: "" as WorkState, agentsLive: 0, porque: "ni la pantalla ni el transcript dicen nada" };
+const gemini = { ...base, estado: sinTurno, turnoEnDisco: false, quietaAntes: true };
+es("Gemini parado en su caja vacía, visto así dos veces: sí", puedeTeclear(gemini), true);
+es("Gemini visto parado una sola vez: todavía no", puedeTeclear({ ...gemini, quietaAntes: false }), false);
+es("Gemini con «esc to cancel» en pantalla: no", puedeTeclear({ ...gemini, trabajando: true }), false);
+es("Gemini con un borrador, o preguntando permiso (sin caja): no", puedeTeclear({ ...gemini, enSuCaja: false }), false);
+es("Gemini con un menú en pantalla («pregunta»): no", puedeTeclear({ ...gemini, estado: { ...sinTurno, state: "pregunta" } }), false);
+es("Gemini cuyo proceso ya terminó: no", puedeTeclear({ ...gemini, estado: { ...sinTurno, porque: PROCESO_TERMINADO } }), false);
 es("sin estado: no", puedeTeclear({ ...base, estado: undefined }), false);
 es("una consola, o un CLI que no se sabe: nunca", puedeTeclear({ ...base, deAgente: false }), false);
 // Sin una caja que se sepa leer no hay prueba de que esté parada y vacía: a

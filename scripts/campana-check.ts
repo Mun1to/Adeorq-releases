@@ -128,6 +128,10 @@ es("cuenta lo que no has visto, nada más", sinLeer(mezcla), 2);
 es("cierras la lista: lo que terminó se va y lo que te espera se queda, leído", resumen(trasVerla(mezcla)), ["1:espera(leído)", "2:espera(leído)"]);
 const yaVista = trasVerla(mezcla);
 ok("y si no hay nada que quitar ni que marcar, devuelve la misma lista", trasVerla(yaVista) === yaVista);
+// Revisión aparte de los arreglos de H (2026-11-16): cerrar la lista de Adeo tiraba lo que
+// habías pospuesto en Decisiones, y su fila «Mira» no volvía nunca a su hora.
+es("lo que duerme no se tira al cerrar la lista ni se da por leído", resumen(trasVerla(mezcla, (a) => a.paneId === 3)), ["1:espera(leído)", "2:espera(leído)", "3:hecho"]);
+es("un «te espera» dormido tampoco se da por leído", resumen(trasVerla(mezcla, (a) => a.paneId === 1)), ["1:espera", "2:espera(leído)"]);
 es("lo quitas de Decisiones: su «terminó» se va", resumen(trasQuitar(mezcla, 3)), ["1:espera", "2:espera(leído)"]);
 ok("un «te espera» no se quita así: sigue esperándote", trasQuitar(mezcla, 1) === mezcla);
 es("entras en la terminal que terminó: su aviso se va", resumen(trasEntrar(mezcla, 3, SALTO_MS)), ["1:espera", "2:espera(leído)"]);

@@ -91,11 +91,12 @@ export function sinLeer(lista: Aviso[]): number {
 
 /**
  * La lista después de mirarla: lo que terminó ya lo has visto y se va; lo que
- * te espera se queda, leído, hasta que le contestes.
+ * te espera se queda, leído, hasta que le contestes. Lo que duerme (pospuesto en
+ * Decisiones) no estaba en la lista: se queda como está, para volver a su hora.
  */
-export function trasVerla(lista: Aviso[]): Aviso[] {
-  if (!lista.some((a) => a.tipo === "hecho" || !a.leido)) return lista;
-  return lista.filter((a) => a.tipo === "espera").map((a) => (a.leido ? a : { ...a, leido: true }));
+export function trasVerla(lista: Aviso[], duerme: (a: Aviso) => boolean = () => false): Aviso[] {
+  if (!lista.some((a) => !duerme(a) && (a.tipo === "hecho" || !a.leido))) return lista;
+  return lista.filter((a) => a.tipo === "espera" || duerme(a)).map((a) => (a.leido || duerme(a) ? a : { ...a, leido: true }));
 }
 
 /** Menos que esto entre el aviso y la entrada no es que hayas ido tú: es el
@@ -160,7 +161,7 @@ export function animoDe(lista: Aviso[], estados: Record<number, PaneStatus>, s: 
 interface Almacen {
   lista: Aviso[];
   /** Has cerrado la lista: `trasVerla`. */
-  vista: () => void;
+  vista: (duerme?: (a: Aviso) => boolean) => void;
   /** Has entrado en esa terminal: `trasEntrar`. */
   entrar: (paneId: number) => void;
   /** Lo has quitado de la lista de Decisiones: `trasQuitar`. */
@@ -171,7 +172,7 @@ const cambia = (s: Almacen, lista: Aviso[]) => (lista === s.lista ? s : { lista 
 
 export const useAvisos = create<Almacen>((set) => ({
   lista: [],
-  vista: () => set((s) => cambia(s, trasVerla(s.lista))),
+  vista: (duerme) => set((s) => cambia(s, trasVerla(s.lista, duerme))),
   entrar: (paneId) => set((s) => cambia(s, trasEntrar(s.lista, paneId, Date.now()))),
   quitar: (paneId) => set((s) => cambia(s, trasQuitar(s.lista, paneId))),
 }));

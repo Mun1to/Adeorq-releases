@@ -21,17 +21,17 @@ export async function aceptarPropuesta(n: Note, proyectos: Project[], t: Transla
     const carpeta = proyectos.find((p) => p.name === n.project)?.path;
     if (!carpeta) throw new Error(t("No encuentro la carpeta de {p}, así que no sé dónde apuntarlo.", { p: n.project }));
     await addParked(carpeta, n.text);
-    await dropInbox(n.line);
+    await dropInbox(n);
     return { dicho: t("Apuntado en el METAS.md de {p}.", { p: n.project }), carpeta };
   }
   await addIdea(n.text, n.project);
-  await dropInbox(n.line);
+  await dropInbox(n);
   return { dicho: t("Idea guardada en tu brújula.") };
 }
 
 /** Descartarla: se borra de la bandeja y ya está. */
 export async function descartarPropuesta(n: Note): Promise<void> {
-  await dropInbox(n.line);
+  await dropInbox(n);
   olvidarAccion(n.text);
 }
 
@@ -42,7 +42,7 @@ export async function descartarPropuesta(n: Note): Promise<void> {
  */
 export async function hacerPropuesta(n: Note, a: AccionConsejo, onHacer: (a: AccionConsejo) => Promise<string>): Promise<string> {
   const dicho = await onHacer(a);
-  await dropInbox(n.line);
+  await dropInbox(n);
   olvidarAccion(n.text);
   return dicho;
 }

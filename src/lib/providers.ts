@@ -37,6 +37,9 @@
 // sin archivo de sesión, así que sale como de una sola cuenta y diciendo que
 // no sabemos leerle el login. Cuando esté instalado se comprueba y se rellena.
 
+/** Las cajas de entrada que se saben leer de la pantalla (`lib/cajaDeEntrada.ts`). */
+export type CajaEnPantalla = "claude" | "codex" | "gemini";
+
 export interface Provider {
   id: string;
   label: string;
@@ -220,6 +223,10 @@ export interface Provider {
    *  compacta con traspaso, y solo, a la campana (`lib/contexto.ts`). A los
    *  demás el botón les manda el texto de la casa, a ciegas. */
   compactaConTraspaso?: boolean;
+  /** Cómo pinta su caja de entrada, y Adeorq sabe leer en su pantalla si está
+   *  parado en ella y vacía (`lib/cajaDeEntrada.ts`): es lo que deja teclearle
+   *  sola la línea de sus terminales hijas. Sin esto, nunca se le teclea nada. */
+  cajaEnPantalla?: CajaEnPantalla;
   /**
    * Cinco cosas que hasta el 2026-10-06 se preguntaban por el nombre
    * (`provider === "claude"`) en siete sitios entrados después de la limpieza
@@ -298,6 +305,7 @@ export const PROVIDERS: Provider[] = [
     confianza: true,
     archivosDelDisco: "transcript",
     compactaConTraspaso: true,
+    cajaEnPantalla: "claude",
   },
   {
     id: "codex",
@@ -334,6 +342,8 @@ export const PROVIDERS: Provider[] = [
     sesionDelDisco: true,
     estadoDelDisco: true,
     archivosDelDisco: "rollout",
+    // Su caja y su «esc to interrupt», medidos en la 0.165.0 (2026-11-16).
+    cajaEnPantalla: "codex",
   },
   {
     id: "gemini",
@@ -371,6 +381,9 @@ export const PROVIDERS: Provider[] = [
     retomable: true,
     retomar: "gemini --resume {id}",
     banderaSesionNueva: "--session-id",
+    // Su caja, su «esc to cancel» y su pregunta de permiso, medidos en la
+    // 0.52.0 (2026-11-16). No deja en disco cómo acaba un turno: lo dice la pantalla.
+    cajaEnPantalla: "gemini",
   },
   {
     id: "qwen",
@@ -892,6 +905,7 @@ export type Capacidad =
   | "leeRutaDeImagen"
   | "skills"
   | "compactaConTraspaso"
+  | "cajaEnPantalla"
   /** Su carpeta de identidad se puede mover, así que admite varias cuentas.
    *  No es un booleano en la tabla sino el nombre de la variable, y por eso se
    *  pregunta aquí en vez de comparar contra `""` por ahí suelto. */

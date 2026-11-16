@@ -437,12 +437,18 @@ lista a la izquierda y lo que abras a la derecha. Cada fila empieza por una pala
 que dice qué es, y va en este orden:
 
 - **Te toca**: una terminal parada en una pregunta o un permiso (**Contesta**), una
-  pregunta de un agente con opciones (**Decide**) y un encargo programado que el freno
-  paró (**Parado**). Es lo que cuenta el número ámbar de la pestaña.
+  pregunta de un agente con opciones (**Decide**), un plan de Adeo que cerraste sin
+  contestar (**Aprueba**: se vuelve a abrir en Adeo tal como estaba, o se tira) y un
+  encargo programado que el freno paró (**Parado**). Es lo que cuenta el número ámbar
+  de la pestaña.
 - **Terminó**: los turnos acabados que todavía no has mirado (**Mira**).
 - **Ideas de tus agentes**: lo que te dejan apuntado mientras trabajan (**Idea**). Lo
   aceptas (un paso va al `METAS.md` de su proyecto y una idea a la brújula), lo
   descartas o, si trae una acción, la haces.
+- **Pospuesto**: lo que has apartado con **H** o con el botón **Posponer**. Vuelve a la
+  hora que digas o, antes, en cuanto el agente diga algo nuevo, lo que llegue primero, y
+  vuelve en negrita, sin ver. Mientras duerme no cuenta en el número de la pestaña ni en
+  la cara de Adeo, y **H** o el botón **Traer de vuelta** la devuelven a su sitio.
 - **Ya pasó**: las preguntas contestadas, descartadas o que ya no espera nadie. Se
   borran solas a la semana.
 
@@ -456,9 +462,15 @@ chat. Cada pregunta trae de dos a seis opciones numeradas (la recomendada lleva
 - **Descartar** la aparta sin contestar y avisa a la terminal que esperaba.
 - **Con el teclado**: **J** y **K** (o las flechas) para bajar y subir, **Intro** para
   abrir, **1** a **9** para elegir, **Tab** para pasar de pregunta, **O** para escribir
-  con tus palabras, **Ctrl+Intro** para enviar y **Esc** para volver adonde estabas.
-  **?** enseña todas las teclas, y **Ctrl+Mayús+B** abre Decisiones desde cualquier
-  sitio.
+  con tus palabras, **Ctrl+Intro** para enviar, **H** para posponer, **U** para marcar
+  como visto o no visto y **Esc** para volver adonde estabas. **?** enseña todas las
+  teclas, y **Ctrl+Mayús+B** abre Decisiones desde cualquier sitio.
+- **Posponer y visto**: **H**, o el botón **Posponer** junto a las acciones de lo que
+  tienes abierto, abre un menú con **1** en una hora, **2** en tres horas, **3** mañana
+  a las 9:00, **4** dentro de una semana y **O** para escribir tú la hora («16:30», «a
+  las 9», «+45» minutos, «2 h» o «en 2 h»). Un clic fuera lo cierra. Lo que no has
+  mirado sale en negrita; al abrirlo queda visto, y **U** lo marca otra vez como no
+  visto. Si el agente dice algo nuevo, vuelve a salir en negrita.
 - El aviso es la cuenta ámbar en la pestaña y Adeo con cara de duda; su lista acaba
   en **Abrir Decisiones**. En el móvil emparejado llega un aviso y se contesta desde
   allí ([punto 19](#19-en-el-móvil)).

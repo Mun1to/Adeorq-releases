@@ -15,6 +15,8 @@
 // de abajo lo llenan `TerminalPane` al montar su espejo y `puenteMcp.ts` al
 // poner una hija en la copia de su madre.
 
+import { PROCESO_TERMINADO } from "./vueltaArriba";
+
 export interface Copia {
   /** La carpeta de verdad del proyecto. */
   proyecto: string;
@@ -40,6 +42,25 @@ const unir = (a: string, resto: string) => {
   const b = barraDe(a);
   return `${(b === "\\" ? a.replace(/\//g, "\\") : a).replace(/[\\/]+$/, "")}${b}${resto.split("/").join(b)}`;
 };
+
+/**
+ * El entorno de un CLI que nace en `carpeta`: dentro de una copia aparte, con un
+ * techo para su git en `<proyecto>\.adeorq\espejo` (`GIT_CEILING_DIRECTORIES`).
+ * Al aceptarla o tirarla, su `.git` cae de lo primero y el resto tarda segundos en
+ * borrarse (o, en Windows, la carpeta se queda), y sin techo el git de dentro subía
+ * hasta tu repo de verdad. Una copia viva tiene su `.git` antes del techo: no cambia.
+ * El techo que ya traía el entorno del panel se queda detrás (`;` en Windows, `:` fuera);
+ * el que hereda Adeorq lo junta `pty.rs`.
+ */
+export function conTechoDeGit(carpeta: string, env: Record<string, string> | undefined): Record<string, string> | undefined {
+  const m = /^(.+?[\\/]\.adeorq[\\/]espejo)[\\/][^\\/]+/i.exec(carpeta);
+  if (!m) return env;
+  const windows = deWindows(carpeta);
+  const techo = windows ? m[1].replace(/\//g, "\\") : m[1];
+  const sep = windows ? ";" : ":";
+  const previos = (env?.GIT_CEILING_DIRECTORIES ?? "").split(sep).filter((t) => t && t !== techo);
+  return { ...env, GIT_CEILING_DIRECTORIES: [techo, ...previos].join(sep) };
+}
 
 /** Ya es el árbol de un espejo, o una carpeta de dentro (`git_shadow.rs`). */
 const enUnEspejo = (cwd: string) => /[\\/]\.adeorq[\\/]espejo[\\/][^\\/]+/i.test(cwd);
@@ -71,6 +92,62 @@ export function proyectoDe(cwd: string, base: string): string {
     guarda su conversación (`ruta_espejo` en `git_shadow.rs`). */
 export function arbolDe(cwd: string, nombre: string, base: string): string {
   return unir(proyectoDe(cwd, base), `.adeorq/espejo/${nombre}`);
+}
+
+/**
+ * Dónde corre dentro de la copia lo que se pidió en `cwd`: en su misma
+ * subcarpeta del árbol. Antes un encargo en `Demo\web` arrancaba en la raíz de la
+ * copia. Sale siempre lo mismo para el mismo `cwd`, sin mirar el disco: lo usan
+ * quien la abre y quien la retoma tras reiniciar (cuando el árbol puede no
+ * existir aún), y su conversación tiene que buscarse donde se guardó. Que exista
+ * lo pone `carpetaParaNacer` (revisión aparte del 2026-11-16).
+ */
+export function carpetaEnLaCopia(cwd: string, proyecto: string, arbol: string): string {
+  if (dentroDe(cwd, arbol) !== null) return cwd;
+  const resto = dentroDe(cwd, proyecto);
+  return resto ? unir(arbol, resto) : arbol;
+}
+
+/** Lo del disco que necesita `carpetaParaNacer`: en la app, `existeRuta` y
+    `crearCarpeta` de `lib/archivos.ts`. */
+export interface Disco {
+  existe: (ruta: string) => Promise<boolean>;
+  crear: (carpeta: string, nombre: string) => Promise<unknown>;
+}
+
+/**
+ * La carpeta en la que nace su CLI: la de `carpetaEnLaCopia`, creada tramo a
+ * tramo si git no la trae (una carpeta que no sigue, o vacía). Si no se puede
+ * crear (hay un archivo con ese nombre), la raíz del árbol.
+ */
+export async function carpetaParaNacer(cwd: string, proyecto: string, arbol: string, disco: Disco): Promise<string> {
+  const carpeta = carpetaEnLaCopia(cwd, proyecto, arbol);
+  const resto = dentroDe(carpeta, arbol);
+  if (!resto) return carpeta;
+  let actual = arbol;
+  try {
+    for (const tramo of resto.split("/")) {
+      const siguiente = unir(actual, tramo);
+      if (!(await disco.existe(siguiente))) await disco.crear(actual, tramo);
+      actual = siguiente;
+    }
+    return carpeta;
+  } catch {
+    return arbol;
+  }
+}
+
+/** La carpeta de verdad que corresponde a una de dentro de una copia (la
+    subcarpeta del árbol, en el proyecto), o la misma si no está en ninguna. */
+export function carpetaDeVerdad(cwd: string): string {
+  const c = copiaPorCarpeta(cwd);
+  return c ? unir(c.proyecto, dentroDe(cwd, c.arbol) ?? "") : cwd;
+}
+
+/** Qué propuesta del espejo queda elegida al releer la lista: la de antes si
+    sigue en ella, y si no, la primera. */
+export function archivoElegido(antes: string | null, archivos: { path: string }[]): string | null {
+  return antes && archivos.some((f) => f.path === antes) ? antes : (archivos[0]?.path ?? null);
 }
 
 export interface Nace {
@@ -143,6 +220,52 @@ export function porQueNoSeCierra(id: number, copia: Copia | undefined, pendiente
   );
 }
 
+/** Lo que se sabe de un panel para ver si vive dentro de una copia (de `PaneStatus`). */
+export interface PanelVivo {
+  id: number;
+  name?: string;
+  cwd?: string;
+  porque?: string;
+}
+
+/**
+ * Las terminales, aparte de la dueña, que siguen abiertas con su proceso dentro
+ * de la copia `arbol`: por su carpeta, o por el registro (una mudada a otra
+ * ventana no sale en los paneles de esta, y su agente sigue corriendo).
+ */
+export function vivasDentro(arbol: string, duena: number, paneles: PanelVivo[]): { id: number; name: string }[] {
+  const vivas = new Map<number, string>();
+  const terminada = (p: PanelVivo | undefined) => p?.porque === PROCESO_TERMINADO;
+  for (const p of paneles) {
+    if (p.id === duena || terminada(p) || !p.cwd || dentroDe(p.cwd, arbol) === null) continue;
+    vivas.set(p.id, p.name || `terminal ${p.id}`);
+  }
+  for (const [id, c] of copias) {
+    if (id === duena || vivas.has(id) || dentroDe(c.arbol, arbol) !== "") continue;
+    const p = paneles.find((x) => x.id === id);
+    if (!terminada(p)) vivas.set(id, p?.name || `terminal ${id}`);
+  }
+  return [...vivas].map(([id, name]) => ({ id, name })).sort((a, b) => a.id - b.id);
+}
+
+/**
+ * Por qué no se acepta o se tira todavía la copia, o null si se puede. Aceptar
+ * guarda lo que hay en ese momento y borra el árbol con su rama: lo que una hija
+ * escribiera después se perdía, y en Windows la carpeta en la que corre su
+ * proceso ni siquiera se deja borrar entera.
+ */
+export function porQueNoSeSuelta(que: "aceptar" | "tirar", vivas: { id: number; name: string }[]): string | null {
+  if (!vivas.length) return null;
+  const una = vivas.length === 1;
+  const quien = vivas.map((v) => `«${v.name}» (panel ${v.id})`);
+  const lista = una ? quien[0] : `${quien.slice(0, -1).join(", ")} y ${quien[quien.length - 1]}`;
+  return (
+    `${que === "aceptar" ? "No acepto" : "No tiro"} la copia todavía: dentro ${una ? "sigue abierta" : "siguen abiertas"} ${lista}. ` +
+    `Lo que ${una ? "escribiera" : "escribieran"} después se perdería con ella. ` +
+    `${una ? "Ciérrala cuando acabe" : "Ciérralas cuando acaben"} y vuelve a darle.`
+  );
+}
+
 /** Lo que se le dice al agente al final de su encargo cuando trabaja en una copia. */
 export function notaDeCopia(proyecto: string): string {
   return (
@@ -178,7 +301,36 @@ export function soltarCopia(id: number): void {
   copias.delete(id);
 }
 
-/** Se aceptó o se tiró: esa copia ya no existe, ni para sus hijas. */
+/** Se aceptó o se tiró: esa copia ya no existe, ni para sus hijas. Y queda
+    apuntada en el disco, para que Reanimar, el lienzo o la vuelta tras reiniciar
+    no la vuelvan a montar: saldría de HEAD, sin lo que se aceptó (que queda sin
+    commit en tu carpeta), y su agente seguiría como si su trabajo estuviera ahí
+    (segunda revisión aparte, 2026-11-16). */
 export function copiaCerrada(arbol: string): void {
   for (const [id, c] of copias) if (dentroDe(c.arbol, arbol) === "") copias.delete(id);
+  const nombre = arbol.split(/[\\/]/).filter(Boolean).pop();
+  if (!nombre) return;
+  try {
+    const cerradas = [...leerCerradas().filter((n) => n !== nombre), nombre].slice(-CERRADAS_TOPE);
+    localStorage.setItem(CERRADAS, JSON.stringify(cerradas));
+  } catch {
+    // Sin almacén, lo de esta sesión ya se sabe por el registro de arriba.
+  }
+}
+
+/** Si esa copia (por el nombre de su espejo, `<panel>-<arranque>`, que no se
+    repite) se aceptó o se tiró. */
+export function copiaYaCerrada(espejo: string | undefined): boolean {
+  return !!espejo && leerCerradas().includes(espejo);
+}
+
+const CERRADAS = "adeorq.copiasCerradas";
+const CERRADAS_TOPE = 200;
+function leerCerradas(): string[] {
+  try {
+    const v: unknown = JSON.parse(localStorage.getItem(CERRADAS) ?? "[]");
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
 }

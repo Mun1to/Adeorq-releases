@@ -218,8 +218,8 @@ window.ADEORQ_I18N_EXTRA = {
     /* -------------------------------- DECISIONES ------------------------- */
     'guia.dec.h': 'Decisions',
     'guia.dec.p': 'Everything that needs your finger, in a single list and like an email program: first ' +
-                  '<b>Your turn</b> (a terminal asking you something, a decision from an agent, a scheduled job ' +
-                  'the brake stopped), then <b>Finished</b>, the <b>Ideas from your agents</b> and what is ' +
+                  '<b>Your turn</b> (a terminal asking you something, a decision from an agent, an Adeo plan you ' +
+                  'closed without answering, a scheduled job the brake stopped), then <b>Finished</b>, the <b>Ideas from your agents</b> and what is ' +
                   '<b>Past</b>. When an agent needs you to choose something, it asks you here instead of in the ' +
                   'chat, with two to six numbered options (the recommended one says "Recommended") and a box, ' +
                   '<b>Something else, in your own words</b>.',

@@ -298,14 +298,20 @@ Era el paso 5 de abajo y el único punto en que los rivales iban por delante
   madre van la entrega, «paró sin entregar» (un minuto en «lista» sin haber entregado desde que
   empezó a trabajar), «se paró a preguntar» (un menú, o acabar preguntando sin haber entregado)
   y «se cerró» (la X, o su proceso terminó; si la cierra su madre con `close_pane`, no). Cada 3 s,
-  a la madre con cola se le teclea UNA línea (`sendPty`, Intro aparte) si está en «lista», sin
-  subagentes, sin «esc to interrupt» en pantalla y con su caja vacía (`esperaEnSuCaja`). Hace
-  falta esa prueba positiva, y hoy solo se sabe leer en Claude Code: a una madre Codex, Gemini o
-  Kimi, a una consola o a una terminal sacada a su ventana no se le teclea nada (la hija oye
-  «sin_caja» y queda en `get_active_panes`). La revisión aparte del 2026-11-15 lo cazó: con «si
-  no se ve una consola», la línea iba detrás de un borrador de Munir o se ejecutaba en un
-  `cmd.exe` con el `&` del resumen. Tope de 20 por hora y madre; pasado, solo la campana. Tras
-  teclear, espera a verla trabajar (o 45 s). Quién es hija de quién lo rehace la ventana desde
+  a la madre con cola se le teclea UNA línea (`sendPty`, Intro aparte) si está sin subagentes,
+  sin nada en pantalla que diga que trabaja y con su caja vacía, leída por el lector de su CLI
+  (`lib/cajaDeEntrada.ts`, el que dice `cajaEnPantalla` en la tabla de proveedores: Claude Code,
+  Codex y Gemini desde el 2026-11-16). Con el turno en disco (el transcript de Claude, el rollout
+  de Codex), además en «lista»; Gemini no lo deja, y ahí manda la pantalla sola, vista igual en
+  dos miradas seguidas. Hace falta esa prueba positiva: a una madre Kimi, Qwen u otra cuya caja
+  no se sabe leer, a una consola o a una terminal sacada a su ventana no se le teclea nada (la
+  hija oye «sin_caja» y queda en `get_active_panes`). La revisión aparte del 2026-11-15 lo cazó:
+  con «si no se ve una consola», la línea iba detrás de un borrador de Munir o se ejecutaba en
+  un `cmd.exe` con el `&` del resumen. Tope de 20 por hora y madre; pasado, solo la campana. Tras
+  teclear, espera a verla trabajar (o 45 s), y si su caja sigue con la línea escrita (Codex toma
+  por salto de línea el Intro que llega en los 120 ms tras un pegado; desde el 2026-11-16
+  `antes_del_intro` espera más, según lo largo, pero con el equipo cargado puede no bastar),
+  pulsa Intro otra vez, hasta tres. Quién es hija de quién lo rehace la ventana desde
   Rust cada 30 s (`madres_de_delegadas`, con la madre por su conversación): tras reiniciar, un
   Reanimar o un relevo por cuota no se pierde, y un relevo no se cuenta como «se cerró».
   Interruptor en Ajustes › Terminales, encendido de fábrica (`adeorq-vuelta-arriba`).
@@ -316,8 +322,18 @@ Era el paso 5 de abajo y el único punto en que los rivales iban por delante
   dice a quién; a la madre le llega la línea después de acabar su turno; `get_active_panes` dice
   «Entregó: hecho»; cerrada por otro, «se cerró» una vez y nada más), repetido tras los arreglos
   de la revisión. NO PROBADO: el modelo de verdad decidiendo cuándo entregar, y la resincronía
-  tras reiniciar. **Una madre que no es Claude Code** no recibe la línea: 🔓 cuando haya, para
-  ese CLI, un detector de «parado con la caja vacía» como `esperaEnSuCaja`, medido en su pantalla.
+  tras reiniciar.
+- **Madres Codex y Gemini (2026-11-16):** sus cajas se midieron en una Adeorq aislada con Codex
+  0.165.0 y Gemini 0.52.0 de verdad (parados, con borrador, trabajando, cortados con Esc y, Gemini,
+  preguntando permiso, que esconde la caja). `pnpm bancos caja-de-entrada` lleva esas filas, y
+  `node scripts/laboratorio/vuelta-arriba-otros-cli-de-verdad.mjs` las dos madres de verdad contra
+  dos API de mentira: les llega la línea y la envían a su modelo; con un borrador en la caja no
+  se les teclea nada en 15 s, y al vaciarla llega. Dos trampas del laboratorio: Codex 0.165 no
+  arranca si su `CODEX_HOME` es tan largo que el socket de su servidor de fondo pasa del tope
+  (`SUN_LEN`), y prueba antes por WebSocket (con un proveedor propio, `supports_websockets =
+  false`). NO PROBADO: Gemini con `ui.useBackgroundColor` apagado (otro marco: dice que no) y un
+  panel tan estrecho que parta su frase de ejemplo. **Otra madre (Kimi, Qwen…)** no recibe la
+  línea: 🔓 cuando su caja se mida igual y entre en `cajaEnPantalla`.
 
 ## La hija de una terminal en copia aparte nace en esa copia, y la dueña no se cierra con trabajo dentro (2026-11-15)
 

@@ -452,12 +452,18 @@ list on the left and what you open on the right. Each row starts with a word tha
 says what it is, in this order:
 
 - **Your turn**: a terminal stopped on a question or a permission (**Answer**), a
-  question from an agent with options (**Decide**) and a scheduled job the brake
-  stopped (**Stopped**). This is what the amber number on the tab counts.
+  question from an agent with options (**Decide**), an Adeo plan you closed without
+  answering (**Approve**: it opens again in Adeo just as it was, or you throw it away)
+  and a scheduled job the brake stopped (**Stopped**). This is what the amber number
+  on the tab counts.
 - **Finished**: the finished turns you have not looked at yet (**Look**).
 - **Ideas from your agents**: what they leave written down for you while they work
   (**Idea**). You accept it (a step goes into its project's `METAS.md` and an idea into
   the brújula), discard it or, if it brings an action, do it.
+- **Snoozed**: what you set aside with **H** or the **Snooze** button. It comes back at
+  the time you say or, sooner, as soon as the agent says something new, whichever comes
+  first, and it comes back in bold, unseen. While it sleeps it does not count in the tab
+  number nor in Adeo's face, and **H** or the **Bring back** button returns it to its place.
 - **Past**: the questions already answered, discarded or that no one waits for any
   more. They delete themselves after a week.
 
@@ -473,8 +479,15 @@ own words**.
   waiting.
 - **With the keyboard**: **J** and **K** (or the arrows) to go down and up, **Enter**
   to open, **1** to **9** to choose, **Tab** to move to the next question, **O** to
-  write in your own words, **Ctrl+Enter** to send and **Esc** to go back to where you
-  were. **?** shows all the keys, and **Ctrl+Shift+B** opens Decisions from anywhere.
+  write in your own words, **Ctrl+Enter** to send, **H** to snooze, **U** to mark as
+  seen or not seen and **Esc** to go back to where you were. **?** shows all the keys,
+  and **Ctrl+Shift+B** opens Decisions from anywhere.
+- **Snoozing and seen**: **H**, or the **Snooze** button next to the actions of what you
+  have open, opens a menu with **1** in an hour, **2** in three hours, **3** tomorrow at
+  9:00, **4** in a week and **O** to type the time yourself ("16:30", "at 9", "4pm", "+45"
+  minutes, "2 h" or "in 2 h"). A click outside closes it. What you have not looked at is
+  in bold; opening it marks it seen, and **U** marks it as not seen again. If the agent
+  says something new, it goes back to bold.
 - The notice is the amber count on the tab and Adeo with a doubtful face; its list
   ends in **Open Decisions**. On the paired phone a notification arrives and you
   answer from there ([section 19](#19-on-your-phone)).

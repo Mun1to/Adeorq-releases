@@ -296,6 +296,19 @@ fn guardar_de_la_ventana(dir: &Path, nombre: &str, sesion: &str, ahora_ms: u64, 
     Ok(ruta)
 }
 
+/// El cierre de `close_pane` con su rastro ya escrito: si la ventana no la
+/// cierra al final (su copia aparte se puede negar si el agente escribió algo
+/// después de preguntarle), el rastro se borra. Si no, quedaba el de una
+/// terminal que sigue abierta, y la barra la daba por cerrada. Si la ventana no
+/// contestó a tiempo se queda: la puede cerrar igual después.
+pub fn o_sin_rastro<T>(rastro: Option<&Path>, cerrar: impl FnOnce() -> Result<T, String>) -> Result<T, String> {
+    cerrar().inspect_err(|e| {
+        if let Some(r) = rastro.filter(|_| e != crate::mcp::NO_CONTESTO) {
+            let _ = std::fs::remove_file(r);
+        }
+    })
+}
+
 /// Para la ventana: «Nueva con traspaso» sobre una conversación de Claude Code.
 #[tauri::command(async)]
 pub fn rastro_de_relevo(nombre: String, carpeta: String, sesion: String) -> Result<(), String> {
@@ -327,6 +340,29 @@ pub fn rastros_cerradas() -> Result<Vec<Cerrada>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn el_rastro_de_una_terminal_que_al_final_no_se_cierra_no_se_queda() {
+        let dir = std::env::temp_dir().join(format!("adeorq-rastro-sin-cierre-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let r = Rastro { nombre: "Hija", carpeta: "C:\\p", sesion: None, delegada: true, abierta_por: Some(1), cerrada_por: Some(1), texto: "Hizo lo suyo y lo dejó en el BUZON.md del proyecto." };
+        let no = escribir(&dir, &r, 0).unwrap();
+        let negada = o_sin_rastro(Some(&no), || Err::<(), _>("la copia tiene cambios".to_string()));
+        let queda_no = no.exists();
+        let si = escribir(&dir, &r, 0).unwrap();
+        let cerrada = o_sin_rastro(Some(&si), || Ok(()));
+        let queda_si = si.exists();
+        let sin_rastro = o_sin_rastro(None, || Err::<(), _>("da igual".to_string()));
+        // Sin contestar a tiempo, la ventana la puede cerrar igual: el rastro se queda.
+        let tarde = escribir(&dir, &r, 60_000).unwrap();
+        let _ = o_sin_rastro(Some(&tarde), || Err::<(), _>(crate::mcp::NO_CONTESTO.to_string()));
+        let queda_tarde = tarde.exists();
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(queda_tarde, "sin respuesta a tiempo se borró el rastro de una que se puede cerrar igual");
+        assert!(negada.is_err() && !queda_no, "la ventana no la cerró y su rastro se quedó");
+        assert!(cerrada.is_ok() && queda_si, "la cerró y su rastro no está");
+        assert!(sin_rastro.is_err());
+    }
 
     #[test]
     fn la_barra_sabe_que_conversaciones_cerro_un_agente() {

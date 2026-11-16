@@ -9,7 +9,19 @@
 // el comando de la nueva (`--resume` de la misma conversación, su modelo, su
 // esfuerzo, `auto` y el «sigue»). Lo que lee el 429 y muda la conversación es de
 // Rust: `cargo test --lib relevo_cuota`.
-import { apuntarAgotada, comandoDeRelevo, conLasAgotadas, cuentaDelRelevo, deSuComando, olvidarAgotadas, textoDeSeguir } from "../src/lib/relevoCuota";
+
+// Las copias ya cerradas se apuntan ahí (`copiaCerrada`).
+const armario = new Map<string, string>();
+(globalThis as unknown as { localStorage: Storage }).localStorage = {
+  getItem: (k: string) => armario.get(k) ?? null,
+  setItem: (k: string, v: string) => void armario.set(k, v),
+  removeItem: (k: string) => void armario.delete(k),
+  clear: () => armario.clear(),
+  key: () => null,
+  length: 0,
+} as Storage;
+import { abrirElRelevo, apuntarAgotada, comandoDeRelevo, conLasAgotadas, cuentaDelRelevo, deSuComando, elegirParaRelevo, olvidarAgotadas, textoDeSeguir, type ManosDelRelevo } from "../src/lib/relevoCuota";
+import { apuntarCopia, copiaCerrada, copiaDe, soltarCopia } from "../src/lib/copiaAparte";
 import { elegirCuenta, type CuentaViva } from "../src/lib/router";
 
 let fallos = 0;
@@ -98,8 +110,77 @@ const SEGUNDA = "C:\\cuentas\\2da MAIN";
   comprueba("sin comando viejo, en auto y sin inventarse modelo", sinNada.includes("--permission-mode auto") && !sinNada.includes("--model"), sinNada);
 }
 
-if (fallos) {
-  console.log(`\n${fallos} FALLAN`);
-  process.exit(1);
+// La copia aparte en el relevo (segunda revisión aparte, 2026-11-16). Rust cierra
+// la vieja ENTRE `relevo_cuenta` y `relevo_abrir`, y al cerrarse su panel suelta
+// su copia (`soltarCopia`): al abrir la nueva ya no se sabía de qué copia era, y
+// se adivinaba por el número del nombre del espejo, que tras Reanimar o reiniciar
+// no es el suyo.
+async function laCopiaEnElRelevo() {
+  const ARBOL = "C:\\proyectos\\Demo\\.adeorq\\espejo\\3-1700000000";
+  const abiertas: { cwd: string; shadow?: boolean; espejo?: string }[] = [];
+  const manos: ManosDelRelevo = {
+    addPane: (_n, cwd, _c, _a, _acc, _t, shadow, _g, _e, op) => {
+      abiertas.push({ cwd, shadow, espejo: op?.espejo });
+      return { id: 40 + abiertas.length, donde: "cabina" };
+    },
+    vivas: async () => [viva("Principal", { gastado: 10, renueva: AHORA + 5 * DIA })],
+    lista: () => [],
+    nombreDe: () => "nocturna",
+    confiar: async () => true,
+    marcar: () => {},
+  };
+  const confiadas: string[] = [];
+  manos.confiar = async (cwd) => (confiadas.push(cwd), true);
+  const relevo = async (paneId: number, arbol = ARBOL, entre?: () => void) => {
+    abiertas.length = 0;
+    confiadas.length = 0;
+    await elegirParaRelevo({ paneId, cli: "claude", agotada: SEGUNDA }, manos);
+    entre?.(); // lo que pase entre `relevo_cuenta` y `relevo_abrir`
+    soltarCopia(paneId); // lo que hace su panel al cerrarse, antes de `relevo_abrir`
+    await abrirElRelevo({ paneId, cli: "claude", cuenta: { id: "main:claude" }, cwd: `${arbol}\\web`, nombre: "nocturna", sesion: "s1" }, manos);
+    return abiertas[0];
+  };
+
+  // Una dueña reanimada: ahora es la 12, y su espejo se llama «3-…».
+  apuntarCopia(12, { proyecto: "C:\\proyectos\\Demo", arbol: ARBOL, base: "main", duena: 12 });
+  const duena = await relevo(12);
+  comprueba("la dueña reanimada sigue en su copia, con su Aceptar y Tirar", duena?.shadow === true && duena.espejo === "3-1700000000", duena);
+
+  // Una hija de la 12 que hoy tiene el número 3, el del nombre del espejo.
+  apuntarCopia(3, { proyecto: "C:\\proyectos\\Demo", arbol: ARBOL, base: "main", duena: 12 });
+  const hija = await relevo(3);
+  comprueba("la hija con el número del espejo no se hace dueña de la copia", !!hija && !hija.shadow && !hija.espejo, hija);
+  comprueba("y su relevo sigue apuntado dentro de la copia de su madre", copiaDe(41)?.duena === 12, copiaDe(41));
+
+  // Una dueña cuya copia se aceptó con su agente aún dentro: siguió en el árbol
+  // muerto hasta quedarse sin cuota. Su relevo vuelve a tu carpeta, con el nombre
+  // del espejo para que `TerminalPane` no lo remonte y le traiga la conversación.
+  const MUERTO = "C:\\proyectos\\Demo\\.adeorq\\espejo\\14-1700000500";
+  apuntarCopia(14, { proyecto: "C:\\proyectos\\Demo", arbol: MUERTO, base: "main", duena: 14 });
+  copiaCerrada(MUERTO);
+  const tras = await relevo(14, MUERTO);
+  comprueba("la dueña de una copia ya cerrada sigue en tu carpeta, no en el árbol muerto", tras?.cwd === "C:\\proyectos\\Demo\\web", tras);
+  comprueba("con el nombre de su espejo, que no se vuelve a montar", tras?.shadow === true && tras.espejo === "14-1700000500", tras);
+  comprueba("y la carpeta de confianza en la cuenta nueva es la tuya", confiadas[0] === "C:\\proyectos\\Demo\\web", confiadas);
+
+  // Cuarta revisión aparte: la copia se acepta A MITAD del relevo, cuando ya se había
+  // apuntado de qué copia era. Con eso apuntado no se miraba si estaba cerrada: la
+  // confianza iba al árbol muerto y una hija se volvía a apuntar en él.
+  const A_MITAD = "C:\\proyectos\\Demo\\.adeorq\\espejo\\15-1700000600";
+  apuntarCopia(15, { proyecto: "C:\\proyectos\\Demo", arbol: A_MITAD, base: "main", duena: 15 });
+  const duenaAMitad = await relevo(15, A_MITAD, () => copiaCerrada(A_MITAD));
+  comprueba("la dueña cuya copia se cierra a mitad del relevo sigue en tu carpeta", duenaAMitad?.cwd === "C:\\proyectos\\Demo\\web" && duenaAMitad.espejo === "15-1700000600", duenaAMitad);
+  comprueba("y la confianza va a tu carpeta, no al árbol muerto", confiadas[0] === "C:\\proyectos\\Demo\\web", confiadas);
+  apuntarCopia(16, { proyecto: "C:\\proyectos\\Demo", arbol: A_MITAD, base: "main", duena: 15 });
+  const hijaAMitad = await relevo(16, A_MITAD, () => copiaCerrada(A_MITAD));
+  comprueba("su hija también vuelve a tu carpeta", hijaAMitad?.cwd === "C:\\proyectos\\Demo\\web", hijaAMitad);
+  comprueba("y no se vuelve a apuntar en la copia cerrada", ![41, 42, 43, 44, 45, 46, 47, 48].some((id) => copiaDe(id)?.arbol === A_MITAD), [41, 42, 43, 44, 45, 46, 47, 48].map((id) => copiaDe(id)));
 }
-console.log("\nTodo en verde.");
+
+void laCopiaEnElRelevo().then(() => {
+  if (fallos) {
+    console.log(`\n${fallos} FALLAN`);
+    process.exit(1);
+  }
+  console.log("\nTodo en verde.");
+});

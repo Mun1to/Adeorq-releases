@@ -9,7 +9,8 @@
 
 import { kindDeComando } from "../components/KindIcon";
 import { useCabina } from "./cabina";
-import { enPantalla, esperaEnSuCaja, trabajaEnPantalla } from "./contexto";
+import { lectorDeCaja } from "./cajaDeEntrada";
+import { enPantalla, trabajaEnPantalla } from "./contexto";
 import { invoke } from "@tauri-apps/api/core";
 import { proveedorDe, sabe } from "./providers";
 import { datosPanel, sendPty } from "./pty";
@@ -56,6 +57,13 @@ const colas = new Map<number, AvisoArriba[]>();
 const enviados = new Map<number, number[]>();
 const tecleadoEn = new Map<number, number>();
 const clis = new Map<number, string>();
+/** Las madres que la última mirada vio paradas en su caja vacía. */
+const quietas = new Set<number>();
+/** La línea recién tecleada a cada madre y los Intros de más que lleva. Se
+    suelta en cuanto la línea deja de estar en su caja: si luego Munir la
+    recupera con ↑, no se vuelve a mandar. */
+const atascadas = new Map<number, { linea: string; n: number }>();
+const MAX_REINTENTOS = 3;
 
 const nombreDe = (id: number) => useCabina.getState().estados[id]?.name ?? `terminal ${id}`;
 
@@ -95,7 +103,7 @@ function avisar(madre: number | undefined, a: AvisoArriba): void {
 export function alEntregar(p: { hija: number; madre: number; estado: EstadoEntrega; resumen: string }): "aceptado" | "apagado" | "sin_caja" {
   if (!leerVueltaArriba()) return "apagado";
   const cli = clis.get(p.madre);
-  if (cli !== undefined && !sabe(cli, "compactaConTraspaso")) return "sin_caja";
+  if (cli !== undefined && !lectorDeCaja(cli)) return "sin_caja";
   const h = hijas.get(p.hija);
   const nombre = nombreDe(p.hija);
   hijas.set(p.hija, h ? { ...h, madre: p.madre, entrego: true } : { madre: p.madre, nombre, entrego: true, listaDesde: null, contadaParada: false });
@@ -104,39 +112,77 @@ export function alEntregar(p: { hija: number; madre: number; estado: EstadoEntre
   return "aceptado";
 }
 
+/** Si la pantalla de la terminal `m` dice que trabaja, con el lector de su CLI. */
+function trabajaLaMadre(m: number): boolean {
+  const term = xtermDe(m);
+  const lector = lectorDeCaja(clis.get(m) ?? "");
+  return enPantalla(term, trabajaEnPantalla) || (!!lector && enPantalla(term, lector.trabaja));
+}
+
 /** Cada `MIRAR_MS`: las paradas sin entregar, y teclear a quien ya se pueda. */
 function mirar(): void {
   const ahora = Date.now();
   const r = paradasSinEntregar(hijas, ahora);
   for (const a of r.avisos) avisar(hijas.get(a.hija)?.madre, a);
   hijas = r.hijas;
+  // Verla trabajar es lo que se esperaba tras teclearle. En un CLI sin turno en
+  // disco (Gemini) es la única señal, porque su estado no sale de «»: sin
+  // mirarlo aquí, la siguiente línea esperaba los 45 s enteros.
+  for (const [m, t] of [...tecleadoEn]) {
+    if (ahora - t >= TRAS_TECLEAR_MS || trabajaLaMadre(m)) {
+      tecleadoEn.delete(m);
+      atascadas.delete(m);
+      continue;
+    }
+    // Su línea sigue escrita en la caja, ella sola: el Intro cayó dentro de la
+    // ventana en que el CLI lo toma por un salto de línea del pegado (Codex,
+    // 120 ms), y lo que hay escrito es exactamente lo nuestro: se pulsa otra vez.
+    const a = atascadas.get(m);
+    if (!a) continue;
+    const tiene = lectorDeCaja(clis.get(m) ?? "")?.tieneEscrito;
+    if (tiene && a.n < MAX_REINTENTOS && enPantalla(xtermDe(m), (l, f) => tiene(l, f, a.linea))) {
+      a.n++;
+      void sendPty(m, "", true).catch(() => {});
+    } else atascadas.delete(m);
+  }
   if (!colas.size) return;
   const estados = useCabina.getState().estados;
   for (const [m, cola] of colas) {
     const st = estados[m];
     if (!cola.length || !st) {
       colas.delete(m);
+      quietas.delete(m);
       continue;
     }
-    const antes = tecleadoEn.get(m);
-    if (antes != null && ahora - antes < TRAS_TECLEAR_MS) continue;
     const term = xtermDe(m);
     const cli = clis.get(m) ?? "";
+    const lector = lectorDeCaja(cli);
+    const trabajando = trabajaLaMadre(m);
+    const antes = tecleadoEn.get(m);
+    if (antes != null && ahora - antes < TRAS_TECLEAR_MS) continue;
+    const enSuCaja = !!lector && enPantalla(term, lector.enSuCaja);
     const madre = {
       estado: st,
       deAgente: !!proveedorDe(cli),
-      conCaja: sabe(cli, "compactaConTraspaso"),
-      enSuCaja: enPantalla(term, esperaEnSuCaja),
-      trabajando: enPantalla(term, trabajaEnPantalla),
+      conCaja: !!lector,
+      enSuCaja,
+      trabajando,
+      turnoEnDisco: sabe(cli, "compactaConTraspaso") || sabe(cli, "estadoDelDisco"),
+      quietaAntes: quietas.has(m),
     };
+    if (enSuCaja && !trabajando) quietas.add(m);
+    else quietas.delete(m);
     if (!puedeTeclear(madre)) continue;
     colas.delete(m);
+    quietas.delete(m);
     const suyos = (enviados.get(m) ?? []).filter((t) => ahora - t < 3_600_000);
     // Pasado el tope, solo la campana: sus hijas ya salen en ella.
     if (!cabe(suyos, ahora)) continue;
     enviados.set(m, [...suyos, ahora]);
     tecleadoEn.set(m, ahora);
-    void sendPty(m, lineaPara(cola)).catch(() => {});
+    const linea = lineaPara(cola);
+    atascadas.set(m, { linea, n: 0 });
+    void sendPty(m, linea).catch(() => {});
   }
 }
 
@@ -165,7 +211,13 @@ export function conectarVueltaArriba(): () => void {
   const resincronizar = window.setInterval(sincronizar, SINCRONIZAR_MS);
   const un = useCabina.subscribe((s, antes) => {
     if (s.estados === antes.estados) return;
-    for (const m of [...tecleadoEn.keys()]) if (s.estados[m]?.state !== "lista") tecleadoEn.delete(m);
+    // Salir de «lista» es ponerse a trabajar. Solo si estaba en ella: una madre
+    // sin turno en disco (Gemini) nunca lo está, y esto le quitaba la espera
+    // tras teclearle con cualquier cambio de cualquier panel.
+    for (const m of [...tecleadoEn.keys()]) {
+      const ya = s.estados[m]?.state;
+      if (ya === undefined || (antes.estados[m]?.state === "lista" && ya !== "lista")) tecleadoEn.delete(m);
+    }
     if (!hijas.size) return;
     const viejas = hijas;
     const r = alCambiarHijas(hijas, antes.estados, s.estados, Date.now());

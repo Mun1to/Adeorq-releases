@@ -58,8 +58,8 @@ pub struct SessionInfo {
     /// permite que un proyecto enseñe junto lo que ha pasado en él, lo abriera
     /// quien lo abriera.
     pub fuente: String,
-    /// En qué cuenta se escribió: su `CLAUDE_CONFIG_DIR`, o vacío si es la de
-    /// siempre. La barra lo usa para marcar la fila, y `onResume` para volver a
+    /// En qué cuenta se escribió: su `CLAUDE_CONFIG_DIR` (o el `CODEX_HOME` de
+    /// una de Codex), o vacío si es la de siempre. La barra lo usa para marcar la fila, y `onResume` para volver a
     /// abrirla donde vive: un `--resume` lanzado con otra cuenta no encuentra
     /// la conversación, porque cada cuenta tiene sus propios transcripts.
     pub cuenta: String,
@@ -785,8 +785,46 @@ fn escanear_raiz(
     out
 }
 
+/// Las sesiones de la cuenta de Codex de siempre: las de `CODEX_HOME` si Adeorq
+/// lo tiene puesto (una terminal lo hereda, y su Codex guarda ahí), si no las
+/// de `~/.codex`.
 fn codex_dir() -> Option<PathBuf> {
-    crate::dir_casa().map(|h| h.join(".codex").join("sessions"))
+    std::env::var_os("CODEX_HOME").map(PathBuf::from).or_else(|| crate::dir_casa().map(|h| h.join(".codex"))).map(|c| c.join("sessions"))
+}
+
+/// TODAS las carpetas de sesiones de Codex de esta máquina: la de siempre y la de
+/// cada cuenta de Adeorq, que es su propio `CODEX_HOME` (`accounts\codex-*`). Solo
+/// se miraba la primera, y lo que hacía un Codex de otra cuenta no salía en la
+/// barra, ni avisaba al acabar, ni se podía retomar (medido el 2026-11-16: las 5
+/// sesiones de su segunda cuenta, fuera). El `String` es la cuenta, como en
+/// `raices_claude`: vacío para la de siempre y su carpeta para las demás.
+fn casas_de_codex() -> Vec<(String, PathBuf)> {
+    casas_de_codex_en(codex_dir(), crate::accounts::list_account_dirs())
+}
+
+fn casas_de_codex_en(siempre: Option<PathBuf>, cuentas: Vec<String>) -> Vec<(String, PathBuf)> {
+    let clave = |p: &Path| p.to_string_lossy().replace('/', "\\").trim_end_matches('\\').to_lowercase();
+    let mut out: Vec<(String, PathBuf)> = siempre.map(|s| (String::new(), s)).into_iter().collect();
+    for dir in cuentas {
+        // Una de Claude también tiene `sessions`, pero sin las carpetas AAAA/MM/DD
+        // de Codex no aporta nada; y si `CODEX_HOME` ya apunta a esta, va una vez.
+        let sesiones = PathBuf::from(&dir).join("sessions");
+        if sesiones.is_dir() && !out.iter().any(|(_, p)| clave(p) == clave(&sesiones)) {
+            out.push((dir, sesiones));
+        }
+    }
+    out
+}
+
+/// La carpeta de sesiones de la cuenta de UNA terminal: la de su `CODEX_HOME`, o
+/// la de siempre si no lleva. Un panel aprende su sesión solo ahí: en todas,
+/// dos terminales de dos cuentas abiertas a la vez en la misma carpeta podían
+/// llevarse la misma.
+fn codex_dir_de(casa: Option<&str>) -> Option<PathBuf> {
+    match casa.map(str::trim).filter(|c| !c.is_empty()) {
+        Some(c) => Some(PathBuf::from(c).join("sessions")),
+        None => codex_dir(),
+    }
 }
 
 /// Dónde se guardan los títulos puestos desde Adeorq a sesiones que no son de
@@ -837,9 +875,12 @@ pub fn guardar_titulo_propio(session_id: &str, titulo: &str) -> Result<(), Strin
 /// guardaba con `/chat save`. Qwen, Copilot y Crush no dejan historial
 /// legible. Cuando alguno empiece a guardarlo, se añade aquí al lado.
 fn scan_codex() -> Vec<SessionInfo> {
-    let Some(raiz) = codex_dir() else {
-        return Vec::new();
-    };
+    casas_de_codex().iter().flat_map(|(cuenta, raiz)| scan_codex_en(raiz, cuenta)).collect()
+}
+
+/// Las de UNA carpeta de sesiones, firmadas con su cuenta: `comoRetomar` la busca
+/// para retomar con SU `CODEX_HOME`, porque con otro Codex no encuentra el hilo.
+fn scan_codex_en(raiz: &Path, cuenta: &str) -> Vec<SessionInfo> {
     let mut out = Vec::new();
     // AAAA/MM/DD: tres niveles, y se recorren a pelo en vez de con una
     // recursión general para no acabar paseando por un árbol ajeno entero.
@@ -854,7 +895,8 @@ fn scan_codex() -> Vec<SessionInfo> {
                     if path.extension().and_then(|e| e.to_str()) != Some("jsonl") {
                         continue;
                     }
-                    if let Some(info) = analyze_codex(&path) {
+                    if let Some(mut info) = analyze_codex(&path) {
+                        info.cuenta = cuenta.to_owned();
                         out.push(info);
                     }
                 }
@@ -886,7 +928,7 @@ fn leer_dirs(dir: &Path) -> Vec<PathBuf> {
 /// Se recorren los mismos tres niveles que `scan_codex` y se lee UNA línea por
 /// archivo, que es lo que cuesta menos: la cabecera trae el id.
 pub fn codex_transcript(session_id: &str) -> Option<PathBuf> {
-    codex_transcript_en(&codex_dir()?, session_id)
+    casas_de_codex().iter().find_map(|(_, raiz)| codex_transcript_en(raiz, session_id))
 }
 
 /// El id PROPIO de un hilo de Codex, leído de su `session_meta`.
@@ -1032,10 +1074,11 @@ pub(crate) fn iso_a_segundos(s: &str) -> Option<u64> {
 }
 
 /// Para el panel: la sesión de Codex que nació en `cwd` desde `since`
-/// (segundos de época), o nada todavía.
+/// (segundos de época), o nada todavía. `casa` es el `CODEX_HOME` de esa
+/// terminal (`codex_dir_de`).
 #[tauri::command(async)]
-pub fn codex_session_since(cwd: String, since: u64) -> Option<String> {
-    codex_session_since_en(&codex_dir()?, &cwd, since)
+pub fn codex_session_since(cwd: String, since: u64, casa: Option<String>) -> Option<String> {
+    codex_session_since_en(&codex_dir_de(casa.as_deref())?, &cwd, since)
 }
 
 /// El rollout de cada sesión de Codex ya encontrada. El panel pregunta cada
@@ -1163,6 +1206,7 @@ fn analyze_codex(path: &Path) -> Option<SessionInfo> {
         agents_live: 0,
         agents_total: 0,
         fuente: "codex".into(),
+        // La pone `scan_codex_en`, que sabe de qué cuenta es la carpeta.
         cuenta: String::new(),
     })
 }
@@ -2673,6 +2717,64 @@ fn context_de(path: &Path) -> Option<ContextInfo> {
         viva: false,
         sin_cuota,
     })
+}
+
+/// La conversación de la dueña de una copia aparte ya aceptada o tirada, mudada
+/// de la carpeta de su árbol (`desde`) a la tuya (`hasta`), en la misma cuenta:
+/// Claude Code guarda por carpeta, y la terminal renace en la tuya
+/// (`traerSuConversacion` en `lib/lanzar.ts`). Con su CLI vivo NO se toca: Node la
+/// abre con `FILE_SHARE_DELETE`, así que Windows sí deja moverla, y su siguiente
+/// escritura la volvería a crear en el árbol, partida en dos. Vivo es: el panel
+/// que nace aún tiene PTY (sacarla a otra ventana la vuelve a montar), otra
+/// terminal de Adeorq la lleva en su orden (una recogida tras reiniciar, la de
+/// Ctrl+Z) o el registro de sesiones vivas de Claude Code la tiene. `true` si la
+/// mudó; `false` si no había nada que mudar, ya estaba en la tuya o está viva.
+#[tauri::command(async)]
+pub fn conversacion_a_tu_carpeta(app: tauri::AppHandle, desde: String, hasta: String, sesion: String, panel: Option<u32>) -> Result<bool, String> {
+    // La que se acaba de matar (Reanimar) sigue en el mapa hasta que su hilo ve el
+    // fin: con el proceso ya muerto, no cuenta.
+    let la_lleva = |f: &crate::pty::Ficha| {
+        f.pid.is_none_or(pid_alive) && f.command.as_deref().and_then(crate::rastros::sesion_del_comando).as_deref() == Some(sesion.as_str())
+    };
+    if panel.is_some_and(|id| crate::pty::existe(&app, id)) || crate::pty::fichas(&app).iter().any(la_lleva) || live_session_ids().contains(&sesion) {
+        return Ok(false);
+    }
+    conversacion_a_tu_carpeta_en(&raices_claude(), &desde, &hasta, &sesion)
+}
+
+/// Las carpetas de `projects` de la copia en la que está `desde` (la de su raíz y
+/// las de dentro), para buscar ahí su conversación por id si no está en la de
+/// `desde`: corrió en otra subcarpeta de la copia. La de otra copia no entra.
+fn carpetas_de_su_copia(projects: &Path, desde: &str) -> Vec<PathBuf> {
+    let tramos: Vec<&str> = desde.split(['\\', '/']).collect();
+    let Some(i) = tramos.windows(3).position(|w| w[0].eq_ignore_ascii_case(".adeorq") && w[1].eq_ignore_ascii_case("espejo") && !w[2].is_empty()) else {
+        return Vec::new();
+    };
+    let raiz = encode_claude(&tramos[..i + 3].join("\\"));
+    leer_dirs(projects)
+        .into_iter()
+        .filter(|d| d.file_name().map(|n| n.to_string_lossy().into_owned()).is_some_and(|n| n == raiz || n.starts_with(&format!("{raiz}-"))))
+        .collect()
+}
+
+fn conversacion_a_tu_carpeta_en(raices: &[(String, PathBuf)], desde: &str, hasta: &str, sesion: &str) -> Result<bool, String> {
+    // Viene de la ventana y acaba en un nombre de fichero: un id y nada más.
+    if sesion.is_empty() || sesion.len() > 64 || !sesion.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+        return Err(format!("«{sesion}» no es un id de conversación"));
+    }
+    let fichero = format!("{sesion}.jsonl");
+    for (_, raiz) in raices {
+        let projects = raiz.join("projects");
+        let esperado = projects.join(encode_claude(desde)).join(&fichero);
+        let Some(origen) = std::iter::once(esperado).chain(carpetas_de_su_copia(&projects, desde).into_iter().map(|d| d.join(&fichero))).find(|p| p.is_file()) else {
+            continue;
+        };
+        if raiz.join("projects").join(encode_claude(hasta)).join(format!("{sesion}.jsonl")).exists() {
+            return Ok(false);
+        }
+        return crate::mcp::relevo_cuota::mudar(&origen, raiz, hasta, sesion).map(|_| true);
+    }
+    Ok(false)
 }
 
 /// Whether a session left a transcript on disk. Restoring panes after a
@@ -4632,6 +4734,93 @@ otra
         let _ = std::fs::remove_dir_all(&raiz);
     }
 
+    /// La dueña de una copia ya aceptada renace en tu carpeta: su conversación se
+    /// muda allí, en la MISMA cuenta en que estaba, con su carpeta de al lado; no
+    /// pisa una que ya esté, y un id que no lo es no llega al disco.
+    #[test]
+    fn la_conversacion_de_una_copia_cerrada_se_muda_a_tu_carpeta() {
+        let base = std::env::temp_dir().join(format!("adeorq-traer-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        let (siempre, otra) = (base.join(".claude"), base.join("accounts").join("claude-2da"));
+        let arbol = r"C:\proyectos\Demo\.adeorq\espejo\3-abc\web";
+        let tuya = r"C:\proyectos\Demo\web";
+        let en = |raiz: &Path, cwd: &str| raiz.join("projects").join(encode_claude(cwd));
+        std::fs::create_dir_all(en(&otra, arbol).join("s1").join("subagents")).unwrap();
+        std::fs::write(en(&otra, arbol).join("s1.jsonl"), "{\"type\":\"user\"}\n").unwrap();
+        std::fs::create_dir_all(en(&siempre, arbol)).unwrap();
+        let raices = vec![(String::new(), siempre.clone()), (otra.to_string_lossy().into_owned(), otra.clone())];
+
+        assert_eq!(conversacion_a_tu_carpeta_en(&raices, arbol, tuya, "s1"), Ok(true));
+        assert!(en(&otra, tuya).join("s1.jsonl").is_file(), "en tu carpeta y en SU cuenta");
+        assert!(en(&otra, tuya).join("s1").join("subagents").is_dir(), "con su carpeta de al lado");
+        assert!(!en(&otra, arbol).join("s1.jsonl").exists(), "y no se queda también en la del árbol");
+        assert!(!en(&siempre, tuya).join("s1.jsonl").exists(), "no salta a otra cuenta");
+        assert_eq!(conversacion_a_tu_carpeta_en(&raices, arbol, tuya, "s1"), Ok(false), "la segunda vez ya no hay nada que mudar");
+
+        std::fs::write(en(&otra, arbol).join("s1.jsonl"), "otra\n").unwrap();
+        assert_eq!(conversacion_a_tu_carpeta_en(&raices, arbol, tuya, "s1"), Ok(false), "con una ya en tu carpeta, no la pisa");
+        assert_eq!(std::fs::read_to_string(en(&otra, tuya).join("s1.jsonl")).unwrap(), "{\"type\":\"user\"}\n");
+        assert!(conversacion_a_tu_carpeta_en(&raices, arbol, tuya, r"..\..\x").is_err());
+
+        // Corrió en la raíz de la copia y no en su subcarpeta (`carpetaParaNacer`
+        // cayó a la raíz): se busca por su id en las carpetas de ESA copia.
+        let raiz_copia = r"C:\proyectos\Demo\.adeorq\espejo\3-abc";
+        std::fs::create_dir_all(en(&siempre, raiz_copia)).unwrap();
+        std::fs::write(en(&siempre, raiz_copia).join("s2.jsonl"), "s2\n").unwrap();
+        assert_eq!(conversacion_a_tu_carpeta_en(&raices, arbol, tuya, "s2"), Ok(true), "la encuentra en otra carpeta de la copia");
+        assert!(en(&siempre, tuya).join("s2.jsonl").is_file());
+        // La de otra copia que se llama casi igual («3-abcd») no es suya.
+        let parecida = r"C:\proyectos\Demo\.adeorq\espejo\3-abcd";
+        std::fs::create_dir_all(en(&siempre, parecida)).unwrap();
+        std::fs::write(en(&siempre, parecida).join("s3.jsonl"), "s3\n").unwrap();
+        assert_eq!(conversacion_a_tu_carpeta_en(&raices, arbol, tuya, "s3"), Ok(false), "ni la de otra copia");
+        assert!(en(&siempre, parecida).join("s3.jsonl").is_file());
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// Un Codex de otra cuenta guarda en SU `CODEX_HOME`, no en `~/.codex`: sus
+    /// sesiones salen en la barra firmadas con esa cuenta, su rollout se encuentra
+    /// por id (el estado del panel, sus archivos, la papelera) y su panel aprende
+    /// la suya ahí y no la de una terminal de la cuenta de siempre.
+    #[test]
+    fn las_sesiones_de_codex_de_otra_cuenta_salen_con_su_cuenta() {
+        let base = std::env::temp_dir().join(format!("adeorq-codex-cuentas-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        let siempre = base.join("casa").join(".codex").join("sessions");
+        let cuenta = base.join("accounts").join("codex-3ra");
+        let claude = base.join("accounts").join("claude-2da");
+        std::fs::create_dir_all(claude.join("sessions")).unwrap();
+        std::fs::write(claude.join("sessions").join("123.json"), "{}").unwrap();
+        let rollout = |raiz: &Path, id: &str, cuando: &str| {
+            let dia = raiz.join("2026").join("11").join("01");
+            std::fs::create_dir_all(&dia).unwrap();
+            let meta = format!(r#"{{"timestamp":"{cuando}","type":"session_meta","payload":{{"id":"{id}","session_id":"{id}","parent_thread_id":null,"timestamp":"{cuando}","cwd":"C:\\proyectos\\Adeorq"}}}}"#);
+            std::fs::write(dia.join(format!("rollout-{id}.jsonl")), meta).unwrap();
+        };
+        rollout(&siempre, "de-siempre", "2026-11-01T07:00:05.000Z");
+        rollout(&cuenta.join("sessions"), "de-la-cuenta", "2026-11-01T07:00:10.000Z");
+
+        let dir = |p: &Path| p.to_string_lossy().into_owned();
+        let casas = casas_de_codex_en(Some(siempre.clone()), vec![dir(&cuenta), dir(&claude), dir(&base.join("accounts").join("vacia"))]);
+        let cuentas: Vec<&str> = casas.iter().map(|(c, _)| c.as_str()).collect();
+        assert_eq!(cuentas, [String::new(), dir(&cuenta), dir(&claude)], "la de siempre y las cuentas con su carpeta de sesiones");
+        let sesiones: Vec<(String, String)> = casas.iter().flat_map(|(c, r)| scan_codex_en(r, c)).map(|s| (s.id, s.cuenta)).collect();
+        assert_eq!(sesiones, [("de-siempre".into(), String::new()), ("de-la-cuenta".into(), dir(&cuenta))]);
+
+        let encontrada = casas.iter().find_map(|(_, r)| codex_transcript_en(r, "de-la-cuenta"));
+        assert_eq!(encontrada.as_deref().and_then(|p| p.file_name()).and_then(|n| n.to_str()), Some("rollout-de-la-cuenta.jsonl"));
+
+        let antes = iso_a_segundos("2026-11-01T07:00:00.000Z").unwrap();
+        let de_la_cuenta = codex_dir_de(Some(&dir(&cuenta))).unwrap();
+        assert_eq!(codex_session_since_en(&de_la_cuenta, "C:\\proyectos\\Adeorq", antes).as_deref(), Some("de-la-cuenta"), "no la de siempre, que nació antes");
+        assert_eq!(
+            casas_de_codex_en(Some(cuenta.join("sessions")), vec![dir(&cuenta)]).len(),
+            1,
+            "con `CODEX_HOME` apuntando a una cuenta, sus sesiones no salen dos veces"
+        );
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
     #[test]
     fn codex_timestamps_turn_into_seconds() {
         assert_eq!(iso_a_segundos("1970-01-01T00:00:00.000Z"), Some(0));
@@ -4934,7 +5123,8 @@ otra
         let s = scan_codex();
         println!("sesiones de Codex encontradas: {}", s.len());
         for x in &s {
-            println!("  [{}] {} · {} · {} · {}", x.fuente, x.project, x.ago, x.state, x.title);
+            let cuenta = if x.cuenta.is_empty() { "la de siempre" } else { x.cuenta.rsplit(['\\', '/']).next().unwrap_or_default() };
+            println!("  [{}] {cuenta} · {} · {} · {} · {}", x.fuente, x.project, x.ago, x.state, x.title);
         }
     }
 

@@ -12,7 +12,7 @@
 // llevas elegido y el botón de mandarlo están en una barra al pie, y se contesta
 // con el teclado (1 a 9, Tab, O y Ctrl+Intro) por el `mando` que lee la lista.
 
-import { useEffect, useRef, useState, type MutableRefObject } from "react";
+import { useEffect, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { useT } from "../lib/i18n";
 import { sendPty } from "../lib/pty";
 import { hace } from "../lib/uso";
@@ -43,6 +43,9 @@ export interface MandoDecision {
   enviar: () => void;
   /** Intro desde la lista: a la primera pregunta sin contestar. */
   entrar: () => void;
+  /** En la cuenta atrás de «Enviar» o mandándose: no se pospone (sin su botón, la H
+      tampoco), porque irse de ella la manda en el acto y se salta el «Deshacer». */
+  ocupada: boolean;
 }
 
 /**
@@ -86,7 +89,16 @@ function Elegido({ q, opcion, texto, cerrada }: { q: Pregunta; opcion?: number; 
   );
 }
 
-export default function DecisionAbierta({ d, mando }: { d: Decision; mando: MutableRefObject<MandoDecision | null> }) {
+export default function DecisionAbierta({
+  d,
+  mando,
+  posponer,
+}: {
+  d: Decision;
+  mando: MutableRefObject<MandoDecision | null>;
+  /** El botón de posponer de la lista, entre «Descartar» y «Enviar». */
+  posponer?: ReactNode;
+}) {
   const { t } = useT();
   const deCuando = useHace();
   const contestada = d.respuesta;
@@ -234,6 +246,7 @@ export default function DecisionAbierta({ d, mando }: { d: Decision; mando: Muta
       const i = d.preguntas.findIndex((q) => !elegida(q.id) && !escrita(q.id).trim());
       enfocar(i < 0 ? 0 : i);
     },
+    ocupada: quedan != null || mandando,
   };
   useEffect(() => {
     mando.current = m;
@@ -344,9 +357,12 @@ export default function DecisionAbierta({ d, mando }: { d: Decision; mando: Muta
           {!cerrada && (
             <div className="dec-pie-botones">
               {quedan == null && !mandando && (
-                <button className="mini" onClick={() => void descartar(d.id)}>
-                  {t("Descartar")}
-                </button>
+                <>
+                  <button className="mini" onClick={() => void descartar(d.id)}>
+                    {t("Descartar")}
+                  </button>
+                  {posponer}
+                </>
               )}
               <button
                 ref={enviarRef}

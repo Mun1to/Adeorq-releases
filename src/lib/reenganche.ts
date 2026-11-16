@@ -40,9 +40,11 @@ const mismoComando = (a: string[] | null | undefined, b: string[] | null | undef
  * (`git_shadow.rs`, con la barra mezclada), no en la carpeta del panel. Con el
  * nombre, el panel que la recoge vuelve a ser de espejo y con SU espejo, el
  * árbol donde el agente sigue escribiendo, en vez de montar uno nuevo y vacío.
+ * También desde una subcarpeta del árbol, donde corre un encargo pedido en una
+ * subcarpeta del proyecto (`carpetaEnLaCopia`).
  */
 export function espejoDe(cwd: string): { proyecto: string; nombre: string } | null {
-  const m = /^(.+?)[\\/]\.adeorq[\\/]espejo[\\/]([^\\/]+)[\\/]?$/.exec(cwd);
+  const m = /^(.+?)[\\/]\.adeorq[\\/]espejo[\\/]([^\\/]+)(?:[\\/].*)?$/.exec(cwd);
   return m ? { proyecto: m[1], nombre: m[2] } : null;
 }
 
@@ -55,6 +57,19 @@ export function espejoDe(cwd: string): { proyecto: string; nombre: string } | nu
 export function espejoPropio(cwd: string, id: number): { proyecto: string; nombre: string } | null {
   const e = espejoDe(cwd);
   return e && Number(e.nombre.split("-")[0]) === id ? e : null;
+}
+
+/**
+ * De qué espejo es dueña una terminal viva al recogerla tras una caída: del que
+ * guardó su panel (`SavedPane.espejo`, `NodoTerm.espejo`), si sigue corriendo
+ * en él. Por el número del nombre (`espejoPropio`) fallaba con números de otro
+ * arranque: tras cerrar Adeorq entera vuelven a 1, la dueña retomada tiene otro
+ * y una hija suya puede nacer con el del nombre, y se quedaba Aceptar y Tirar.
+ * Las hijas no guardan espejo: trabajan en el de su madre.
+ */
+export function espejoDeLaDuena(viva: Viva, guardado: string | undefined): string | undefined {
+  const e = espejoDe(viva.cwd);
+  return e && guardado && e.nombre === guardado ? e.nombre : undefined;
 }
 
 /** La carpeta del panel es el proyecto de ese espejo, o una de dentro. */
@@ -103,6 +118,8 @@ export interface NodoDelLienzo {
   ruta?: string;
   cmd?: string[];
   pty?: number;
+  /** La copia aparte de la que es dueña (`NodoTerm.espejo`). */
+  espejo?: string;
 }
 
 /**
@@ -111,7 +128,7 @@ export interface NodoDelLienzo {
  * lo tiene en el id: el nodo de una terminal se llama como su panel (`place`,
  * en `CanvasView`). Solo vale un entero positivo; el id de otra pieza no.
  */
-export function panelesDelLienzo(nodos: readonly NodoDelLienzo[]): Array<PanelGuardado & { nodo: string }> {
+export function panelesDelLienzo(nodos: readonly NodoDelLienzo[]): Array<PanelGuardado & { nodo: string; espejo?: string }> {
   return nodos
     .filter((n) => n.tipo === "term")
     .map((n) => ({
@@ -119,6 +136,7 @@ export function panelesDelLienzo(nodos: readonly NodoDelLienzo[]): Array<PanelGu
       pty: n.pty ?? (/^[1-9]\d*$/.test(n.id) ? Number(n.id) : undefined),
       cwd: n.ruta ?? "",
       command: n.cmd,
+      espejo: n.espejo,
     }));
 }
 

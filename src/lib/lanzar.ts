@@ -8,13 +8,14 @@
 // en `localStorage`, el esfuerzo leído de los ajustes del CLI y un id de sesión
 // nuevo.
 
+import { invoke } from "@tauri-apps/api/core";
 import { cliEffort, transcriptExists } from "./pty";
 import { ES_WINDOWS, powershellCommand, sessionIdOf, shellCommand } from "./comandos";
 import { kindDeComando } from "../components/KindIcon";
-import { lineaDeArranque, lineaDeRetomar, type Provider } from "./providers";
-import { lineaConEncargo, planDeArranque, type Peticion, type Plan } from "./arranque";
+import { lineaDeArranque, lineaDeRetomar, proveedorDe, type Provider } from "./providers";
+import { idDeSesionNuevo, lineaConEncargo, planDeArranque, type Peticion, type Plan } from "./arranque";
 import { cargarDelegadas, delegadaDe } from "./delegadas";
-import { arbolDe } from "./copiaAparte";
+import { arbolDe, carpetaEnLaCopia, copiaYaCerrada, proyectoDe } from "./copiaAparte";
 import { raiz } from "./perfil";
 
 /** Una línea con un encargo escrito por una persona al final. Va SIEMPRE por
@@ -120,6 +121,49 @@ export function newClaudeCommand(extra = "", mode?: PermissionMode, encargo?: st
   );
 }
 
+/** Dónde guarda su conversación el CLI de un panel: el de una copia aparte, por
+    la carpeta de su árbol, en la misma subcarpeta donde la abre `TerminalPane`
+    (`carpetaEnLaCopia`). Sin mirar el disco: al retomar, el árbol puede no
+    existir todavía. Con la copia ya aceptada o tirada, en tu carpeta: ahí la deja
+    `traerSuConversacion` antes de retomarla. */
+export function carpetaDeSuConversacion(pane: { cwd: string; espejo?: string }): string {
+  return pane.espejo && !copiaYaCerrada(pane.espejo) ? enSuArbol(pane.cwd, pane.espejo) : pane.cwd;
+}
+
+const enSuArbol = (cwd: string, espejo: string) => carpetaEnLaCopia(cwd, proyectoDe(cwd, raiz()), arbolDe(cwd, espejo, raiz()));
+
+/** Los CLI que guardan su conversación por la carpeta en que corría y no la
+    retoman desde otra (`gemini --resume` solo la encuentra desde la suya, ver
+    `scan_gemini_en`). Codex la encuentra por su id venga de donde venga. */
+const GUARDA_POR_CARPETA = new Set(["gemini"]);
+
+/** Si ese panel es de un CLI de `GUARDA_POR_CARPETA` cuya copia ya se cerró, con
+    qué nace en tu carpeta: uno nuevo, con el modelo que llevaba y un id propio
+    para poder retomarlo después (sin él, cada reinicio volvía a empezar de cero). */
+function nuevoSiSuCopiaSeCerro(kind: string, pane?: { espejo?: string; command?: string[] }): string[] | undefined {
+  if (!pane?.espejo || !copiaYaCerrada(pane.espejo) || !GUARDA_POR_CARPETA.has(kind)) return undefined;
+  const prov = proveedorDe(kind);
+  const partes = [lineaDeArranque(kind)];
+  const modelo = prov?.banderaModelo && (pane.command?.join(" ") ?? "").split(/\s+/).find((_, i, t) => t[i - 1] === prov.banderaModelo);
+  if (modelo) partes.push(`${prov?.banderaModelo} ${modelo}`);
+  if (prov?.banderaSesionNueva) partes.push(`${prov.banderaSesionNueva} ${idDeSesionNuevo()}`);
+  return shellCommand(partes.join(" "));
+}
+
+/** Una copia aceptada o tirada no se vuelve a montar (`copiaYaCerrada`): su
+    terminal renace en tu carpeta. Claude Code guarda la conversación por la
+    carpeta en que corría, así que antes se muda a la tuya (`conversacion_a_tu_carpeta`,
+    en la misma cuenta) para que `--resume` la encuentre; con su CLI vivo, Rust no
+    la toca. Un Gemini no la encontraría en tu carpeta: al retomarlo nace uno nuevo
+    (`resumeCommandFor`). Un aviso escrito aquí en su panel no serviría: Claude Code
+    borra el historial de la terminal al pintarse (medido en el laboratorio). */
+export async function traerSuConversacion(pane: { cwd: string; espejo?: string; command?: string[] }, panel?: number): Promise<void> {
+  const joined = pane.command?.join(" ") ?? "";
+  const sesion = sessionIdOf(joined);
+  if (!pane.espejo || !copiaYaCerrada(pane.espejo) || !sesion || kindDeComando(joined) !== "claude") return;
+  await invoke("conversacion_a_tu_carpeta", { desde: enSuArbol(pane.cwd, pane.espejo), hasta: pane.cwd, sesion, panel: panel ?? null }).catch(() => {});
+}
+
 /** Turns a pane's command into the one that brings its conversation back. */
 export async function resumeCommandFor<P extends { command?: string[]; cwd: string; espejo?: string }>(
   pane: P,
@@ -127,17 +171,19 @@ export async function resumeCommandFor<P extends { command?: string[]; cwd: stri
   const joined = pane.command?.join(" ") ?? "";
   const id = sessionIdOf(joined);
   if (!id) return pane.command;
-  // Una sesión de Codex o de Gemini vuelve con su propia línea de retomar.
+  // Una sesión de Codex o de Gemini vuelve con su propia línea de retomar. La de
+  // un Gemini de una copia ya cerrada no se encontraría en tu carpeta: uno nuevo.
   const kind = kindDeComando(joined);
   if (kind !== "claude") {
+    const nuevo = nuevoSiSuCopiaSeCerro(kind, pane);
+    if (nuevo) return nuevo;
     const ajena = lineaDeRetomar(kind, id);
     return ajena ? shellCommand(ajena) : pane.command;
   }
   // A session that never got a message has no transcript, and --resume on it
   // fails with "No conversation found": reopen it as a fresh one instead.
-  // La que trabajaba en una copia aparte la guardó por la carpeta de su árbol.
-  const donde = pane.espejo ? arbolDe(pane.cwd, pane.espejo, raiz()) : pane.cwd;
-  const exists = await transcriptExists(donde, id).catch(() => false);
+  await traerSuConversacion(pane);
+  const exists = await transcriptExists(carpetaDeSuConversacion(pane), id).catch(() => false);
   await cargarDelegadas();
   const modo = modoAlRetomar(pane.command);
   // Restoring the board is exactly where the effort went missing, so it is
@@ -145,6 +191,20 @@ export async function resumeCommandFor<P extends { command?: string[]; cwd: stri
   return exists
     ? claudeCommand(withEffort(`--resume ${id}`), modo)
     : claudeCommand(withEffort(`--session-id ${id}`), modo);
+}
+
+/** Con qué vuelve un panel al Reanimarlo: su misma conversación por su id (Codex
+    y Gemini, con su propia línea de retomar, `retomar` en la tabla de
+    proveedores), o una nueva si no se sabe cuál era o si es un Gemini cuya copia
+    ya se cerró (`nuevoSiSuCopiaSeCerro`). */
+export function comandoAlReanimar(kind: string | undefined, sessionId: string | undefined, viejo?: { espejo?: string; command?: string[] }): string[] {
+  if (kind && kind !== "claude") {
+    const nuevo = nuevoSiSuCopiaSeCerro(kind, viejo);
+    if (nuevo) return nuevo;
+    const ajena = sessionId ? lineaDeRetomar(kind, sessionId) : undefined;
+    return shellCommand(ajena || lineaDeArranque(kind));
+  }
+  return sessionId ? claudeCommand(withEffort(`--resume ${sessionId}`), modoAlRetomar(["--resume", sessionId])) : newClaudeCommand();
 }
 
 /**

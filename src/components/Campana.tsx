@@ -3,14 +3,14 @@
 // que te reclama y, al pulsarla, enseña la lista. Lo que decide está en
 // `lib/campana.ts`; el dibujo, en `Mascota.tsx`.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useCabina } from "../lib/cabina";
 import { animoDe, conectarAvisos, sinLeer, useAvisos, type Animo, type Aviso } from "../lib/campana";
-import { pendientes, useDecisiones } from "../lib/decisiones";
+import { useDecisiones, useReposo } from "../lib/decisiones";
+import { avisoDormido, juntar } from "../lib/decisionesLista";
 import { haceCuanto } from "../lib/estados";
 import { useT, type Translate } from "../lib/i18n";
-import { cortados } from "../lib/programados";
 import { useSuena } from "../lib/suena";
 import { conectarVueltaArriba } from "../lib/vueltaArribaVivo";
 import { useProgramados } from "./AgendaProgramados";
@@ -76,18 +76,33 @@ export default function Campana({
   }, [enfocado, entrar]);
 
   // Lo que Adeo sabe además de las terminales: las decisiones que siguen
-  // vivas, los encargos programados que el freno paró y si suena música.
-  const decisiones = pendientes(useDecisiones());
+  // vivas, los encargos programados que el freno paró y si suena música. Lo que
+  // pospusiste en Decisiones (H) no te reclama mientras duerme: ni en la cara, ni en
+  // el globo, ni en el número, igual que no cuenta en la pestaña.
+  const todasLasDecisiones = useDecisiones();
   const [programados] = useProgramados();
+  const reposo = useReposo((s) => s.reposo);
+  const horaDelReposo = useReposo((s) => s.ahora);
+  const filas = useMemo(
+    () =>
+      juntar({ decisiones: todasLasDecisiones, avisos: lista, programados: programados?.encargos ?? [], notas: [], reposo, ahora: horaDelReposo }),
+    [todasLasDecisiones, lista, programados, reposo, horaDelReposo],
+  );
+  // Lo que duerme tampoco sale en la lista de abajo, ni se tira al cerrarla (`trasVerla`):
+  // tirado, su fila de Decisiones no volvía nunca a su hora.
+  const duerme = useMemo(() => avisoDormido(filas), [filas]);
+  const despiertos = useMemo(() => lista.filter((a) => !duerme(a)), [duerme, lista]);
+  const decisiones = filas.filter((c) => c.clase === "decide" && c.parte === "toca").length;
+  const parados = filas.filter((c) => c.clase === "parado" && c.parte === "toca").length;
   const suena = useSuena((s) => s.suena);
-  const cuantos = sinLeer(lista);
-  const animo = animoDe(lista, estados, { decisiones, cortados: programados ? cortados(programados.encargos) : 0, suena });
+  const cuantos = sinLeer(despiertos);
+  const animo = animoDe(despiertos, estados, { decisiones, cortados: parados, suena });
 
   const cerrar = () => {
     setAbierta(false);
     // Se dan por vistos al CERRAR, no al abrir: mientras miras la lista, los
     // nuevos siguen marcados como nuevos y los que terminaron siguen ahí.
-    vista();
+    vista(duerme);
   };
   const alternar = () => {
     setToque((n) => n + 1);
@@ -119,7 +134,7 @@ export default function Campana({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [abierta]);
 
-  const visibles = lista.slice().reverse();
+  const visibles = despiertos.slice().reverse();
   const ahora = Date.now();
   const ir = (a: Aviso) => {
     irATerminal(a.paneId);

@@ -6,7 +6,8 @@
 // que no tienen terminales que tapar ni esa barra, sigue flotando. Lo prueba
 // `scripts/laboratorio/adeo-en-la-barra.js`.
 
-import { useCallback, useRef, useState, type MutableRefObject, type SetStateAction } from "react";
+import { useCallback, useEffect, useRef, useState, type MutableRefObject, type SetStateAction } from "react";
+import { ABRIR_ADEO } from "./planPendiente";
 import { anclarColumnas } from "./redimension";
 import type { Cara } from "../components/PanelDerecho";
 
@@ -50,6 +51,13 @@ export function useAdeoDonde(viewRef: MutableRefObject<string>) {
   const cerrarAdeo = useCallback(() => {
     ponerAdeo(false);
     setDictarAlAbrir(false);
+  }, [ponerAdeo]);
+
+  // Desde Decisiones: el plan que dejaste pendiente se abre en Adeo (`lib/planPendiente.ts`).
+  useEffect(() => {
+    const abrir = () => ponerAdeo(true);
+    window.addEventListener(ABRIR_ADEO, abrir);
+    return () => window.removeEventListener(ABRIR_ADEO, abrir);
   }, [ponerAdeo]);
 
   const enBarra = showForeman && adeoLateral;

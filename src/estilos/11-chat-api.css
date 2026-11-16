@@ -42,7 +42,7 @@
   background: transparent;
   color: var(--text);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 620;
   text-align: left;
   white-space: nowrap;
@@ -67,7 +67,7 @@
    Con suscripción no puedes pasarte; con clave de API sí, y sin verlo. */
 .ch-coste {
   flex: none;
-  font-size: 10.5px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   color: var(--ok);
 }
@@ -79,7 +79,7 @@
   border: 1px solid transparent;
   background: transparent;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -114,7 +114,7 @@
   background: var(--row);
   color: var(--text);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .ch-buscar:focus {
@@ -155,12 +155,12 @@
 }
 
 .ch-opcion-nombre {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 
 .ch-opcion-precio {
-  font-size: 10px;
+  font-size: 13px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -183,7 +183,7 @@
   max-width: 88%;
   padding: 7px 10px;
   border-radius: var(--r-btn);
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -223,7 +223,7 @@
   margin: auto;
   max-width: 30ch;
   text-align: center;
-  font-size: 11.5px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--muted);
 }
@@ -235,7 +235,7 @@
   border: 1px solid color-mix(in srgb, color-mix(in srgb, var(--mal) 85%, #000) 45%, transparent);
   background: color-mix(in srgb, color-mix(in srgb, var(--mal) 85%, #000) 12%, transparent);
   color: var(--mal);
-  font-size: 11.5px;
+  font-size: 13px;
   overflow-wrap: anywhere;
 }
 
@@ -258,7 +258,7 @@
   background: var(--panel-solid);
   color: var(--text);
   font: inherit;
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.4;
 }
 

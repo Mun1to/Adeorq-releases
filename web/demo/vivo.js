@@ -11,10 +11,12 @@
      · cambiar de vista, de sección y de tema
      · el inicio: pedirle algo a Adeo, contestar a quien espera, ir a un proyecto
      · la Cabina: enfocar, tapar, maximizar y cerrar terminales, la barra de
-       proyectos, los paneles de la derecha, el Capataz y la paleta de Ctrl+K
+       proyectos, los paneles de la derecha (Adeo entre ellos, también con
+       Ctrl+Mayús+A) y la paleta de Ctrl+K
+     · Adeo flotando, en las demás vistas; el Chat con sus dos pestañas
      · el Lienzo: arrastrar las piezas, mover y acercar el tablero, tachar tareas
-     · el Perfil y sus cuatro secciones, tu uso, las decisiones, los objetivos,
-       los comandos y las cuentas
+     · el Perfil y sus cuatro secciones, tu uso, las decisiones con su menú de
+       Posponer, los objetivos, los comandos y las cuentas
 
    Lo que no se puede imitar sin mentir (abrir una terminal de verdad, llamar a
    un agente) no se finge: sale un aviso que dice qué haría la app. Ningún botón
@@ -78,6 +80,10 @@ const T = EN ? {
   archivo: 'In the app the file opens in a panel next to your terminals, and you can edit it there.',
   proyecto: 'In the app one click opens the whole project: every session it had, each in its own terminal.',
   decisionVieja: 'In the app that decision opens with what you answered. They delete themselves after a week.',
+  contesta: 'In the app this takes you to the terminal that is waiting for you, with its question in view.',
+  idea: 'In the app the idea opens with what the agent proposes: accept it, snooze it or discard it.',
+  pospuesta: (cuando) => `Snoozed: ${cuando}. In the app it moves to Snoozed and comes back by itself, sooner if the agent says something new.`,
+  otraHora: 'In the app you type the time: 16:30, +45 or in 2 h.',
   nota: 'In the app that note opens, with where it leads and what links to it.',
   noCarga: 'The demo could not be loaded.',
 } : {
@@ -112,6 +118,10 @@ const T = EN ? {
   archivo: 'En la app el archivo se abre en un panel al lado de tus terminales, y lo editas ahí mismo.',
   proyecto: 'En la app, un clic abre el proyecto entero: todas las sesiones que tenía, cada una en su terminal.',
   decisionVieja: 'En la app esa decisión se abre con lo que contestaste. A la semana se borran solas.',
+  contesta: 'En la app te lleva a la terminal que te espera, con su pregunta a la vista.',
+  idea: 'En la app se abre la idea con lo que propone el agente: aceptarla, posponerla o descartarla.',
+  pospuesta: (cuando) => `Pospuesta: ${cuando}. En la app pasa a «Pospuesto» y vuelve sola, antes si el agente dice algo nuevo.`,
+  otraHora: 'En la app escribes la hora: 16:30, +45 o en 2 h.',
   nota: 'En la app se abre esa nota, con a dónde lleva y quién llega hasta ella.',
   noCarga: 'La demostración no ha podido cargarse.',
 };
@@ -473,10 +483,20 @@ function ponerBarra(modo) {
   return true;
 }
 
-/* Los paneles de la derecha: uso, skills y archivos. Se cierran volviendo
-   a pulsar su icono, que es lo que hace la app. */
+/* Los paneles de la derecha: Adeo, uso, skills y archivos, en el orden de la
+   franja (`x-lateral-N`). Se cierran volviendo a pulsar su icono, que es lo que
+   hace la app. */
 
 const zonaCerrada = $('.lateral-zona', app)?.cloneNode(true) ?? null;
+
+/** Cuál de los laterales es Adeo: desde la Cabina, el orbe de la barra y
+    Ctrl+Mayús+A lo abren ahí, con las terminales a la vista. */
+const LATERAL_ADEO = (() => {
+  for (let n = 0; plantilla(`x-lateral-${n}`); n++) {
+    if (unaPieza(`x-lateral-${n}`)?.querySelector('aside.lateral[data-cara="adeo"]')) return n;
+  }
+  return -1;
+})();
 
 function panelDerecho(n) {
   const zona = $('.lateral-zona', app);
@@ -488,6 +508,27 @@ function panelDerecho(n) {
   estado.lateral = abrir ? n : -1;
   marcarRuedas(nueva);
   return true;
+}
+
+/* El menú de «Posponer» de una decisión (`x-posponer`): cuelga de la raíz de
+   Decisiones, ya colocado encima de su pie, como lo dejó la app. */
+function alternarPosponer(boton) {
+  const abierto = $('.dec-posponer', app);
+  if (abierto) return abierto.remove();
+  const menu = unaPieza('x-posponer');
+  const dec = boton.closest('.dec');
+  if (!menu || !dec) return false;
+  dec.appendChild(menu);
+}
+
+/* Las dos pestañas de la lista del Chat, Adeo y Sesiones (`x-chatlista-N`). */
+function listaDelChat(boton) {
+  const lista = boton.closest('aside.chat-lista');
+  const n = $$('.chat-pestana', boton.parentElement).indexOf(boton);
+  const nueva = unaPieza(`x-chatlista-${n}`);
+  if (!lista || !nueva) return false;
+  lista.replaceWith(nueva);
+  marcarRuedas(nueva);
 }
 
 /* Lo que flota: los objetivos del día y el detalle del Pulso. */
@@ -534,14 +575,22 @@ function cerrarPaleta() {
   $('.app > .paleta', app)?.remove();
 }
 
-/* El Capataz flota encima de todo, como en la app (`x-capataz`, volcado del
-   botón del orbe de la barra). */
+/* Adeo, el orbe de la barra. Desde la Cabina se abre en la barra de la
+   derecha, con las terminales a la vista; desde las demás vistas flota encima
+   de todo (`x-capataz`), como en la app. */
 function cerrarCapataz() {
   $('.app > .foreman-overlay', app)?.remove();
 }
 
+const cerrarAdeoLateral = () => (estado.lateral === LATERAL_ADEO && LATERAL_ADEO >= 0 ? panelDerecho(LATERAL_ADEO) : false);
+
 function alternarCapataz() {
   if ($('.app > .foreman-overlay', app)) return cerrarCapataz();
+  if (estado.vista === 'cabina' && LATERAL_ADEO >= 0) {
+    panelDerecho(LATERAL_ADEO);
+    if (estado.lateral === LATERAL_ADEO) $('.lateral .foreman-input', app)?.focus();
+    return;
+  }
   const capataz = unaPieza('x-capataz');
   if (!capataz) return avisar(T.planear);
   app.appendChild(capataz);
@@ -921,8 +970,12 @@ const REGLAS = [
   ['.session', () => avisar(T.sesion)],
   ['nav.franja .franja-btn', (b) => {
     const n = $$('.franja-btn', b.parentElement).indexOf(b);
-    // El cuarto abre una web en un panel: lo cuenta su globo.
-    return n < 3 ? panelDerecho(n) : false;
+    if (panelDerecho(n)) return true;
+    // El de detrás de la raya abre una web en un panel: aquí no tiene lateral
+    // que enseñar, así que lo cuenta su aviso y no se enciende (si se
+    // encendiera, el lateral abierto se quedaría con su botón apagado).
+    porDefecto(b);
+    return true;
   }],
   ['.arch-fila', (b) => {
     for (const f of $$('.arch-fila', b.parentElement)) f.dataset.on = String(f === b);
@@ -1028,7 +1081,21 @@ const REGLAS = [
   // ── Las decisiones ──
   // La que está abierta ya se ve; las contestadas, en la app, se abren con lo
   // que respondiste. Aquí solo hay una hoja, así que se dice.
-  ['.dec-fila', (b) => { if (b.dataset.on !== 'true') avisar(T.decisionVieja); }],
+  // La lista es una sola: lo que te espera en una terminal, lo que decides, las
+  // ideas de los agentes y lo que ya pasó.
+  ['.dec-fila', (b) => {
+    if (b.dataset.on === 'true') return;
+    const clase = b.dataset.clase;
+    avisar(clase === 'contesta' || clase === 'mira' ? T.contesta : clase === 'idea' ? T.idea : T.decisionVieja);
+  }],
+  ['.dec button[data-posponer]', (b) => alternarPosponer(b)],
+  ['.dec-posponer-op', (b) => {
+    const tecla = $('b', b)?.textContent.trim();
+    const cuando = $('span', b)?.textContent.trim() ?? '';
+    $('.dec-posponer', app)?.remove();
+    avisar(tecla === 'O' ? T.otraHora : T.pospuesta(cuando.charAt(0).toLowerCase() + cuando.slice(1)));
+  }],
+  ['.dec-posponer > button.mini', () => $('.dec-posponer', app)?.remove()],
   ['.dec-resumen-q', (b) => {
     const n = $$('.dec-resumen > li', b.closest('.dec-resumen')).indexOf(b.closest('li'));
     $$('fieldset.dec-pregunta', b.closest('.dec-abierta'))[n]?.scrollIntoView({ block: 'center' });
@@ -1077,6 +1144,7 @@ const REGLAS = [
   }],
 
   // ── El chat y la memoria ──
+  ['.chat-pestana', (b) => (b.dataset.on === 'true' ? undefined : listaDelChat(b))],
   ['.chat-enviar', (b) => enviarChat($('.chat-input', b.closest('.chat-caja')))],
   ['.chat-fila', (b) => {
     for (const f of $$('.chat-fila', b.closest('.chat-lista'))) f.dataset.on = String(f === b);
@@ -1107,6 +1175,9 @@ app.addEventListener('click', (e) => {
   // Un panel se enfoca al pulsarlo, se pulse donde se pulse.
   const panel = e.target.closest('.pane');
   if (panel) enfocar(panel);
+  // El menú de Posponer se cierra con un clic fuera, como en la app.
+  const menu = $('.dec-posponer', app);
+  if (menu && !menu.contains(e.target) && !e.target.closest('.dec button[data-posponer]')) menu.remove();
 
   for (const [selector, hacer] of REGLAS) {
     const el = e.target.closest(selector);
@@ -1237,16 +1308,23 @@ app.addEventListener('keydown', (e) => {
   }
 });
 
-/* Ctrl+K abre la paleta, como en la app. Solo llega aquí con el foco dentro de
-   la demostración: fuera, Ctrl+K sigue siendo del navegador. */
+/* Ctrl+K abre la paleta y Ctrl+Mayús+A llama a Adeo, como en la app. Solo
+   llega aquí con el foco dentro de la demostración: fuera, esas teclas siguen
+   siendo del navegador. */
 document.addEventListener('keydown', (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'k') {
     e.preventDefault();
     if ($('.app > .paleta', app)) cerrarPaleta();
     else abrirPaleta();
+  } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+    e.preventDefault();
+    alternarCapataz();
   } else if (e.key === 'Escape') {
     cerrarPaleta();
     cerrarCapataz();
+    $('.dec-posponer', app)?.remove();
+    // Adeo en la barra se cierra con Escape desde su caja, como en la app.
+    if (e.target.closest?.('.lateral .foreman-box')) cerrarAdeoLateral();
   }
 });
 

@@ -37,7 +37,7 @@
   padding: 16px clamp(18px, 4vw, 54px);
   border-bottom: 1px solid transparent;
   color: var(--p-texto);
-  font-family: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   transition: background .25s ease, border-color .25s ease, padding .25s ease;
 }
 /* Con `:where`, que no pesa nada: con `.nav a` el «Descargar» de la barra
@@ -200,7 +200,7 @@
   border-radius: 16px;
   background: #101624;
   color: var(--p-texto);
-  font-family: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   box-shadow: 0 24px 60px rgba(0, 0, 0, .55);
 }
 .hoja-menu::backdrop { background: rgba(3, 6, 12, .55); }
@@ -260,7 +260,7 @@
   cursor: pointer;
 }
 .hoja-menu__cerrar:hover, .hoja-menu__cerrar:focus-visible { color: var(--p-texto); background: rgba(255, 255, 255, .06); outline: none; }
-.hoja-menu__titulo { margin: 6px 14px 4px; color: var(--p-suave); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+.hoja-menu__titulo { margin: 6px 14px 4px; color: var(--p-texto); font-size: 15.5px; font-weight: 650; }
 /* Bloquear el scroll del fondo mientras la hoja está abierta. */
 html:has(.hoja-menu[open]) { overflow: hidden; }
 
@@ -325,7 +325,7 @@ html:has(.hoja-menu[open]) { overflow: hidden; }
 .nav--fija .btn--claro, .nav--fija .btn--claro:hover { box-shadow: 0 0 0 1px rgba(255,255,255,.5); }
 .btn--fantasma:hover { transform: translateY(-2px); }
 .btn--fantasma:active { transform: translateY(0); transition-duration: .06s; }
-.btn--claro em, .btn--fantasma em { font-style: normal; font-size: 12.5px; opacity: .62; font-weight: 500; }
+.btn--claro em, .btn--fantasma em { font-style: normal; font-size: 13.5px; opacity: .62; font-weight: 500; }
 
 .btn--fantasma {
   border: 1px solid var(--p-linea2, rgba(150, 185, 240, .30));

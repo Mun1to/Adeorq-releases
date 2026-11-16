@@ -16,9 +16,7 @@
 //   gemini  GEMINI_CLI_HOME     es su CASA, no su carpeta: guarda en
 //                               join(GEMINI_CLI_HOME || homedir, ".gemini")
 //                               (2026-10-15, ver `envEsCasa`)
-//   qwen    QWEN_HOME           its own bundled docs: "QWEN_HOME env var, and
-//                               finally ~/.qwen"
-//   pi      PI_CODING_AGENT_DIR its own config.ts: getAgentDir() reads it and
+//   pi     PI_CODING_AGENT_DIR its own config.ts: getAgentDir() reads it and
 //                               falls back to ~/.pi/agent (2026-08-01)
 //   grok    GROK_HOME           its xai-dirs crate and settings reference: the
 //                               folder itself, `auth.json` inside (2026-11-03,
@@ -28,6 +26,12 @@
 // be launched, but no way to move their config folder turned up, so Adeorq
 // says "one account only" instead of guessing a variable name. If one appears
 // later, adding it here is the whole change.
+//
+// El 2026-11-16 Munir quitó once que no usaba (Qwen Code, Crush, Amp,
+// CodeWhale, Goose, Droid, Jules, Auggie, Codebuff, Cody y Aider): cada uno era
+// un botón más en la lista y otra búsqueda en el PATH al arrancar. Una cuenta
+// guardada de uno de ellos se ignora al cargar (`App.tsx`), en vez de caer en
+// la de Claude con la carpeta de otro programa.
 //
 // Kiro (2026-07-28) es el único que entra sin estar instalado aquí, y por eso
 // entra a medias: su nombre de programa y su instalador salen de su propia
@@ -59,8 +63,7 @@ export interface Provider {
    * que la trata como la carpeta, pero es la de `packages/cli/index.ts`, que
    * solo lee un ajuste de memoria y no decide dónde vive el login.
    *
-   * Rust busca entonces los `creds` en `<cuenta>/<homeDir>`. Qwen, que salió de
-   * Gemini, NO lleva la marca: su `QWEN_HOME` es la carpeta misma.
+   * Rust busca entonces los `creds` en `<cuenta>/<homeDir>`.
    */
   envEsCasa?: boolean;
   /** Its default folder, relative to the user profile. */
@@ -386,20 +389,6 @@ export const PROVIDERS: Provider[] = [
     cajaEnPantalla: "gemini",
   },
   {
-    id: "qwen",
-    label: "Qwen Code",
-    exe: "qwen",
-    envVar: "QWEN_HOME",
-    homeDir: ".qwen",
-    // Same OAuth files as the Gemini CLI it forked from, confirmed in its bundle.
-    creds: ["oauth_creds.json"],
-    usage: false,
-    hue: "#a78bfa",
-    install: "pnpm add -g @qwen-code/qwen-code",
-    cmd: "pnpm add -g @qwen-code/qwen-code",
-    oficial: "https://github.com/QwenLM/qwen-code",
-  },
-  {
     id: "copilot",
     label: "GitHub Copilot",
     exe: "copilot",
@@ -415,6 +404,24 @@ export const PROVIDERS: Provider[] = [
     install: "pnpm add -g @github/copilot",
     cmd: "pnpm add -g @github/copilot",
     oficial: "https://github.com/github/copilot-cli",
+    // Leído en su `--help` de la 1.0.105 (2026-11-16) y pasado por su analizador
+    // sin abrir ningún turno: con `--version` al final contesta la versión si
+    // todas las banderas valen, y una inventada o un esfuerzo que no existe
+    // falla en el acto. `-i <encargo>` abre la sesión interactiva con el
+    // encargo ya ejecutándose (`-p` es sin interfaz y dejaría el panel sin
+    // agente); `--session-id <uuid>` le pone a la sesión nueva el id que
+    // acuña Adeorq y también vuelve a ella («Resume an existing session or task
+    // by ID, or set the UUID for a new session»): se retoma con esa y no con
+    // `--resume`, que exige que la sesión ya exista y falla con un panel que se
+    // cerró antes de escribirle nada; `--reasoning-effort`
+    // admite las cinco palabras de la casa (low…max). Su `--model` existe,
+    // pero sin la tabla de sus nombres de hoy no se le promete cerebro.
+    encargoEnLinea: true,
+    banderaEncargo: "-i",
+    banderaEsfuerzo: "--reasoning-effort",
+    banderaSesionNueva: "--session-id",
+    retomable: true,
+    retomar: "copilot --session-id {id}",
   },
   {
     id: "grok",
@@ -467,19 +474,6 @@ export const PROVIDERS: Provider[] = [
     oficial: "https://github.com/xai-org/grok-build",
   },
   {
-    id: "crush",
-    label: "Crush",
-    exe: "crush",
-    envVar: "",
-    homeDir: ".config/crush",
-    creds: [],
-    usage: false,
-    hue: "#ff7ac6",
-    install: "pnpm add -g @charmland/crush",
-    cmd: "pnpm add -g @charmland/crush",
-    oficial: "https://charm.land/crush/",
-  },
-  {
     id: "opencode",
     label: "opencode",
     exe: "opencode",
@@ -520,18 +514,6 @@ export const PROVIDERS: Provider[] = [
     // explícitamente. Eso no es el `acceptEdits` de Claude (pasa las ediciones,
     // sigue preguntando lo arriesgado), es permiso total, y darlo no es nuestro.
     // Mismo criterio que con el `--allow-all-tools` de Copilot.
-  },
-  {
-    id: "amp",
-    label: "Amp",
-    exe: "amp",
-    envVar: "",
-    homeDir: ".config/amp",
-    creds: [],
-    usage: false,
-    hue: "#ff9f6e",
-    install: "el instalador de ampcode.com (por pnpm no deja binario en Windows)",
-    web: "https://ampcode.com",
   },
   {
     id: "agy",
@@ -603,6 +585,21 @@ export const PROVIDERS: Provider[] = [
     // before starting pi». Pi habla con varios proveedores, así que esta es la
     // de Anthropic, que es la que Munir tiene; las demás se añadirían igual.
     apiEnv: "ANTHROPIC_API_KEY",
+    // Su `--help` de la 0.84.1 (2026-11-16): el encargo va como argumento
+    // suelto y abre la interfaz con él («Interactive mode with initial prompt:
+    // pi "List all .ts files in src/"»); `--session-id <id>` usa ese id «y lo
+    // crea si falta», así que vale también para volver (y no `--session`, que
+    // `sessionIdOf` y Rust no leen como id: el panel lo perdía al retomar), y
+    // `--thinking` admite
+    // las cinco palabras de la casa. Pasado por su arranque en una carpeta sin
+    // login (`PI_CODING_AGENT_DIR` propia): las acepta y se para en «No API
+    // key found», sin gastar nada.
+    encargoEnLinea: true,
+    banderaEncargo: "",
+    banderaEsfuerzo: "--thinking",
+    banderaSesionNueva: "--session-id",
+    retomable: true,
+    retomar: "pi --session-id {id}",
   },
   {
     id: "kiro",
@@ -623,6 +620,13 @@ export const PROVIDERS: Provider[] = [
     // Su nombre a secas imprime la ayuda: la conversación es `kiro-cli chat`,
     // tal como sale en todos los ejemplos de su documentación.
     arranque: "kiro-cli chat",
+    // `kiro-cli chat --help` de la 2.16.0 (2026-11-16): `[INPUT]` es «The first
+    // question to ask» y la conversación sigue abierta, y `--effort` admite
+    // low…max. Retomar se puede por id (`--resume-id`), pero no se le puede
+    // dar uno al nacer ni Adeorq sabe leérselo de disco, así que no se promete.
+    encargoEnLinea: true,
+    banderaEncargo: "",
+    banderaEsfuerzo: "--effort",
   },
   {
     id: "kimi",
@@ -706,145 +710,6 @@ export const PROVIDERS: Provider[] = [
     },
     retomable: true,
     retomar: "kimi --session {id}",
-  },
-  // ── Los ocho de la ronda del 2026-08-19 ──────────────────────────────────
-  //
-  // Todos entran con el criterio de Kiro y de Kimi: se declara lo VERIFICADO y
-  // se deja vacío lo que no. Y aquí verificado significa una cosa muy concreta:
-  // el nombre del ejecutable NO es el que parece por el nombre del producto, es
-  // el que declara el campo `bin` de su paquete, y eso se lee del registro sin
-  // instalar nada (`npm view <paquete> bin`). Ahí es donde se ve que Goose se
-  // instala con `goose-cli` pero se llama `goose`, o que Codebuff trae además
-  // un alias `cb`.
-  //
-  // Lo que queda vacío en casi todos es la variable de carpeta y el fichero de
-  // login: eso solo sale leyendo su código o teniéndolos en disco, y ninguno
-  // está instalado aquí. Con `creds` vacío Adeorq dice que no sabe leerles el
-  // login en vez de declarar desconectada una cuenta que sí lo está, y sin
-  // `envVar` salen como de una sola cuenta en vez de apuntar dos a la misma
-  // carpeta sin que nadie se entere. Cuando se instale uno, se rellena su fila.
-  {
-    id: "codewhale",
-    label: "CodeWhale",
-    exe: "codewhale",
-    // El ÚNICO de esta tanda con la ficha entera, porque es Rust y abierto y se
-    // le puede leer: `crates/paths/src/lib.rs` declara `CODEWHALE_APP_DIR =
-    // ".codewhale"` y dice literalmente que sin `CODEWHALE_HOME` la carpeta es
-    // «<user home>/.codewhale».
-    envVar: "CODEWHALE_HOME",
-    homeDir: ".codewhale",
-    // Su login vive en `$CODEWHALE_HOME/credentials` con un nombre por
-    // proveedor, así que pasa lo mismo que con Kimi: sin instalarlo no se sabe
-    // cuál escribe el suyo.
-    creds: [],
-    usage: false,
-    hue: "#38b6d3",
-    install: "pnpm add -g codewhale",
-    cmd: "pnpm add -g codewhale",
-    web: "https://github.com/Hmbown/CodeWhale",
-  },
-  {
-    id: "goose",
-    label: "Goose",
-    // Se instala con `goose-cli` y se llama `goose`: su `bin` lo dice.
-    exe: "goose",
-    envVar: "",
-    homeDir: ".config/goose",
-    creds: [],
-    usage: false,
-    hue: "#9dc93c",
-    install: "pnpm add -g goose-cli",
-    cmd: "pnpm add -g goose-cli",
-    web: "https://github.com/aaif-goose/goose",
-  },
-  {
-    id: "droid",
-    label: "Droid",
-    exe: "droid",
-    envVar: "",
-    homeDir: ".factory",
-    creds: [],
-    usage: false,
-    hue: "#c2410c",
-    install: "pnpm add -g droid",
-    cmd: "pnpm add -g droid",
-    web: "https://factory.ai",
-  },
-  {
-    id: "jules",
-    label: "Jules",
-    exe: "jules",
-    envVar: "",
-    homeDir: ".jules",
-    creds: [],
-    usage: false,
-    hue: "#46bd7e",
-    install: "pnpm add -g @google/jules",
-    cmd: "pnpm add -g @google/jules",
-    web: "https://jules.google",
-  },
-  {
-    id: "auggie",
-    label: "Auggie",
-    exe: "auggie",
-    envVar: "",
-    homeDir: ".augment",
-    creds: [],
-    usage: false,
-    hue: "#00bfa5",
-    install: "pnpm add -g @augmentcode/auggie",
-    cmd: "pnpm add -g @augmentcode/auggie",
-    web: "https://www.augmentcode.com",
-  },
-  {
-    id: "codebuff",
-    label: "Codebuff",
-    // Su paquete declara DOS: `codebuff` y el alias corto `cb`. Se busca el
-    // largo, que es el que no se confunde con nada.
-    exe: "codebuff",
-    envVar: "",
-    homeDir: ".codebuff",
-    creds: [],
-    usage: false,
-    hue: "#f06292",
-    install: "pnpm add -g codebuff",
-    cmd: "pnpm add -g codebuff",
-    web: "https://www.codebuff.com",
-  },
-  {
-    id: "cody",
-    label: "Cody",
-    exe: "cody",
-    envVar: "",
-    homeDir: ".sourcegraph",
-    creds: [],
-    usage: false,
-    hue: "#ff5543",
-    install: "pnpm add -g @sourcegraph/cody",
-    cmd: "pnpm add -g @sourcegraph/cody",
-    web: "https://sourcegraph.com/cody",
-  },
-  {
-    id: "aider",
-    label: "Aider",
-    exe: "aider",
-    // El único de la tanda que NO es de npm: vive en PyPI. Se instala con `uv`,
-    // que ya está en esta máquina (0.12.0), y no con pip suelto, que dejaría el
-    // paquete dentro del Python que toque y no en el PATH.
-    envVar: "",
-    // Aider no tiene carpeta de identidad: su configuración son ficheros
-    // `.aider.*` en el proyecto más `~/.aider.conf.yml`, y su login son las
-    // claves de API del entorno. Por eso `homeDir` queda con el perfil a secas
-    // y `creds` vacío: no hay carpeta que mover ni fichero de sesión que mirar.
-    homeDir: "",
-    creds: [],
-    usage: false,
-    hue: "#8d6e63",
-    install: "uv tool install aider-chat",
-    cmd: "uv tool install aider-chat",
-    web: "https://aider.chat",
-    // Su documentación arranca por ahí en todos sus ejemplos con Claude.
-    apiEnv: "ANTHROPIC_API_KEY",
   },
 ];
 

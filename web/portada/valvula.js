@@ -4,11 +4,12 @@
    Dos cosas que la portada necesitaba y no tenía, medidas el 2026-08-20 con
    el navegador sobre `localhost:5174/portada/`:
 
-   1. UN CONTROL DE PAUSA VISIBLE. Hay dos animaciones en bucle infinito
-      (`glow-late` 9 s y `cinta-rodar` 42 s). WCAG 2.2.2 es nivel A y
-      pide control de pausa a partir de cinco segundos; WCAG 2.3.3 pide poder
-      desactivar el movimiento, no solo reducirlo. El dial `--motion-gain` del
-      `<head>` no cubre ninguna de las dos: gradúa amplitud, no detiene bucles,
+   1. UN CONTROL DE PAUSA VISIBLE. Hay una animación en bucle infinito
+      (`cinta-rodar`, 42 s; `glow-late` se fue con la luz el 2026-11-16).
+      WCAG 2.2.2 es nivel A y pide control de pausa a partir de cinco
+      segundos; WCAG 2.3.3 pide poder desactivar el movimiento, no solo
+      reducirlo. El dial `--motion-gain` del `<head>` no la cubre: gradúa
+      amplitud, no detiene bucles,
       y su única válvula vivía en la URL, donde no la encuentra nadie.
 
    2. LA DEMO NO SE CARGA DE ENTRADA. El `<iframe>` de `/demo/` pesa cerca de
@@ -114,14 +115,25 @@
   var conBucle = [document.getElementById('haz'), document.getElementById('cinta')]
     .concat([].slice.call(document.querySelectorAll('svg[data-adeo]')))
     .filter(Boolean);
+  /* Y también cuando el del pie ya está en pantalla: el Adeo de las preguntas
+     se ve a la vez que el pie, y salían los dos botones juntos, uno encima del
+     otro, en la esquina de abajo. */
   if (lineaDelPie && conBucle.length && 'IntersectionObserver' in window) {
     var aLaVista = [];
-    var vigiaDeBucles = new IntersectionObserver(function (entradas) {
-      entradas.forEach(function (e) { aLaVista[conBucle.indexOf(e.target)] = e.isIntersecting; });
+    var pieALaVista = false;
+    var decide = function () {
       var alguna = conBucle.some(function (s, i) { return aLaVista[i]; });
-      boton.toggleAttribute('data-fuera', !alguna);
+      boton.toggleAttribute('data-fuera', !alguna || pieALaVista);
+    };
+    var vigiaDeBucles = new IntersectionObserver(function (entradas) {
+      entradas.forEach(function (e) {
+        if (e.target === botones[1]) pieALaVista = e.isIntersecting;
+        else aLaVista[conBucle.indexOf(e.target)] = e.isIntersecting;
+      });
+      decide();
     });
     conBucle.forEach(function (s) { vigiaDeBucles.observe(s); });
+    vigiaDeBucles.observe(botones[1]);
   }
 
   /* Si la URL ya pedía `motion=off`, el botón nace diciendo «reanudar»: sería

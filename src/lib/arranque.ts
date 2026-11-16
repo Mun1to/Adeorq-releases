@@ -92,8 +92,8 @@ export type Shell = "powershell" | "bash";
  * PowerShell, así que se doblan igual que la recta: un «it’s» dictado partía la
  * línea. En bash basta la comilla simple, con las de dentro como '\''.
  *
- * Y `--%` solo lo entiende PowerShell al llamar a un PROGRAMA. Codex, Gemini,
- * Qwen u OpenCode instalados con pnpm o npm son un script `.ps1` que llama a
+ * Y `--%` solo lo entiende PowerShell al llamar a un PROGRAMA. Codex, Gemini u
+ * OpenCode instalados con pnpm o npm son un script `.ps1` que llama a
  * node con el `.js` del paquete (o a su `.exe`), y a un script PowerShell le
  * pasa `--%` y `%ADEORQ_ENCARGO%` como dos argumentos más: Codex se moría con
  * «unexpected argument '--%'» (2026-10-16, un encargo programado). Así que, si

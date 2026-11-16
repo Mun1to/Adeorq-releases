@@ -15,6 +15,7 @@ import { noteList, noteRead, noteWrite } from "../lib/pty";
 import { TOOLS, TOOL_BODIES } from "./CanvasTools";
 import type { WidgetKind } from "../lib/piezas";
 import {
+  ChevronIcon,
   CloseIcon,
   FlagIcon,
   ResetIcon,
@@ -266,7 +267,10 @@ function Cuenta() {
       mode: "siempre",
       tag: "cuenta-atras",
       title: t("Se acabó el tiempo"),
-      body: t("La cuenta atrás de {n} minutos ha llegado a cero.", { n: String(min) }),
+      body:
+        min === 1
+          ? t("La cuenta atrás de 1 minuto ha llegado a cero.")
+          : t("La cuenta atrás de {n} minutos ha llegado a cero.", { n: String(min) }),
     });
     setFinAt(null);
     setRestante(0);
@@ -572,14 +576,14 @@ function Calendario() {
   return (
     <div className="wdg-body wdg-cal">
       <div className="wdg-calhead">
-        <button className="mini" onClick={() => mueve(-1)}>
-          ‹
+        <button className="mini" aria-label={t("El mes anterior")} onClick={() => mueve(-1)}>
+          <ChevronIcon izq size={14} />
         </button>
         <button className="wdg-month" onClick={alHoy}>
           {MESES[mes.getMonth()]} {mes.getFullYear()}
         </button>
-        <button className="mini" onClick={() => mueve(1)}>
-          ›
+        <button className="mini" aria-label={t("El mes siguiente")} onClick={() => mueve(1)}>
+          <ChevronIcon der size={14} />
         </button>
       </div>
       <div className="wdg-grid">

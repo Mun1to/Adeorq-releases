@@ -17,7 +17,35 @@ const CLAVE = "adeorq-tema-sistema";
 const ids = new Set<string>(THEMES.map((t) => t.id));
 const valido = (v: unknown, siNo: ThemeId): ThemeId => (typeof v === "string" && ids.has(v) ? (v as ThemeId) : siNo);
 
-export const POR_DEFECTO: TemaSistema = { activo: false, oscuro: "azul", claro: "papel" };
+/** El tema de fábrica: Contraste desde el 2026-11-16, cuando Munir lo eligió. */
+export const TEMA_DE_FABRICA: ThemeId = "contraste";
+
+export const POR_DEFECTO: TemaSistema = { activo: false, oscuro: TEMA_DE_FABRICA, claro: "papel" };
+
+/* Antes de Contraste el de fábrica era Azul noche, y quien lo tiene guardado
+   casi siempre es porque venía puesto, no porque lo eligiera. Pasa a Contraste
+   UNA vez (también como tema del «oscuro» si sigue a Windows); si vuelve a
+   Azul noche en Ajustes, se queda en Azul noche. */
+const PASADO_A_CONTRASTE = "adeorq-tema-contraste";
+
+/** El tema con el que arranca la app, pasando una vez de Azul noche a Contraste. */
+export function temaInicial(): ThemeId {
+  const guardado = localStorage.getItem(THEME_KEY);
+  if (localStorage.getItem(PASADO_A_CONTRASTE) == null) {
+    localStorage.setItem(PASADO_A_CONTRASTE, "1");
+    try {
+      const s = JSON.parse(localStorage.getItem(CLAVE) ?? "null");
+      if (s && typeof s === "object" && s.oscuro === "azul") guardarTemaSistema({ ...s, oscuro: TEMA_DE_FABRICA });
+    } catch {
+      // Una configuración rota la arregla `leerTemaSistema` al leerla.
+    }
+    if (guardado === "azul") {
+      localStorage.setItem(THEME_KEY, TEMA_DE_FABRICA);
+      return TEMA_DE_FABRICA;
+    }
+  }
+  return guardado != null && ids.has(guardado) ? (guardado as ThemeId) : TEMA_DE_FABRICA;
+}
 
 export function leerTemaSistema(): TemaSistema {
   try {
@@ -34,7 +62,7 @@ export function leerTemaSistema(): TemaSistema {
       }
       return POR_DEFECTO;
     }
-    return { activo: v.activo === true, oscuro: valido(v.oscuro, "azul"), claro: valido(v.claro, "papel") };
+    return { activo: v.activo === true, oscuro: valido(v.oscuro, TEMA_DE_FABRICA), claro: valido(v.claro, "papel") };
   } catch {
     return POR_DEFECTO;
   }

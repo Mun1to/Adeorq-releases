@@ -1,8 +1,8 @@
-// La app de verdad en seis fotos, tal cual o con OTRA escala de esquinas y sombras.
+// La app de verdad en siete fotos, tal cual o con OTRA escala de esquinas y sombras.
 //
 // Para juzgar la guía de estilo mirando la interfaz y no una maqueta: carga la
-// app con el doble y fotografía la Cabina, un menú, un diálogo, la Agenda, los
-// Ajustes y el chat. Si `CANDIDATA` trae valores, repite las seis con esos
+// app con el doble y fotografía la Cabina, un menú, un diálogo, el Panel, el
+// Perfil, los Ajustes y el chat. Si `CANDIDATA` trae valores, repite las siete con esos
 // valores puestos en la raíz; nada de eso se guarda, se va al recargar.
 //
 // Desde el 2026-10-11 toda esquina y toda sombra de la hoja sale de cinco
@@ -89,9 +89,14 @@ async (page) => {
     await foto("dialogo");
     await page.locator(".modal-overlay").click({ position: { x: 6, y: 6 } });
     await page.waitForTimeout(300);
-    await page.locator('[data-tab="agenda"]').click();
+    // La Agenda ya no es pestaña de arriba: vive dentro del Perfil. Se
+    // fotografían el Panel y el Perfil en su lugar.
+    await page.locator('[data-tab="panel"]').click();
     await page.waitForTimeout(1300);
-    await foto("agenda");
+    await foto("panel");
+    await page.locator('[data-tab="perfil"]').click();
+    await page.waitForTimeout(1300);
+    await foto("perfil");
     await page.locator('[data-tab="ajustes"]').click();
     await page.waitForTimeout(1100);
     await foto("ajustes");

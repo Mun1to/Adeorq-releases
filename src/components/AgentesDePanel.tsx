@@ -217,7 +217,9 @@ export default function AgentesDePanel({
             )}
             <footer className="agentes-pie">
               {total > (lista?.length ?? 0)
-                ? t("{n} desplegados en total; aquí, los que siguen fuera y los últimos.", { n: total })
+                ? total === 1
+                  ? t("1 desplegado en total; aquí, los que siguen fuera y los últimos.")
+                  : t("{n} desplegados en total; aquí, los que siguen fuera y los últimos.", { n: total })
                 : t("Contados en el historial de la sesión: es el dato exacto.")}
             </footer>
           </div>,

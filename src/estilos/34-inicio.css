@@ -152,7 +152,7 @@
 
 .inicio-nota {
   min-width: 0;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -244,7 +244,7 @@
 }
 
 .inicio-proy-e {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -277,7 +277,7 @@
   border: 0;
   border-radius: var(--r-btn);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
   color: var(--text);
   cursor: pointer;
@@ -310,7 +310,7 @@
 
 .inicio-uso-linea {
   margin: 4px 0 0;
-  font-size: 13px;
+  font-size: 14px;
   color: color-mix(in srgb, var(--text) 66%, transparent);
 }
 
@@ -344,7 +344,7 @@
 
 .inicio-error {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--mal);
 }
 

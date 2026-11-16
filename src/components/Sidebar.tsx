@@ -66,6 +66,7 @@ import { ClaudeMark } from "./KindIcon";
 import { CAMBIO_VISTOS, marcarVisto, yaVisto } from "../lib/vistos";
 import {
   ArchiveIcon,
+  AvisoIcon,
   ChevronIcon,
   CloseIcon,
   EnterIcon,
@@ -86,6 +87,7 @@ import {
   TrashIcon,
   UnlinkIcon,
 } from "./Icons";
+import AvisoSesionAbierta from "./AvisoSesionAbierta";
 
 interface Props {
   width: number;
@@ -2093,9 +2095,9 @@ export default function Sidebar({
         ]),
     { label: "", separator: true },
     {
-      label: t("Abrir sus {n} sesiones a la vez", {
-        n: Math.min(g.sessions.length, topeAbrirTodas),
-      }),
+      label: g.sessions.length === 1
+        ? t("Abrir su sesión")
+        : t("Abrir sus {n} sesiones a la vez", { n: Math.min(g.sessions.length, topeAbrirTodas) }),
       onClick: () => onOpenAll(g.name, g.path, g.sessions),
     },
     { label: "", separator: true },
@@ -2472,7 +2474,7 @@ export default function Sidebar({
           {s.agentsLive > 0 && (
             <span
               className="sess-agents"
-              data-tip={`${s.agentsLive === 1 ? t("1 agente trabajando ahora dentro de esta sesión") : t("{n} agentes trabajando ahora dentro de esta sesión", { n: s.agentsLive })} · ${t("{n} desplegados en total", { n: s.agentsTotal })}`}
+              data-tip={`${s.agentsLive === 1 ? t("1 agente trabajando ahora dentro de esta sesión") : t("{n} agentes trabajando ahora dentro de esta sesión", { n: s.agentsLive })} · ${s.agentsTotal === 1 ? t("1 desplegado en total") : t("{n} desplegados en total", { n: s.agentsTotal })}`}
             >
               <RobotIcon size={12} /> {s.agentsLive}
             </span>
@@ -2585,7 +2587,7 @@ export default function Sidebar({
                   // proyecto abre las suyas. Estaba puesto para plegar, y por
                   // eso «no se abría el grupo» por más que se pulsara: hacía
                   // otra cosa (Munir, 2026-08-02). Plegar tiene su ▴ al lado.
-                  data-tip={t("Abrir sus {n} sesiones a la vez", { n: inside.length })}
+                  data-tip={inside.length === 1 ? t("Abrir su sesión") : t("Abrir sus {n} sesiones a la vez", { n: inside.length })}
                   disabled={inside.length === 0}
                   // Y aquí lo mismo que en `toggle`, con más motivo: soltar un
                   // grupo en su sitio nuevo no puede abrirte sus seis sesiones.
@@ -2624,9 +2626,10 @@ export default function Sidebar({
                       ? t("Traer de vuelta sus terminales")
                       : t("Apartar sus terminales (siguen trabajando)")
                   }
+                  aria-label={gruposOcultos.has(pg.id) ? t("Traer de vuelta sus terminales") : t("Apartar sus terminales (siguen trabajando)")}
                   onClick={() => plegarGrupo(pg.id)}
                 >
-                  {gruposOcultos.has(pg.id) ? "▾" : "▴"}
+                  <ChevronIcon size={13} up={!gruposOcultos.has(pg.id)} />
                 </button>
               </div>
 
@@ -2862,9 +2865,9 @@ export default function Sidebar({
       </button>
       {filter.trim() && ocultosPorFiltro > 0 && (
         <button className="finder-aviso" onClick={() => setFilter("")}>
-          {t("{n} proyectos escondidos por el filtro. Pulsa para verlos.", {
-            n: ocultosPorFiltro,
-          })}
+          {ocultosPorFiltro === 1
+            ? t("1 proyecto escondido por el filtro. Pulsa para verlo.")
+            : t("{n} proyectos escondidos por el filtro. Pulsa para verlos.", { n: ocultosPorFiltro })}
         </button>
       )}
       {/* Las que trajiste a mano desde el ＋. Salen aunque sean viejas, y hasta
@@ -2884,9 +2887,9 @@ export default function Sidebar({
             data-tip={t("Dejan de verse las que trajiste a mano. No se borra ninguna.")}
             onClick={() => mutate((prev) => ({ ...prev, traidas: [], traidasVisto: 0 }))}
           >
-            {t("{n} traídas a mano. Pulsa para quitarlas de la lista.", {
-              n: ui.traidas.length,
-            })}
+            {ui.traidas.length === 1
+              ? t("1 traída a mano. Pulsa para quitarla de la lista.")
+              : t("{n} traídas a mano. Pulsa para quitarlas de la lista.", { n: ui.traidas.length })}
           </button>
           <button
             className="finder-aviso-x"
@@ -2940,7 +2943,7 @@ export default function Sidebar({
               data-tip={
                 showArchived
                   ? t("Ocultar las sesiones archivadas")
-                  : t("Ver las {n} sesiones archivadas", { n: archivedTotal })
+                  : archivedTotal === 1 ? t("Ver la sesión archivada") : t("Ver las {n} sesiones archivadas", { n: archivedTotal })
               }
               onClick={() => setShowArchived((v) => !v)}
             >
@@ -3059,12 +3062,13 @@ export default function Sidebar({
                   // aquí dentro, así que sin esto la fila solo se podía
                   // arrastrar por los pocos píxeles que quedan a la derecha.
                   data-agarre
+                  aria-expanded={open}
                   onClick={() => toggle(g.name)}
                   data-tip={
                     g.sessions.length
                       ? open
-                        ? t("{p}: plegar sus {n} sesiones", { p: shownName(g.name), n: g.sessions.length })
-                        : t("{p}: ver sus {n} sesiones", { p: shownName(g.name), n: g.sessions.length })
+                        ? g.sessions.length === 1 ? t("{p}: plegar su sesión", { p: shownName(g.name) }) : t("{p}: plegar sus {n} sesiones", { p: shownName(g.name), n: g.sessions.length })
+                        : g.sessions.length === 1 ? t("{p}: ver su sesión", { p: shownName(g.name) }) : t("{p}: ver sus {n} sesiones", { p: shownName(g.name), n: g.sessions.length })
                       : t("{p} no tiene sesiones recientes", { p: shownName(g.name) })
                   }
                 >
@@ -3078,8 +3082,8 @@ export default function Sidebar({
                   {/* Under the mouse the name steps aside, so the arrow keeps
                       both jobs: it folds the sessions and it counts them. */}
                   <span className="project-caret">
-                    {open ? "▾" : "▸"}
-                    {g.sessions.length > 0 && ` ${g.sessions.length}`}
+                    <ChevronIcon size={13} der={!open} />
+                    {g.sessions.length > 0 && g.sessions.length}
                   </span>
                 </button>
                 <span className="project-badges">
@@ -3542,12 +3546,14 @@ export default function Sidebar({
             {tirando.sessions.length + tirando.archivedSessions.length > 0 && (
               <div className="modal-warn">
                 <p className="modal-warn-title">
-                  {t(
-                    "⚠ Tiene {n} sesiones de Claude. Sus conversaciones NO se borran: viven en tu carpeta de Claude, no en esta. Pero se quedarán apuntando a una carpeta que ya no está.",
-                  ).replace(
-                    "{n}",
-                    String(tirando.sessions.length + tirando.archivedSessions.length),
-                  )}
+                  <AvisoIcon />
+                  {tirando.sessions.length + tirando.archivedSessions.length === 1
+                    ? t(
+                        "Tiene 1 sesión de Claude. Su conversación NO se borra: vive en tu carpeta de Claude, no en esta. Pero se quedará apuntando a una carpeta que ya no está.",
+                      )
+                    : t(
+                        "Tiene {n} sesiones de Claude. Sus conversaciones NO se borran: viven en tu carpeta de Claude, no en esta. Pero se quedarán apuntando a una carpeta que ya no está.",
+                      ).replace("{n}", String(tirando.sessions.length + tirando.archivedSessions.length))}
                 </p>
               </div>
             )}
@@ -3611,7 +3617,7 @@ export default function Sidebar({
             ) : confirm.dirty.isRepo && confirm.dirty.total > 0 ? (
               <div className="modal-warn">
                 <p className="modal-warn-title">
-                  ⚠{" "}
+                  <AvisoIcon />
                   {confirm.dirty.total === 1
                     ? t("Este proyecto tiene {n} archivo con cambios sin guardar en git:", { n: confirm.dirty.total })
                     : t("Este proyecto tiene {n} archivos con cambios sin guardar en git:", { n: confirm.dirty.total })}
@@ -3665,12 +3671,7 @@ export default function Sidebar({
               )}
             </p>
             {binning.live && (
-              <div className="modal-warn">
-                <p className="modal-warn-title">⚠ {t("Esta sesión está abierta ahora mismo.")}</p>
-                <p className="modal-warn-note">
-                  {t("La terminal sigue funcionando, pero su conversación deja de estar en disco: al cerrarla no habrá nada que retomar.")}
-                </p>
-              </div>
+              <AvisoSesionAbierta nota={t("La terminal sigue funcionando, pero su conversación deja de estar en disco: al cerrarla no habrá nada que retomar.")} />
             )}
             <div className="modal-actions">
               <button className="mini modal-cancel" onClick={() => setBinning(null)}>

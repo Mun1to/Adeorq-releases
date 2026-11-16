@@ -43,7 +43,7 @@
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 13.5px;
+  font-size: 14.5px;
   text-align: left;
   cursor: pointer;
 }
@@ -145,7 +145,7 @@
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 13.5px;
+  font-size: 14.5px;
   text-align: left;
   cursor: pointer;
 }
@@ -186,14 +186,14 @@
   gap: 6px;
 }
 .ew-tag {
-  font: 600 11px/1.4 var(--mono, ui-monospace, monospace);
+  font: 600 13px/1.4 var(--mono, ui-monospace, monospace);
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   border-radius: 4px;
   padding: 1px 5px;
 }
 .ew-clases {
-  font: 11px/1.4 var(--mono, ui-monospace, monospace);
+  font: 13px/1.4 var(--mono, ui-monospace, monospace);
   color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -202,7 +202,7 @@
 }
 .ew-medida {
   margin-left: auto;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -214,7 +214,7 @@
   gap: 7px;
 }
 .ew-fila label {
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--muted);
 }
 .ew-fila input[type="range"] {
@@ -238,10 +238,10 @@
   border-radius: var(--r-chico);
   padding: 3px 6px;
   font: inherit;
-  font-size: 11.5px;
+  font-size: 13px;
 }
 .ew-num {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -260,7 +260,7 @@
   background: var(--row);
   color: var(--text);
   font: inherit;
-  font-size: 11.5px;
+  font-size: 13px;
   cursor: pointer;
 }
 .ew-accion:hover {
@@ -278,7 +278,7 @@
 
 .ew-pista {
   margin: 0;
-  font-size: 11.5px;
+  font-size: 13px;
   line-height: 1.45;
   color: var(--muted);
 }
@@ -315,7 +315,7 @@
 }
 .ew-sinplugin-txt {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--muted);
 }
@@ -335,7 +335,7 @@
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border);
   color: var(--text);
-  font-size: 11.5px;
+  font-size: 13px;
   line-height: 1.4;
   overflow-wrap: anywhere;
 }

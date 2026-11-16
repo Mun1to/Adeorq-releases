@@ -89,7 +89,6 @@ const escenarios: Escenario[] = [
   { nombre: "sin Claude conectado, Antigravity para leer", ex: ex("oficio", { trabajo: "lectura" }), mundo: { cuentas: [viva("Agy", {}, "agy")] } },
   { nombre: "sin Claude conectado, Gemini para texto", ex: ex("oficio", { trabajo: "texto" }), mundo: { cuentas: [viva("Gem", {}, "gemini")] } },
   { nombre: "sin Claude conectado, opencode", ex: ex("oficio"), mundo: { cuentas: [viva("Oc", {}, "opencode")] } },
-  { nombre: "sin Claude conectado, Qwen", ex: ex("oficio"), mundo: { cuentas: [viva("Qw", {}, "qwen")] } },
   { nombre: "sin ninguna cuenta", ex: ex("oficio"), mundo: { cuentas: [] } },
   { nombre: "sin suscripción baja el modelo", ex: ex("oficio"), pedido: "opus", mundo: { cuentas: [viva("Principal", { gastado: 10, plan: "free" })] } },
   { nombre: "sin suscripción y de juicio se queda", ex: ex("juicio"), mundo: { cuentas: [viva("Principal", { gastado: 10, plan: "free" })] } },

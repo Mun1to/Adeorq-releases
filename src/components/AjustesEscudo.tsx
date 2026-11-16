@@ -262,7 +262,7 @@ export default function AjustesEscudo() {
           <p className="setting-line setting-bad">{t(v.error)}</p>
         ) : v.activo ? (
           <p className="setting-line">
-            {t("Miro {n} archivos cada 30 segundos.", { n: v.archivos })}
+            {v.archivos === 1 ? t("Miro 1 archivo cada 30 segundos.") : t("Miro {n} archivos cada 30 segundos.", { n: v.archivos })}
             {v.ultimaVuelta != null && ` ${t("La última vez, {c}.", { c: cuando(v.ultimaVuelta) })}`}
           </p>
         ) : (

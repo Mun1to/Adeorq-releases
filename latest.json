@@ -1,11 +1,11 @@
 {
-  "version": "0.9.258",
-  "notes": "Decisiones: posponer con H o con su boton y lo pospuesto no cuenta en Adeo; una madre Codex o Gemini recibe la linea de sus hijas; en el Modo Espejo lo que un agente escribe tras cerrar su copia ya no se borra",
-  "pub_date": "2026-11-16T07:59:08Z",
+  "version": "0.9.259",
+  "notes": "Contraste es el aspecto nuevo de fabrica, ninguna letra baja de 13 px, iconos dibujados en vez de simbolos; once programas en el catalogo; Vibecoding abre opencode; Copilot, Pi y Kiro reciben el encargo al abrirse; Conectar tu Claude Code ya no se queda girando",
+  "pub_date": "2026-11-16T19:05:48Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLysvejl5OHBqVU9QejhsekJ4QnhUMG1Qb05uUE9sWlhtK2hGRHUrdDcyTUM0R3VBNS82T1FIV0lsSms2OXNkcmwxcE93NC85NWYrWmt2Y1Q0T2pUNHdnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0ODE1OTM3CWZpbGU6QWRlb3JxXzAuOS4yNThfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNTgKZTJQMFBZcGJhVWVkZkR3dDJiNWdlNHlrOUUvN2M3TXhCQWpmRGg2NTVJcEgwVTJEVm9hNTdJTThzOGFpYlRRbm80ekJkbHhjWXZ4alVXa2FTeFMyREE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.258/Adeorq_0.9.258_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzVGNzNLQ2x6QUlDbk00RlZ5M1RKRE9zK0N1NWZpam9KTlZLNDlqWVVLd1RacVlWM0VuM3p4Y1pESHgrTWJ5cWttZWsybEgxTjFxVGZsQVRVZHhSRUE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0ODU1OTQwCWZpbGU6QWRlb3JxXzAuOS4yNTlfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNTkKUGhINEJOMW93dlQrd2RURmIzVUhmK3RZMVpabngyeVNRaHF2TTlGb2xPZUpoNmtjZXJIUkdXYWxCVG5iN2d4aHVUZytiSlVuNWR1VDAxU3Z1Nno2Q0E9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.259/Adeorq_0.9.259_x64-setup.exe"
     }
   }
 }

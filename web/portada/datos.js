@@ -55,6 +55,18 @@
     return (EN ? mb : mb.replace('.', ',')) + ' MB';
   }
 
+  /* Hasta 190 letras, cortando en el último punto que quepa y, si no hay
+     ninguno pasada la mitad, en la última palabra entera: a mitad de palabra
+     («cuya rejilla na…») se leía como un fallo. vite.config.js hace lo mismo
+     al dejarlas escritas en el HTML. */
+  function corta(texto) {
+    if (texto.length <= 190) return texto;
+    var punto = texto.slice(0, 191).lastIndexOf('. ');
+    if (punto >= 95) return texto.slice(0, punto + 1);
+    var espacio = texto.slice(0, 188).lastIndexOf(' ');
+    return texto.slice(0, espacio > 0 ? espacio : 187).replace(/[\s,;:.]+$/, '') + '…';
+  }
+
   /* ── La descarga ──────────────────────────────────────────────────────── */
 
   /* Quien llega desde un Linux de escritorio ve arriba el botón de Linux, que
@@ -118,7 +130,7 @@
       var enIngles = EN && e.en ? (e.en.summary || e.en.title) : '';
       if (EN && !enIngles) t.lang = 'es';
       var texto = (enIngles || e.summary || e.title || '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
-      t.textContent = texto.length > 190 ? texto.slice(0, 187).trimEnd() + '…' : texto;
+      t.textContent = corta(texto);
 
       li.appendChild(v);
       li.appendChild(f);

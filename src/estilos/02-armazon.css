@@ -212,7 +212,7 @@
   border: 1px solid transparent;
   border-radius: var(--r-icono, var(--r-btn));
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 550;
   padding: 5px 11px;
   cursor: pointer;
@@ -262,7 +262,7 @@
 
 /* Las cuentas y la marca de «beta», texto suelto en su color (2026-10-17). */
 .tab-count {
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
   color: color-mix(in srgb, var(--accent) 62%, var(--text));
@@ -276,7 +276,7 @@
    encima del nombre de la sección. */
 .tab-beta {
   color: var(--ask);
-  font-size: 9.5px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.04em;
   line-height: 1.5;
@@ -348,7 +348,7 @@
   color: var(--text);
   border-radius: var(--r-pastilla);
   padding: 7px 12px;
-  font-size: 13px;
+  font-size: 14px;
   outline: none;
   transition: border-color var(--t-rapida) ease, box-shadow var(--t-rapida) ease;
 }
@@ -414,7 +414,7 @@
   border-radius: var(--r-chico);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   color: color-mix(in srgb, var(--text) 78%, transparent);
-  font-size: 10.5px;
+  font-size: 13px;
   line-height: 1.4;
   text-align: left;
   cursor: pointer;
@@ -480,7 +480,7 @@
   overflow: hidden;
   color: var(--muted);
   /* En caja normal: Munir no quiere mayúsculas espaciadas en ningún sitio. */
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   padding: 0 4px;
 }
@@ -508,7 +508,7 @@
   border: 1px solid var(--border);
   color: color-mix(in srgb, var(--text) 72%, var(--muted));
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   border-radius: var(--r-icono, var(--r-btn));
   padding: 4px 8px;
@@ -631,7 +631,7 @@
 
 .side-divider {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 1px;
   padding: 10px 10px 4px;
@@ -657,7 +657,7 @@
   padding: 0 5px;
   border-radius: var(--r-pastilla);
   background: var(--row);
-  font-size: 9.5px;
+  font-size: 13px;
   letter-spacing: 0;
 }
 
@@ -680,7 +680,7 @@
   border: none;
   background: none;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 1px;
   cursor: pointer;
@@ -721,7 +721,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--muted);
 }
 
@@ -733,7 +733,7 @@
   margin: 4px 0 0;
   padding: 0 6px;
   color: var(--muted);
-  font-size: 10.5px;
+  font-size: 13px;
   line-height: 1.4;
   opacity: 0.8;
 }
@@ -780,7 +780,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.2px;
   user-select: none;
@@ -831,7 +831,7 @@
   width: 100%;
   height: 100%;
   border-radius: var(--r-avatar, var(--r-btn) 3px 3px var(--r-btn));
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0.3px;
 }
 

@@ -175,7 +175,9 @@ function DiffTool() {
         onKeyDown={(e) => e.stopPropagation()}
       />
       <p className="tool-nota">
-        {filas.length ? `${filas.length} ${t("líneas distintas")}` : t("Iguales")}
+        {filas.length
+          ? `${filas.length} ${filas.length === 1 ? t("línea distinta") : t("líneas distintas")}`
+          : t("Iguales")}
       </p>
       {!!filas.length && (
         <pre className="tool-out nowheel">

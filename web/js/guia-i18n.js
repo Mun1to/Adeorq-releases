@@ -30,13 +30,12 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.menu.titulo': 'Menu',
     'guia.menu.codigo': 'Code on GitHub',
     'guia.menu.idioma': 'Español',
-    'guia.eyebrow': 'Documentation',
     'guia.titulo': 'How the cockpit works.',
-    'guia.entrada': 'Adeorq is a desktop panel for Windows and Linux where your agents work in real ' +
+    'guia.entrada': 'Adeorq is a desktop panel for Windows, Linux and Mac where your agents work in real ' +
                     'terminals, and you can also use it from your phone. ' +
                     'This guide explains what each screen does, in the order you meet them. ' +
                     'You do not have to read it all: the index on the left goes straight to what you need.',
-    'guia.meta1': 'Windows 10 and 11 · Linux',
+    'guia.meta1': 'Windows 10 and 11 · Linux · Mac with Apple Silicon',
     'guia.meta2': 'Free, no account',
     'guia.meta3': 'Works with your own subscriptions',
     'guia.indice': 'In this guide',
@@ -327,8 +326,8 @@ window.ADEORQ_I18N_EXTRA = {
                          'Rotating other people’s accounts to stretch the limits breaks the providers’ ' +
                          'terms, and what you are risking is having the account closed.',
     'guia.cuentas.h3a': 'Which programs support several accounts',
-    'guia.cuentas.pa': 'Adeorq knows around twenty programs, but only <b>eight support several accounts</b>: ' +
-                       'Claude Code, Codex, Gemini CLI, Qwen Code, Grok, Pi, Kimi Code and CodeWhale. For those, it has ' +
+    'guia.cuentas.pa': 'Adeorq knows eleven programs, and <b>six support several accounts</b>: ' +
+                       'Claude Code, Codex, Gemini CLI, Grok, Pi and Kimi Code. For those, it has ' +
                        'been checked that an environment variable really moves the program’s folder. The rest ' +
                        'carry the note “one account only”: better to say so than to invent a name and have an ' +
                        'account end up writing where it should not. Antigravity keeps its state inside ' +
@@ -348,18 +347,18 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.cuentas.r3': 'On screen you see it in the terminal’s header: one that is not using the main account ' +
                        'carries the three letters of its account.',
     'guia.cuentas.r4': 'There is a cap: six terminals open by agents at once, and twelve per hour.',
-    'guia.cuentas.h3v': 'Vibecoding with OpenRouter (Aider)',
+    'guia.cuentas.h3v': 'Vibecoding with OpenRouter (opencode)',
     'guia.cuentas.pv1': 'The OpenRouter card, inside <b>API keys</b>, is a single key that unlocks models from ' +
                         'many providers, including ones with no CLI of their own (Kimi, DeepSeek, Grok…). Once ' +
                         'the key is set, a second card appears below it, <b>Vibecoding</b>, which opens a real ' +
-                        'terminal of <a href="https://aider.chat" target="_blank" rel="noopener">Aider</a> ' +
+                        'terminal of <a href="https://opencode.ai" target="_blank" rel="noopener">opencode</a> ' +
                         'pointed at whichever model you type in there (default: <code>moonshotai/kimi-k3</code>). ' +
-                        'The first time, the button installs Aider on its own; every time after, it opens the ' +
-                        'terminal directly with the key already set.',
-    'guia.cuentas.pv2': '<span class="doc-caja__titulo">If you open Aider by hand instead of through the button:</span> ' +
-                        'always tell it the model (<code>aider --model openrouter/&lt;model&gt;</code>), because without ' +
-                        'that it grabs the first key it finds in your environment and tries a DIFFERENT provider, ' +
-                        'and set the key in <code>OPENROUTER_API_KEY</code> in that terminal. The card does both on its own.',
+                        'If you do not have opencode yet, the button reads <b>Install opencode first</b>; after ' +
+                        'that, <b>Open terminal</b>, with the key already set.',
+    'guia.cuentas.pv2': '<span class="doc-caja__titulo">If you open opencode by hand instead of through the button:</span> ' +
+                        'always tell it the model (<code>opencode -m openrouter/&lt;model&gt;</code>), or it will use ' +
+                        'whichever provider it has at hand and never touch OpenRouter, and set the key in ' +
+                        '<code>OPENROUTER_API_KEY</code> in that terminal. The card does both on its own.',
 
     /* --------------------------------- AJUSTES --------------------------- */
     'guia.ajustes.h': 'Settings',
@@ -703,6 +702,8 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.atajos.a15': 'In a terminal: copy (with nothing selected, Ctrl+C goes to the program) and paste',
     'guia.atajos.a16': 'In a terminal: search inside it. It does not reach the agent',
     'guia.atajos.mantener': '(hold)',
+    /* La tecla de la tabla de atajos: en inglés el teclado dice Shift. */
+    'guia.tecla.mayus': 'Shift',
     'guia.atajos.p': 'These <b>cannot be changed</b>. The canvas ones can, in <b>Settings → Shortcuts</b>: there ' +
                      'are 31 actions (for example <kbd>Alt</kbd> + <kbd>C</kbd> opens a Claude, <kbd>Alt</kbd> + ' +
                      '<kbd>T</kbd> a terminal, and <kbd>V</kbd>, <kbd>P</kbd>, <kbd>F</kbd>… are the drawing ' +
@@ -818,7 +819,7 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.cierre.cta': 'Report a problem',
 
     /* ----------------------------------- PIE ----------------------------- */
-    'guia.pie.lema': 'The panel where your agents work in real terminals. On Windows and Linux, and with ' +
+    'guia.pie.lema': 'The panel where your agents work in real terminals. On Windows, Linux and Mac, and with ' +
                      'you on your phone.',
     'guia.pie.producto': 'Product',
     'guia.pie.recursos': 'Resources',

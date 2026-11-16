@@ -164,7 +164,7 @@ p{margin-top:26px;font-size:26px;line-height:1.45;color:#b7c7e0;max-width:36ch}
   <h1>All your agents. <em>One single screen.</em></h1>
   <p>${clientes()}</p>
 </div>
-<div class="pie"><span class="pip"></span> adeorq.com &#183; Windows and Linux</div>
+<div class="pie"><span class="pip"></span> adeorq.com &#183; Windows, Linux and Mac</div>
 </body></html>`
 
 const carpeta = mkdtempSync(join(tmpdir(), 'adeorq-og-'))

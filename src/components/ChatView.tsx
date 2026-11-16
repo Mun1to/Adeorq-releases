@@ -922,9 +922,11 @@ ${v}` : txt));
             <span className="chat-git-txt">
               <strong>{abierta?.project}</strong>
               <em>
-                {git.total > 0
-                  ? t("{n} archivos sin guardar", { n: git.total })
-                  : t("todo guardado")}
+                {git.total === 1
+                  ? t("1 archivo sin guardar")
+                  : git.total > 0
+                    ? t("{n} archivos sin guardar", { n: git.total })
+                    : t("todo guardado")}
               </em>
             </span>
           </div>

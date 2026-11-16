@@ -81,7 +81,7 @@ try {
   await hasta(() => a.v.js(`(() => { const t = [...document.querySelectorAll(".tab")].find((x) => /Cabina/.test(x.textContent ?? "")); t?.click(); return !!t; })()`), 15_000);
   await dormir(800);
   // El proyecto nace plegado: se despliega para ver sus filas.
-  await hasta(() => a.v.js(`(() => { const b = [...document.querySelectorAll(".project-main")].find((x) => /demo/.test(x.textContent ?? "")); if (!b) return false; if (/▸/.test(b.textContent ?? "")) b.click(); return true; })()`), 15_000);
+  await hasta(() => a.v.js(`(() => { const b = [...document.querySelectorAll(".project-main")].find((x) => /demo/.test(x.textContent ?? "")); if (!b) return false; if (b.getAttribute("aria-expanded") === "false") b.click(); return true; })()`), 15_000);
   await dormir(600);
   const cabecera = await a.v.js(`(() => { const b = [...document.querySelectorAll(".project-main")].find((x) => /demo/.test(x.textContent ?? "")); const g = b?.closest("[data-proyecto], .project, li, section") ?? b?.parentElement; return JSON.stringify({ flecha: b?.querySelector(".project-caret")?.textContent ?? null, tip: b?.getAttribute("data-tip") ?? null, texto: (g?.textContent ?? "").replace(/\\s+/g, " ").slice(0, 200) }); })()`);
   console.log(`      cabecera del proyecto: ${cabecera}`);

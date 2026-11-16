@@ -14,6 +14,8 @@
 // pierden ajustes, uno pisando al otro. Es la misma razón por la que las
 // cuentas tampoco viven allí.
 
+import { IDS } from "./providers";
+
 export const ATAJOS_PROV_KEY = "adeorq-atajos-proveedor";
 
 /** Cuando nadie ha elegido: los dos que Munir usa a diario. */
@@ -30,7 +32,9 @@ export function leerAtajosProv(): string[] {
     const v = JSON.parse(raw) as unknown;
     // Una lista vacía es una elección válida —no querer ningún botón— y por
     // eso se distingue de "todavía no ha elegido", que es el null de arriba.
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : DE_FABRICA;
+    // Y sin los CLI que ya no están en el catálogo: con `providerOf` saldrían
+    // como un botón de Claude que ejecuta otro programa (2026-11-16).
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && (x === "shell" || IDS.includes(x))) : DE_FABRICA;
   } catch {
     return DE_FABRICA;
   }

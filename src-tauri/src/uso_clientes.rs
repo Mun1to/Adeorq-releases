@@ -21,8 +21,6 @@
 //             otra cosa en la app que necesite SQLite, y entonces sale gratis.
 //   gemini    NO. Su `~/.gemini/tmp/<proyecto>/logs.json` estaba vacío y no
 //             guarda ni tokens ni cuota en ninguna parte de su carpeta.
-//   qwen      NO. Su carpeta solo tiene extensiones, skills y el id de
-//             instalación.
 //   copilot   NO a la vista. Solo deja logs de proceso, sin cuota dentro.
 //             PERO SE PREGUNTA (2026-10-15): su CLI tiene un modo headless que
 //             habla JSON-RPC y contesta `account.getQuota` con su propio login

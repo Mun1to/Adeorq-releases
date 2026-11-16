@@ -11,7 +11,7 @@ import { boveda, memoriaVaults } from "../lib/memoria";
 import { useT, type Translate } from "../lib/i18n";
 import { porcentaje } from "../lib/usoDelPerfil";
 import IconoPestana from "./IconoPestana";
-import { ProfileIcon } from "./Icons";
+import { ChevronIcon, ProfileIcon } from "./Icons";
 import Espera from "./Espera";
 
 // El Perfil: una sola página que baja (Munir, 2026-10-17, «A3»): «tu tarjeta
@@ -74,7 +74,9 @@ export default function PerfilView({ vista, irA, cuentas, apagadas }: Props) {
               <span className="perfil-seccion-cab">
                 <IconoPestana vista={s.key} />
                 {t(s.label)}
-                <span className="perfil-seccion-ir" aria-hidden="true">›</span>
+                <span className="perfil-seccion-ir" aria-hidden="true">
+                  <ChevronIcon der size={16} />
+                </span>
               </span>
               {s.key === "cuentas" && <ResumenCuentas cuentas={cuentas} t={t} />}
               {s.key === "agenda" && <ResumenAgenda t={t} />}
@@ -96,7 +98,8 @@ function VueltaAlPerfil({ vista, irA, t }: { vista: View; irA: (v: View) => void
   return (
     <nav className="perfil-volver" aria-label={t("Dónde estás")}>
       <button className="perfil-volver-btn" onClick={() => irA("perfil")}>
-        <span aria-hidden="true">‹</span> {t("Perfil")}
+        <ChevronIcon izq size={14} />
+        {t("Perfil")}
       </button>
       {aqui && <span className="perfil-volver-aqui">{t(aqui.label)}</span>}
     </nav>

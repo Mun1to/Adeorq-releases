@@ -780,7 +780,9 @@ fn pasar(mut cliente: TcpStream, d: Destino, resto: Vec<u8>, llaves: &'static Mu
     };
     let fin = AtomicBool::new(false);
     std::thread::scope(|hilos| {
-        if let (Ok(desde), Ok(hacia)) = (cliente.try_clone(), web.try_clone()) {
+        // Sin herencia: una terminal que se abre a la vez se llevaría la copia, y
+        // al morir esa terminal la página del móvil se cortaría (`clon_sin_herencia`).
+        if let (Ok(desde), Ok(hacia)) = (crate::clon_sin_herencia(&cliente), crate::clon_sin_herencia(&web)) {
             let fin = &fin;
             hilos.spawn(move || subir(desde, hacia, fin));
         }
@@ -1070,7 +1072,7 @@ mod tests {
         std::thread::spawn(move || {
             for s in web_l.incoming().flatten() {
                 std::thread::spawn(move || {
-                    let mut r = std::io::BufReader::new(s.try_clone().unwrap());
+                    let mut r = std::io::BufReader::new(crate::clon_sin_herencia(&s).unwrap());
                     let mut cabeza = String::new();
                     loop {
                         let mut l = String::new();

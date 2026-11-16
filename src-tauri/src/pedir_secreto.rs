@@ -942,7 +942,7 @@ fn traer(puerto: u16, nombre: &str, motivo: &str, pide: Pide) -> Result<Option<S
     let mut linea = String::new();
     lector
         .read_line(&mut linea)
-        .map_err(|_| "Adeorq dejó de contestar".to_string())?;
+        .map_err(|e| format!("Adeorq dejó de contestar ({:?}: {e})", e.kind()))?;
     let res: serde_json::Value = serde_json::from_str(&linea).map_err(|e| e.to_string())?;
     if let Some(error) = res["error"].as_str() {
         return Err(error.to_string());
@@ -975,7 +975,7 @@ mod pruebas {
         std::thread::spawn(move || {
             for flujo in oreja.incoming().take(2) {
                 let flujo = flujo.unwrap();
-                let mut escritor = flujo.try_clone().unwrap();
+                let mut escritor = crate::clon_sin_herencia(&flujo).unwrap();
                 let mut linea = String::new();
                 BufReader::new(flujo).read_line(&mut linea).unwrap();
                 let v: serde_json::Value = serde_json::from_str(&linea).unwrap();
@@ -1011,7 +1011,7 @@ mod pruebas {
         std::thread::spawn(move || {
             for (i, flujo) in oreja.incoming().take(2).enumerate() {
                 let flujo = flujo.unwrap();
-                let mut escritor = flujo.try_clone().unwrap();
+                let mut escritor = crate::clon_sin_herencia(&flujo).unwrap();
                 let mut linea = String::new();
                 BufReader::new(flujo).read_line(&mut linea).unwrap();
                 tx.send(linea).unwrap();

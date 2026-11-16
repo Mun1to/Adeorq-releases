@@ -25,7 +25,7 @@ for (const p of PROVIDERS.filter((x) => x.cmd)) {
 }
 ok("`oficial` solo está donde hay una orden que sustituir", PROVIDERS.filter((p) => p.oficial).every((p) => p.cmd));
 ok(
-  "los que no se instalan con orden también llevan su web (Amp, Cursor)",
+  "los que no se instalan con orden también llevan su web (Cursor)",
   PROVIDERS.filter((p) => !p.cmd && p.install).every((p) => !!enlaceOficial(p)),
   PROVIDERS.filter((p) => !p.cmd && p.install && !enlaceOficial(p)).map((p) => p.id).join(", "),
 );

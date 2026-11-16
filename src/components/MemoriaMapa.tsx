@@ -499,7 +499,7 @@ function Lienzo({ mapa, ruta, trabajando, cuando, error, onLeer, onParar }: Prop
         labelBgPadding: [6, 3] as [number, number],
         labelBgBorderRadius: 6,
         labelBgStyle: { fill: "var(--panel-solid)", fillOpacity: 0.92 },
-        labelStyle: { fill: "var(--text)", fontSize: 11 },
+        labelStyle: { fill: "var(--text)", fontSize: 13 },
         markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: `var(--mapa-${capa})` },
       };
     });

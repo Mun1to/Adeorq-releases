@@ -69,7 +69,7 @@ interface Props {
   /** Abre una terminal que lo descarga y, si al acabar ya se le puede llamar,
       lo arranca para que hagas el login ahí mismo. */
   onInstall: (provider: Provider) => void;
-  /** Abre una terminal de Aider apuntando a un modelo de OpenRouter, con la
+  /** Abre una terminal de opencode apuntando a un modelo de OpenRouter, con la
       clave que ya está guardada en la tarjeta de OpenRouter. Vive en App.tsx
       porque necesita `addPane` y la raíz del árbol, igual que `onInstall`. */
   onVibecoding: (modelo: string) => void;
@@ -104,9 +104,7 @@ const ATAJOS_PRIMEROS = [
   "codex",
   "cursor",
   "gemini",
-  "qwen",
   "copilot",
-  "crush",
 ];
 
 const ATAJOS_POSIBLES: Array<{ id: string; label: string }> = [
@@ -641,7 +639,7 @@ export default function AccountsView({
         <span>
           <b>{resumen.conectadas}</b>{" "}
           {resumen.conectadas === 1 ? t("conectada") : t("conectadas")}
-          <em>{t("de {n} instalados", { n: resumen.programas })}</em>
+          <em>{resumen.programas === 1 ? t("de 1 instalado") : t("de {n} instalados", { n: resumen.programas })}</em>
         </span>
         <span data-hot={resumen.peor != null && resumen.peor >= 80 ? "" : undefined}>
           <b>{resumen.peor != null ? `${resumen.peor}%` : "—"}</b>{" "}
@@ -682,12 +680,12 @@ export default function AccountsView({
             {activa === "claves" && (
               <>
                 <OpenRouterCard
-                  aiderInstalado={!!installed?.has("aider")}
-                  onInstalarAider={() => {
-                    const aider = providerOf("aider");
+                  opencodeInstalado={!!installed?.has("opencode")}
+                  onInstalarOpencode={() => {
+                    const opencode = providerOf("opencode");
                     // En la Tienda, su web y no una terminal que lo instala.
-                    if (enTienda) void openUrl(enlaceOficial(aider) ?? "").catch(() => {});
-                    else onInstall(aider);
+                    if (enTienda) void openUrl(enlaceOficial(opencode) ?? "").catch(() => {});
+                    else onInstall(opencode);
                   }}
                   onVibecoding={onVibecoding}
                   enTienda={enTienda}

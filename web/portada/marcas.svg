@@ -46,35 +46,6 @@
       fill="currentColor"
     />
   </symbol>
-  <symbol id="m-qwen" viewBox="0 0 24 24">
-    <mask id="pm-qwen" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
-        <rect width="24" height="24" fill="#fff" />
-        <path
-          d="M12 2.6 20.1 16.6 3.9 16.6Z"
-          fill="none"
-          stroke="#000"
-          stroke-width="7.4"
-          stroke-linejoin="miter"
-        />
-      </mask>
-      <path
-        d="M12 21.4 3.9 7.4h16.2Z"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="4.6"
-        stroke-linejoin="miter"
-        mask="url(#pm-qwen)"
-      />
-      <path
-        d="M12 2.6 20.1 16.6 3.9 16.6Z"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="4.6"
-        stroke-linejoin="miter"
-      />
-      
-      <path d="M12 15.4 9.5 10.9h5Z" fill="currentColor" />
-  </symbol>
   <symbol id="m-copilot" viewBox="0 0 24 24">
     <mask id="pm-copilot" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
         <path

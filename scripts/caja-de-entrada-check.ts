@@ -187,7 +187,7 @@ ok("Claude no tiene esa vuelta: su Intro no se pierde (entregar-de-verdad, 13 de
 
 // --- quién tiene lector ---------------------------------------------------------------
 for (const cli of ["claude", "codex", "gemini"]) ok(`${cli} tiene lector de su caja`, lectorDeCaja(cli) !== null);
-for (const cli of ["shell", "qwen", "kimi", "opencode", "no-existe"]) ok(`${cli}: sin lector, nunca se le teclea`, lectorDeCaja(cli) === null);
+for (const cli of ["shell", "copilot", "kimi", "opencode", "no-existe"]) ok(`${cli}: sin lector, nunca se le teclea`, lectorDeCaja(cli) === null);
 
 console.log(fallos ? `\n${fallos} fallos` : "\nTodo en verde.");
 if (fallos) process.exit(1);

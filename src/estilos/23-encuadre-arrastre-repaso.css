@@ -45,7 +45,7 @@
 
 .enc-pie {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
   color: color-mix(in srgb, var(--text) 62%, var(--muted));
 }
@@ -192,7 +192,7 @@
 .sueltas-pista {
   display: block;
   padding: 8px 10px;
-  font-size: 11.5px;
+  font-size: 13px;
   /* No `--muted`: esto puede quedar sobre la foto si la barra es estrecha. */
   color: color-mix(in srgb, var(--text) 66%, transparent);
 }
@@ -208,7 +208,7 @@
   background: transparent;
   /* Ni `--muted`: la barra puede quedar sobre la foto. */
   color: color-mix(in srgb, var(--text) 62%, transparent);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: color var(--t-rapida) ease, border-color var(--t-rapida) ease, background var(--t-rapida) ease;
@@ -227,7 +227,7 @@
 .mas-viejas.en-proyecto {
   margin: 2px 0 4px;
   padding: 5px 8px;
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 500;
   border-style: dotted;
   text-align: left;
@@ -247,7 +247,7 @@
   min-height: 28px;
   margin: 6px auto 10px;
   padding: 5px 4px;
-  font-size: 11px;
+  font-size: 13px;
   /* Los dígitos de un contador no deben bailar de ancho al cambiar. */
   font-variant-numeric: tabular-nums;
 }
@@ -312,7 +312,7 @@
 }
 
 .repaso-tag {
-  font-size: 11.5px;
+  font-size: 13px;
   letter-spacing: 0.02em;
   color: color-mix(in srgb, var(--text) 62%, transparent);
   /* «Modelo favorito» no cabe en una columna de cuatro y partirlo en dos
@@ -372,7 +372,7 @@
 
 .repaso-pie {
   margin: 12px 0 0;
-  font-size: 11.5px;
+  font-size: 13px;
   line-height: 1.5;
   color: color-mix(in srgb, var(--text) 58%, transparent);
 }
@@ -408,7 +408,7 @@
   gap: 8px;
   padding: 7px 2px;
   border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .cab-fila:last-child {
@@ -435,7 +435,7 @@
 }
 
 .parte-fila .cab-nombre small {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -516,7 +516,7 @@
   margin: -2px -6px -2px 1px;
   border-radius: var(--r-chico);
   color: color-mix(in srgb, var(--text) 38%, transparent);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   transition:
@@ -587,7 +587,7 @@
   background: var(--panel);
   color: var(--text);
   font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.5;
   /* El mensaje de un error puede ser larguísimo y no puede empujar la caja. */
   white-space: pre-wrap;
@@ -599,7 +599,7 @@
 }
 
 .caida-pie {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .caida-boton {
@@ -638,7 +638,7 @@
 .pane-caido-caja {
   max-width: 420px;
   text-align: left;
-  font-size: 13.5px;
+  font-size: 14.5px;
 }
 
 .pane-caido-caja strong {
@@ -661,7 +661,7 @@
   border-radius: 0 var(--r-chico) var(--r-chico) 0;
   background: var(--panel-solid);
   font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -677,7 +677,7 @@
   background: color-mix(in srgb, var(--accent) 16%, var(--panel));
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }

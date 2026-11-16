@@ -199,9 +199,8 @@ Debian 12+, Fedora 36+, Arch).
 ## Funciona con TU cuenta
 
 Adeorq no vende ni incluye acceso a ningún modelo. **Usa las suscripciones que ya pagas** y
-los CLI que ya tienes instalados, veintidós a día de hoy: Claude Code, Codex, Gemini CLI,
-Antigravity, Copilot, Cursor, Qwen, Grok, Kimi Code, Kiro, pi, opencode, Crush, Amp, Aider,
-Goose, Droid, Jules, Auggie, Codebuff, Cody y CodeWhale. Si tienes varias cuentas, cada
+los CLI que ya tienes instalados, once a día de hoy: Claude Code, Codex, Gemini CLI,
+Antigravity, Copilot, Cursor, Grok, Kimi Code, Kiro, pi y opencode. Si tienes varias cuentas, cada
 terminal puede nacer con la suya.
 
 Ese es el motivo de existir: **las novedades de los modelos llegan antes a la línea de

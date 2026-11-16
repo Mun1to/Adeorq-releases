@@ -56,6 +56,9 @@ const DEMO = {
   // la casa no aísla: el resumen de la Memoria en el Perfil enseñaba el nombre
   // y las notas de la bóveda de quien hace la foto. Aquí, la de Sam (casa.mjs).
   bovedas: [{ path: "P:\\notes", name: "notes", docs: 7, abierta: true }],
+  // «Conectar tu Claude Code» enseña la ruta del binario que corre, que es la
+  // carpeta de compilación de quien hace la foto (`C:\ct\...`). Aquí, una de Sam.
+  comandoMcp: '"P:\\Adeorq\\adeorq.exe" --mcp',
   version: JSON.parse(readFileSync(new URL("../../../package.json", import.meta.url), "utf8")).version,
 };
 
@@ -160,6 +163,8 @@ const GUARDA = `(() => {
       if (cmd === "usage_of") return args.provider === "codex" ? responde(enHoras(DEMO.limitesCodex)) : real(a, b);
       if (cmd === "uso_historia") return responde(historiaDeSam(Date.now()));
       if (cmd === "memoria_vaults") return responde(DEMO.bovedas);
+      // Un error de Tauri también llega con 200: lo dice su cabecera, no el estado.
+      if (cmd === "claude_conexiones") return real(a, b).then((r) => (r.headers.get("Tauri-Response") === "ok" ? r.json().then((plan) => responde({ ...plan, comando: DEMO.comandoMcp })) : r));
     }
     return real(a, b);
   };

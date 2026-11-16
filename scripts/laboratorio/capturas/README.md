@@ -57,7 +57,10 @@ ffmpeg -f lavfi -i color=c=black:s=1920x1080 -filter_script:v fondo.filtro -fram
 
 1. **Grabar** (gasta unos pocos turnos cortos de tu cuenta): `node grabar.mjs guiones/en-storefront.json`,
    y así los ocho. Deja `p/rec/<nombre>.bin`. Antes de regrabar un proyecto, devuélvelo a su punto
-   de partida (`git checkout`), o el agente no tiene nada que arreglar. Una sesión de Claude solo se
+   de partida (`git checkout`), o el agente no tiene nada que arreglar. **Ojo: inglés y español
+   graban en las MISMAS carpetas**: entre la tanda `en-*` y la `es-*`, repón `storefront-api`,
+   `landing-web` e `invoice-cli` como se dice abajo, o las de español contestan «ya estaba
+   corregido» (pasó el 2026-11-16 y hubo que repetir tres). Una sesión de Claude solo se
    regraba borrando antes su transcript (`~/.claude/projects/P--projects-<proyecto>/<sesion>.jsonl`):
    con el mismo `--session-id` Claude se niega a arrancar y la grabación sale vacía.
    **Después, `node avisos.mjs`**: con la cuenta justa, Claude Code pinta «You've used 98% of your
@@ -82,6 +85,8 @@ ffmpeg -f lavfi -i color=c=black:s=1920x1080 -filter_script:v fondo.filtro -fram
    una foto) y se corta antes. `cortar.mjs <nombre> <ms> <salida> <desde>-<hasta>` quita además un
    tramo de la grabación: el aviso de confianza de Codex enseña la ruta real de la carpeta. Antes de
    fiarse de un corte, `grep -a -c -i "Users\|AppData" p/rec/*-mid.bin` tiene que dar cero.
+   Claude Code y Codex enseñan en su línea de estado «running PreToolUse hook» o «Running hook»
+   mientras corre un gancho; el corte se busca en un instante en que no lo digan.
    **Codex pinta con posiciones absolutas**: su grabación solo sale limpia reproducida al tamaño EXACTO
    en que se hizo (90 × 22, el de la Cabina; con otro se ve texto suelto de pantallas anteriores).
    `p/rec/repetir.log` dice a qué tamaño se pintó cada panel, y la terminal de Codex del Lienzo mide
@@ -127,9 +132,18 @@ node ..\..\..\web\scripts\hacer-demo.mjs   # o `pnpm demo` desde web/
 
 `volcar.mjs` saca la ventana entera en la Cabina y en el Lienzo, la raíz de cada una de las otras
 vistas con cada una de sus pestañas, los paneles que se abren encima o al lado (objetivos, Pulso,
-paleta, los tres de la derecha, la barra en logos y en tira) y las hojas de estilo que la página
-tiene cargadas. `hacer-demo.mjs` lo empaqueta y **se para si encuentra una ruta o una dirección de
-la máquina que hizo el volcado**. Una parte suelta se repite con `node volcar.mjs es chat barra`.
+paleta, los de la derecha en el orden de su franja, la barra en logos y en tira, el menú de
+Posponer de Decisiones y la lista del Chat con cada una de sus dos pestañas) y las hojas de estilo
+que la página tiene cargadas. `hacer-demo.mjs` lo empaqueta y **se para si encuentra una ruta o una
+dirección de la máquina que hizo el volcado**; el único correo que deja pasar es el de contacto
+público de Adeorq (`CORREO` de `src/lib/informar.ts`), que lleva el aviso de que Adeo es una IA.
+Una parte suelta se repite con `node volcar.mjs es chat barra`.
+
+- **Adeo sale dos veces**: desde la Cabina se abre en la barra de la derecha (`x-lateral-0`, la
+  primera cara de la franja), y desde las demás vistas flota (`x-capataz`, que por eso se vuelca
+  desde el Panel). `vivo.js` hace lo mismo con el orbe y con Ctrl+Mayús+A.
+- **El Pulso solo sale en ámbar o en rojo**, y con los datos de Sam no sale: `volcar.mjs` dice
+  «no encuentro button.pulso» y no hay `x-pulso`. No es un fallo.
 
 - **El volcado sale del árbol de trabajo**, no del último commit: el binario de pruebas carga la
   página de `pnpm dev`. Si otra sesión tiene cambios a medias en `src/`, salen en la demostración.

@@ -55,6 +55,7 @@ import {
   RestoreIcon,
   TrashIcon,
 } from "./Icons";
+import AvisoSesionAbierta from "./AvisoSesionAbierta";
 import AgentesDePanel from "./AgentesDePanel";
 import KindIcon, { kindDeComando } from "./KindIcon";
 import { hueOf } from "../lib/colors";
@@ -2298,7 +2299,7 @@ export default function TerminalPane({
           // porque el valor de esto no es abrir otra cuenta (eso ya se podía)
           // sino no tener que contarle otra vez lo que llevabas media hora
           // explicando (Munir, 2026-08-01).
-          ...(onRelevar && sabe(kind, "retomable") && otrasCuentas.length > 0
+          ...(onRelevar && sabe(kind, "relevo") && otrasCuentas.length > 0
             ? [
                 { label: "", separator: true },
                 { label: t("Seguir en otra cuenta"), heading: true },
@@ -2532,7 +2533,7 @@ export default function TerminalPane({
           {shadowActive && (
             <button
               className="pane-btn pane-shadow-toggle is-active"
-              data-tip={`${t("Modo Espejo (SVFS) activo · Rama: {r}", { r: shadowSession?.shadowBranch ?? "" })}\n${t("{n} archivos propuestos. Clic para ver diffs.", { n: shadowFiles.length })}`}
+              data-tip={`${t("Modo Espejo (SVFS) activo · Rama: {r}", { r: shadowSession?.shadowBranch ?? "" })}\n${shadowFiles.length === 1 ? t("1 archivo propuesto. Clic para ver el diff.") : t("{n} archivos propuestos. Clic para ver diffs.", { n: shadowFiles.length })}`}
               onClick={handleToggleShadow}
             >
               <GitBranchIcon />
@@ -2723,9 +2724,9 @@ export default function TerminalPane({
           onClick={() => soltarRef.current?.()}
           title={t("Volver al final y ver lo que ha llegado")}
         >
-          {pausa > 0
-            ? t("En pausa · {n} líneas nuevas").replace("{n}", String(pausa))
-            : t("En pausa mientras lees")}
+          {pausa === 1
+            ? t("En pausa · 1 línea nueva")
+            : pausa > 0 ? t("En pausa · {n} líneas nuevas").replace("{n}", String(pausa)) : t("En pausa mientras lees")}
         </button>
       )}
       {showDiff && (
@@ -2819,12 +2820,7 @@ export default function TerminalPane({
               {/* El aviso que la barra solo enseña a veces aquí sale SIEMPRE: si
                   estás leyendo esto desde el encabezado de una terminal, esa
                   terminal está abierta por definición. */}
-              <div className="modal-warn">
-                <p className="modal-warn-title">⚠ {t("Esta sesión está abierta ahora mismo.")}</p>
-                <p className="modal-warn-note">
-                  {t("Se cierra esta terminal y su conversación deja de estar en disco.")}
-                </p>
-              </div>
+              <AvisoSesionAbierta nota={t("Se cierra esta terminal y su conversación deja de estar en disco.")} />
               <div className="modal-actions">
                 <button className="mini modal-cancel" onClick={() => setBorrando(false)}>
                   {t("Cancelar")}

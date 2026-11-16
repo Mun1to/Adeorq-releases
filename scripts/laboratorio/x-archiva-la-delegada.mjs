@@ -89,7 +89,7 @@ try {
   conversacion(sidMcp, "Hija del agente");
   // La barra las lee al releer: el botón de releer, como haría Munir.
   await a.v.js(`document.querySelector('[data-tip="Releer proyectos y sesiones"]')?.click(); "ok"`);
-  await hasta(() => a.v.js(`(() => { const b = [...document.querySelectorAll(".project-main")].find((x) => /demo/.test(x.textContent ?? "")); if (!b) return false; if (/▸/.test(b.textContent ?? "")) b.click(); return true; })()`), 15_000);
+  await hasta(() => a.v.js(`(() => { const b = [...document.querySelectorAll(".project-main")].find((x) => /demo/.test(x.textContent ?? "")); if (!b) return false; if (b.getAttribute("aria-expanded") === "false") b.click(); return true; })()`), 15_000);
   const enBarra = (sid) => a.v.js(`!!document.querySelector('[data-sesion="${sid}"]')`);
   dice(!!(await hasta(async () => (await enBarra(sidX)) && (await enBarra(sidMcp)), 20_000, 500)), "las dos salen en la barra mientras trabajan");
 

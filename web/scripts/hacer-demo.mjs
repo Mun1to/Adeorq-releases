@@ -40,8 +40,36 @@ if (!existsSync(resolve(DESDE, 'hojas.css'))) {
 
 /* Lo que no puede salir nunca en un archivo que se publica: rutas de la casa de
    quien hizo el volcado, su usuario o un correo. La casa de pruebas vive en P:,
-   así que cualquiera de estos es una fuga. Si aparece, el script se para. */
-const PROHIBIDO = [/C:\\+Users/i, /\\AppData\\/i, /\bmuni(r|to)?\b/i, /athayde/i, /[\w.+-]+@[\w-]+\.[a-z]{2,}/i, /asset\.localhost/i, /ipc\.localhost/i, /(localhost|127\.0\.0\.1):\d{2,5}/i];
+   así que cualquier ruta de otra unidad es una fuga (la de su carpeta de
+   compilación, `C:\ct\...`, salió así una vez en «Conectar tu Claude Code»).
+   Si aparece, el script se para. Las rutas de Git Bash y WSL (`/c/...`,
+   `/mnt/c/...`) cuentan igual, y una de red (`\\servidor\...`) también escapada
+   dentro de JSON (`\\\\servidor\\...`); el `P:\\...` escapado de la casa de
+   pruebas y un `\\n` de un texto no. Se miran los datos y también `app.css`. */
+const PROHIBIDO = [/(?<![A-Za-z0-9])[A-OQ-Z]:[\\/]/i, /(?<![\w.~\/+-])(?:\/mnt)?\/[a-oq-z]\/[\w.-]/i, /(?<![\w\\]|\b[A-Za-z]:)(?:\\\\)+[\w.$-]{2,}\\/, /C:\\+Users/i, /\\AppData\\/i, /\bmuni(r|to)?\b/i, /athayde/i, /[\w.+-]+@[\w-]+\.[a-z]{2,}/i, /asset\.localhost/i, /ipc\.localhost/i, /(localhost|127\.0\.0\.1):\d{2,5}/i];
+
+/* El único correo que sí sale: el de contacto público de Adeorq (`CORREO` de
+   src/lib/informar.ts, el mismo de la política de privacidad de la web). Lo
+   lleva el enlace «o por correo» del aviso de que Adeo es una IA, que es de la
+   app y no de quien vuelca. Se lee de ahí para que la excepción siga a la app;
+   cualquier otro correo sigue parando el script. */
+const CORREO_PUBLICO = (readFileSync(resolve(AQUI, '../../src/lib/informar.ts'), 'utf8').match(/export const CORREO = "([^"]+)"/) || [])[1];
+
+/* Para el script si `texto` lleva algo de PROHIBIDO. Solo se le quita antes el
+   correo público entero: uno que lo lleve dentro (`x.` delante, `.otro.io`
+   detrás) sigue siendo otro correo, y para. */
+const CORREO_EXACTO = CORREO_PUBLICO && new RegExp(`(?<![\\w.+-])${CORREO_PUBLICO.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w-]|\\.\\w)`, 'g');
+function sinFugas(texto, cual) {
+  const revisado = CORREO_EXACTO ? texto.replace(CORREO_EXACTO, '') : texto;
+  for (const patron of PROHIBIDO) {
+    const hallado = revisado.match(patron);
+    if (hallado) {
+      const donde = revisado.indexOf(hallado[0]);
+      console.error(`hacer-demo: «${hallado[0]}» no puede publicarse (${cual}): …${revisado.slice(Math.max(0, donde - 80), donde + 80).replace(/\s+/g, ' ')}…`);
+      process.exit(1);
+    }
+  }
+}
 
 /* Los temas de color de las terminales. Cada terminal trae la suya dentro (65 KB
    de reglas idénticas salvo por el número de su dueña): se queda UNA por tema y
@@ -174,14 +202,7 @@ for (const idioma of IDIOMAS) {
     .replaceAll('Good morning, ', 'Good afternoon, ')
     .replaceAll('Good evening, ', 'Good afternoon, ');
 
-  for (const patron of PROHIBIDO) {
-    const hallado = salida.match(patron);
-    if (hallado) {
-      const donde = salida.indexOf(hallado[0]);
-      console.error(`hacer-demo: «${hallado[0]}» no puede publicarse (${idioma}): …${salida.slice(Math.max(0, donde - 80), donde + 80).replace(/\s+/g, ' ')}…`);
-      process.exit(1);
-    }
-  }
+  sinFugas(salida, idioma);
 
   writeFileSync(resolve(DEMO, `datos-${idioma}.html`), salida, 'utf8');
   total += salida.length;
@@ -217,6 +238,7 @@ const coloresTerminal = [...temas].map(([id, t]) => `/* ==== el color de las ter
 const css =
   `/* GENERADO por scripts/hacer-demo.mjs: las hojas de estilo que la app tiene\n   cargadas (la suya, la de xterm y la del lienzo). No editar a mano. */\n\n` +
   hojas + '\n\n' + coloresTerminal + '\n';
+sinFugas(css, 'app.css');
 writeFileSync(resolve(DEMO, 'app.css'), css, 'utf8');
 console.log(`app.css -> ${(css.length / 1024).toFixed(0)} KB (${temas.size} tema${temas.size === 1 ? '' : 's'} de terminal)`);
 console.log(`total: ${((total + css.length) / 1024).toFixed(0)} KB sin comprimir`);

@@ -251,7 +251,6 @@ const RELEVOS: Array<{ cli: string; fuerte: Trabajo[]; porque: string }> = [
   { cli: "agy", fuerte: ["lectura", "diseno"], porque: "aguanta bien leer mucho de golpe" },
   { cli: "gemini", fuerte: ["lectura", "texto"], porque: "va sobrado de contexto para leer" },
   { cli: "opencode", fuerte: ["codigo"], porque: "está conectado y sirve para esto" },
-  { cli: "qwen", fuerte: ["codigo"], porque: "está conectado y sirve para esto" },
 ];
 
 /**

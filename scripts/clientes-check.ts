@@ -29,9 +29,10 @@
 //     --lib es2022,dom --esModuleInterop --skipLibCheck --outDir <tmp>
 //   node <tmp>/scripts/clientes-check.js
 
-import { CLAUDE, IDS, lineaDeArranque, lineasEnVivo, PROVIDERS, sabe } from "../src/lib/providers";
+import { CLAUDE, IDS, lineaDeArranque, lineaDeRetomar, lineasEnVivo, PROVIDERS, sabe } from "../src/lib/providers";
 import { lineaConEncargo, planDeArranque } from "../src/lib/arranque";
 import { kindDeComando } from "../src/components/KindIcon";
+import { sessionIdOf } from "../src/lib/comandos";
 import { ARRANCAN_CON_ENCARGO, CLIS_CONOCIDOS, cliPedido } from "../src/lib/supremo";
 
 // Igual que en `cerebro-check.ts`: esto se compila con `--skipLibCheck` y sin
@@ -217,7 +218,7 @@ ok(
 ok(
   "quien acepta encargo al arrancar lo declara en su fila",
   PROVIDERS.filter((p) => p.encargoEnLinea).map((p) => p.id).sort().join() ===
-    "agy,claude,codex,gemini,opencode",
+    "agy,claude,codex,copilot,gemini,kiro,opencode,pi",
 );
 // Claude y Antigravity lo toman como argumento suelto y tienen su rama propia;
 // cualquier OTRO que acepte encargo necesita decir CON QUÉ, o el texto se
@@ -319,6 +320,42 @@ ok("«shell» abre una consola pelada, sin comando dentro", pl({ cli: "shell" })
 {
   const r = pl({ cli: "codex", modelo: "turbo" });
   ok("un alias que ese CLI no traduce no se le pone", r.tipo === "linea" && r.inner === "codex --sandbox workspace-write", JSON.stringify(r));
+}
+// Los tres que ganaron encargo, esfuerzo e id el 2026-11-16, leídos en su ayuda
+// y pasados por su analizador (`providers.ts`). Sin cerebro: ninguno lo promete.
+{
+  const r = pl({ cli: "copilot", encargo: "revisa el PR", modelo: "opus", esfuerzo: "xhigh" });
+  ok(
+    "Copilot: esfuerzo, id propio para retomarla y el encargo con -i",
+    r.tipo === "linea" &&
+      /^copilot --reasoning-effort xhigh --session-id [0-9a-f-]{36} -i$/.test(r.inner) &&
+      r.encargo === "revisa el PR" &&
+      !!r.sesion &&
+      r.inner.includes(r.sesion) &&
+      lineaDeRetomar("copilot", r.sesion) === `copilot --session-id ${r.sesion}`,
+    JSON.stringify(r),
+  );
+}
+{
+  const r = pl({ cli: "pi", encargo: "lista los .ts", esfuerzo: "low" });
+  ok(
+    "Pi: su nivel de pensar, id propio y el encargo suelto",
+    r.tipo === "linea" &&
+      /^pi --thinking low --session-id [0-9a-f-]{36}$/.test(r.inner) &&
+      r.encargo === "lista los .ts" &&
+      lineaDeRetomar("pi", r.sesion ?? "") === `pi --session-id ${r.sesion}` &&
+      sessionIdOf(lineaDeRetomar("pi", r.sesion ?? "")) === r.sesion &&
+      sessionIdOf(lineaDeRetomar("copilot", r.sesion ?? "")) === r.sesion,
+    JSON.stringify(r),
+  );
+}
+{
+  const r = pl({ cli: "kiro", encargo: "explica el build", esfuerzo: "max" });
+  ok(
+    "Kiro: su chat con esfuerzo y la primera pregunta suelta, sin id que prometer",
+    r.tipo === "linea" && r.inner === "kiro-cli chat --effort max" && r.encargo === "explica el build" && !r.sesion,
+    JSON.stringify(r),
+  );
 }
 
 {
@@ -488,12 +525,12 @@ ok("«shell» abre una consola pelada, sin comando dentro", pl({ cli: "shell" })
   );
 }
 {
-  // Amp no declara cómo recibe un encargo, así que se le copia. (Antes el
-  // ejemplo era Codex, que desde el 2026-10-06 sí lo acepta suelto.)
-  const r = pl({ cli: "amp", encargo: "traduce los tooltips" });
+  // Cursor no declara cómo recibe un encargo, así que se le copia. (El ejemplo
+  // fue Codex hasta el 2026-10-06, y Amp hasta que salió del catálogo.)
+  const r = pl({ cli: "cursor", encargo: "traduce los tooltips" });
   ok(
     "a quien no acepta el encargo al arrancar se le copia, no se le mete en la línea",
-    r.tipo === "linea" && r.inner === "amp" && r.alPortapapeles === "traduce los tooltips",
+    r.tipo === "linea" && r.inner === "cursor-agent" && r.alPortapapeles === "traduce los tooltips",
   );
 }
 {
@@ -501,7 +538,7 @@ ok("«shell» abre una consola pelada, sin comando dentro", pl({ cli: "shell" })
   ok("y sin encargo no se copia nada", r.tipo === "linea" && !r.alPortapapeles);
 }
 {
-  const r = pl({ cli: "qwen", encargo: "   " });
+  const r = pl({ cli: "pi", encargo: "   " });
   ok(
     "un encargo que es solo espacios no cuenta como encargo",
     r.tipo === "linea" && !r.alPortapapeles,
@@ -526,7 +563,7 @@ for (const id of IDS) {
 // Lo que se persigue: un `if` que pregunta QUIÉN es el CLI en vez de QUÉ SABE
 // HACER. `providers.ts` queda fuera porque es justo donde deben vivir.
 const SUELTO =
-  /(?:cli|kind|provider)\s*===\s*"(?:claude|agy|codex|gemini|qwen|copilot|crush|opencode|amp|cursor|pi|kiro|shell|ollama)"|\.?id\s*===\s*"(?:claude|agy|codex)"/g;
+  /(?:cli|kind|provider)\s*===\s*"(?:claude|agy|codex|gemini|copilot|opencode|cursor|pi|kiro|shell|ollama)"|\.?id\s*===\s*"(?:claude|agy|codex)"/g;
 
 const EXENTOS = ["src/lib/providers.ts"];
 

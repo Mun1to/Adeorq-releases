@@ -31,13 +31,13 @@
 
 .claude-ruta {
   font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 12.5px;
+  font-size: 13.5px;
   user-select: text;
 }
 
 .mcp-cliente-quien .claude-estado,
 .claude-estado {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.4;
   color: var(--text);
 }
@@ -50,7 +50,7 @@
 .claude-nota {
   display: block;
   margin: 0;
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.4;
   color: var(--muted);
   overflow-wrap: anywhere;

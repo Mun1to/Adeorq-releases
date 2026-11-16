@@ -607,7 +607,7 @@ export default function MemoriaView({
                     </span>
                     <span className="mem-vault-ruta">{v.path}</span>
                     <span className="mem-vault-n">
-                      {v.docs} {t("documentos")}
+                      {v.docs} {v.docs === 1 ? t("documento") : t("documentos")}
                     </span>
                   </button>
                 ))}
@@ -749,7 +749,7 @@ export default function MemoriaView({
               ? `${hits.length} ${hits.length === 1 ? t("resultado") : t("resultados")}`
               : cargando
                 ? <Espera activo como="span">{t("Leyendo…")}</Espera>
-                : `${vault?.docs.length ?? 0} ${t("documentos")}`}
+                : `${vault?.docs.length ?? 0} ${vault?.docs.length === 1 ? t("documento") : t("documentos")}`}
           </div>
 
           {/* El árbol de carpetas, que es como se mira una bóveda: por dónde
@@ -959,7 +959,7 @@ export default function MemoriaView({
                   {vault.obsidian
                     ? t("Es una bóveda de Obsidian: se lee tal cual, sin tocar nada.")
                     : t("Carpeta de markdown corriente: se lee igual.")}
-                  {` · ${vault.docs.length} ${t("documentos")} · ${
+                  {` · ${vault.docs.length} ${vault.docs.length === 1 ? t("documento") : t("documentos")} · ${
                     vault.docs.filter((d) => d.links.length).length
                   } ${t("con enlaces")}`}
                 </p>

@@ -40,15 +40,6 @@
   margin-bottom: var(--e2);
 }
 
-.doc-portada__eyebrow {
-  font-family: var(--tipo-mono);
-  font-size: var(--t-micro);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--acento);
-  margin-bottom: var(--e3);
-}
-
 .doc-portada h1 {
   font-size: var(--t-h2);
   font-weight: var(--peso-alto);
@@ -73,13 +64,21 @@
   font-size: var(--t-pie);
   color: var(--tinta-suave);
 }
-.doc-portada__meta span { display: inline-flex; align-items: center; gap: 7px; }
-.doc-portada__meta span::before {
+/* Como las notas de la portada: un punto pequeño ENTRE los datos, no un punto
+   de color delante de cada uno. */
+.doc-portada__meta span { display: inline-flex; align-items: center; }
+.doc-portada__meta span + span::before {
   content: "";
-  width: 6px; height: 6px;
+  width: 3px; height: 3px;
+  margin-right: var(--e5);
   border-radius: 50%;
-  background: var(--acento);
-  opacity: 0.75;
+  background: currentColor;
+  opacity: 0.5;
+}
+/* Estrecho, los datos se parten en líneas y el punto se quedaría colgando al
+   principio de la de abajo: van sueltos. */
+@media (max-width: 700px) {
+  .doc-portada__meta span + span::before { display: none; }
 }
 
 /* ------------------------------- INDICE --------------------------------- */
@@ -96,12 +95,12 @@
   scrollbar-color: var(--borde-fuerte) transparent;
 }
 
+/* El título del índice, en negrita y en la letra de la página: nada de
+   mayúsculas espaciadas en letra de máquina. */
 .doc-indice__titulo {
-  font-family: var(--tipo-mono);
-  font-size: var(--t-micro);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--tinta-suave);
+  font-size: 15.5px;
+  font-weight: 650;
+  color: var(--tinta);
   margin-bottom: var(--e3);
 }
 
@@ -297,7 +296,7 @@ h2:hover .doc-ancla, h3:hover .doc-ancla, .doc-ancla:focus-visible { opacity: 1;
 
 .doc-cuerpo code {
   font-family: var(--tipo-mono);
-  font-size: 0.88em;
+  font-size: max(0.88em, 13px);
   padding: 2px 6px;
   border-radius: 6px;
   border: 1px solid var(--borde);
@@ -308,7 +307,7 @@ h2:hover .doc-ancla, h3:hover .doc-ancla, .doc-ancla:focus-visible { opacity: 1;
 
 .doc-cuerpo kbd {
   font-family: var(--tipo-mono);
-  font-size: 0.82em;
+  font-size: max(0.88em, 13px);
   padding: 3px 7px;
   border-radius: 6px;
   border: 1px solid var(--borde-fuerte);
@@ -372,11 +371,9 @@ h2:hover .doc-ancla, h3:hover .doc-ancla, .doc-ancla:focus-visible { opacity: 1;
 
 .doc-tabla th {
   text-align: left;
-  font-weight: var(--peso-medio);
-  color: var(--tinta-suave);
-  font-size: var(--t-micro);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 650;
+  color: var(--tinta);
+  font-size: var(--t-pie);
   padding: var(--e3) var(--e4);
   border-bottom: 1px solid var(--borde);
   white-space: nowrap;
@@ -389,6 +386,29 @@ h2:hover .doc-ancla, h3:hover .doc-ancla, .doc-ancla:focus-visible { opacity: 1;
 }
 .doc-tabla tr:last-child td { border-bottom: 0; }
 .doc-tabla td:first-child { color: var(--tinta); white-space: nowrap; }
+/* En el móvil la tabla cabe entera y parte el texto en líneas: con 420 px de
+   mínimo y la primera columna sin partirse, en una pantalla de 390 la columna
+   de la derecha salía cortada por el borde y había que arrastrarla de lado. */
+@media (max-width: 520px) {
+  .doc-tabla table { min-width: 0; }
+  .doc-tabla th,
+  .doc-tabla td:first-child { white-space: normal; }
+  /* Pero un atajo y un estado con su punto no se parten: «Ctrl + Mayús + T»
+     en tres líneas no se lee como una sola tecla, y el punto de «Trabajando»
+     se quedaba solo encima de su palabra. */
+  .doc-tabla td:first-child:has(kbd, .doc-punto) { white-space: nowrap; }
+  /* Menos los de cuatro teclas, que en una línea ensanchan la columna y la
+     tabla vuelve a salirse 16 px: esos se parten entre teclas, y «.doc-combo»
+     junta las que van juntas («Ctrl + V» no deja la V sola abajo). */
+  .doc-tabla td:first-child:has(kbd:nth-of-type(4), .doc-combo) { white-space: normal; }
+  .doc-combo { white-space: nowrap; }
+}
+/* Por debajo de 350 (un teléfono de 320) ni uno de tres teclas cabe al lado
+   de su explicación sin sacar la tabla 30 px: ahí se parten, que es lo menos
+   malo. */
+@media (max-width: 349px) {
+  .doc-tabla td:first-child:has(> kbd, > .doc-combo) { white-space: normal; }
+}
 
 /* El punto de color de la tabla de estados dice lo mismo que en la app. */
 .doc-punto {

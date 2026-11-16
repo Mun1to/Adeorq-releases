@@ -693,8 +693,9 @@ export function renameSession(
   folder: string,
   sessionId: string,
   title: string,
-  /** De qué CLI es: a las de Codex y Pi el título se les guarda en Adeorq. */
-  fuente?: FuenteSesion,
+  /** De qué CLI es (`kindDeComando`): a las que no son de Claude el título se
+      les guarda en Adeorq, porque su fichero es de su programa. */
+  fuente?: string,
 ): Promise<void> {
   return invoke("rename_session", { folder, sessionId, title, fuente: fuente ?? null });
 }

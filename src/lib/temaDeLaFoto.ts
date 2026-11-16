@@ -116,10 +116,11 @@ export function tonoDominante(px: ArrayLike<number>): Tono | null {
   return { h, s: s / p, l: l / p };
 }
 
-/** Los temas entre los que se elige: los de la casa, que van de frío a cálido. */
-export const CANDIDATOS: readonly ThemeId[] = THEMES.filter((t) => t.familia === "casa" && t.id !== "grafito").map(
-  (t) => t.id,
-);
+/** Los temas entre los que se elige: los de la casa, que van de frío a cálido.
+ *  Sin el gris ni Contraste, que es blanco y negro y comparte acento con Azul. */
+export const CANDIDATOS: readonly ThemeId[] = THEMES.filter(
+  (t) => t.familia === "casa" && t.id !== "grafito" && t.id !== "contraste",
+).map((t) => t.id);
 
 /** El tema de una foto sin color: el gris de la casa. */
 export const TEMA_GRIS: ThemeId = "grafito";

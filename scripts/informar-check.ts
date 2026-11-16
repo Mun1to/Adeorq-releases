@@ -114,7 +114,13 @@ ok("el botón de cada respuesta no lleva el correo (discreto: solo bajo la caja)
 // El espacio de por medio importa: sin él un lector de pantalla lee «problemao por correo».
 ok("la línea de debajo de la caja sí lleva el correo, después del botón y con un espacio de por medio", /<BotonInformar donde=\{donde\} \/>\s*\{" "\}\s*<BotonCorreo donde=\{donde\} \/>/.test(avisoIA));
 ok("el botón del correo abre un mailto: armado por la misma función que prueba este banco", /openUrl\(correoDelInforme\(\{ version, ingles, donde \}\)\)/.test(sinCom));
-ok("y se llama «o por correo», con su inglés", /t\("o por correo"\)/.test(sinCom) && /"o por correo":\s*"or by email"/.test(diccionario));
+// La «o» va fuera del botón: un enlace que empieza por la conjunción se lee como si se pulsara la «o».
+ok(
+  "y dice «o por correo» con la «o» fuera del botón, que es «por correo», con su inglés",
+  /\{t\("o"\)\}\{" "\}\s*<button[\s\S]*?\{t\("por correo"\)\}\s*<\/button>/.test(sinCom) &&
+    /"por correo":\s*"by email"/.test(diccionario) &&
+    /\n\s*o:\s*"or",/.test(diccionario),
+);
 ok("y la ayuda del botón dice la dirección (sin un programa de correo, el clic no abre nada)", /\{ correo: CORREO \}/.test(sinCom) && /\{correo\}/.test(diccionario.match(/"Abre tu programa de correo[^"]*":\s*\n?\s*"[^"]+"/)?.[0] ?? ""));
 // La primera pantalla: la caja de Adeo del Panel (`PanelPedir.tsx`) es lo primero que ve quien abre la
 // app, y desde ahí se le habla a Adeo. Sin la línea ni el botón ahí, quien revisa cae en el agujero de VoCript

@@ -7,8 +7,11 @@
    documento: se cambia alli y luego aqui.
    ========================================================================= */
 
-/* Las dos familias (Inter y JetBrains Mono, ambas SIL OFL) se declaran en
-   fonts/fonts.css, que enlaza el head. Aqui solo se consumen por token.       */
+/* El texto va en la letra de la app (Segoe UI Variable en Windows, la del
+   sistema fuera), como la portada: antes la guía y las páginas de la cuenta
+   descargaban Inter y la portada no, y la misma web tenía dos letras. La mono
+   (JetBrains Mono, SIL OFL) se declara en fonts/fonts.css, que enlaza el head.
+   Aquí solo se consumen por token.                                            */
 
 /* ---------- TEMA (SmartDefaults Tier A: CSS puro, sin JS, sin toggle) -------
    Sigue al sistema en vivo. Si el visitante cambia Windows de claro a oscuro
@@ -47,10 +50,10 @@
   --parado:            #BE3A31;
 
   /* Tipografia */
-  --tipo-ui:   "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --tipo-ui:   "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   --tipo-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, "Consolas", monospace;
 
-  --t-micro:  clamp(0.72rem, 0.70rem + 0.10vw, 0.80rem);
+  --t-micro:  clamp(0.84rem, 0.82rem + 0.10vw, 0.90rem);
   --t-pie:    clamp(0.84rem, 0.80rem + 0.18vw, 0.94rem);
   --t-base:   clamp(1.00rem, 0.96rem + 0.22vw, 1.12rem);
   --t-guia:   clamp(1.12rem, 1.02rem + 0.52vw, 1.34rem);

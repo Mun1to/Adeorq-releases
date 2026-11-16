@@ -32,14 +32,14 @@
 }
 
 .kb-titulo {
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 650;
   letter-spacing: 0.2px;
 }
 
 .kb-cuenta {
   flex: 1;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -52,7 +52,7 @@
   border: 1px solid transparent;
   background: transparent;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -99,7 +99,7 @@
   gap: 6px;
   margin: 0;
   padding: 7px 9px;
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -172,10 +172,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 17px;
-  height: 17px;
+  width: 20px;
+  height: 20px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -195,7 +195,7 @@
 .kb-card-nombre {
   flex: 1;
   min-width: 0;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 620;
   white-space: nowrap;
   overflow: hidden;
@@ -209,7 +209,7 @@
   justify-content: space-between;
   gap: 6px;
   min-width: 0;
-  font-size: 10.5px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -260,7 +260,7 @@
 .kb-mia-txt {
   flex: 1;
   min-width: 0;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
@@ -275,7 +275,7 @@
   background: var(--bg);
   color: var(--text);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   outline: none;
 }
 
@@ -292,7 +292,7 @@
   width: 100%;
   margin-top: 4px;
   padding: 6px 10px;
-  font-size: 11.5px;
+  font-size: 13px;
 }
 
 .kb-nueva {
@@ -310,7 +310,7 @@
   background: transparent;
   color: var(--text);
   font: inherit;
-  font-size: 11.5px;
+  font-size: 13px;
 }
 
 .kb-nueva-in:focus {
@@ -338,7 +338,7 @@
 .kb-pista,
 .kb-vacia {
   margin: 2px 0 0;
-  font-size: 10.5px;
+  font-size: 13px;
   line-height: 1.4;
   color: var(--muted);
 }
@@ -388,7 +388,7 @@
 }
 
 .relay-text {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text);
 }
 
@@ -406,11 +406,11 @@
 
 .relay-btn {
   padding: 4px 10px;
-  font-size: 11.5px;
+  font-size: 13px;
 }
 
 .relay-note {
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--warn, var(--ask));
 }
 
@@ -522,7 +522,7 @@
   z-index: 9997;
   padding: 7px 16px;
   border-radius: var(--r-pastilla);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text);
   background: var(--popover);
   border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
@@ -612,7 +612,7 @@
 
 .layout-pop-foot {
   margin-top: 12px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.45;
   color: var(--muted);
 }
@@ -632,7 +632,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 650;
   letter-spacing: 0.2px;
   /* Solo su color, sin píldora: el borde y el fondo eran la «cárcel» que Munir
@@ -649,7 +649,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 10.5px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -805,7 +805,7 @@
   z-index: 9996;
   padding: 6px 12px;
   border-radius: var(--r-pastilla);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
   background: var(--popover);
@@ -860,7 +860,7 @@
 .uso-vacio {
   margin: 8px 4px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -869,7 +869,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -902,14 +902,14 @@
 .bat-cab b {
   display: grid;
   min-width: 0;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 650;
   color: var(--text);
   line-height: 1.3;
 }
 
 .bat-cab small {
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--muted);
 }
@@ -964,13 +964,13 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-size: 10.5px;
+  font-size: 13px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
 .bat-nada {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -985,7 +985,7 @@
 }
 
 .uso-sin-tit {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -995,7 +995,7 @@
 .uso-sin-fila {
   display: grid;
   gap: 1px;
-  font-size: 11.5px;
+  font-size: 13px;
 }
 
 .uso-sin-fila b {
@@ -1004,7 +1004,7 @@
 }
 
 .uso-sin-fila span {
-  font-size: 10.5px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -1015,7 +1015,7 @@
 
 .usage-week {
   font-variant-numeric: tabular-nums;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -1050,7 +1050,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -1081,7 +1081,7 @@
   align-items: center;
   gap: 8px;
   margin: 0 0 10px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 650;
   letter-spacing: 0.3px;
   color: var(--accent);
@@ -1089,7 +1089,7 @@
 
 /* La cuenta, texto suelto en su color: la pastilla era una cárcel (2026-10-17). */
 .cmd-section-count {
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 650;
   color: color-mix(in srgb, var(--accent) 62%, var(--text));
 }
@@ -1147,7 +1147,7 @@
 }
 
 .cmd-card .cmd-desc {
-  font-size: 11.5px;
+  font-size: 13px;
   line-height: 1.4;
   color: var(--muted);
 }
@@ -1168,7 +1168,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 650;
   letter-spacing: 0.3px;
   color: var(--muted);
@@ -1177,6 +1177,6 @@
 
 .usage-open {
   align-self: flex-start;
-  font-size: 10.5px;
+  font-size: 13px;
 }
 

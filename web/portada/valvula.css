@@ -11,8 +11,8 @@
 
      · WCAG 2.2.2 «Pause, Stop, Hide» es NIVEL A, o sea obligatorio: toda
        animación automática en bucle de más de cinco segundos necesita un
-       control de pausa. Esta portada tiene dos (medidas el 2026-08-20):
-       `glow-late` a 9 s y `cinta-rodar` a 42 s. El dial no las
+       control de pausa. Esta portada tiene uno, `cinta-rodar` a 42 s (el
+       otro, `glow-late`, se fue con la luz el 2026-11-16). El dial no lo
        cubre porque el dial gradúa recorrido, no detiene bucles.
 
    Un solo control resuelve las dos: parar es cerrar el dial Y congelar los
@@ -30,12 +30,13 @@
   padding: 7px 12px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 999px;
-  /* Sin alfa en el fondo: el texto de encima es de 12px y sobre una superficie
+  /* Sin alfa en el fondo: el texto de encima es pequeño y sobre una superficie
      translúcida Windows apaga el ClearType y se ve pastoso. El color va
-     aplanado contra el fondo de la portada. */
+     aplanado contra el fondo de la portada. A 13,5 px y casi en blanco, como
+     el resto de la letra pequeña de la portada: a 12 px y al 72 % no se leía. */
   background: #14161c;
-  color: rgba(233, 238, 247, 0.72);
-  font: 500 12px/1 system-ui, "Segoe UI", sans-serif;
+  color: rgba(233, 238, 247, 0.86);
+  font: 500 13.5px/1 system-ui, "Segoe UI", sans-serif;
   letter-spacing: 0.2px;
   cursor: pointer;
   transition: color 0.18s ease, border-color 0.18s ease, opacity 0.25s ease, visibility 0.25s;

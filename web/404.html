@@ -28,25 +28,10 @@
     padding: 2rem;
     background: var(--p-fondo);
     color: var(--p-texto);
-    font: 16px/1.6 "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    font: 16px/1.6 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
     text-align: center;
     position: relative;
     overflow: hidden;
-  }
-  /* El mismo resplandor de la portada, para que un 404 siga pareciendo Adeorq
-     y no la pantalla en blanco de un servidor. */
-  .glow {
-    position: absolute;
-    left: 50%;
-    bottom: -40%;
-    width: min(160%, 1400px);
-    height: 130%;
-    transform: translateX(-50%);
-    background:
-      radial-gradient(44% 47% at 50% 80%, rgba(255,255,255,.30) 0%, rgba(214,235,255,.18) 22%, rgba(110,175,255,.10) 48%, transparent 76%),
-      radial-gradient(92% 37% at 50% 80%, rgba(160,200,255,.10) 0%, rgba(118,172,255,.05) 46%, transparent 82%);
-    filter: blur(8px);
-    pointer-events: none;
   }
   .caja { position: relative; z-index: 2; max-width: 34rem; }
   .marca {
@@ -88,7 +73,6 @@
 </style>
 </head>
 <body>
-<div class="glow"></div>
 <div class="caja">
   <a class="marca" href="/">
     <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">

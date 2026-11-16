@@ -100,6 +100,13 @@ async (page) => {
         case "plugin:event|listen": (oyentes[args.event] ??= []).push(args.handler); return escucha++;
         case "plugin:event|unlisten": return null;
         case "get_fondo": return "C:\\fondo.png";
+        // El estado de la barra (`pty.ts`, `loadUiState`), vacío: sin él la barra
+        // pintaba «Error: sin doble: load_ui_state» en rojo en todas las fotos.
+        case "load_ui_state": return "{}";
+        case "save_ui_state": return null;
+        // Tu uso del Perfil (`historiaDeUso.ts`), vacío: sin él salía «No se pudo
+        // leer tu uso» en rojo. Con datos de verdad, `perfil-uso.js`.
+        case "uso_historia": return { archivos: 0, cubos: [] };
         // Proyectos, para que el lienzo pueda abrir terminales (sin ninguno sus
         // botones de abrir van apagados). Tres, y no por adorno: Adeorq y Vidorq eran el mismo azul con el color
         // de la casa (196° y 195°), que es lo que el lienzo tiene que separar.

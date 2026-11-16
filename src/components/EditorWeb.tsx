@@ -147,7 +147,9 @@ export default function EditorWeb({ canal, sello, url, onAlAgente }: Props) {
             m.elementos.length === 0
               ? t("Ahí dentro no había ningún elemento entero")
               : onAlAgente(parteParaElAgente(m.elementos, url))
-                ? t("{n} elementos mandados al agente", { n: m.elementos.length })
+                ? m.elementos.length === 1
+                  ? t("1 elemento mandado al agente")
+                  : t("{n} elementos mandados al agente", { n: m.elementos.length })
                 : t("Abre una terminal para poder mandarle esto"),
           );
           break;

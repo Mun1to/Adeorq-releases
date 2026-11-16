@@ -71,7 +71,7 @@ try {
   await hasta(() => a.v.js(`document.readyState === "complete" && !!document.querySelector(".app, #root > *")`), 20_000);
   await hasta(() => a.v.js(`(() => { const t = [...document.querySelectorAll(".tab")].find((x) => /Cabina/.test(x.textContent ?? "")); t?.click(); return !!t; })()`), 15_000);
   await dormir(800);
-  await hasta(() => a.v.js(`(() => { const b = [...document.querySelectorAll(".project-main")].find((x) => /demo/.test(x.textContent ?? "")); if (!b) return false; if (/▸/.test(b.textContent ?? "")) b.click(); return true; })()`), 15_000);
+  await hasta(() => a.v.js(`(() => { const b = [...document.querySelectorAll(".project-main")].find((x) => /demo/.test(x.textContent ?? "")); if (!b) return false; if (b.getAttribute("aria-expanded") === "false") b.click(); return true; })()`), 15_000);
   const filas = () => a.v.js(`JSON.stringify([...document.querySelectorAll("[data-sesion]")].map((e) => e.getAttribute("data-sesion")))`).then((x) => JSON.parse(x ?? "[]"));
   const vistas = await hasta(async () => ((await filas()).includes(ID.ayer) ? await filas() : null), 30_000, 500);
   dice(!!vistas, "la traída con fecha de ayer sale en la barra", JSON.stringify(vistas));

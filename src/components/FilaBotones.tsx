@@ -30,6 +30,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useT } from "../lib/i18n";
+import { ChevronIcon } from "./Icons";
 
 interface Props {
   className?: string;
@@ -180,7 +181,7 @@ export default function FilaBotones({ className, children }: Props) {
           aria-label={t("Ver los de la izquierda")}
           onClick={() => saltar(-1)}
         >
-          ‹
+          <ChevronIcon izq size={13} />
         </button>
       )}
       {der > 1 && (
@@ -190,7 +191,7 @@ export default function FilaBotones({ className, children }: Props) {
           aria-label={t("Ver los de la derecha")}
           onClick={() => saltar(1)}
         >
-          ›
+          <ChevronIcon der size={13} />
         </button>
       )}
 

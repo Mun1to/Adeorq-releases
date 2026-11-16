@@ -52,7 +52,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13.5px;
+  font-size: 14.5px;
 }
 
 .enj-nombre-in {
@@ -64,7 +64,7 @@
   background: var(--panel-solid);
   color: var(--text);
   font: inherit;
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 700;
 }
 
@@ -77,7 +77,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: 13px;
 }
 
 .enj-mini {
@@ -92,7 +92,7 @@
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: color var(--t-rapida), border-color var(--t-rapida);
@@ -122,7 +122,7 @@
   padding: 8px 10px;
   border-bottom: 1px solid var(--border);
   background: color-mix(in srgb, var(--accent) 12%, var(--row));
-  font-size: 12.5px;
+  font-size: 13.5px;
 }
 
 .enj-elige > span { flex: 1 1 100%; font-weight: 600; }
@@ -137,7 +137,7 @@
   background: var(--panel-solid);
   color: var(--text);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: border-color var(--t-rapida), background var(--t-rapida);
@@ -179,7 +179,7 @@
   place-items: center;
   width: 16px;
   height: 16px;
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--muted);
 }
@@ -206,10 +206,10 @@
   white-space: nowrap;
 }
 
-.enj-fila-id strong { font-size: 12.5px; }
-.enj-fila-id em { font-style: normal; font-size: 11px; color: var(--muted); }
+.enj-fila-id strong { font-size: 13.5px; }
+.enj-fila-id em { font-style: normal; font-size: 13px; color: var(--muted); }
 .enj-fila-id:hover strong { color: var(--accent); }
-.enj-fila .enj-estado { flex: none; font-size: 11px; }
+.enj-fila .enj-estado { flex: none; font-size: 13px; }
 
 /* Los dos botones de la fila salen al acercarse, ENCIMA del final de la fila
    y sin reservar sitio: con seis sesiones, doce iconos fijos son lo primero
@@ -257,7 +257,7 @@
   border: 1px dashed var(--border-strong);
 }
 
-.enj-libres-tit { font-size: 11.5px; color: var(--muted); }
+.enj-libres-tit { font-size: 13px; color: var(--muted); }
 .enj-libres > .enj-boton { justify-self: end; }
 
 .enj-libre {
@@ -270,7 +270,7 @@
   background: transparent;
   color: var(--text);
   font: inherit;
-  font-size: 12.5px;
+  font-size: 13.5px;
   text-align: left;
   cursor: pointer;
   transition: border-color var(--t-rapida), background var(--t-rapida);
@@ -310,7 +310,7 @@
 .enj-vacio {
   margin: auto 8px;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.5;
   text-align: center;
 }
@@ -324,7 +324,7 @@
   align-items: center;
   gap: 5px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -333,7 +333,7 @@
   border-radius: var(--r-btn);
   border: 1px solid var(--border);
   background: var(--row);
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -358,7 +358,7 @@
   background: transparent;
   color: var(--accent);
   font: inherit;
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -371,7 +371,7 @@
   gap: 7px;
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.45;
 }
 
@@ -404,7 +404,7 @@
   background: var(--panel-solid);
   color: var(--text);
   font: inherit;
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.4;
 }
 

@@ -111,7 +111,7 @@ fn llamar(herramienta: &str, argumentos: Value) -> Result<String, String> {
     let mut tcp = TcpStream::connect(("127.0.0.1", puerto)).map_err(|_| SIN_ADEORQ_PARA_UN_BOT.to_string())?;
     tcp.set_read_timeout(Some(PLAZO)).map_err(|e| e.to_string())?;
     presentarse(&mut tcp, &Presentacion::del_entorno(false)).map_err(|e| e.to_string())?;
-    let lector = BufReader::new(tcp.try_clone().map_err(|e| e.to_string())?);
+    let lector = BufReader::new(crate::clon_sin_herencia(&tcp).map_err(|e| e.to_string())?);
     let mut c = Conexion { tcp, lector, siguiente: 0 };
     let version = env!("CARGO_PKG_VERSION");
     c.pedir("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "adeorq-preguntar", "version": version } }))?;

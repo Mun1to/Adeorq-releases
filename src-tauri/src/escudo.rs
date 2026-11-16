@@ -908,7 +908,7 @@ fn traer(puerto: u16, peticion: &Value) -> Result<Value, String> {
     }
     lector.get_ref().set_read_timeout(Some(ESPERA + Duration::from_secs(30))).map_err(|e| e.to_string())?;
     let mut linea = String::new();
-    lector.read_line(&mut linea).map_err(|_| "Adeorq dejó de contestar".to_string())?;
+    lector.read_line(&mut linea).map_err(|e| format!("Adeorq dejó de contestar ({:?}: {e})", e.kind()))?;
     serde_json::from_str(&linea).map_err(|e| e.to_string())
 }
 
@@ -1195,7 +1195,7 @@ mod pruebas {
         let servidor = std::thread::spawn(move || {
             for flujo in oreja.incoming().take(2) {
                 let flujo = flujo.unwrap();
-                let mut escritor = flujo.try_clone().unwrap();
+                let mut escritor = crate::clon_sin_herencia(&flujo).unwrap();
                 let mut linea = String::new();
                 BufReader::new(flujo).read_line(&mut linea).unwrap();
                 let v: Value = serde_json::from_str(&linea).unwrap();

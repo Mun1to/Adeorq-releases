@@ -511,24 +511,48 @@ fn candado_de_claude(archivo: &Path, p: Paciencia) -> Result<Option<Candado>, St
     let nombre = archivo.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
     let ruta = archivo.with_file_name(format!("{nombre}.lock"));
     let hasta = std::time::Instant::now() + p.espera;
+    let mut borrandose_desde: Option<std::time::Instant> = None;
     loop {
         match std::fs::create_dir(&ruta) {
             Ok(()) => return Ok(Some(Candado(ruta))),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
             Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
                 let muerto = std::fs::metadata(&ruta).and_then(|m| m.modified()).ok().and_then(|t| t.elapsed().ok()).is_some_and(|edad| edad >= p.vieja);
-                if muerto {
-                    let _ = std::fs::remove_dir(&ruta);
-                } else if std::time::Instant::now() >= hasta {
-                    return Err("Claude Code está guardando su archivo justo ahora. Vuelve a pulsar.".to_string());
-                } else {
-                    std::thread::sleep(std::time::Duration::from_millis(25));
+                // Quitado por nosotros o por otro justo antes (`NotFound`): está libre.
+                if muerto && std::fs::remove_dir(&ruta).map_or_else(|e| e.kind() == std::io::ErrorKind::NotFound, |()| true) {
+                    continue;
                 }
+                // Uno muerto que no se deja quitar (un archivo con ese nombre, una carpeta
+                // con algo dentro) se espera como uno vivo: sin esto el bucle giraba para
+                // siempre sin dormir.
+                if std::time::Instant::now() >= hasta {
+                    return Err(if muerto {
+                        format!("Hay un candado viejo de Claude Code que no puedo quitar ({}). Si Claude Code no está guardando nada, bórralo y vuelve a pulsar.", ruta.display())
+                    } else {
+                        "Claude Code está guardando su archivo justo ahora. Vuelve a pulsar.".to_string()
+                    });
+                }
+                std::thread::sleep(std::time::Duration::from_millis(25));
+            }
+            // Un candado que Claude Code acaba de quitar mientras alguien lo miraba se
+            // queda «borrándose» en Windows, y crearlo entonces da «Acceso denegado»: se
+            // espera como con el candado puesto, y al menos `GRACIA_BORRANDOSE` desde que
+            // se ve aunque la paciencia ya se acabara. Si dura más, sí es un permiso, y se
+            // dice tal cual.
+            Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+                let desde = *borrandose_desde.get_or_insert_with(std::time::Instant::now);
+                if std::time::Instant::now() >= hasta && desde.elapsed() >= GRACIA_BORRANDOSE {
+                    return Err(format!("no pude poner el candado de Claude Code en {}: {e}", ruta.display()));
+                }
+                std::thread::sleep(std::time::Duration::from_millis(25));
             }
             Err(e) => return Err(format!("no pude poner el candado de Claude Code en {}: {e}", ruta.display())),
         }
     }
 }
+
+/// Lo menos que se espera a una carpeta de candado «borrándose» desde que se ve.
+const GRACIA_BORRANDOSE: std::time::Duration = std::time::Duration::from_millis(500);
 
 /// `retocar_con_copia` sobre el archivo de una cuenta de Claude, con su candado puesto.
 fn retocar_como_claude(archivo: &Path, crear: bool, paciencia: Paciencia, cambio: impl Fn(&str) -> Result<String, String>) -> Result<Option<PathBuf>, String> {
@@ -875,6 +899,110 @@ mod pruebas {
         assert_eq!(std::fs::read_to_string(&raro).unwrap(), "{ esto no es json");
         let copias = std::fs::read_dir(&d).unwrap().flatten().filter(|x| x.file_name().to_string_lossy().contains("antes-de-adeorq")).count();
         assert_eq!(copias, 1, "la del último cambio, y ninguna por lo que no se escribió");
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    /// Un candado que Claude Code acaba de quitar mientras alguien lo miraba (el
+    /// `metadata` de aquí mismo, un antivirus) se queda «borrándose» en Windows hasta
+    /// que se suelta el último que lo tenía abierto, y crearlo entonces da «Acceso
+    /// denegado» (os error 5). Eso no es un permiso: es esperar un poco, como con el
+    /// candado puesto. Medido el 2026-11-16: una de cada veinte vueltas de
+    /// `cargo test --lib` caía en la prueba de abajo por esto.
+    #[cfg(windows)]
+    #[test]
+    fn un_candado_a_medio_borrar_se_espera() {
+        use std::os::windows::fs::OpenOptionsExt;
+        use std::time::Duration;
+        const FILE_FLAG_BACKUP_SEMANTICS: u32 = 0x0200_0000;
+        const FILE_FLAG_DELETE_ON_CLOSE: u32 = 0x0400_0000;
+        const DELETE: u32 = 0x0001_0000;
+        let d = carpeta("candado-a-medio-borrar");
+        let f = d.join(".claude.json");
+        std::fs::write(&f, REAL).unwrap();
+        let candado = d.join(".claude.json.lock");
+        std::fs::create_dir(&candado).unwrap();
+        let mirando = std::fs::OpenOptions::new().read(true).custom_flags(FILE_FLAG_BACKUP_SEMANTICS).open(&candado).unwrap();
+        // El borrado de siempre (no el de Windows 11, que quita el nombre al momento):
+        // con `mirando` abierto, la carpeta se queda «borrándose».
+        let borra = std::fs::OpenOptions::new()
+            .access_mode(DELETE)
+            .share_mode(7)
+            .custom_flags(FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_DELETE_ON_CLOSE)
+            .open(&candado)
+            .unwrap();
+        drop(borra);
+        let e = std::fs::create_dir(&candado).unwrap_err();
+        assert_eq!(e.kind(), std::io::ErrorKind::PermissionDenied, "así queda un candado a medio borrar: {e}");
+        let suelta = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(300));
+            drop(mirando);
+        });
+        let puesto = candado_de_claude(&f, PACIENCIA).unwrap();
+        assert!(puesto.is_some() && candado.is_dir(), "se pone en cuanto acaba de borrarse");
+        drop(puesto);
+        suelta.join().unwrap();
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    /// Un candado viejo que no se deja quitar (un archivo con ese nombre, una carpeta
+    /// con algo dentro) no cuelga el botón: se dice y se vuelve. Hasta el 2026-11-16 el
+    /// bucle volvía a intentarlo sin dormir y sin mirar el plazo, para siempre y a un
+    /// núcleo entero (lo vio la revisión aparte).
+    #[test]
+    fn un_candado_viejo_que_no_se_quita_no_cuelga() {
+        use std::time::Duration;
+        let d = carpeta("candado-que-no-se-quita");
+        let f = d.join(".claude.json");
+        std::fs::write(&f, REAL).unwrap();
+        let candado = d.join(".claude.json.lock");
+        std::fs::write(&candado, "no soy una carpeta").unwrap();
+        let (tx, rx) = std::sync::mpsc::channel();
+        let f2 = f.clone();
+        std::thread::spawn(move || {
+            let muerto = Paciencia { espera: Duration::from_millis(200), vieja: Duration::ZERO };
+            let _ = tx.send(candado_de_claude(&f2, muerto).map(|c| c.is_some()));
+        });
+        let r = rx.recv_timeout(Duration::from_secs(3)).expect("se quedó dando vueltas con un candado que no se puede quitar");
+        assert!(r.as_ref().is_err_and(|m| m.contains("no puedo quitar")), "{r:?}");
+        assert!(candado.is_file(), "lo que no es nuestro no se toca");
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    /// Lo «a medio borrar» que sale por primera vez justo al acabarse la paciencia
+    /// también se espera un poco: si no, salía «Acceso denegado» por algo que no había
+    /// durado nada (lo vio la revisión aparte).
+    #[cfg(windows)]
+    #[test]
+    fn a_medio_borrar_justo_al_final_del_plazo_tambien_se_espera() {
+        use std::os::windows::fs::OpenOptionsExt;
+        use std::time::Duration;
+        const FILE_FLAG_BACKUP_SEMANTICS: u32 = 0x0200_0000;
+        const FILE_FLAG_DELETE_ON_CLOSE: u32 = 0x0400_0000;
+        const DELETE: u32 = 0x0001_0000;
+        let d = carpeta("candado-al-final-del-plazo");
+        let f = d.join(".claude.json");
+        std::fs::write(&f, REAL).unwrap();
+        let candado = d.join(".claude.json.lock");
+        std::fs::create_dir(&candado).unwrap();
+        let mirando = std::fs::OpenOptions::new().read(true).custom_flags(FILE_FLAG_BACKUP_SEMANTICS).open(&candado).unwrap();
+        drop(
+            std::fs::OpenOptions::new()
+                .access_mode(DELETE)
+                .share_mode(7)
+                .custom_flags(FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_DELETE_ON_CLOSE)
+                .open(&candado)
+                .unwrap(),
+        );
+        assert_eq!(std::fs::create_dir(&candado).unwrap_err().kind(), std::io::ErrorKind::PermissionDenied, "el montaje no dejó la carpeta «borrándose»");
+        let suelta = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(50));
+            drop(mirando);
+        });
+        let sin_paciencia = Paciencia { espera: Duration::ZERO, vieja: Duration::from_secs(10) };
+        let puesto = candado_de_claude(&f, sin_paciencia).unwrap();
+        assert!(puesto.is_some());
+        drop(puesto);
+        suelta.join().unwrap();
         std::fs::remove_dir_all(&d).unwrap();
     }
 

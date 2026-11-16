@@ -50,6 +50,10 @@
 // hilo principal en cada fotograma, y costó núcleo y medio en su portátil (ver
 // `revisarBucles` y `docs/contexto/estilo.md`). Tampoco tiene `--arreglar`:
 // cambiar cómo se pinta algo es rediseñarlo.
+//
+// Y desde el 2026-11-16, la quinta: una letra por debajo de 13 px FALLA, en la
+// hoja y en el código (`fontSize: 11`). Munir eligió el rediseño «Contraste»
+// por la letra (ver `revisarLetra`). En la hoja, `--arreglar` la sube a 13.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -349,6 +353,74 @@ export function arreglarTiempos(css) {
   return { css: out, cambiadas };
 }
 
+/* ── La letra (desde el 2026-11-16) ────────────────────────────────────────
+   Munir quería la app «facil de leer», sin «textos que casi no se aprecian», y
+   eligió Contraste: «Yo quiero la que se vea mas claro y mejor la letra». La
+   hoja tenía 520 tamaños escritos a mano por debajo de 13 px, hasta de 8. Se
+   subió entera con la regla con la que se le enseñó en el probador (por
+   debajo de 14, `max(13, px + 1)`); esto es lo que impide que vuelvan a bajar.
+   Mira `font-size` y el atajo `font`, y el primer tamaño fijo que llevan
+   (también el mínimo de un `clamp`): en px, en rem (la raíz va a 16 px) o en pt
+   (4/3 de px), que son la misma letra escrita de otra forma. Un tamaño relativo
+   al de su padre (`em`, `%`) se deja. */
+export const LETRA_SUELO = 13;
+const TAMANO = /(?<![\w.-])(\d*\.?\d+)(px|rem|pt)\b/;
+const EN_PX = { px: 1, rem: 16, pt: 4 / 3 };
+
+/** El tamaño en px de una declaración de letra, con lo escrito y dónde está dentro del valor, o null. */
+export function tamanoLetra(propiedad, valor) {
+  if (propiedad !== "font-size" && propiedad !== "font") return null;
+  const m = TAMANO.exec(valor);
+  if (!m) return null;
+  const px = Math.round(parseFloat(m[1]) * EN_PX[m[2]] * 100) / 100;
+  return { px, escrito: m[0], desde: m.index, hasta: m.index + m[0].length };
+}
+
+export function juzgarLetra(propiedad, valor) {
+  const t = tamanoLetra(propiedad, valor);
+  const dice = t && (t.escrito.endsWith("px") ? t.escrito : `${t.escrito} (${t.px}px)`);
+  return t && t.px < LETRA_SUELO
+    ? `letra de ${dice}: por debajo de ${LETRA_SUELO}px no se lee. \`--arreglar\` la sube a ${LETRA_SUELO}px`
+    : null;
+}
+
+/* Una familia que no existe no da error: el navegador salta a la siguiente y
+   nadie se entera. Así estuvo la app hasta el 2026-11-16, pidiendo
+   "Segoe UI Variable", que el motor de Edge (el de WebView2) no encuentra: solo
+   conoce sus caras con nombre, "Segoe UI Variable Text", "Small" y "Display".
+   Medido con el ancho de un texto: el mismo que el de una familia inventada. */
+const FAMILIA_QUE_NO_EXISTE = /(["'])Segoe UI Variable\1/;
+const NO_EXISTE = '"Segoe UI Variable" no existe en WebView2 y se salta en silencio: es "Segoe UI Variable Text" (o Display para títulos)';
+
+export function juzgarFamilia(propiedad, valor) {
+  return (propiedad === "font-family" || propiedad === "font") && FAMILIA_QUE_NO_EXISTE.test(valor) ? NO_EXISTE : null;
+}
+
+/** Lo que se queda por debajo del suelo de letra, o pide una familia que no existe: `{ linea, propiedad, valor, por }`. */
+export function revisarLetra(css) {
+  const fallos = [];
+  for (const d of todas(css)) {
+    for (const por of [juzgarLetra(d.propiedad, d.valor), juzgarFamilia(d.propiedad, d.valor)]) {
+      if (por) fallos.push({ linea: d.linea, propiedad: d.propiedad, valor: d.valor.replace(/\s+/g, " "), por });
+    }
+  }
+  return fallos;
+}
+
+/** La misma hoja con cada letra por debajo del suelo subida al suelo, sin tocar nada más. */
+export function arreglarLetra(css) {
+  let out = css;
+  let cambiadas = 0;
+  for (const d of todas(css).reverse()) {
+    const t = tamanoLetra(d.propiedad, d.valor);
+    if (!t || t.px >= LETRA_SUELO) continue;
+    const nueva = `${d.valor.slice(0, t.desde)}${LETRA_SUELO}px${d.valor.slice(t.hasta)}`;
+    out = out.slice(0, d.desde) + nueva + out.slice(d.hasta);
+    cambiadas++;
+  }
+  return { css: out, cambiadas };
+}
+
 /* ── Lo que se mueve sin fin animando una variable ──────────────────────────
    Una animación de CSS que solo cambia `transform` u `opacity` la lleva la
    tarjeta gráfica sola. Una que cambia una variable registrada con `@property`
@@ -432,11 +504,25 @@ export const EN_LINEA_EXENTOS = {
   "src/components/EditorWeb.tsx": "pone estilos en la página del usuario, no en la app",
 };
 
+/** `fontSize: 11`, `fontSize: "12px"` o `fontSize: "0.7rem"`; no una cuenta (`8 * zoom`), que escala
+    con algo, ni el atributo `fontSize={8}` de un `<text>` de SVG, que va en unidades de su viewBox. */
+const LETRA_EN_LINEA = /\bfontSize\s*:\s*(?:(["'`])(\d*\.?\d+)(px|rem|pt)\1|(\d*\.?\d+)(?!\s*[-*/+.\w]))/g;
+
 export function revisarCodigo(texto) {
   const fallos = [];
+  const linea = (i) => texto.slice(0, i).split("\n").length;
   for (const m of texto.matchAll(EN_LINEA)) {
     const por = m[1] === "borderRadius" ? juzgarEsquina(m[3]) : juzgarSombra(m[3]);
-    if (por) fallos.push({ linea: texto.slice(0, m.index).split("\n").length, propiedad: m[1], valor: m[3], por });
+    if (por) fallos.push({ linea: linea(m.index), propiedad: m[1], valor: m[3], por });
+  }
+  for (const m of texto.matchAll(LETRA_EN_LINEA)) {
+    const valor = m[2] ? `${m[2]}${m[3]}` : `${m[4]}px`;
+    const por = juzgarLetra("font-size", valor);
+    if (por) fallos.push({ linea: linea(m.index), propiedad: "fontSize", valor, por: por.replace(/ `--arreglar`.*$/, " Se sube a mano.") });
+  }
+  // La familia, en un tema de un editor o en la letra de un canvas.
+  for (const [i, l] of texto.split("\n").entries()) {
+    if (FAMILIA_QUE_NO_EXISTE.test(l)) fallos.push({ linea: i + 1, propiedad: "familia", valor: "Segoe UI Variable", por: NO_EXISTE });
   }
   return fallos;
 }
@@ -476,9 +562,10 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
       const antes = fs.readFileSync(t.entera, "utf8");
       const uno = arreglar(antes);
       const dos = arreglarTiempos(uno.css);
-      const cambiadas = uno.cambiadas + dos.cambiadas;
+      const tres = arreglarLetra(dos.css);
+      const cambiadas = uno.cambiadas + dos.cambiadas + tres.cambiadas;
       if (cambiadas) {
-        fs.writeFileSync(t.entera, dos.css);
+        fs.writeFileSync(t.entera, tres.css);
         console.log(`  ${String(cambiadas).padStart(4)}  ${t.ruta}`);
         total += cambiadas;
       }
@@ -492,16 +579,16 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     const css = fs.readFileSync(t.entera, "utf8");
     hojas.push({ ruta: t.ruta, css });
     miradas += declaraciones(css).length;
-    for (const f of [...revisar(css), ...revisarColoresYTiempos(css)]) fallos.push(`${t.ruta}:${f.linea}  ${f.propiedad}: ${f.valor}\n      ${f.por}`);
+    for (const f of [...revisar(css), ...revisarColoresYTiempos(css), ...revisarLetra(css)]) fallos.push(`${t.ruta}:${f.linea}  ${f.propiedad}: ${f.valor}\n      ${f.por}`);
   }
   for (const f of revisarBucles(hojas)) fallos.push(`${f.ruta}:${f.linea}  ${f.propiedad}: ${f.valor}\n      ${f.por}`);
   for (const c of codigo(raiz)) {
     for (const f of revisarCodigo(fs.readFileSync(c.entera, "utf8"))) fallos.push(`${c.ruta}:${f.linea}  ${f.propiedad}: ${f.valor}\n      ${f.por}`);
   }
-  console.log(`Estilo: ${miradas} esquinas y sombras en ${todos.length} tramos, sus colores y sus velocidades, los bucles sin fin y lo escrito dentro del código.`);
+  console.log(`Estilo: ${miradas} esquinas y sombras en ${todos.length} tramos, sus colores, sus velocidades, su letra, los bucles sin fin y lo escrito dentro del código.`);
   if (fallos.length) {
     console.log(`\nFALLA (${fallos.length}):\n  ` + fallos.join("\n  "));
-    console.log("\n  `node scripts/estilo-check.mjs --arreglar` pasa a la escala las esquinas, sombras y velocidades de la hoja; los colores, los bucles y lo del código, a mano.");
+    console.log("\n  `node scripts/estilo-check.mjs --arreglar` pasa a la escala las esquinas, sombras y velocidades de la hoja y sube su letra al suelo; los colores, los bucles y lo del código, a mano.");
     process.exit(1);
   }
   console.log("\nTODO BIEN.");

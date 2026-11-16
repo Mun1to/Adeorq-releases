@@ -52,7 +52,7 @@ import { useMoverPanel } from "./lib/moverPanel";
 import { aDondeSaltar, aQuienLeToca, encolar, sacarDeCola, tocaDesmaximizar } from "./lib/saltos";
 import { guardarEncuadre, leerEncuadre, type Encuadre } from "./lib/encuadre";
 import { guardarCabecera, leerCabecera, visibles, type Cabecera } from "./lib/cabecera";
-import { CloseIcon, EstadoIcon, MinimizeIcon, UnminimizeIcon, PlusIcon, StreamIcon } from "./components/Icons";
+import { AvisoIcon, CloseIcon, EstadoIcon, MinimizeIcon, UnminimizeIcon, PlusIcon, StreamIcon } from "./components/Icons";
 import IconoPestana from "./components/IconoPestana";
 import { PESTANAS, pestanaDe, type View } from "./lib/vistas";
 import { leerApagadas, pestanasEncendidas, seVe, usePartes, vistaPosible, type TerminalesPorVista } from "./lib/partes";
@@ -163,10 +163,11 @@ import {
   escucharSistema,
   guardarTemaSistema,
   leerTemaSistema,
+  temaInicial,
   temaQueToca,
   type TemaSistema,
 } from "./lib/temaSistema";
-import { lineaDeRetomar, lineasEnVivo, PROVIDERS, providerOf, sabe, type Provider } from "./lib/providers";
+import { IDS, lineaDeRetomar, lineasEnVivo, PROVIDERS, providerOf, sabe, type Provider } from "./lib/providers";
 import { planDeArranque } from "./lib/arranque";
 import { actaDeRelevo } from "./lib/relevo";
 import { type Hit } from "./lib/redact";
@@ -426,8 +427,9 @@ function App() {
     try {
       const saved: Account[] =
         JSON.parse(localStorage.getItem(ACCOUNTS_KEY) ?? "{}").accounts ?? [];
-      // Accounts saved before other CLIs existed were all Claude's.
-      return saved.map((a) => ({ ...a, provider: a.provider || "claude" }));
+      // Accounts saved before other CLIs existed were all Claude's; one of a CLI
+      // that left the catalogue is dropped, or it would open as a Claude account.
+      return saved.map((a) => ({ ...a, provider: a.provider || "claude" })).filter((a) => IDS.includes(a.provider));
     } catch {
       return [];
     }
@@ -481,9 +483,7 @@ function App() {
     () => localStorage.getItem(OBJETIVOS_KEY) === "1",
   );
   const [lang, setLang] = useState<Lang>(detectLang);
-  const [theme, setTheme] = useState<ThemeId>(
-    () => (localStorage.getItem(THEME_KEY) as ThemeId) || "azul",
-  );
+  const [theme, setTheme] = useState<ThemeId>(temaInicial);
   const [fontSize, setFontSize] = useState(
     () => Number(localStorage.getItem(FONT_KEY)) || 15,
   );
@@ -1938,7 +1938,7 @@ function App() {
     const sid = p ? sessionIdOf(p.command) : undefined;
     // `soloPanel`: el nombre viene del título de la sesión (`lib/nombreSolo.ts`).
     if (p && sid && !soloPanel) {
-      renameSession(carpetaClaude(p.cwd), sid, nombre).catch((e) =>
+      renameSession(carpetaClaude(p.cwd), sid, nombre, kindDeComando(p.command?.join(" ") ?? "")).catch((e) =>
         // El panel ya quedó renombrado; esto solo deja constancia de que el
         // transcript no se pudo tocar (recién abierto sin mensajes, cuenta
         // rara...), porque desde fuera no se ve y «no pasa nada» no se puede
@@ -2778,7 +2778,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
               <span className="tab-label">{t(tab.label)}</span>
               {tab.beta && <span className="tab-beta">{t("beta")}</span>}
               {(cuentaDe[tab.key] ?? 0) > 0 && (
-                <span className="tab-count" data-espera={tab.key === "decisiones"}>
+                <span className="tab-count" data-te-toca={tab.key === "decisiones"}>
                   {cuentaDe[tab.key]}
                 </span>
               )}
@@ -3460,9 +3460,9 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           }
           onVibecoding={(modelo) =>
             addPane(
-              `Aider · ${modelo}`,
+              `opencode · ${modelo}`,
               raiz(),
-              shellCommand(`aider --model openrouter/${modelo}`),
+              shellCommand(`opencode -m openrouter/${modelo}`),
               undefined,
               undefined,
               undefined,
@@ -3737,7 +3737,8 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
               return (
                 <div className="modal-warn">
                   <p className="modal-warn-title">
-                    {t("⚠ {n} están trabajando ahora mismo:", { n: trabajando.length })}
+                    <AvisoIcon />
+                    {trabajando.length === 1 ? t("1 está trabajando ahora mismo:") : t("{n} están trabajando ahora mismo:", { n: trabajando.length })}
                   </p>
                   <ul className="modal-files">
                     {trabajando.slice(0, 6).map((p) => (

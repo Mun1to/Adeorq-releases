@@ -25,6 +25,7 @@ import { comoDinero, gastoLeer, type Gasto } from "../lib/chat";
 import { PROVIDERS } from "../lib/providers";
 import { useT } from "../lib/i18n";
 import ProviderMark, { tieneMarca } from "./ProviderMark";
+import { AvisoIcon, CandadoIcon } from "./Icons";
 
 /** Dónde se saca cada una. Sin esto, «pega tu clave» es un callejón sin salida. */
 const DONDE: Record<string, string> = {
@@ -105,7 +106,9 @@ export default function ApiKeysCard() {
   };
 
   return (
-    <section className="account-group">
+    // `accounts-fija` y no `account-group`: esa es la de un CLI plegable y su
+    // regla esconde la rejilla hasta que la cabecera le pone `data-abierto`.
+    <section className="accounts-fija">
       {/* El nombre y sus explicaciones, sobre una superficie propia: sueltos
           caían sobre la foto del escritorio y se leían a través de ella. */}
       <header className="account-intro">
@@ -135,6 +138,7 @@ export default function ApiKeysCard() {
           pide una clave, así que ahora dice lo que pasa en TU sistema.
           Lo que sí es igual en los dos: la clave no vuelve nunca al front. */}
       <p className="card-hint apikeys-donde" data-seguro={donde !== "archivo"}>
+        {donde === "archivo" ? <AvisoIcon /> : <CandadoIcon size={15} />}
         {donde === "credenciales"
           ? t(
               "Se guarda en el Gestor de Credenciales de Windows, cifrada con tu sesión, y no vuelve a salir: al abrir una terminal la pone Rust justo antes de arrancar el proceso, así que no pasa por la pantalla ni aparece en una captura.",

@@ -68,7 +68,7 @@
 
 .bot-frase {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.4;
 }
@@ -93,7 +93,7 @@
   border: 1px solid var(--line);
   border-radius: var(--r-btn);
   font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -107,7 +107,7 @@
   margin: 2px 0 0;
   padding: 0;
   list-style: none;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.4;
 }
 
@@ -125,7 +125,7 @@
 
 .bot-nota {
   display: block;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
   line-height: 1.4;
   color: var(--muted);

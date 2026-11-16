@@ -17,6 +17,7 @@ import {
   type NodeChange,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { cajaNodo, medida, NODE_H, NODE_W } from "../lib/cajaDeNodo";
 import { open as abrirArchivo, save as guardarComo } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { shellCommand } from "../lib/comandos";
@@ -85,6 +86,7 @@ import {
 } from "../lib/trazos";
 import {
   BrowserIcon,
+  ChevronIcon,
   ChatIcon,
   FolderIcon,
   GalleryIcon,
@@ -94,10 +96,13 @@ import {
   PencilIcon,
   PinIcon,
   GroupIcon,
+  PlusIcon,
   RowsIcon,
+  TerminalIcon,
   TrashIcon,
   UndoIcon,
 } from "./Icons";
+import ProviderMark from "./ProviderMark";
 import { kindDeComando } from "./KindIcon";
 import { piezaDelLienzo } from "../lib/providers";
 import {
@@ -277,23 +282,6 @@ interface Props {
     ((from: number, to: number, auto: boolean) => boolean) | null
   >;
 }
-
-const NODE_W = 640;
-const NODE_H = 420;
-
-/** Lo que mide una pieza. React Flow lo sabe una vez pintada (`measured`); si
-    aún no lo está, manda lo que se le pidió, y si tampoco, el tamaño de casa. */
-const medida = (n: CanvasNode, wDef: number, hDef: number) => ({
-  w: n.measured?.width ?? Number(n.style?.width) ?? wDef,
-  h: n.measured?.height ?? Number(n.style?.height) ?? hDef,
-});
-
-/** Lo que ocupa una pieza en el lienzo, en el mismo idioma que los trazos. */
-const cajaNodo = (n: CanvasNode): Caja => ({
-  x: n.position.x,
-  y: n.position.y,
-  ...medida(n, NODE_W, NODE_H),
-});
 
 /** En el minimapa, un carril se pinta como franja tenue y no como pieza. */
 function claseDeNodo(n: Node): string {
@@ -2950,7 +2938,7 @@ ${ruta}` : ruta;
         const r = resumen(f);
         setNote(
           abrirTerminales
-            ? t("Lienzo importado: {n} terminales abriéndose.", { n: String(r.terminales) })
+            ? r.terminales === 1 ? t("Lienzo importado: 1 terminal abriéndose.") : t("Lienzo importado: {n} terminales abriéndose.", { n: String(r.terminales) })
             : t("Lienzo importado sin abrir terminales."),
         );
       }
@@ -3162,7 +3150,7 @@ ${ruta}` : ruta;
             >
               <span className="cb-proj-name">{project || t("Elige proyecto")}</span>
               <span className="cb-caret" aria-hidden="true">
-                ▾
+                <ChevronIcon size={13} />
               </span>
             </button>
             {picker && (
@@ -3210,7 +3198,7 @@ ${ruta}` : ruta;
             data-tip={conTecla(t("Nueva sesión de Claude Code aquí"), "claude")}
             onClick={() => spawn("claude")}
           >
-            <span aria-hidden="true">✦</span> Claude
+            <ProviderMark id="claude" /> Claude
           </button>
           <button
             className="cb-spawn"
@@ -3218,7 +3206,7 @@ ${ruta}` : ruta;
             data-tip={conTecla(t("Terminal aquí"), "shell")}
             onClick={() => spawn("shell")}
           >
-            <span aria-hidden="true">&gt;_</span> {t("Terminal")}
+            <TerminalIcon size={15} /> {t("Terminal")}
           </button>
           <button
             className="cb-spawn"
@@ -3226,7 +3214,7 @@ ${ruta}` : ruta;
             data-tip={conTecla(t("Antigravity (agy) en una terminal aquí"), "agy")}
             onClick={() => spawn("agy")}
           >
-            <span aria-hidden="true">◈</span> Antigravity
+            <ProviderMark id="agy" /> Antigravity
           </button>
         </div>
 
@@ -3301,7 +3289,7 @@ ${ruta}` : ruta;
 
         <div className="cb-group">
           <button className="cb-btn" data-tip={t("Notas, carriles, enjambres, la galería, el tablero, chats y herramientas")} onClick={menuPiezas}>
-            <span aria-hidden="true">＋</span> {t("Añadir")} <span className="cb-caret">▾</span>
+            <PlusIcon size={14} /> {t("Añadir")} <span className="cb-caret" aria-hidden="true"><ChevronIcon size={13} /></span>
           </button>
           <button
             className="cb-btn"
@@ -3324,7 +3312,7 @@ ${ruta}` : ruta;
               lo que hay detrás es un ARCHIVO del lienzo, guardar y abrir viven
               ahí. Antes era un «⤓» que no decía nada. */}
           <button className="cb-btn" data-tip={t("Guardar este tablero en un archivo o abrir otro")} onClick={menuLienzo}>
-            <FolderIcon size={14} /> {t("Lienzo")} <span className="cb-caret">▾</span>
+            <FolderIcon size={14} /> {t("Lienzo")} <span className="cb-caret" aria-hidden="true"><ChevronIcon size={13} /></span>
           </button>
           <button
             className="cb-tool"
@@ -3946,9 +3934,9 @@ ${ruta}` : ruta;
             {confirmar ? (
               <>
                 <span className="cs-ask">
-                  {termsDentro
-                    ? t("Se cierran {n} terminales. ¿Seguro?").replace("{n}", String(termsDentro))
-                    : t("¿Seguro?")}
+                  {termsDentro === 1
+                    ? t("Se cierra 1 terminal. ¿Seguro?")
+                    : termsDentro ? t("Se cierran {n} terminales. ¿Seguro?").replace("{n}", String(termsDentro)) : t("¿Seguro?")}
                 </span>
                 <button className="cp-btn cs-danger" onClick={borrarGrupo}>
                   {t("Sí, borrar")}

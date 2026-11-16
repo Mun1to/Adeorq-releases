@@ -2,7 +2,9 @@
    comprobado, no `clamp()` puesto a ojo.
 
    Mira cuatro cosas, y las cuatro han fallado alguna vez de verdad:
-     · el glow cae bajo el boton de descargar y las motas se mueven;
+     · no hay luz encima de la ventana: ni el resplandor de la derecha ni sus
+       motas (Munir, 2026-11-16: «quita el glow de la derecha de el home de
+       inmediato queda muy mal»);
      · la cinta de clientes RUEDA y sus logos no se pintan encima del rotulo
        (paso al animar el mismo elemento que recortaba);
      · el sprite de marcas no ha escupido su comentario como texto en la pagina
@@ -23,9 +25,6 @@ for (const [w, h] of [[1600, 1000], [1280, 860], [900, 800], [430, 900]]) {
   await pag.waitForTimeout(2200);
 
   const r = await pag.evaluate(() => {
-    const b = document.querySelector('.nav__acciones .btn--claro');
-    const glow = document.querySelector('.haz__glow').getBoundingClientRect();
-    const bb = b ? b.getBoundingClientRect() : null;
     const t = document.querySelector('.titular').getBoundingClientRect();
 
     // La cinta: los logos NO pueden pisar el rotulo de la izquierda.
@@ -44,10 +43,9 @@ for (const [w, h] of [[1600, 1000], [1280, 860], [900, 800], [430, 900]]) {
     const suelto = /display:none, que tambien anula|={20,}\s*--&gt;|={20,}\s*-->/.test(document.body.innerText);
 
     return {
-      desvio: bb ? Math.round(Math.abs((bb.left + bb.width / 2) - (glow.left + glow.width / 2))) : 'sin boton',
+      luz: !!document.querySelector('.ventana__luz, .haz__glow, #haz-motas'),
       titular: Math.round(t.width) + 'x' + Math.round(t.height),
       sobra: document.documentElement.scrollWidth - innerWidth,
-      motas: !!document.querySelector('#haz-motas')?.width,
       logos: document.querySelectorAll('.cinta__grupo:not([data-copia]) .cli').length,
       copias: document.querySelectorAll('.cinta__grupo').length,
       pisa, vacias, suelto,
@@ -57,14 +55,12 @@ for (const [w, h] of [[1600, 1000], [1280, 860], [900, 800], [430, 900]]) {
     };
   });
 
-  // ¿se mueven las motas de verdad?
-  const a = await pag.evaluate(() => { const c = document.querySelector('#haz-motas'); return c.getContext('2d').getImageData(0, 0, c.width, c.height).data.reduce((s, v, i) => i % 4 === 3 ? s + v : s, 0); });
-  // ¿y la cinta? Se compara la matriz de la animacion, no el estilo escrito.
+  // La cinta: Se compara la matriz de la animacion, no el estilo escrito.
   const c1 = await pag.evaluate(() => getComputedStyle(document.querySelector('.cinta__pista')).transform);
   await pag.waitForTimeout(1100);
-  const b2 = await pag.evaluate(() => { const c = document.querySelector('#haz-motas'); return c.getContext('2d').getImageData(0, 0, c.width, c.height).data.reduce((s, v, i) => i % 4 === 3 ? s + v : s, 0); });
   const c2 = await pag.evaluate(() => getComputedStyle(document.querySelector('.cinta__pista')).transform);
 
+  if (r.luz) fallos.push(`${w}px vuelve a haber luz encima de la ventana`);
   if (r.pisa) fallos.push(`${w}px la cinta pisa el rotulo`);
   if (r.vacias) fallos.push(`${w}px ${r.vacias} marcas vacias en la cinta`);
   if (r.suelto) fallos.push(`${w}px el comentario del sprite esta escrito en la pagina`);
@@ -73,8 +69,7 @@ for (const [w, h] of [[1600, 1000], [1280, 860], [900, 800], [430, 900]]) {
   if (r.sobra > 0) fallos.push(`${w}px se desborda ${r.sobra}px a lo ancho`);
 
   console.log(
-    `${String(w).padStart(4)}px  glow ${String(r.desvio).padStart(3)}  titular ${r.titular.padEnd(9)}` +
-    `  motas ${r.motas ? (a !== b2 ? 'SE MUEVEN' : 'quietas') : 'NO HAY'}` +
+    `${String(w).padStart(4)}px  luz ${r.luz ? 'SI' : 'no'}  titular ${r.titular.padEnd(9)}` +
     `  cinta ${r.logos} logos x${r.copias} ${c1 !== c2 ? 'rodando' : 'PARADA'}` +
     `  manifiesto ${r.manifiesto ? 'si' : 'NO'}  parrafos ${r.parrafos}`
   );

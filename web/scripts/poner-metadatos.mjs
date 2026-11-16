@@ -25,6 +25,20 @@ const WEB = resolve(AQUI, '..')
 const SITIO = 'https://adeorq.com'
 
 /**
+ * Cuántos clientes más, aparte de los tres que se nombran en la descripción. Se
+ * cuenta de `src/lib/providers.ts`, la lista de verdad, como ya hacen la cinta
+ * de logos y la tarjeta social: escrito a mano decía «19 más» con 11 en el
+ * catálogo (2026-11-16, al quitar once).
+ */
+function otrosClientes() {
+  const src = readFileSync(resolve(WEB, '../src/lib/providers.ts'), 'utf8')
+  const total = [...src.matchAll(/label:\s*"[^"]+"/g)].length
+  if (total < 5) throw new Error(`providers.ts solo da ${total} clientes: el patrón no encaja`)
+  return total - 3
+}
+const OTROS = otrosClientes()
+
+/**
  * La tarjeta social, con la huella de su contenido detras. Sin esto, cambiar el
  * dibujo no cambia la URL, y el borde de Cloudflare sirve el anterior durante un
  * ano entero: las respuestas de /assets/ se marcan `immutable`. Paso el
@@ -77,7 +91,7 @@ const PAGINAS = [
     alternos: PORTADAS,
     titulo: 'Adeorq · todos tus agentes en una sola pantalla',
     descripcion:
-      'Panel de escritorio para Windows, Linux y Mac: Claude Code, Codex, Gemini y 19 clientes mas ' +
+      `Panel de escritorio para Windows, Linux y Mac: Claude Code, Codex, Gemini y ${OTROS} clientes más ` +
       'trabajando a la vez en terminales de verdad, con tus proyectos a un clic. Gratis, sin cuenta y sin claves de API.',
     prioridad: '1.0',
     frecuencia: 'weekly',
@@ -91,7 +105,7 @@ const PAGINAS = [
     alternos: PORTADAS,
     titulo: 'Adeorq · all your agents on one single screen',
     descripcion:
-      'Desktop panel for Windows, Linux and Mac: Claude Code, Codex, Gemini and 19 more clients working ' +
+      `Desktop panel for Windows, Linux and Mac: Claude Code, Codex, Gemini and ${OTROS} more clients working ` +
       'at once in real terminals, with your projects one click away. Free, no account and no API keys.',
     prioridad: '0.9',
     frecuencia: 'weekly',
@@ -100,10 +114,10 @@ const PAGINAS = [
     archivo: 'guia.html',
     url: '/guia',
     tipo: 'article',
-    titulo: 'Guia de Adeorq · como se usa la cabina',
+    titulo: 'Guía de Adeorq · cómo se usa la cabina',
     descripcion:
-      'Que hace cada pantalla de Adeorq, como se instala, los estados de una sesion, ' +
-      'los objetivos del dia, los atajos y donde guarda tus cosas.',
+      'Qué hace cada pantalla de Adeorq, cómo se instala, los estados de una sesión, ' +
+      'los objetivos del día, los atajos y dónde guarda tus cosas.',
     prioridad: '0.8',
     frecuencia: 'monthly',
   },
@@ -286,8 +300,8 @@ function jsonLdGuia() {
   const doc = {
     '@context': 'https://schema.org',
     '@type': 'TechArticle',
-    headline: 'Guia de Adeorq',
-    description: 'Como se usa Adeorq: cada pantalla, la instalacion, los atajos y donde guarda tus cosas.',
+    headline: 'Guía de Adeorq',
+    description: 'Cómo se usa Adeorq: cada pantalla, la instalación, los atajos y dónde guarda tus cosas.',
     inLanguage: 'es-ES',
     url: `${SITIO}/guia`,
     author: { '@type': 'Person', name: 'Munir Torres' },

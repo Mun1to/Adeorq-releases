@@ -787,9 +787,8 @@ La pantalla tiene una línea de estado («N conectadas de N instalados», el lí
 apretado y cuál es la de siempre) y cuatro secciones: **Tus cuentas**, **Claves de
 API**, **Atajos** y **No instalados**.
 
-**Qué programas conoce.** El catálogo tiene 22: Claude Code, Codex, Gemini CLI, Qwen
-Code, GitHub Copilot, Grok, Crush, opencode, Amp, Antigravity, Cursor, Pi, Kiro CLI,
-Kimi Code, CodeWhale, Goose, Droid, Jules, Auggie, Codebuff, Cody y Aider. **Ocho
+**Qué programas conoce.** El catálogo tiene 11: Claude Code, Codex, Gemini CLI, GitHub
+Copilot, Grok, opencode, Antigravity, Cursor, Pi, Kiro CLI y Kimi Code. **Seis
 admiten varias cuentas**, porque se ha comprobado que su variable mueve de verdad la
 carpeta:
 
@@ -798,11 +797,9 @@ carpeta:
 | Claude Code | `CLAUDE_CONFIG_DIR` |
 | Codex | `CODEX_HOME` |
 | Gemini CLI | `GEMINI_CLI_HOME` |
-| Qwen Code | `QWEN_HOME` |
 | Grok | `GROK_HOME` |
 | Pi | `PI_CODING_AGENT_DIR` |
 | Kimi Code | `KIMI_CODE_HOME` |
-| CodeWhale | `CODEWHALE_HOME` |
 
 Los demás salen con la nota «una sola cuenta»: no se ha encontrado una forma de mover
 su carpeta, y es preferible decirlo a inventarse un nombre y que una cuenta acabe
@@ -872,7 +869,7 @@ al 60 % que se renueva en cinco, y al revés si la principal se renueva mañana.
 
 **Claves de API** es la otra forma de pagar lo que consume un programa: por tokens en
 lugar de con tu suscripción. Hay una tarjeta por programa que admite clave (Claude
-Code, Codex, Gemini CLI, Grok, opencode, Pi y Aider): *Pegar una clave*, *Sacar una*
+Code, Codex, Gemini CLI, Grok, opencode y Pi): *Pegar una clave*, *Sacar una*
 (el enlace de dónde se saca), *Olvidarla* y un interruptor entre **Abre con la clave
 (por tokens)** y **Abre con tu suscripción**. La clave se guarda cifrada, se ven solo
 sus cuatro últimas letras y nunca vuelve a la pantalla. Dónde se guarda, en el
@@ -881,13 +878,13 @@ sus cuatro últimas letras y nunca vuelve a la pantalla. Dónde se guarda, en el
 La tarjeta de **OpenRouter** es una sola clave que abre modelos de muchos
 proveedores, incluidos los que no tienen programa propio (Kimi, DeepSeek, Grok…).
 Pegada la clave, enseña lo que te queda, lo de hoy, la semana y el mes. Debajo
-aparece **Vibecoding**: abre una terminal real de [Aider](https://aider.chat)
+aparece **Vibecoding**: abre una terminal real de [opencode](https://opencode.ai)
 apuntando al modelo que escribas (por defecto, `moonshotai/kimi-k3`). La primera
-vez dice **Instalar Aider primero**; después, **Abrir terminal**, con la clave puesta.
+vez dice **Instalar opencode primero**; después, **Abrir terminal**, con la clave puesta.
 
-⚠ **Si abres Aider a mano**, dile siempre el modelo (`aider --model
-openrouter/<modelo>`), o cogerá la primera clave que encuentre en tu entorno y
-probará con otro proveedor. Y la clave tiene que estar en `OPENROUTER_API_KEY` en
+⚠ **Si abres opencode a mano**, dile siempre el modelo (`opencode -m
+openrouter/<modelo>`), o usará el proveedor que tenga a mano y no tocará
+OpenRouter. Y la clave tiene que estar en `OPENROUTER_API_KEY` en
 esa terminal. La tarjeta hace las dos cosas sola.
 
 ---

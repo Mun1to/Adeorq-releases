@@ -23,14 +23,14 @@ const GRABADAS = {
   en: [
     { rec: "en-storefront", hace: 7 },
     { rec: "en-mobile", hace: 1 },
-    { rec: "en-landing", corte: 36013, hace: 0 },
-    { rec: "en-invoice", corte: 35300, hace: 0, codex: true },
+    { rec: "en-landing", corte: 37450, hace: 0 },
+    { rec: "en-invoice", corte: 48500, hace: 0, codex: true },
   ],
   es: [
     { rec: "es-storefront", hace: 7 },
     { rec: "es-mobile", hace: 1 },
-    { rec: "es-landing", corte: 35900, hace: 0 },
-    { rec: "es-invoice", corte: 36860, hace: 0, codex: true },
+    { rec: "es-landing", corte: 32600, hace: 0 },
+    { rec: "es-invoice", corte: 49800, hace: 0, codex: true },
   ],
 };
 

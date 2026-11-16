@@ -137,3 +137,7 @@
 
 /* El escudo: la ventana que pide tu verificación y Ajustes › Escudo. */
 @import "./estilos/40-escudo.css";
+
+/* El tema Contraste: sus reglas, todas colgando de su `data-theme`. La última,
+   aunque su prefijo ya pesa más que la regla de cada pieza. */
+@import "./estilos/41-contraste.css";

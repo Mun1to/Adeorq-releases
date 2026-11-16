@@ -61,7 +61,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -69,7 +69,7 @@
 .ag-ses-ago {
   flex: none;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .ag-ses-estado {
@@ -78,7 +78,7 @@
   border: 1px solid var(--line);
   border-radius: var(--r-pastilla);
   color: var(--muted);
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -94,7 +94,7 @@
    lee, el segundo se consulta: por eso uno va en el color del texto y el otro
    apagado. */
 .ag-ses-necesita {
-  font-size: 12px;
+  font-size: 13px;
   color: color-mix(in srgb, var(--text) 82%, transparent);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -102,7 +102,7 @@
 }
 
 .ag-ses-encargo {
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -129,7 +129,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--muted);
 }
 
@@ -148,7 +148,7 @@
   background: var(--row);
   color: var(--text);
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .or-key:focus {
@@ -171,7 +171,7 @@
   display: block;
   margin-bottom: 6px;
   color: var(--muted);
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -194,7 +194,7 @@
   resize: none;
   white-space: pre-wrap;
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.5;
 }
 
@@ -218,7 +218,7 @@
   border: 1px solid var(--border);
   border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--bg) 60%, transparent);
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -239,15 +239,21 @@
    marcados serían seis invitaciones a tocar lo que ya estaba bien. */
 .fm-cerebro-btn {
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
   cursor: pointer;
   transition: background var(--t-rapida) ease, border-color var(--t-rapida) ease;
 }
 .fm-cerebro-btn::after {
-  content: "▾";
+  content: "";
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+  background: currentColor;
+  mask: var(--chevron-abajo) center / contain no-repeat;
   margin-left: 4px;
   opacity: 0.55;
-  font-size: 9px;
+  font-size: 13px;
 }
 .fm-cerebro-btn:hover {
   background: color-mix(in srgb, var(--done) 18%, transparent);
@@ -266,14 +272,14 @@
 .fm-pastilla em {
   opacity: 0.7;
   font-style: normal;
-  font-size: 10.5px;
+  font-size: 13px;
 }
 
 .fm-porque {
   margin: 9px 0 0;
   padding-left: 15px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.55;
 }
 
@@ -292,7 +298,7 @@
   border: none;
   background: none;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -317,7 +323,7 @@
   border-left: 3px solid var(--done);
   border-radius: 0 var(--r-chico) var(--r-chico) 0;
   background: color-mix(in srgb, var(--done) 10%, transparent);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -338,7 +344,7 @@
 .fm-recibo-txt em {
   color: var(--muted);
   font-style: normal;
-  font-size: 11.5px;
+  font-size: 13px;
 }
 
 .fm-aviso {
@@ -348,7 +354,7 @@
   border-radius: 0 var(--r-chico) var(--r-chico) 0;
   background: color-mix(in srgb, var(--done) 11%, transparent);
   color: var(--fg);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -362,7 +368,7 @@
 
 .fm-cambiar-tit {
   color: var(--muted);
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -452,14 +458,14 @@
 
 .web-nope-tit {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 650;
 }
 
 .web-nope-txt {
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -476,7 +482,7 @@
   border-radius: var(--r-btn);
   background: color-mix(in srgb, color-mix(in srgb, var(--mal) 85%, #000) 14%, transparent);
   color: color-mix(in srgb, var(--mal) 50%, #fff);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.02em;
 }

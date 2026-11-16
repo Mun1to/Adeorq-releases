@@ -62,7 +62,7 @@ export function MasAntiguasGlobal({
   onVer: () => void;
 }) {
   if (ocultas <= 0) return null;
-  const frase = t("Cargar {n} sesiones más antiguas", { n: ocultas });
+  const frase = ocultas === 1 ? t("Cargar 1 sesión más antigua") : t("Cargar {n} sesiones más antiguas", { n: ocultas });
   if (mini) {
     return (
       <button className="mas-viejas mas-viejas-mini" data-tip={frase} onClick={() => onVer()}>

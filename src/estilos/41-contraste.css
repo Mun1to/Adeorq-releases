@@ -1,0 +1,1132 @@
+/* ==========================================================================
+   El tema Contraste: sus reglas (sus colores están en `01-base.css`).
+
+   Blanco y negro de verdad: paneles y barras en negro, la interfaz dibujada por
+   contornos de una línea blanca que se ve, y todo lo elegido o encendido en
+   blanco lleno con letra negra (la pestaña, el apartado, la opción, el
+   interruptor, el botón principal). El azul queda para el foco y los estados.
+   La foto se queda detrás, oscurecida, y asoma por los huecos entre paneles.
+
+   Todo cuelga de `:where(:root[data-theme="contraste"])`, así que los otros
+   temas se quedan como estaban. Va dentro de `:where()` para que no sume peso:
+   cada regla pesa lo mismo que en la hoja de la propuesta y gana los empates
+   por ir la última, como allí. Con el prefijo pesando, pisaba los estados que
+   la propuesta dejaba vivos (la delegada, «terminó», el apagón, lo elegido en
+   la bienvenida, la forma de los paneles). Es la hoja con la que Munir lo eligió
+   (`docs/propuestas/rediseno-app/contraste.css`), con dos cambios: el borde de
+   las terminales a dos líneas, que es lo que pidió al elegirla, y los colores
+   sacados a variables, que la guía de estilo no deja escribirlos a mano.
+   ========================================================================== */
+
+/* ── 1. La foto, un escalón más oscura ───────────────────────────────────── */
+/* La terminal: la app la abre a la mitad cuando hay foto; aquí se queda cerrada
+   (el panel a su 0,9), para que la foto sea una sombra detrás del texto. El mando
+   «cuánto se ve» de Ajustes va en línea en la raíz y sigue mandando. */
+/* Tiene que ganar a la de `02-armazon.css` (`:root:has(.fondo)`, que tiñe de
+   azul) pero no al apagón ni al modo rendimiento, que van en `19-temas.css`
+   detrás de aquella justo para mandar sobre ella: por eso los `:not()`. */
+:where(:root[data-theme="contraste"]):root:has(.fondo):not([data-apagon="1"]):not([data-rendimiento="1"]) {
+  --pane-abre: 1;
+  --xterm-bg: rgba(0, 0, 0, 0.42);
+}
+
+/* Va encima de su velo y no en su lugar: el mando de «cuánto se oscurece» de
+   Ajustes sigue mandando por debajo. */
+:where(:root[data-theme="contraste"]) .fondo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+:where(:root[data-theme="contraste"]) body {
+  letter-spacing: -0.003em;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── 2. La barra de arriba ───────────────────────────────────────────────── */
+:where(:root[data-theme="contraste"]) .topbar {
+  background: var(--topbar);
+  border-bottom: 1px solid var(--c3-raya);
+  box-shadow: none;
+}
+
+:where(:root[data-theme="contraste"]) .tab {
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--c3-gris);
+}
+
+:where(:root[data-theme="contraste"]) .tab:hover {
+  color: var(--c3-blanco);
+}
+
+/* La activa: píldora blanca llena, letra negra, sin la raya de debajo. También
+   con el ratón encima: la lámina del cristal no la apaga. */
+:where(:root[data-theme="contraste"]) .tab[data-active="true"],
+:where(:root[data-theme="contraste"]) .topbar .tab[data-active="true"]:not(:disabled):hover,
+:where(:root[data-theme="contraste"]) .topbar .tab[data-active="true"]:not(:disabled):active {
+  background: var(--c3-blanco);
+  color: var(--c3-sobre-blanco);
+  font-weight: 650;
+  border-color: var(--c3-blanco);
+  box-shadow: none;
+}
+
+:where(:root[data-theme="contraste"]) .tab[data-active="true"]::after {
+  display: none;
+}
+
+:where(:root[data-theme="contraste"]) .tab[data-active="true"] .tab-count {
+  color: var(--c3-sobre-blanco-2);
+}
+
+:where(:root[data-theme="contraste"]) .tab[data-active="true"] .tab-beta {
+  color: var(--c3-beta-sobre-blanco);
+}
+
+:where(:root[data-theme="contraste"]) .tab-count {
+  font-weight: 600;
+  color: var(--c3-gris);
+}
+
+:where(:root[data-theme="contraste"]) .tab-beta {
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+/* La cuenta de Decisiones, cuando te toca, sigue en su color. */
+:where(:root[data-theme="contraste"]) .tab-count[data-te-toca="true"] {
+  color: var(--ask);
+}
+
+/* ── 3. El cristal al pasar, en neutro: una lámina gris clara, sin azul ── */
+:where(:root[data-theme="contraste"])
+  :is(
+    .pane-head button,
+    .tab,
+    .cj-pestana,
+    .cj-trabajo,
+    .mini.icono,
+    .franja-btn,
+    .cb-tool,
+    .cb-btn,
+    .cb-spawn,
+    .choice,
+    .set-tab,
+    .skill,
+    .inicio-proy,
+    .inicio-enlace,
+    .layout-grande,
+    .inicio-estado
+  ):not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  transform: none;
+}
+
+:where(:root[data-theme="contraste"])
+  :is(
+    .pane-head button,
+    .tab,
+    .cj-pestana,
+    .cj-trabajo,
+    .mini.icono,
+    .franja-btn,
+    .cb-tool,
+    .cb-btn,
+    .cb-spawn,
+    .choice,
+    .set-tab,
+    .skill,
+    .inicio-proy,
+    .inicio-enlace,
+    .layout-grande,
+    .inicio-estado
+  ):not(:disabled):active {
+  transform: none;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+/* ── 4. Botones ──────────────────────────────────────────────────────────── */
+
+/* El principal: invertido. Blanco lleno, letra negra, sin brillo ni degradado. */
+:where(:root[data-theme="contraste"]) .np-btn {
+  background: var(--c3-blanco);
+  color: var(--c3-sobre-blanco);
+  border: 1px solid var(--c3-blanco);
+  border-radius: var(--r-btn);
+  padding: 8px 16px;
+  min-height: 36px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  box-shadow: none;
+}
+
+:where(:root[data-theme="contraste"]) .np-btn:not(:disabled):hover {
+  background: #ffffff;
+  filter: none;
+  transform: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.14);
+}
+
+:where(:root[data-theme="contraste"]) .np-btn:not(:disabled):active {
+  background: var(--c3-pulsado);
+  transform: none;
+  filter: none;
+  box-shadow: none;
+}
+
+/* Desactivado sigue siendo el principal: blanco lleno, solo atenuado. */
+:where(:root[data-theme="contraste"]) .np-btn:disabled {
+  background: var(--c3-blanco);
+  color: var(--c3-sobre-blanco);
+  border-color: var(--c3-blanco);
+  opacity: 0.5;
+  filter: none;
+}
+
+/* El de al lado del principal: contorno blanco nítido. */
+:where(:root[data-theme="contraste"]) .np-btn.ghost {
+  background: var(--c3-negro);
+  color: var(--c3-tinta);
+  border-color: var(--c3-raya-3);
+}
+
+:where(:root[data-theme="contraste"]) .np-btn.ghost:not(:disabled):hover {
+  background: var(--c3-capa-3);
+  border-color: #ffffff;
+  box-shadow: none;
+}
+
+/* El que borra o cierra: rojo lleno, letra blanca (4,8:1). */
+:where(:root[data-theme="contraste"]) .modal-danger,
+:where(:root[data-theme="contraste"]) .np-btn.modal-danger {
+  background: var(--c3-rojo);
+  border-color: var(--c3-rojo);
+  color: #ffffff;
+}
+
+:where(:root[data-theme="contraste"]) .np-btn.modal-danger:not(:disabled):hover {
+  background: var(--c3-rojo-2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c3-rojo) 30%, transparent);
+}
+
+/* La tecla de la casa con texto: negra, con su contorno, sin degradado. */
+:where(:root[data-theme="contraste"]) .mini:not(.icono) {
+  background: var(--c3-negro);
+  border: 1px solid var(--c3-raya-3);
+  color: var(--c3-tinta);
+  font-size: 14px;
+  font-weight: 550;
+  min-height: 34px;
+  padding: 5px 14px;
+}
+
+:where(:root[data-theme="contraste"]) .mini:not(.icono):hover {
+  background: var(--c3-capa-3);
+  border-color: #ffffff;
+  color: var(--c3-blanco);
+  transform: none;
+  box-shadow: none;
+}
+
+:where(:root[data-theme="contraste"]) .mini:not(.icono):active {
+  background: var(--c3-capa-2);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Los botones de solo icono siguen sueltos, más claros. */
+:where(:root[data-theme="contraste"]) :is(.mini.icono, .pane-btn, .franja-btn, .pane-close) {
+  color: var(--c3-icono);
+}
+
+:where(:root[data-theme="contraste"]) :is(.mini.icono, .pane-btn, .franja-btn):not(:disabled):hover {
+  color: var(--c3-blanco);
+}
+
+/* ── 5. Campos de texto y desplegables ───────────────────────────────────── */
+:where(:root[data-theme="contraste"]) :is(input.finder, .onb-campo input, .setting-row input[type="text"], .setting-input) {
+  background: var(--c3-negro);
+  border: 1px solid var(--c3-raya-2);
+  border-radius: var(--r-btn);
+  color: var(--c3-tinta);
+  font-size: 14px;
+  min-height: 34px;
+}
+
+:where(:root[data-theme="contraste"])
+  :is(input.finder, .tema-buscar input, .onb-campo input, .inicio-texto, .chat-input)::placeholder {
+  color: var(--c3-gris-2);
+}
+
+/* Los campos, con el foco en azul: un anillo nítido. */
+:where(:root[data-theme="contraste"]) :is(input.finder, .onb-campo input):focus,
+:where(:root[data-theme="contraste"]) select:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  outline: none;
+}
+
+:where(:root[data-theme="contraste"]) select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--c3-negro);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23d4d4d8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  border: 1px solid var(--c3-raya-2);
+  border-radius: var(--r-btn);
+  color: var(--c3-tinta);
+  font: inherit;
+  font-size: 14px;
+  min-height: 34px;
+  padding: 5px 34px 5px 11px;
+  cursor: pointer;
+}
+
+:where(:root[data-theme="contraste"]) select:hover {
+  border-color: var(--c3-raya-3);
+}
+
+/* Los desplegables con clase propia ponen su fondo con el atajo `background`,
+   que se llevaba también la flecha de arriba: sin ella no parecían
+   desplegables. La flecha vuelve, con su hueco a la derecha. */
+:where(:root[data-theme="contraste"]) :is(select.finder, select.esq-elige, .ew-fila select) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23d4d4d8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+}
+
+:where(:root[data-theme="contraste"]) select option {
+  background: var(--c3-capa);
+  color: var(--c3-tinta);
+}
+
+:where(:root[data-theme="contraste"]) input[type="range"] {
+  accent-color: var(--c3-blanco);
+}
+
+/* ── 6. Interruptores: toda casilla de una fila de ajustes ───────────────── */
+:where(:root[data-theme="contraste"])
+  :is(.setting-switch, .apagon-fila, .setting-row, .cab-fila)
+  input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 22px;
+  margin: 0;
+  border-radius: var(--r-pastilla);
+  background: var(--c3-negro);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  transition:
+    background var(--t-media) ease,
+    border-color var(--t-media) ease;
+}
+
+:where(:root[data-theme="contraste"])
+  :is(.setting-switch, .apagon-fila, .setting-row, .cab-fila)
+  input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--c3-bola);
+  transform: translate(0, -50%);
+  transition:
+    transform var(--t-media) ease,
+    background var(--t-media) ease;
+  box-shadow: none;
+}
+
+:where(:root[data-theme="contraste"])
+  :is(.setting-switch, .apagon-fila, .setting-row, .cab-fila)
+  input[type="checkbox"]:checked {
+  background: var(--c3-blanco);
+  border-color: var(--c3-blanco);
+}
+
+/* Encendido: pista blanca, bola negra. */
+:where(:root[data-theme="contraste"])
+  :is(.setting-switch, .apagon-fila, .setting-row, .cab-fila)
+  input[type="checkbox"]:checked::before {
+  transform: translate(18px, -50%);
+  background: #000000;
+}
+
+:where(:root[data-theme="contraste"])
+  :is(.setting-switch, .apagon-fila, .setting-row, .cab-fila)
+  input[type="checkbox"]:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+:where(:root[data-theme="contraste"])
+  :is(.setting-switch, .setting-row, .cab-fila)
+  input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── 7. Tarjetas y títulos ───────────────────────────────────────────────── */
+:where(:root[data-theme="contraste"]) :is(.panel-card, .perfil-seccion, .pu, .set-nav) {
+  background: var(--panel);
+  border: 1px solid var(--c3-raya);
+  border-radius: var(--r-caja);
+  box-shadow: none;
+}
+
+:where(:root[data-theme="contraste"]) .panel-card h2 {
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--c3-blanco);
+}
+
+:where(:root[data-theme="contraste"]) .card-hint {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--c3-gris);
+}
+
+/* Títulos de pantalla: grandes y en negrita. */
+:where(:root[data-theme="contraste"]) .panel-hero h1 {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--c3-blanco);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.6);
+}
+
+:where(:root[data-theme="contraste"]) .panel-hero p {
+  font-size: 15px;
+  color: var(--c3-claro);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.7);
+}
+
+/* ── 8. La barra de proyectos (izquierda) ────────────────────────────────── */
+:where(:root[data-theme="contraste"]) .sidebar {
+  background: var(--panel);
+  border-right: 1px solid var(--c3-raya);
+}
+
+:where(:root[data-theme="contraste"]) .side-label span:first-child {
+  font-weight: 650;
+  color: var(--c3-gris);
+}
+
+:where(:root[data-theme="contraste"]) :is(.finder-orden, .badge-count, .side-foot) {
+  color: var(--c3-gris);
+}
+
+/* Cada proyecto es una tarjeta: negra, con su borde que se ve. */
+:where(:root[data-theme="contraste"]) .project {
+  background: var(--c3-capa);
+  border: 1px solid var(--c3-raya);
+}
+
+:where(:root[data-theme="contraste"]) :is(.project:hover, .project[data-open="true"]) {
+  background: var(--c3-capa-2);
+  border-color: var(--c3-raya-3);
+}
+
+:where(:root[data-theme="contraste"]) .project-name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--c3-blanco);
+}
+
+/* ── 9. Las terminales ───────────────────────────────────────────────────── */
+/* Separadas por un hueco que se come por dentro (el borde transparente): no se
+   mueve nada, y la foto asoma entre una y otra, muy oscurecida. El contorno va
+   a dos líneas, que es lo que pidió Munir al elegir este tema: «las terminales
+   un poco mas gordos los bordes». */
+:where(:root[data-theme="contraste"]) .grid {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+:where(:root[data-theme="contraste"]) .grid > .pane {
+  border: 4px solid transparent;
+  border-radius: calc(var(--r-caja) + 4px);
+  /* Con el mando de «cuánto se ve» de Ajustes, como en los demás temas. */
+  background: color-mix(in srgb, var(--pane-bg) calc(var(--pane-abre, 1) * 100%), transparent) padding-box;
+  background-clip: padding-box;
+  box-shadow: inset 0 0 0 2px var(--c3-raya-2);
+}
+
+:where(:root[data-theme="contraste"]) .grid > .pane[data-focused="true"] {
+  border-color: transparent;
+  box-shadow:
+    inset 0 0 0 2px var(--accent),
+    inset 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* Las de una cuadrilla, con su color: el contorno blanco de arriba pesa lo
+   mismo que su regla de `14-lienzo-piezas.css` y, por ir detrás, se lo comía. */
+:where(:root[data-theme="contraste"]) .grid > .pane[data-team="true"]:not([data-focused="true"]) {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--team) 70%, transparent);
+}
+
+/* Terminó y te espera: el aro naranja por dentro, y su latido con la misma
+   forma de sombra (de una hacia fuera a una hacia dentro no se puede pasar
+   poco a poco, y el aro salía a saltos). El modo rendimiento le quita el
+   latido y el aro se queda. */
+:where(:root[data-theme="contraste"]) .grid > .pane[data-done="true"] {
+  border-color: transparent;
+  box-shadow:
+    inset 0 0 0 2px var(--done),
+    0 0 18px color-mix(in srgb, var(--done) 30%, transparent);
+  animation-name: c3-termino;
+}
+
+@keyframes c3-termino {
+  50% {
+    box-shadow:
+      inset 0 0 0 2px var(--done),
+      0 0 34px color-mix(in srgb, var(--done) 60%, transparent);
+  }
+}
+
+:where(:root[data-theme="contraste"]) .pane-head {
+  background: var(--panel-head);
+  border-bottom: 1px solid var(--c3-raya);
+  border-radius: var(--r-caja) var(--r-caja) 0 0;
+}
+
+:where(:root[data-theme="contraste"]) .pane[data-focused="true"] .pane-head {
+  background: color-mix(in srgb, var(--accent) 14%, var(--panel-head));
+  border-bottom-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+:where(:root[data-theme="contraste"]) .pane-proj {
+  font-weight: 600;
+}
+
+:where(:root[data-theme="contraste"]) .pane-name {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--c3-blanco);
+}
+
+:where(:root[data-theme="contraste"]) .pane-brain {
+  font-weight: 550;
+  color: var(--c3-gris);
+}
+
+/* ── 10. La barra de la derecha ──────────────────────────────────────────── */
+:where(:root[data-theme="contraste"]) :is(.lateral, .franja) {
+  background: var(--panel);
+}
+
+:where(:root[data-theme="contraste"]) .lateral {
+  border-left: 1px solid var(--c3-raya-2);
+  box-shadow: none;
+}
+
+:where(:root[data-theme="contraste"]) .franja {
+  border-left: 1px solid var(--c3-raya);
+}
+
+:where(:root[data-theme="contraste"]) .lateral-title {
+  font-size: 17px;
+  font-weight: 650;
+  color: var(--c3-blanco);
+}
+
+:where(:root[data-theme="contraste"]) .skills-hint {
+  font-size: 14px;
+  color: var(--c3-gris);
+}
+
+/* ── 11. Menús y diálogos ────────────────────────────────────────────────── */
+:where(:root[data-theme="contraste"]) :is(.layout-pop, .modal) {
+  background: var(--popover);
+  border: 1px solid var(--c3-raya-2);
+  border-radius: var(--r-caja);
+  box-shadow: var(--c3-sombra-3);
+}
+
+:where(:root[data-theme="contraste"]) .layout-pop-title {
+  font-size: 17px;
+  font-weight: 650;
+  color: var(--c3-blanco);
+}
+
+:where(:root[data-theme="contraste"]) .layout-celda {
+  background: var(--c3-capa-2);
+  border: 1px solid var(--c3-raya);
+  border-radius: var(--r-chico);
+}
+
+:where(:root[data-theme="contraste"]) .layout-celda[data-on="true"] {
+  background: var(--c3-blanco);
+  border-color: var(--c3-blanco);
+}
+
+:where(:root[data-theme="contraste"]) .layout-cuenta {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--c3-blanco);
+}
+
+:where(:root[data-theme="contraste"]) .layout-grande span {
+  font-size: 14px;
+}
+
+:where(:root[data-theme="contraste"]) .layout-pop-foot {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--c3-gris);
+}
+
+:where(:root[data-theme="contraste"]) .modal-overlay {
+  background: rgba(0, 0, 0, 0.66);
+}
+
+:where(:root[data-theme="contraste"]) .modal-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--c3-blanco);
+}
+
+:where(:root[data-theme="contraste"]) .modal-text {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--c3-claro);
+}
+
+:where(:root[data-theme="contraste"]) .modal-warn {
+  background: color-mix(in srgb, var(--warn) 7%, var(--c3-negro));
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+  border-radius: var(--r-btn);
+}
+
+:where(:root[data-theme="contraste"]) .modal-warn-title {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+:where(:root[data-theme="contraste"]) .modal-files li {
+  line-height: 1.6;
+  color: var(--c3-tinta);
+}
+
+:where(:root[data-theme="contraste"]) .modal-actions {
+  gap: 10px;
+}
+
+/* ── 12. El Panel (inicio) ───────────────────────────────────────────────── */
+:where(:root[data-theme="contraste"]) .inicio-centro h1 {
+  font-size: 46px;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  color: var(--c3-blanco);
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6);
+}
+
+:where(:root[data-theme="contraste"]) .inicio-estado {
+  font-size: 15px;
+  color: var(--c3-claro);
+}
+
+:where(:root[data-theme="contraste"]) .inicio-caja {
+  background: var(--popover);
+  border: 1px solid var(--c3-raya-2);
+  border-radius: var(--r-caja);
+  box-shadow: var(--c3-sombra-caja);
+}
+
+:where(:root[data-theme="contraste"]) .inicio-texto {
+  font-size: 15px;
+  color: var(--c3-tinta);
+}
+
+:where(:root[data-theme="contraste"]) .inicio-nota {
+  color: var(--c3-gris);
+}
+
+:where(:root[data-theme="contraste"]) :is(.inf-aviso, .inf-aviso span) {
+  font-size: 14px;
+  color: var(--c3-claro);
+}
+
+:where(:root[data-theme="contraste"]) .inf-boton {
+  font-size: 14px;
+  color: var(--c3-claro);
+  text-decoration-color: rgba(255, 255, 255, 0.4);
+  text-underline-offset: 3px;
+}
+
+:where(:root[data-theme="contraste"]) .inicio-tit {
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--c3-blanco);
+}
+
+:where(:root[data-theme="contraste"]) .inicio-proy-n {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* «Ver los 3», «Nuevo proyecto», «Ver tu uso»: botones de contorno, no
+   enlaces con flechita. */
+:where(:root[data-theme="contraste"]) .inicio-enlace {
+  border: 1px solid var(--c3-raya-3);
+  border-radius: var(--r-btn);
+  background: var(--c3-negro);
+  color: var(--c3-tinta);
+  font-size: 14px;
+  font-weight: 550;
+  padding: 5px 12px;
+}
+
+:where(:root[data-theme="contraste"]) .inicio-enlace:not(:disabled):hover {
+  border-color: #ffffff;
+}
+
+:where(:root[data-theme="contraste"]) .inicio-uso-cifra b {
+  font-size: 36px;
+  letter-spacing: -0.03em;
+}
+
+:where(:root[data-theme="contraste"]) :is(.inicio-uso-cifra, .inicio-uso-linea) {
+  font-size: 14px;
+  color: var(--c3-gris);
+}
+
+:where(:root[data-theme="contraste"]) .inicio-anio span {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* ── 13. El Perfil ───────────────────────────────────────────────────────── */
+/* Lo de arriba va suelto sobre la foto: nada de gris, que sobre una pared clara
+   bajaba a 3:1. Claro y con sombra, como los títulos. */
+:where(:root[data-theme="contraste"]) :is(.perfil-tu p.perfil-falta, .perfil-tu p.perfil-arroba) {
+  color: var(--c3-claro);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.75);
+}
+
+:where(:root[data-theme="contraste"]) .perfil-foto {
+  color: var(--c3-claro);
+}
+
+:where(:root[data-theme="contraste"]) .perfil-seccion:hover {
+  background: var(--c3-capa-2);
+  border-color: var(--c3-raya-3);
+}
+
+:where(:root[data-theme="contraste"]) .perfil-seccion-cab {
+  font-size: 17px;
+  font-weight: 650;
+  color: var(--c3-blanco);
+}
+
+:where(:root[data-theme="contraste"]) .perfil-cifra b {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+:where(:root[data-theme="contraste"]) :is(.perfil-cifra span, .perfil-linea) {
+  font-size: 14px;
+  color: var(--c3-gris);
+}
+
+:where(:root[data-theme="contraste"]) .perfil-editar {
+  border: 1px solid var(--c3-raya-3);
+  border-radius: var(--r-btn);
+  background: var(--c3-negro);
+  color: var(--c3-tinta);
+  font-size: 14px;
+  padding: 4px 12px;
+  text-decoration: none;
+}
+
+:where(:root[data-theme="contraste"]) .pu-cifra > b {
+  font-size: 48px;
+  letter-spacing: -0.04em;
+}
+
+:where(:root[data-theme="contraste"]) :is(.pu-cifra em, .pu-fila) {
+  font-size: 14px;
+  color: var(--c3-gris);
+}
+
+:where(:root[data-theme="contraste"]) .pu-fila b {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--c3-blanco);
+}
+
+:where(:root[data-theme="contraste"]) .pu-pestanas button {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c3-gris);
+}
+
+:where(:root[data-theme="contraste"]) .pu-titulo {
+  font-size: 17px;
+  font-weight: 650;
+  color: var(--c3-blanco);
+}
+
+:where(:root[data-theme="contraste"]) :is(.pu-nada, .pu-pista) {
+  font-size: 14px;
+  color: var(--c3-gris);
+}
+
+:where(:root[data-theme="contraste"]) :is(.pu-anio button, .pu-mes button, .pu-vacio) {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+:where(:root[data-theme="contraste"]) .pu-mes em {
+  color: var(--c3-gris);
+}
+
+/* ── 14. Ajustes ─────────────────────────────────────────────────────────── */
+:where(:root[data-theme="contraste"]) .set-tab {
+  font-size: 15px;
+  font-weight: 550;
+  color: var(--c3-claro-2);
+}
+
+:where(:root[data-theme="contraste"]) .set-sub-item {
+  font-size: 14px;
+  color: var(--c3-gris);
+}
+
+:where(:root[data-theme="contraste"]) .set-sub-item:hover {
+  color: var(--c3-blanco);
+}
+
+/* Sin raya entre filas: las separa el aire. */
+:where(:root[data-theme="contraste"]) :is(.setting-row, .cab-fila) {
+  border-bottom: none;
+  font-size: 15px;
+}
+
+:where(:root[data-theme="contraste"]) .setting-row {
+  padding: 12px 0;
+}
+
+:where(:root[data-theme="contraste"]) .cab-nombre {
+  font-size: 15px;
+  color: var(--c3-tinta);
+}
+
+:where(:root[data-theme="contraste"]) :is(.cab-nombre small, .setting-row small) {
+  font-size: 14px;
+  color: var(--c3-gris);
+}
+
+:where(:root[data-theme="contraste"]) :is(.choice, .tema-tab) {
+  font-size: 15px;
+  border-radius: var(--r-btn);
+}
+
+/* ── 15. Decisiones ──────────────────────────────────────────────────────── */
+:where(:root[data-theme="contraste"]) .dec-cuerpo {
+  background: var(--panel);
+}
+
+:where(:root[data-theme="contraste"]) .dec-lista {
+  border-right: 1px solid var(--c3-raya);
+}
+
+:where(:root[data-theme="contraste"]) .dec-head h1 {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--c3-blanco);
+}
+
+:where(:root[data-theme="contraste"]) .dec-head p {
+  font-size: 15px;
+  color: var(--c3-gris);
+}
+
+:where(:root[data-theme="contraste"]) .dec-lista-nota {
+  color: var(--c3-gris);
+}
+
+:where(:root[data-theme="contraste"]) .dec-calma h2 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--c3-blanco);
+}
+
+:where(:root[data-theme="contraste"]) .dec-calma p {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--c3-gris);
+}
+
+/* ── 16. El Chat ─────────────────────────────────────────────────────────── */
+:where(:root[data-theme="contraste"]) .chat-lista {
+  background: var(--panel);
+  border-right: 1px solid var(--c3-raya);
+}
+
+:where(:root[data-theme="contraste"]) .chat-hilo {
+  background: rgba(0, 0, 0, 0.92);
+}
+
+:where(:root[data-theme="contraste"]) .chat-pestana {
+  font-size: 17px;
+  font-weight: 650;
+}
+
+/* «Hablar con Adeo», la acción que manda en la lista: invertida. */
+:where(:root[data-theme="contraste"]) .cj-nueva {
+  background: var(--c3-blanco);
+  border: 1px solid var(--c3-blanco);
+  color: var(--c3-sobre-blanco);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--r-btn);
+}
+
+:where(:root[data-theme="contraste"]) .cj-nueva:hover {
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.14);
+}
+
+:where(:root[data-theme="contraste"]) .chat-cajon-tit span {
+  font-weight: 650;
+  color: var(--c3-gris);
+}
+
+:where(:root[data-theme="contraste"]) .chat-fila {
+  border-radius: var(--r-btn);
+}
+
+:where(:root[data-theme="contraste"]) .chat-fila-tit {
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  color: var(--c3-tinta);
+}
+
+:where(:root[data-theme="contraste"]) .chat-fila-der {
+  color: var(--c3-gris);
+}
+
+:where(:root[data-theme="contraste"]) .cj-pestana {
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+:where(:root[data-theme="contraste"]) .chat-cab-id strong {
+  font-size: 18px;
+  font-weight: 650;
+  color: var(--c3-blanco);
+}
+
+:where(:root[data-theme="contraste"]) .chat-cab-id em {
+  color: var(--c3-gris);
+}
+
+:where(:root[data-theme="contraste"]) .chat-burbuja {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+:where(:root[data-theme="contraste"]) .chat-turno[data-rol="tu"] .chat-burbuja {
+  background: var(--c3-capa-3);
+  border: 1px solid var(--c3-raya-2);
+  color: var(--c3-blanco);
+}
+
+/* Cada sesión que abre Adeo es una tarjeta que se pulsa entera: con su borde.
+   El relleno ya lo traía (con margen negativo), así que el texto no se mueve. */
+:where(:root[data-theme="contraste"]) .cj-trabajo {
+  border: 1px solid var(--c3-raya);
+  background: #000000;
+}
+
+:where(:root[data-theme="contraste"]) .cj-trabajo-cab strong {
+  font-size: 16px;
+  font-weight: 650;
+}
+
+:where(:root[data-theme="contraste"]) .cj-estado {
+  font-weight: 600;
+}
+
+:where(:root[data-theme="contraste"]) .cj-trabajo-para {
+  font-size: 14.5px;
+  color: var(--c3-tinta);
+}
+
+:where(:root[data-theme="contraste"]) :is(.cj-porque, .cj-porque b) {
+  font-size: 14px;
+  color: var(--c3-gris);
+}
+
+:where(:root[data-theme="contraste"]) .cj-porque b {
+  color: var(--c3-tinta);
+}
+
+/* «Ir a esta sesión»: texto suelto, porque la tarjeta entera ya se pulsa. */
+:where(:root[data-theme="contraste"]) .cj-trabajo-ir {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c3-tinta);
+}
+
+:where(:root[data-theme="contraste"]) :is(.chat-caja, .cj-caja) {
+  background: var(--popover);
+  border: 1px solid var(--c3-raya-2);
+  border-radius: var(--r-caja);
+  box-shadow: var(--c3-sombra-2);
+}
+
+/* Donde escribes: el foco, que es lo único azul junto a los avisos. Un anillo
+   nítido en vez del halo difuso. */
+:where(:root[data-theme="contraste"]) :is(.chat-caja, .cj-caja, .inicio-caja):focus-within {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--accent),
+    var(--c3-sombra-2);
+}
+
+:where(:root[data-theme="contraste"]) .chat-input {
+  font-size: 15px;
+}
+
+:where(:root[data-theme="contraste"]) .chat-pastillas {
+  border-top: 1px solid var(--c3-raya);
+}
+
+:where(:root[data-theme="contraste"]) .chat-pastilla {
+  color: var(--c3-claro-2);
+  border-radius: var(--r-btn);
+}
+
+:where(:root[data-theme="contraste"]) .chat-enviar {
+  background: var(--c3-blanco);
+  border: 1px solid var(--c3-blanco);
+  color: var(--c3-sobre-blanco);
+  border-radius: var(--r-btn);
+}
+
+:where(:root[data-theme="contraste"]) .chat-enviar:disabled {
+  opacity: 0.5;
+}
+
+:where(:root[data-theme="contraste"]) .chat-yo-txt strong {
+  font-size: 14px;
+}
+
+:where(:root[data-theme="contraste"]) .chat-yo-txt em {
+  color: var(--c3-gris);
+}
+
+/* ── 17. Lo elegido y lo encendido: blanco lleno, letra negra ────────────── */
+/* El apartado activo del índice de Ajustes (sin la raya azul de la izquierda),
+   las opciones elegidas (Español, Todos, Preguntar cada vez…), la pestaña del
+   Chat, la fila abierta, la pastilla puesta y la tecla encendida. Con el ratón
+   encima se quedan blancas: la lámina gris del cristal no las apaga. */
+:where(:root[data-theme="contraste"])
+  :is(
+    .set-tab[data-on],
+    .choice[data-on="true"],
+    .tema-tab[data-on="true"],
+    .cj-pestana[data-on="true"],
+    .chat-fila[data-on="true"],
+    .chat-pastilla[data-on="true"],
+    .mini.on
+  ),
+:where(:root[data-theme="contraste"])
+  :is(.set-tab[data-on], .choice[data-on="true"], .cj-pestana[data-on="true"]):not(:disabled):is(:hover, :active),
+:where(:root[data-theme="contraste"]) .mini.on:hover {
+  background: var(--c3-blanco);
+  color: var(--c3-sobre-blanco);
+  border-color: var(--c3-blanco);
+  box-shadow: none;
+  text-decoration: none;
+  text-shadow: none;
+  font-weight: 650;
+}
+
+:where(:root[data-theme="contraste"])
+  :is(.set-tab[data-on] svg, .set-tab[data-on] .set-tab-chev, .choice[data-on="true"] svg, .cj-pestana[data-on="true"] svg) {
+  color: var(--c3-sobre-blanco);
+}
+
+/* Un pseudoelemento no puede ir dentro de `:is()`: invalidaría la regla entera. */
+:where(:root[data-theme="contraste"]) .set-tab[data-on]::before,
+:where(:root[data-theme="contraste"]) .cj-pestana[data-on="true"]::after,
+:where(:root[data-theme="contraste"]) .chat-pestana[data-on="true"]::after {
+  display: none;
+}
+
+:where(:root[data-theme="contraste"]) .chat-fila[data-on="true"] .chat-fila-tit {
+  color: var(--c3-sobre-blanco);
+}
+
+:where(:root[data-theme="contraste"]) .chat-fila[data-on="true"] .chat-fila-der {
+  color: var(--c3-sobre-blanco-2);
+}
+
+/* Las pestañas que no tienen relleno propio (Perfil, Chat): la píldora va
+   detrás del texto, en un ::before, para no mover nada de sitio. */
+:where(:root[data-theme="contraste"]) :is(.pu-pestanas button, .chat-pestana) {
+  position: relative;
+  isolation: isolate;
+}
+
+:where(:root[data-theme="contraste"]) :is(.pu-pestanas button[aria-selected="true"], .chat-pestana[data-on="true"]) {
+  color: var(--c3-sobre-blanco);
+  text-decoration: none;
+  text-shadow: none;
+}
+
+:where(:root[data-theme="contraste"]) :is(.pu-pestanas button[aria-selected="true"], .chat-pestana[data-on="true"])::before {
+  content: "";
+  position: absolute;
+  inset: -3px -10px;
+  z-index: -1;
+  border-radius: var(--r-btn);
+  background: var(--c3-blanco);
+}
+
+:where(:root[data-theme="contraste"]) .chat-pestana[data-on="true"]::before {
+  inset: 1px -10px 5px;
+}
+
+/* Las teclas de solo icono que están puestas: en blanco, no en azul. */
+:where(:root[data-theme="contraste"]) :is(.franja-btn[data-on="true"], .rail-tab[data-active="true"]) {
+  color: var(--c3-blanco);
+}
+
+:where(:root[data-theme="contraste"]) :is(.franja-btn[data-on="true"], .rail-tab[data-active="true"])::after {
+  background: var(--c3-blanco);
+}
+
+/* Con «menos movimiento» en Windows, los interruptores cambian sin deslizarse,
+   como en los demás temas (`12-tablero-y-uso.css`). */
+@media (prefers-reduced-motion: reduce) {
+  :where(:root[data-theme="contraste"])
+    :is(.setting-switch, .apagon-fila, .setting-row, .cab-fila)
+    input[type="checkbox"],
+  :where(:root[data-theme="contraste"])
+    :is(.setting-switch, .apagon-fila, .setting-row, .cab-fila)
+    input[type="checkbox"]::before {
+    transition: none;
+  }
+}

@@ -47,7 +47,7 @@
   align-items: center;
   gap: 6px;
   color: var(--cj-c);
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -73,7 +73,7 @@
   border-radius: var(--r-btn);
   background: color-mix(in srgb, var(--accent) 16%, var(--cj-hueco));
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   text-align: left;
   cursor: pointer;
@@ -135,7 +135,7 @@
   background: none;
   color: var(--muted);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 550;
   white-space: nowrap;
   cursor: pointer;
@@ -197,16 +197,16 @@
   gap: 8px;
 }
 .cj-trabajo-cab .prov-mark { width: 18px; height: 18px; flex: none; }
-.cj-trabajo-cab strong { font-size: 13.5px; }
+.cj-trabajo-cab strong { font-size: 14.5px; }
 .cj-trabajo-cab .cj-estado { margin-left: auto; }
 .cj-trabajo-para {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.45;
 }
 .cj-porque {
   display: flex;
   gap: 7px;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.45;
   opacity: 0.8;
 }
@@ -216,7 +216,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--accent);
 }
@@ -227,7 +227,7 @@
   align-items: center;
   gap: 8px;
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text);
   opacity: 0.85;
 }
@@ -275,7 +275,7 @@
   border-radius: var(--r-btn);
   color: var(--muted);
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -295,7 +295,7 @@
 .cj-prog-marca { flex: none; display: inline-flex; line-height: 0; }
 .cj-prog-marca .prov-mark { width: 16px; height: 16px; }
 .cj-prog-router { color: var(--accent); }
-.chat-menu-fila .cj-escalon { flex: none; width: 58px; font-size: 11px; color: var(--muted); }
+.chat-menu-fila .cj-escalon { flex: none; width: 58px; font-size: 13px; color: var(--muted); }
 /* Lo mejorado se marca en el borde de la caja entera: un marco alrededor del
    texto dejaba una caja dentro de otra. */
 .chat-caja:has(.chat-input[data-mejorado="true"]) {
@@ -304,7 +304,7 @@
 .cj-aviso-mejora {
   margin: 0;
   padding: 10px 16px 0;
-  font-size: 11.5px;
+  font-size: 13px;
   line-height: 1.45;
   color: var(--accent);
 }
@@ -347,7 +347,7 @@
   border-radius: var(--r-btn);
   background: color-mix(in srgb, var(--ask) 12%, var(--popover));
   color: var(--text);
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.45;
 }
 .cj-nota[data-grave] {

@@ -59,7 +59,9 @@ if (algunaDeCabina) {
   }
   if (quiere("decisions")) {
     await vista(p, "decisiones", 2500);
-    await p.clic("button.dec-fila").catch(() => {});
+    // Desde la lista única, «Te toca» empieza por la terminal que espera
+    // respuesta: se abre la decisión de Sam por su título.
+    await p.clic("button.dec-fila", t.decisiones[0].titulo).catch((e) => console.log(String(e)));
     await dormir(1000);
     await clicExacto(p, t.decisiones[0].preguntas[0].opciones[0].texto);
     await dormir(900);
@@ -70,7 +72,11 @@ if (algunaDeCabina) {
     await foto("commands");
   }
   if (quiere("accounts")) {
-    await vista(p, "cuentas", 5000);
+    await vista(p, "cuentas", 2000);
+    // La primera vez tarda en saber qué CLIs hay instalados, y hasta entonces la
+    // vista sale en blanco: se espera a que pinte las cuotas.
+    await p.esperar(`!!document.querySelector('.panel.accounts .account-limits')`, 20000).catch((e) => console.log(String(e)));
+    await dormir(1500);
     await foto("accounts");
   }
   if (quiere("settings")) {

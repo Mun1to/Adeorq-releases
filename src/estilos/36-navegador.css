@@ -25,7 +25,7 @@
   box-shadow:
     var(--glass-edge),
     -14px 0 40px -10px color-mix(in srgb, var(--accent) 28%, transparent);
-  font-family: "Geist Variable", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  font-family: "Geist Variable", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   font-feature-settings: "tnum";
   animation: nav-entra var(--t-lenta) cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -118,7 +118,7 @@
   height: 31px;
   padding: 0 6px 0 11px;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 13.5px;
   cursor: pointer;
   white-space: nowrap;
   animation: nav-nace var(--t-media) cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -308,7 +308,7 @@
   outline: none;
   background: transparent;
   color: var(--text);
-  font: 12.5px / 1 "Geist Mono Variable", ui-monospace, "Cascadia Mono", monospace;
+  font: 13.5px / 1 "Geist Mono Variable", ui-monospace, "Cascadia Mono", monospace;
   text-overflow: ellipsis;
 }
 
@@ -368,7 +368,7 @@
   background: var(--popover);
   border-bottom: 1px solid var(--border);
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
   overflow: hidden;
   animation: nav-abre-aviso var(--t-lenta) ease-out;
 }
@@ -457,7 +457,7 @@
   border: none;
   background: transparent;
   color: var(--muted);
-  font: 13px "Geist Mono Variable", ui-monospace, monospace;
+  font: 14px "Geist Mono Variable", ui-monospace, monospace;
   cursor: pointer;
   transition: color var(--t-rapida) ease;
 }

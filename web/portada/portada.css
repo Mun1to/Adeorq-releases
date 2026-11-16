@@ -25,7 +25,7 @@
   --p-linea:   rgba(140, 170, 220, .16);
   --p-linea2:  rgba(150, 185, 240, .30);
 
-  --p-tipo: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --p-tipo: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   --p-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, Consolas, monospace;
 
   /* Por si esta hoja se carga suelta: el interruptor del <head> lo pisa. */
@@ -185,6 +185,12 @@ body {
 .subir:hover { border-color: var(--p-acento); color: var(--p-texto); }
 .subir:focus-visible { outline: 2px solid var(--p-acento); outline-offset: 3px; }
 .subir svg { width: 17px; height: 17px; }
+/* En el móvil no: arriba ya está la barra con el menú, y dos botones flotando
+   encima del texto le quitan sitio a lo que se lee. «Parar el movimiento» sí se
+   queda, porque es obligatorio. */
+@media (max-width: 700px) {
+  .subir { display: none; }
+}
 
 /* El iman de los botones grandes: la variable la pone movimiento.js y aqui solo
    se compone con el desplazamiento del hover. Va en la misma propiedad para no
@@ -209,7 +215,7 @@ body {
      sin que haga falta una flechita que lo diga; al bajar se ve ENTERA, con
      su rotulo debajo, que es para lo que esta el relleno de abajo. */
   min-height: 100svh;
-  padding: clamp(120px, 17vh, 210px) 0 clamp(64px, 9vh, 104px);
+  padding: clamp(104px, 13vh, 150px) 0 clamp(64px, 9vh, 104px);
   overflow: hidden;
   isolation: isolate;
 }
@@ -267,48 +273,27 @@ html[data-ligero] .haz__nube--b {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
 }
 
-/* -------- la luz --------
-   Vive dentro de `.ventana`, anclada con `bottom: 100%`, asi que nace SIEMPRE
-   en su borde de arriba mida lo que mida la pantalla. Tres piezas y no una:
-   el nucleo tiene que ser DURO (un degradado con blur nunca lo da), el abanico
-   es lo que se abre, y el rayo es el filamento que sube. */
-.ventana__luz {
-  position: absolute;
-  left: 50%; bottom: 100%;
-  width: 100%; height: 92vh;
-  transform: translateX(-50%);
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* El rayo se ha quitado (Munir, 2026-08-20, dos veces). Una raya vertical
-   nitida de lado a lado NO es lo que le gustaba: lo que le gustaba es el
-   resplandor. Queda el abanico y el nucleo, que son luz sin filo. */
-/* El abanico: lo que se abre al llegar abajo. Ancho de sobra a proposito, que
-   el degradado se apaga solo mucho antes del borde. */
-/* El nucleo, pegado al borde de la ventana: el punto de donde sale todo. Sin
-   el, el rayo y el abanico se tocan pero no se encienden. */
-/* -------- el texto -------- */
+/* -------- el texto --------
+   Centrado y corto, para que la ventana entre en la primera pantalla: lo que
+   convence es la app moviéndose, no un párrafo (Munir eligió «primero la
+   demo» el 2026-11-16; antes el texto iba a la izquierda y la ventana empezaba
+   a 650 px de arriba en una pantalla de 1600 x 900). */
 .haz__texto {
   position: relative;
   z-index: 3;
   max-width: 1320px;
   margin: 0 auto;
   padding: 0 clamp(18px, 4vw, 54px);
+  text-align: center;
 }
 
 .titular {
-  margin: 0 0 20px;
-  /* 80px es la medida del sector para esto, comprobada. Con `clamp` baja sola
-     en un portatil sin partirse en cuatro lineas. */
-  font-size: clamp(2.4rem, 1.1rem + 4.4vw, 5rem);
+  margin: 0 0 16px;
+  font-size: clamp(2.3rem, 1rem + 3.4vw, 4.1rem);
   line-height: 1.02;
   letter-spacing: -.035em;
   /* 600 y no 800: a este tamaño una negra se lee como un grito. */
   font-weight: 600;
-  /* 20ch y no 15: con 15 el titular se partia en TRES lineas y a este tamaño
-     una tercera linea corta le quita el golpe. */
-  max-width: 20ch;
 }
 
 /* Cada linea entra desde debajo de su propia caja, no desde la nada: es lo que
@@ -317,6 +302,10 @@ html[data-ligero] .haz__nube--b {
    interlineado de 1.02 la caja acaba en la línea base y se comía la «g» de
    «agentes» y la «p» de «pantalla». Por eso el texto sale desde un 112 %. */
 .titular__linea { display: block; overflow: hidden; padding-bottom: .1em; margin-bottom: -.1em; }
+/* A lo ancho, las dos mitades en una sola línea. */
+@media (min-width: 1180px) {
+  .titular__linea { display: inline-block; }
+}
 .titular__linea > span {
   display: block;
   transform: translateY(calc(112% * var(--motion-gain)));
@@ -327,19 +316,19 @@ html[data-ligero] .haz__nube--b {
 .haz[data-entrada] .titular__linea > span { transform: none; opacity: 1; }
 
 .entrada {
-  margin: 0 0 30px;
-  max-width: 44ch;
+  margin: 0 auto 26px;
+  max-width: 58ch;
   color: var(--p-suave);
   font-size: clamp(1rem, .95rem + .35vw, 1.22rem);
   line-height: 1.55;
 }
 
-.acciones { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 26px; }
+.acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-bottom: 18px; }
 
 .notas {
-  display: flex; flex-wrap: wrap; gap: 8px 22px;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px;
   margin: 0; padding: 0; list-style: none;
-  color: var(--p-tenue); font-size: 13px;
+  color: var(--p-suave); font-size: 14.5px;
 }
 .notas li { display: flex; align-items: center; gap: 8px; }
 .notas li + li::before {
@@ -376,8 +365,12 @@ html[data-ligero] .haz__nube--b {
   position: relative;
   z-index: 2;
   width: min(1400px, 88vw, calc((100svh - 150px) * 16 / 9));
-  margin: clamp(40px, 7vh, 90px) auto 0;
+  /* El hueco de arriba es el sitio de Adeo, que va sentado en el borde. */
+  margin: clamp(118px, 14vh, 140px) auto 0;
   aspect-ratio: 16 / 9;
+  /* Adeo y el aviso de encima se miden por el ancho de la ventana, no de la
+     pantalla (ver ADEO, abajo). */
+  container: ventana / inline-size;
 }
 
 /* El filo de luz del borde de arriba: es lo que ata la ventana al haz. Sin
@@ -412,29 +405,18 @@ html[data-ligero] .haz__nube--b {
 
 /* El aviso de que la ventana se toca, y el enlace para verla grande. Fuera de
    la ventana (pintado dentro tapaba la app) y ENCIMA de ella: debajo, a 12,5 px
-   y en gris, no se enteraba nadie (2026-10-13). Va a los dos extremos y deja
-   libre el centro, que es donde cae el resplandor. El punto verde es el
-   «vivo ahora mismo» de la app. */
+   y en gris, no se enteraba nadie (2026-10-13). A la izquierda, juntos: la
+   derecha es de Adeo. */
 .ventana__aviso {
   position: absolute;
-  left: 2px; right: 2px; bottom: calc(100% + 12px);
+  left: 2px; bottom: calc(100% + 12px);
   z-index: 4;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 26px;
   margin: 0;
   font-size: 14px;
   color: var(--p-suave);
-}
-.ventana__vivo { display: inline-flex; align-items: center; gap: 9px; }
-.ventana__vivo::before {
-  content: "";
-  flex: none;
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: #4ade80;
-  box-shadow: 0 0 10px rgba(74, 222, 128, .7);
 }
 .ventana__grande {
   color: var(--p-texto);
@@ -458,80 +440,6 @@ html[data-ligero] .haz__nube--b {
   .haz { min-height: auto; padding-bottom: 40px; }
   .ventana { width: 94vw; }
   .ventana__aviso { display: none; }
-}
-
-/* -------- LA LUZ --------
-   Un GRADIENTE y nada más (Munir, 2026-08-20). Aquí hubo cinco versiones en
-   WebGL, después una imagen prerrenderizada con filamento y humo, y las rechazó
-   todas. Se queda lo único que le gustaba desde el principio: el resplandor.
-   Sin filamento, porque una raya vertical nítida es un láser y no una luz; y
-   sin humo, porque costaba 216 KB de WebP y dos animaciones para acabar
-   leyéndose como suciedad por encima del titular.
-
-   Todo en CSS: escala a cualquier pantalla sin recortarse, no baja ni un byte
-   de más y no gasta GPU. Va por debajo del texto, así que la luz pasa por
-   detrás del titular y no por encima. */
-
-/* `--haz-x` la pone el JS midiendo el centro del botón «Descargar»: el botón se
-   mueve con el ancho de la ventana, así que un porcentaje escrito a mano estaba
-   mal en cuanto alguien redimensionaba. Por eso el eje no caía bajo el botón. */
-.ventana__luz { --haz-x: 76%; }
-
-.haz__glow {
-  position: absolute;
-  left: var(--haz-x);
-  /* Baja por debajo del borde de la ventana a proposito: ahi cae el maximo
-     del degradado, que es lo que se veia como una banda con filo. */
-  bottom: -30%;
-  width: min(170%, 1700px);
-  height: 150%;
-  transform: translateX(-50%);
-  z-index: 2;
-  pointer-events: none;
-  /* Dos capas y las dos ANCHAS. Antes había una tercera de un 5 % de ancho que
-     subía el 118 % de la altura: eso, con el núcleo encendido, es justo lo que
-     se leía como un láser. La segunda es el derrame, y hace con un degradado el
-     trabajo que antes hacía el humo: darle cuerpo a la luz para que no acabe
-     siendo un halo redondo recortado. */
-  background:
-    radial-gradient(44% 47% at 50% 80%,
-      rgba(255,255,255,.70) 0%,
-      rgba(214,235,255,.40) 20%,
-      rgba(110,175,255,.18) 44%,
-      transparent 74%),
-    radial-gradient(92% 37% at 50% 80%,
-      rgba(160,200,255,.15) 0%,
-      rgba(118,172,255,.07) 46%,
-      transparent 80%);
-  /* Poco desenfoque y suficiente: los degradados ya son suaves, esto solo mata
-     el banding de estirar tan poco color sobre tanto negro. */
-  /* Y aqui se apaga. Sin esto la luz llega entera al borde y se corta en seco;
-     con esto muere unos pixeles antes y parece que sale de la ventana. Va en
-     mascara y no en otra capa de degradado, porque tiene que apagar todas las
-     capas a la vez, el desenfoque incluido. */
-  mask-image: linear-gradient(180deg, #000 0 80%, rgba(0,0,0,.45) 90%, transparent 100%);
-  filter: blur(6px);
-  animation: glow-late 9s ease-in-out infinite alternate;
-}
-
-/* Las motas. Van en su lienzo porque cuarenta puntos moviendose cada uno a lo
-   suyo con CSS serian cuarenta elementos y cuarenta animaciones. */
-.haz__motas {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  width: 100%;
-  height: 100%;
-  display: block;
-  pointer-events: none;
-}
-
-/* El latido del resplandor. Muy poco y muy lento: una luz que parpadea se mira,
-   y aqui lo que hay que mirar es el titular. Va en `opacity`, que la politica
-   de la casa no escala, mas un `scaleY` que si pasa por el dial. */
-@keyframes glow-late {
-  from { opacity: .82; transform: translateX(-50%) scaleY(1); }
-  to   { opacity: 1;   transform: translateX(-50%) scaleY(calc(1 + .045 * var(--motion-gain))); }
 }
 
 /* Con la fila de notas partida en dos lineas, el punto separador se queda
@@ -567,8 +475,6 @@ html[data-ligero] .haz__nube--b {
 .cinta {
   position: relative;
   z-index: 4;
-  border-top: 1px solid var(--p-linea);
-  border-bottom: 1px solid var(--p-linea);
   background: linear-gradient(180deg, rgba(16, 22, 36, .55), rgba(5, 8, 14, .85));
   padding: 26px 0 20px;
 }
@@ -678,19 +584,19 @@ html[data-ligero] .haz__nube--b {
 /* Las iniciales de los CLI de los que no tenemos dibujo. Misma caja que una
    marca, para que la fila no cojee, y el color del cliente al 22 % de fondo:
    es lo que hace la app cuando ProviderMark devuelve null, asi que la web y el
-   programa cuentan lo mismo. */
+   programa cuentan lo mismo. En la letra de la página: la mono es solo para
+   código. */
 .cli__sigla {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px; height: 22px;
+  width: 26px; height: 26px;
   flex: none;
   border-radius: 6px;
   background: color-mix(in srgb, var(--cli, var(--p-tenue)) 22%, transparent);
   border: 1px solid color-mix(in srgb, var(--cli, var(--p-tenue)) 34%, transparent);
   color: color-mix(in srgb, var(--cli, var(--p-tenue)) 75%, var(--p-texto));
-  font-family: var(--p-mono);
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: -.02em;
   transition: background .16s ease, border-color .16s ease;
@@ -713,8 +619,8 @@ html[data-ligero] .haz__nube--b {
   max-width: 1320px;
   margin: 16px auto 0;
   padding: 0 clamp(18px, 4vw, 54px);
-  color: color-mix(in srgb, var(--p-tenue) 58%, transparent);
-  font-size: 11.5px;
+  color: var(--p-tenue);
+  font-size: 13.5px;
   line-height: 1.5;
 }
 
@@ -736,7 +642,7 @@ html[data-ligero] .haz__nube--b {
 .manifiesto {
   max-width: 1320px;
   margin: 0 auto;
-  padding: clamp(78px, 13vh, 150px) clamp(18px, 4vw, 54px) clamp(56px, 9vh, 104px);
+  padding: clamp(56px, 8vh, 100px) clamp(18px, 4vw, 54px) clamp(40px, 6vh, 72px);
 }
 
 .manifiesto__frase {
@@ -765,16 +671,6 @@ html[data-ligero] .haz__nube--b {
 }
 .manifiesto__firma a:hover { color: var(--p-texto); }
 
-/* La firma, en la misma linea si cabe y debajo si no. Monoespaciada porque es
-   la letra con la que escribe la app, y aqui hace de rubrica. */
-.manifiesto__autor {
-  display: inline-block;
-  margin-left: 6px;
-  font-family: var(--p-mono);
-  font-size: 13px;
-  color: color-mix(in srgb, var(--p-tenue) 78%, transparent);
-}
-
 /* ============================================================================
    EL CÓDIGO, A LA VISTA
    Una franja justo debajo del manifiesto: el logo de GitHub, un titular, una
@@ -794,7 +690,6 @@ html[data-ligero] .haz__nube--b {
   align-items: center;
   gap: 18px clamp(18px, 2.4vw, 34px);
   padding-top: clamp(28px, 4.5vh, 44px);
-  border-top: 1px solid var(--p-linea);
 }
 /* Arriba, a la altura del titular, y no centrado en el bloque de texto. */
 .codigo__marca { align-self: start; width: 44px; height: 44px; margin-top: 2px; color: var(--p-texto); }
@@ -817,7 +712,7 @@ html[data-ligero] .haz__nube--b {
   max-width: 72ch;
   margin: 8px 0 0;
   color: var(--p-tenue);
-  font-size: 13.5px;
+  font-size: 14.5px;
   line-height: 1.5;
 }
 .codigo__licencia a {
@@ -845,11 +740,10 @@ html[data-ligero] .haz__nube--b {
    ========================================================================= */
 
 .explica {
-  border-top: 1px solid var(--p-linea);
   background:
     radial-gradient(60% 50% at 50% 0%, rgba(77, 159, 255, .07), transparent 70%),
     var(--p-fondo);
-  padding: clamp(80px, 13vh, 150px) 0 clamp(72px, 11vh, 130px);
+  padding: clamp(56px, 8vh, 96px) 0 clamp(48px, 7vh, 84px);
 }
 
 .explica__caja {
@@ -979,7 +873,7 @@ html[data-ligero] .haz__nube--b {
   background: #0b1120;
   color: var(--p-suave);
   font: inherit;
-  font-size: 12.5px;
+  font-size: 13.5px;
   cursor: zoom-in;
 }
 .rasgo__foto:hover .rasgo__ampliar, .rasgo__ampliar:focus-visible { color: var(--p-texto); }
@@ -1053,29 +947,10 @@ html[data-ligero] .haz__nube--b {
 /* ============================================================================
    LAS SECCIONES DE ABAJO
    Cómo trabaja, Tu cuenta, Descargar, Novedades, Preguntas y el pie. Todas
-   comparten tres piezas para que la página se lea como una sola cosa: la
-   etiqueta con su punto, el titular de sección y la entradilla.
+   comparten dos piezas para que la página se lea como una sola cosa: el
+   titular de sección y la entradilla. Sin antetítulo encima: una sección lleva
+   solo su título (Munir no quiere rótulos en letra de máquina ni titulillos).
    ========================================================================= */
-
-/* La etiqueta. Monoespaciada y con un punto delante: es lo que le dice al ojo
-   «empieza una sección» sin gastar un titular en ello. */
-.etiqueta {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin: 0 0 18px;
-  font-family: var(--p-mono);
-  font-size: 12px;
-  letter-spacing: .02em;
-  color: var(--p-tenue);
-}
-.etiqueta__punto {
-  width: 5px; height: 5px;
-  flex: none;
-  border-radius: 50%;
-  background: var(--p-acento);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--p-acento) 70%, transparent);
-}
 
 .seccion__tit {
   margin: 0 0 18px;
@@ -1098,8 +973,7 @@ html[data-ligero] .haz__nube--b {
 /* -------------------------------- CÓMO TRABAJA --------------------------- */
 
 .pasos {
-  border-top: 1px solid var(--p-linea);
-  padding: clamp(70px, 11vh, 130px) 0;
+  padding: clamp(48px, 7vh, 84px) 0;
 }
 /* El ancho y el reparto los pone .bloque--dos. */
 
@@ -1117,11 +991,14 @@ html[data-ligero] .haz__nube--b {
    como una secuencia y no como tres párrafos sueltos. */
 .paso { border-top: 1px solid var(--p-linea2); padding-top: 18px; }
 
+/* El número cuenta algo (es una secuencia), así que va suelto y grande, en la
+   letra de la web: nada de «01» en letra de máquina como adorno. */
 .paso__num {
   display: block;
-  margin-bottom: 12px;
-  font-family: var(--p-mono);
-  font-size: 12px;
+  margin-bottom: 14px;
+  font-size: 28px;
+  font-weight: 650;
+  line-height: 1;
   color: var(--p-acento);
 }
 .paso__tit {
@@ -1171,7 +1048,7 @@ html[data-ligero] .haz__nube--b {
 .pasos__foto--movil {
   display: flex;
   gap: clamp(14px, 2vw, 24px);
-  max-width: 520px;
+  max-width: 640px;
   border: 0;
   border-radius: 0;
   overflow: visible;
@@ -1188,14 +1065,31 @@ html[data-ligero] .haz__nube--b {
   .pasos__lista { grid-template-columns: 1fr; }
 }
 
+/* A lo ancho, la frase de cierre al lado de su foto y no debajo: con el
+   contenido a todo el ancho, debajo dejaba un hueco a la derecha de la foto.
+   El tablero no pasa de sus 922 px de origen, que estirado se emborrona, y la
+   frase no baja de 300: con la columna a lo que sobrara, a 1180 se quedaba en
+   124 px y once líneas (revisión del 2026-11-16). Lo que falte lo cede la foto,
+   que encogida no pierde nitidez. */
+@media (min-width: 1180px) {
+  .pasos .bloque__cuerpo {
+    display: grid;
+    grid-template-columns: minmax(0, 922px) minmax(300px, 1fr);
+    column-gap: clamp(32px, 3.4vw, 56px);
+    align-items: center;
+  }
+  #movil .bloque__cuerpo { grid-template-columns: minmax(0, 640px) minmax(0, 1fr); }
+  .pasos .pasos__lista { grid-column: 1 / -1; }
+  .pasos .pasos__foto + .pasos__cierre { margin: 0; }
+}
+
 /* --------------------------------- TU CUENTA ----------------------------- */
 
 .cuenta {
-  border-top: 1px solid var(--p-linea);
   background:
     radial-gradient(52% 60% at 50% 0%, rgba(77, 159, 255, .06), transparent 72%),
     var(--p-fondo);
-  padding: clamp(70px, 11vh, 130px) 0;
+  padding: clamp(48px, 7vh, 84px) 0;
   text-align: center;
 }
 .cuenta__caja {
@@ -1226,31 +1120,48 @@ html[data-ligero] .haz__nube--b {
 /* --------------------------------- DESCARGA ------------------------------ */
 
 .descarga {
-  border-top: 1px solid var(--p-linea);
-  padding: clamp(70px, 11vh, 130px) 0;
+  padding: clamp(48px, 7vh, 84px) 0;
 }
 /* El ancho y el reparto los pone .bloque--dos. */
 .descarga__acciones { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
+/* Windows solo arriba y Linux y Mac juntos debajo: con flex, Mac caía sola en
+   una segunda fila coja. Se mide la columna y no la pantalla: los dos botones
+   de abajo piden unos 690 px, y a 1024 la columna no los tiene y se salían por
+   la derecha. Sin sitio, cada uno en su fila. */
+.descarga .bloque__cuerpo { container-type: inline-size; }
+@container (min-width: 700px) {
+  .descarga__acciones { display: grid; grid-template-columns: repeat(2, max-content); }
+  .descarga__acciones > :first-child { grid-column: 1 / -1; justify-self: start; }
+}
+@container (max-width: 699px) {
+  .descarga__acciones { flex-direction: column; align-items: flex-start; }
+  /* En un teléfono de 360, «Descargar para Linux» y su nota no caben en una
+     línea y el botón se salía 25 px por la derecha: la nota baja debajo. */
+  .descarga__acciones > .btn { max-width: 100%; flex-wrap: wrap; row-gap: 2px; }
+}
 
-/* La ficha de datos: monoespaciada porque son datos, y con puntos entre ellos.
-   La rellena datos.js con el JSON de verdad. */
+/* La ficha de datos, con puntos entre ellos y en la letra de la página: se lee
+   como una frase, no como código. La rellena datos.js con el JSON de verdad. */
 .descarga__datos {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 18px;
   margin: 0 0 26px;
-  font-family: var(--p-mono);
-  font-size: 12.5px;
+  font-size: 14.5px;
+  color: var(--p-suave);
+}
+.descarga__datos b { color: var(--p-texto); font-weight: 600; }
+.descarga__datos span:empty { display: none; }
+/* Versión, fecha y peso en una línea, con su punto delante de cada uno menos el
+   primero (así un dato vacío no deja un punto suelto), y los requisitos en la
+   suya: cuando se partían, la primera línea acababa en un «·» colgando. */
+.descarga__datos > :not(:first-child):not(:last-child)::before {
+  content: "·";
+  margin-right: 18px;
   color: var(--p-tenue);
 }
-.descarga__datos b { color: var(--p-suave); font-weight: 600; }
-.descarga__datos span:empty { display: none; }
-.descarga__datos > *:not(:last-child)::after {
-  content: "·";
-  margin-left: 18px;
-  color: color-mix(in srgb, var(--p-tenue) 45%, transparent);
-}
+.descarga__datos > :last-child { flex-basis: 100%; }
 
 .descarga__precio {
   margin: 0 0 20px;
@@ -1267,17 +1178,30 @@ html[data-ligero] .haz__nube--b {
   margin: 0;
   padding: 14px 16px;
   border: 1px solid var(--p-linea);
-  border-left: 2px solid color-mix(in srgb, var(--p-acento) 55%, transparent);
-  color: var(--p-tenue);
-  font-size: 13.5px;
+  color: var(--p-suave);
+  font-size: 15px;
   line-height: 1.6;
+}
+
+/* A lo ancho, en dos columnas: los botones y sus datos a la izquierda, y a la
+   derecha lo que quita el miedo (gratis, y el aviso de Windows). Con el título
+   arriba y todo en una columna, la mitad derecha se quedaba vacía. */
+@media (min-width: 1180px) {
+  .descarga .bloque__cuerpo {
+    display: grid;
+    grid-template-columns: minmax(0, 700px) minmax(0, 1fr);
+    column-gap: clamp(40px, 5vw, 80px);
+  }
+  .descarga__acciones { grid-column: 1; grid-row: 1; }
+  .descarga__datos { grid-column: 1; grid-row: 2; align-self: start; margin-bottom: 0; }
+  .descarga__precio { grid-column: 2; grid-row: 1; align-self: end; margin-bottom: 22px; }
+  .descarga__nota { grid-column: 2; grid-row: 2; align-self: start; }
 }
 
 /* -------------------------------- NOVEDADES ------------------------------ */
 
 .novedades {
-  border-top: 1px solid var(--p-linea);
-  padding: clamp(70px, 11vh, 130px) 0;
+  padding: clamp(48px, 7vh, 84px) 0;
 }
 /* El ancho y el reparto los pone .bloque--dos. */
 .novedades .seccion__entrada b { color: var(--p-texto); }
@@ -1288,15 +1212,16 @@ html[data-ligero] .haz__nube--b {
    sección de piezas, para que la página no cambie de idioma a mitad. */
 .log__fila {
   display: grid;
-  grid-template-columns: 110px 150px minmax(0, 1fr);
+  grid-template-columns: 96px 190px minmax(0, 1fr);
   gap: 16px;
   align-items: baseline;
   padding: 18px 0;
   border-bottom: 1px solid var(--p-linea);
 }
-.log__ver { font-family: var(--p-mono); font-size: 13px; color: var(--p-acento); font-weight: 600; }
-.log__fecha { font-family: var(--p-mono); font-size: 12px; color: var(--p-tenue); }
-.log__texto { margin: 0; color: var(--p-suave); font-size: 15px; line-height: 1.58; max-width: 66ch; }
+.log__ver { font-size: 15px; color: var(--p-acento); font-weight: 600; }
+/* La fecha entera en una línea: partida en dos («16 de noviembre de / 2026») se leía mal. */
+.log__fecha { font-size: 15px; color: var(--p-suave); white-space: nowrap; }
+.log__texto { margin: 0; color: var(--p-suave); font-size: 16px; line-height: 1.58; max-width: 84ch; }
 
 @media (max-width: 760px) {
   .log__fila { grid-template-columns: auto 1fr; }
@@ -1306,48 +1231,76 @@ html[data-ligero] .haz__nube--b {
 /* -------------------------------- PREGUNTAS ------------------------------ */
 
 .faq {
-  border-top: 1px solid var(--p-linea);
-  padding: clamp(70px, 11vh, 130px) 0;
+  padding: clamp(48px, 7vh, 84px) 0;
 }
-/* ===================== LA RETICULA DE DOS COLUMNAS ======================= */
 
-/* El rotulo a la izquierda y el contenido a la derecha. La usan #trabajo,
-   #descargar, #novedades y #faq, y por eso vive aqui una sola vez.
+/* ======================= EL TÍTULO ARRIBA ================================ */
 
-   Nace de una medida del 2026-08-21: cada seccion tenia su propio ancho y
-   TODAS dejaban media pantalla vacia a la derecha. El titulo ocupaba el 41 %
-   del hueco y la entrada el 45 %, pegados al margen izquierdo. Con esto el
-   texto sigue midiendo lo que tiene que medir para leerse, pero deja de estar
-   solo en una esquina.
+/* El rótulo arriba, con el título y su entrada a la izquierda y Adeo con su
+   frase a la derecha, y el contenido debajo a todo el ancho. La usan #trabajo,
+   #movil, #descargar, #novedades y #faq, y por eso vive aquí una sola vez.
+
+   Munir eligió esta forma el 2026-11-16 («título arriba»). Antes el rótulo iba
+   en una columna pegajosa a la izquierda y el contenido a la derecha: bajo el
+   título quedaba un hueco alto, y las cinco secciones tenían la misma silueta.
 
    Las secciones centradas (#que-es, #privacidad, #manifiesto) NO la usan a
-   proposito: alternar una centrada entre dos de estas es lo que le da ritmo a
-   la pagina. Si todas fueran iguales, seria una lista. */
+   propósito: alternar una centrada entre dos de estas es lo que le da ritmo a
+   la página. Si todas fueran iguales, sería una lista. */
 .bloque--dos {
   max-width: 1320px;
   margin: 0 auto;
   padding: 0 clamp(18px, 4vw, 54px);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr);
-  gap: clamp(24px, 5vw, 76px);
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 30px;
 }
 
-/* El rotulo se queda a la vista mientras se recorre el contenido de al lado. */
-.bloque__rotulo { position: sticky; top: clamp(80px, 12vh, 120px); }
-.bloque__rotulo .seccion__tit { margin-bottom: 0; max-width: none; }
-.bloque__rotulo .seccion__entrada { max-width: none; margin-top: 14px; }
+.bloque__rotulo .seccion__tit { margin-bottom: 0; }
+.bloque__rotulo .seccion__entrada { margin: 14px 0 0; }
 .bloque__cuerpo { min-width: 0; }
+.bloque__cuerpo > :first-child { margin-top: 0; }
 
-/* Por debajo de tablet no hay sitio para dos columnas: el rotulo vuelve arriba
-   y el contenido ocupa el ancho entero. */
+/* A lo ancho, Adeo a la derecha del título y mirándolo: la frase a su izquierda,
+   con la colita hacia él. En el móvil se queda encima, como estaba. */
+@media (min-width: 901px) {
+  /* «Qué hace» no es de esta retícula, pero su cabecera sí va igual, para que
+     ningún título de la página lleve a Adeo encima y otros al lado. */
+  .bloque__rotulo,
+  .explica__cabecera {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "tit adeo" "ent adeo";
+    column-gap: 48px;
+    align-items: end;
+  }
+  .bloque__rotulo .adeo-presenta,
+  .explica__cabecera .adeo-presenta { grid-area: adeo; margin: 0; flex-direction: row-reverse; align-self: center; }
+  .bloque__rotulo .adeo-presenta .adeo-dice::after,
+  .explica__cabecera .adeo-presenta .adeo-dice::after { left: auto; right: -6.5px; transform: translateY(-50%) rotate(-45deg); }
+  .bloque__rotulo .seccion__tit { grid-area: tit; max-width: 28ch; }
+  .bloque__rotulo .seccion__entrada { grid-area: ent; max-width: 62ch; }
+  .explica__tit { grid-area: tit; margin-bottom: 14px; }
+  .explica__entrada { grid-area: ent; max-width: 62ch; }
+}
 @media (max-width: 900px) {
-  .bloque--dos { grid-template-columns: 1fr; gap: 26px; }
-  .bloque__rotulo { position: static; }
+  .bloque--dos { gap: 26px; }
 }
 
 .faq__caja { max-width: 1320px; margin: 0 auto; padding: 0 clamp(18px, 4vw, 54px); }
 .faq__lista { border-top: 1px solid var(--p-linea); }
+/* A lo ancho, las preguntas en dos columnas: en una sola, la lista medía el
+   doble de alto y dejaba media pantalla vacía a la derecha. */
+@media (min-width: 901px) {
+  .faq__lista {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 56px;
+    align-items: start;
+    border-top: 0;
+  }
+  .faq__lista .pregunta:nth-child(-n+2) { border-top: 1px solid var(--p-linea); }
+}
 
 /* `<details>` nativo y no un acordeon de JavaScript: se abre sin scripts, el
    teclado lo maneja solo, el buscador del navegador encuentra dentro, y el
@@ -1424,7 +1377,6 @@ html[data-ligero] .haz__nube--b {
 /* ----------------------------------- PIE --------------------------------- */
 
 .pie {
-  border-top: 1px solid var(--p-linea);
   background: linear-gradient(180deg, var(--p-fondo), #04060a);
   padding: clamp(56px, 8vh, 88px) 0 26px;
 }
@@ -1440,22 +1392,14 @@ html[data-ligero] .haz__nube--b {
   max-width: 34ch;
   margin: 16px 0 14px;
   color: var(--p-tenue);
-  font-size: 14.5px;
+  font-size: 15.5px;
   line-height: 1.6;
 }
+/* Sin punto verde delante: un indicador de «todo va bien» no dice nada. */
 .pie__estado {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   margin: 0;
   color: var(--p-suave);
-  font-size: 13.5px;
-}
-.pie__punto {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: #4ade80;
-  box-shadow: 0 0 10px rgba(74, 222, 128, .6);
+  font-size: 15px;
 }
 
 .pie__cols {
@@ -1463,20 +1407,19 @@ html[data-ligero] .haz__nube--b {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: clamp(20px, 3vw, 48px);
 }
+/* El nombre de cada grupo, en negrita y en la letra de la página: nada de
+   mayúsculas espaciadas en letra de máquina. */
 .pie__cols h2 {
-  margin: 0 0 14px;
-  font-family: var(--p-mono);
-  font-size: 11.5px;
-  font-weight: 500;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  color: var(--p-tenue);
+  margin: 0 0 10px;
+  font-size: 15.5px;
+  font-weight: 650;
+  color: var(--p-texto);
 }
 .pie__cols a {
   display: block;
   padding: 5px 0;
   color: var(--p-suave);
-  font-size: 14.5px;
+  font-size: 15.5px;
   transition: color .14s ease;
 }
 .pie__cols a:hover { color: var(--p-texto); }
@@ -1492,8 +1435,8 @@ html[data-ligero] .haz__nube--b {
   margin: clamp(40px, 6vh, 64px) auto 0;
   padding: 20px clamp(18px, 4vw, 54px) 0;
   border-top: 1px solid var(--p-linea);
-  color: color-mix(in srgb, var(--p-tenue) 72%, transparent);
-  font-size: 12.5px;
+  color: var(--p-tenue);
+  font-size: 14px;
 }
 .pie__linea p { margin: 0; max-width: 68ch; }
 /* Esta frase es la que evita el malentendido caro: código publicado NO es open
@@ -1509,8 +1452,8 @@ html[data-ligero] .haz__nube--b {
 
 /* ================================ ADEO ====================================
    La mascota de la app presentando la portada (portada/adeo.js lo pinta y lo
-   mueve). En la primera pantalla, de pie en el resplandor; en cada sección,
-   encima del título con su frase. Sin JavaScript su <svg> está vacío, así que
+   mueve). En la primera pantalla, sentado en el borde de la ventana; en cada
+   sección, al lado del título con su frase. Sin JavaScript su <svg> está vacío, así que
    se esconde y queda la frase, que es texto de la página. */
 
 .adeo {
@@ -1540,7 +1483,7 @@ html[data-ligero] .haz__nube--b {
   box-shadow: 0 12px 30px rgba(0, 0, 0, .35);
 }
 .adeo-dice b { color: var(--p-texto); font-weight: 600; }
-/* La colita, apuntando a Adeo: abajo si está debajo, a la izquierda si al lado. */
+/* La colita, apuntando a Adeo: a la izquierda o a la derecha, según de qué lado esté. */
 .adeo-dice::after {
   content: "";
   position: absolute;
@@ -1550,36 +1493,57 @@ html[data-ligero] .haz__nube--b {
   border-right: 1px solid var(--p-linea2);
   border-bottom: 1px solid var(--p-linea2);
 }
-.adeo-dice--abajo::after { left: 50%; bottom: -6.5px; transform: translateX(-50%) rotate(45deg); }
 .adeo-dice--izq::after { left: -6.5px; top: 50%; transform: translateY(-50%) rotate(135deg); }
 
-/* En la primera pantalla entra DESPUÉS del titular, con el dial en el recorrido
-   y nunca en la opacidad, como el resto del haz. */
+.adeo-dice--der::after { right: -6.5px; top: 50%; transform: translateY(-50%) rotate(-45deg); }
+
+/* En la primera pantalla va sentado en el borde de arriba de la ventana, a la
+   derecha, con su frase al lado: presenta la app que tiene debajo. Entra
+   DESPUÉS del titular, con el dial en el recorrido y nunca en la opacidad,
+   como el resto del haz. */
 .adeo-hola {
+  position: absolute;
+  right: 18px;
+  bottom: calc(100% + 2px);
+  z-index: 5;
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 14px;
   opacity: 0;
   transform: translateY(calc(16px * var(--motion-gain)));
   transition: opacity .6s ease, transform .8s cubic-bezier(.16,1,.3,1);
 }
+.adeo-hola .adeo { flex: none; width: 128px; height: 90px; }
+.adeo-hola .adeo-dice { max-width: 400px; }
 .haz[data-entrada] .adeo-hola { opacity: 1; transform: none; transition-delay: .55s; }
 @media (scripting: none) { .adeo-hola { opacity: 1; transform: none; } }
-/* A lo ancho, a la derecha del texto, justo donde cae la luz. */
-@media (min-width: 1180px) {
-  .adeo-hola { position: absolute; right: clamp(18px, 4vw, 54px); bottom: 0; width: 300px; }
-}
-/* Más estrecho, en una fila debajo de las notas: él a la izquierda, la frase al lado. */
+/* Con la ventana más estrecha, el aviso de la izquierda se parte en dos líneas
+   para dejarle sitio, y él y su frase encogen un poco. Va por el ancho de la
+   VENTANA y no de la pantalla: en un móvil apaisado (844x390) la ventana sale
+   del alto y mide 426 px aunque la pantalla mida 844, y medido por la pantalla
+   el aviso se quedaba en 0 px, pisaba las notas de encima y «Abrirla en
+   grande» acababa detrás del bocadillo (revisión del 2026-11-16). Por debajo
+   de 660 px de ventana no cabe al lado de Adeo y se va, como en el móvil. */
 @media (max-width: 1179px) {
-  .adeo-hola { flex-direction: row-reverse; justify-content: flex-end; margin-top: 28px; }
+  .ventana { margin-top: clamp(96px, 12vh, 132px); }
+}
+@media (max-width: 700px) {
+  .ventana { margin-top: 110px; }
+}
+@container ventana (max-width: 1040px) {
+  .ventana__aviso { flex-direction: column; align-items: flex-start; gap: 2px; max-width: calc(100% - 440px); }
+  .adeo-hola .adeo { width: 96px; height: 67px; }
+  .adeo-hola .adeo-dice { font-size: 14px; max-width: 300px; }
+}
+@container ventana (max-width: 660px) {
+  .ventana__aviso { display: none; }
+  .adeo-hola { right: 4px; }
   .adeo-hola .adeo { width: 80px; height: 56px; }
-  .adeo-hola .adeo-dice { font-size: 14px; }
-  .adeo-hola .adeo-dice::after { left: -6.5px; top: 50%; bottom: auto; transform: translateY(-50%) rotate(135deg); }
+  .adeo-hola .adeo-dice { font-size: 13.5px; max-width: 250px; }
 }
 
-/* En cada sección, encima de la etiqueta. En las de dos columnas va en el
-   rótulo pegajoso, así que se queda a la vista mientras se lee la sección. */
+/* En cada sección, al lado del título (desde 901 px; más estrecho, encima),
+   con la colita apuntándole. */
 .adeo-presenta { display: flex; align-items: center; gap: 14px; margin: 0 0 22px; }
 .adeo-presenta .adeo-dice { font-size: 14px; max-width: 290px; }
 .adeo-presenta--centro { justify-content: center; margin-bottom: 26px; }

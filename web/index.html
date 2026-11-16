@@ -27,16 +27,16 @@
 <meta property="og:locale:alternate" content="en_US">
 <meta property="og:url" content="https://adeorq.com/">
 <meta property="og:title" content="Adeorq · el panel donde trabajan tus agentes">
-<meta property="og:description" content="Panel de escritorio para Windows, Linux y Mac: Claude Code, Codex, Gemini y 19 clientes mas trabajando a la vez en terminales de verdad, con tus proyectos a un clic. Gratis, sin cuenta y sin claves de API.">
-<meta property="og:image" content="https://adeorq.com/assets/og.png?v=9489ba56">
+<meta property="og:description" content="Panel de escritorio para Windows, Linux y Mac: Claude Code, Codex, Gemini y 8 clientes más trabajando a la vez en terminales de verdad, con tus proyectos a un clic. Gratis, sin cuenta y sin claves de API.">
+<meta property="og:image" content="https://adeorq.com/assets/og.png?v=43caab35">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Adeorq: all your agents, one single screen">
 
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Adeorq · el panel donde trabajan tus agentes">
-<meta name="twitter:description" content="Panel de escritorio para Windows, Linux y Mac: Claude Code, Codex, Gemini y 19 clientes mas trabajando a la vez en terminales de verdad, con tus proyectos a un clic. Gratis, sin cuenta y sin claves de API.">
-<meta name="twitter:image" content="https://adeorq.com/assets/og.png?v=9489ba56">
+<meta name="twitter:description" content="Panel de escritorio para Windows, Linux y Mac: Claude Code, Codex, Gemini y 8 clientes más trabajando a la vez en terminales de verdad, con tus proyectos a un clic. Gratis, sin cuenta y sin claves de API.">
+<meta name="twitter:image" content="https://adeorq.com/assets/og.png?v=43caab35">
 
 <!-- Datos estructurados. Describen SOLO lo que se ve en la pagina: las
      preguntas salen de la propia seccion #faq, no de una lista aparte. -->
@@ -76,7 +76,7 @@
       },
       "downloadUrl": "https://github.com/Mun1to/Adeorq-releases/releases/latest",
       "softwareHelp": "https://adeorq.com/guia",
-      "screenshot": "https://adeorq.com/assets/og.png?v=9489ba56",
+      "screenshot": "https://adeorq.com/assets/og.png?v=43caab35",
       "description": "Panel de escritorio que ejecuta clientes de agente de IA en terminales reales: Claude Code, Codex, Gemini CLI, Copilot, Cursor y otros, en una sola ventana.",
       "offers": {
         "@type": "Offer",
@@ -103,7 +103,7 @@
           "name": "¿Funciona con algo que no sea Claude Code?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Conoce 22 clientes, entre ellos Codex, Gemini CLI, Copilot, Cursor, opencode, Antigravity, Kiro, Grok y Qwen, y sabe instalar los que te falten. Y como las terminales son reales, dentro puedes ejecutar lo que quieras, incluidos tus propios scripts."
+            "text": "Conoce 11 clientes, entre ellos Codex, Gemini CLI, Copilot, Cursor, opencode, Antigravity, Kiro, Grok y Pi, y sabe instalar los que te falten. Y como las terminales son reales, dentro puedes ejecutar lo que quieras, incluidos tus propios scripts."
           }
         },
         {
@@ -302,35 +302,17 @@
       <li data-en="hero.nota2">Actualizaciones firmadas</li>
       <li data-en="hero.nota3">Usa la sesión que ya tienes</li>
     </ul>
-
-    <!-- ADEO, el de la barra de la app, de pie en el resplandor (portada/adeo.js
-         lo pinta y lo mueve). Entra después del titular y no pesa: es un <svg>
-         vacío hasta que carga el script. Su frase es texto de la página. -->
-    <div class="adeo-hola">
-      <p class="adeo-dice adeo-dice--abajo" data-en="adeo.hola"
-         data-celebra="¡Allá va! Instálalo y nos vemos en tu barra." data-en-attr="data-celebra:adeo.celebra">Hola,
-         soy <b>Adeo</b>. Vivo en tu Adeorq y te aviso cuando un agente te necesita.</p>
-      <svg class="adeo" data-adeo="quieta" width="160" height="112" aria-hidden="true"></svg>
-    </div>
   </div>
 
-  <!-- La ventana. `loading="lazy"` no: es lo primero que se ve.
+  <!-- La ventana. `loading="lazy"` no: es lo primero que se ve, y por eso sube
+       a la primera pantalla con el texto centrado y corto encima (Munir eligió
+       «primero la demo» el 2026-11-16).
 
-       La luz vive AQUI DENTRO, no suelta en la sección: colocada con
-       `bottom: 100%` nace exactamente en el borde superior de la ventana, mida
-       lo que mida la pantalla. Suelta arriba se quedaba a media altura y dejaba
-       un hueco negro entre el rayo y la ventana, que es justo lo que rompía el
-       efecto: la luz tiene que salir del producto. -->
+       Sin luz encima (Munir, 2026-11-16: «quita el glow de la derecha de el
+       home de inmediato queda muy mal»). Hubo un resplandor que caía del botón
+       «Descargar» con unas motas dentro; antes, cinco versiones en WebGL y una
+       imagen con filamento y humo. -->
   <div class="ventana" id="ventana">
-    <!-- LA LUZ. Solo el GRADIENTE (Munir, 2026-08-20): fuera el filamento y
-         fuera el humo. Queda el resplandor que cae del botón «Descargar» y unas
-         motas dentro de él, y no hay nada más. Es CSS puro y un lienzo pequeño,
-         así que escala a cualquier pantalla sin recortarse, no descarga 216 KB
-         de WebP y no gasta GPU. -->
-    <div class="ventana__luz" aria-hidden="true">
-      <span class="haz__glow"></span>
-      <canvas class="haz__motas" id="haz-motas" aria-hidden="true"></canvas>
-    </div>
     <div class="ventana__caja">
       <!-- `data-src` y no `src`: la maqueta son 845 KB en 21 peticiones y los
            pide OTRO documento, asi que no salen en las metricas de esta pagina.
@@ -342,11 +324,21 @@
       <noscript><iframe title="Adeorq en marcha" src="/demo/?desnuda=1"
               data-en-attr="title:hero.demo.corto|src:hero.demo.src"></iframe></noscript>
     </div>
+    <!-- ADEO, el de la barra de la app (portada/adeo.js lo pinta y lo mueve),
+         sentado en el borde de arriba de la ventana, a la derecha: presenta la
+         app que tiene debajo. Entra después del titular y no pesa: es un <svg>
+         vacío hasta que carga el script. Su frase es texto de la página. -->
+    <div class="adeo-hola">
+      <p class="adeo-dice adeo-dice--der" data-en="adeo.hola"
+         data-celebra="¡Allá va! Instálalo y nos vemos en tu barra." data-en-attr="data-celebra:adeo.celebra">Hola,
+         soy <b>Adeo</b>. Vivo en tu Adeorq y te aviso cuando un agente te necesita.</p>
+      <svg class="adeo" data-adeo="quieta" width="128" height="90" aria-hidden="true"></svg>
+    </div>
     <!-- El aviso va ENCIMA de la ventana (2026-10-13): debajo, pequeño y en
          gris, casi nadie se enteraba de que la demo se toca. Y a su lado, la
          forma de verla grande: /demo/ abierta suelta ocupa toda la pantalla. -->
     <p class="ventana__aviso">
-      <span class="ventana__vivo" data-en="hero.pie">Esto no es una captura: pruébalo aquí mismo.</span>
+      <span data-en="hero.pie">Esto no es una captura: pruébalo aquí mismo.</span>
       <a class="ventana__grande" href="/demo/" target="_blank" rel="noopener"
          data-en="hero.grande" data-en-attr="href:hero.grande.href">Abrirla en grande</a>
     </p>
@@ -354,9 +346,9 @@
 </section>
 
 <!-- CLIENTES:INICIO · generado por scripts/extraer-clientes.mjs, no editar a mano.
-     22 clientes en src/lib/providers.ts, 10 con dibujo propio.
-     El sprite va aquí dentro y no en un fichero aparte porque Codex, Copilot
-     y Qwen se recortan con una <mask>, y una máscara solo se resuelve contra
+     11 clientes en src/lib/providers.ts, 9 con dibujo propio.
+     El sprite va aquí dentro y no en un fichero aparte porque Codex y
+     Copilot se recortan con una <mask>, y una máscara solo se resuelve contra
      el documento que la pinta. -->
 <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true"
      style="position:absolute;width:0;height:0;overflow:hidden">
@@ -388,35 +380,6 @@
       d="M12 1.6c0 5.7 4.7 10.4 10.4 10.4C16.7 12 12 16.7 12 22.4 12 16.7 7.3 12 1.6 12 7.3 12 12 7.3 12 1.6Z"
       fill="currentColor"
     />
-  </symbol>
-  <symbol id="m-qwen" viewBox="0 0 24 24">
-    <mask id="pm-qwen" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
-        <rect width="24" height="24" fill="#fff" />
-        <path
-          d="M12 2.6 20.1 16.6 3.9 16.6Z"
-          fill="none"
-          stroke="#000"
-          stroke-width="7.4"
-          stroke-linejoin="miter"
-        />
-      </mask>
-      <path
-        d="M12 21.4 3.9 7.4h16.2Z"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="4.6"
-        stroke-linejoin="miter"
-        mask="url(#pm-qwen)"
-      />
-      <path
-        d="M12 2.6 20.1 16.6 3.9 16.6Z"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="4.6"
-        stroke-linejoin="miter"
-      />
-      
-      <path d="M12 15.4 9.5 10.9h5Z" fill="currentColor" />
   </symbol>
   <symbol id="m-copilot" viewBox="0 0 24 24">
     <mask id="pm-copilot" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
@@ -478,7 +441,7 @@
 <section class="cinta" id="cinta" aria-labelledby="cinta-tit">
   <div class="cinta__caja">
     <p class="cinta__rotulo" id="cinta-tit" data-en="cinta.rotulo">
-      Los <b>22 clientes</b><br>que sabe abrir
+      Los <b>11 clientes</b><br>que sabe abrir
     </p>
     <div class="cinta__ventana">
       <div class="cinta__pista">
@@ -486,49 +449,27 @@
         <li class="cli" style="--cli: #d97757"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-claude"/></svg><span>Claude Code</span></li>
         <li class="cli" style="--cli: #9aa4b2"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-codex"/></svg><span>Codex</span></li>
         <li class="cli" style="--cli: #6ea8fe"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-gemini"/></svg><span>Gemini CLI</span></li>
-        <li class="cli" style="--cli: #a78bfa"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-qwen"/></svg><span>Qwen Code</span></li>
         <li class="cli" style="--cli: #8b949e"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-copilot"/></svg><span>GitHub Copilot</span></li>
         <li class="cli" style="--cli: #e6e8ec"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-grok"/></svg><span>Grok</span></li>
         <li class="cli" style="--cli: #f5c542"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-opencode"/></svg><span>opencode</span></li>
         <li class="cli" style="--cli: #7aa6ff"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-agy"/></svg><span>Antigravity</span></li>
         <li class="cli" style="--cli: #c9d1d9"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-cursor"/></svg><span>Cursor</span></li>
         <li class="cli" style="--cli: #a855f7"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-kiro"/></svg><span>Kiro CLI</span></li>
-        <li class="cli" style="--cli: #ff7ac6"><span class="cli__sigla" aria-hidden="true">Cr</span><span>Crush</span></li>
-        <li class="cli" style="--cli: #ff9f6e"><span class="cli__sigla" aria-hidden="true">Am</span><span>Amp</span></li>
         <li class="cli" style="--cli: #2dd4bf"><span class="cli__sigla" aria-hidden="true">Pi</span><span>Pi</span></li>
         <li class="cli" style="--cli: #0a7aff"><span class="cli__sigla" aria-hidden="true">Kc</span><span>Kimi Code</span></li>
-        <li class="cli" style="--cli: #38b6d3"><span class="cli__sigla" aria-hidden="true">Cw</span><span>CodeWhale</span></li>
-        <li class="cli" style="--cli: #9dc93c"><span class="cli__sigla" aria-hidden="true">Go</span><span>Goose</span></li>
-        <li class="cli" style="--cli: #c2410c"><span class="cli__sigla" aria-hidden="true">Dr</span><span>Droid</span></li>
-        <li class="cli" style="--cli: #46bd7e"><span class="cli__sigla" aria-hidden="true">Ju</span><span>Jules</span></li>
-        <li class="cli" style="--cli: #00bfa5"><span class="cli__sigla" aria-hidden="true">Au</span><span>Auggie</span></li>
-        <li class="cli" style="--cli: #f06292"><span class="cli__sigla" aria-hidden="true">Co</span><span>Codebuff</span></li>
-        <li class="cli" style="--cli: #ff5543"><span class="cli__sigla" aria-hidden="true">Cy</span><span>Cody</span></li>
-        <li class="cli" style="--cli: #8d6e63"><span class="cli__sigla" aria-hidden="true">Ai</span><span>Aider</span></li>
         </ul>
         <ul class="cinta__grupo" aria-hidden="true" data-copia>
         <li class="cli" style="--cli: #d97757"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-claude"/></svg><span>Claude Code</span></li>
         <li class="cli" style="--cli: #9aa4b2"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-codex"/></svg><span>Codex</span></li>
         <li class="cli" style="--cli: #6ea8fe"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-gemini"/></svg><span>Gemini CLI</span></li>
-        <li class="cli" style="--cli: #a78bfa"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-qwen"/></svg><span>Qwen Code</span></li>
         <li class="cli" style="--cli: #8b949e"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-copilot"/></svg><span>GitHub Copilot</span></li>
         <li class="cli" style="--cli: #e6e8ec"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-grok"/></svg><span>Grok</span></li>
         <li class="cli" style="--cli: #f5c542"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-opencode"/></svg><span>opencode</span></li>
         <li class="cli" style="--cli: #7aa6ff"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-agy"/></svg><span>Antigravity</span></li>
         <li class="cli" style="--cli: #c9d1d9"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-cursor"/></svg><span>Cursor</span></li>
         <li class="cli" style="--cli: #a855f7"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-kiro"/></svg><span>Kiro CLI</span></li>
-        <li class="cli" style="--cli: #ff7ac6"><span class="cli__sigla" aria-hidden="true">Cr</span><span>Crush</span></li>
-        <li class="cli" style="--cli: #ff9f6e"><span class="cli__sigla" aria-hidden="true">Am</span><span>Amp</span></li>
         <li class="cli" style="--cli: #2dd4bf"><span class="cli__sigla" aria-hidden="true">Pi</span><span>Pi</span></li>
         <li class="cli" style="--cli: #0a7aff"><span class="cli__sigla" aria-hidden="true">Kc</span><span>Kimi Code</span></li>
-        <li class="cli" style="--cli: #38b6d3"><span class="cli__sigla" aria-hidden="true">Cw</span><span>CodeWhale</span></li>
-        <li class="cli" style="--cli: #9dc93c"><span class="cli__sigla" aria-hidden="true">Go</span><span>Goose</span></li>
-        <li class="cli" style="--cli: #c2410c"><span class="cli__sigla" aria-hidden="true">Dr</span><span>Droid</span></li>
-        <li class="cli" style="--cli: #46bd7e"><span class="cli__sigla" aria-hidden="true">Ju</span><span>Jules</span></li>
-        <li class="cli" style="--cli: #00bfa5"><span class="cli__sigla" aria-hidden="true">Au</span><span>Auggie</span></li>
-        <li class="cli" style="--cli: #f06292"><span class="cli__sigla" aria-hidden="true">Co</span><span>Codebuff</span></li>
-        <li class="cli" style="--cli: #ff5543"><span class="cli__sigla" aria-hidden="true">Cy</span><span>Cody</span></li>
-        <li class="cli" style="--cli: #8d6e63"><span class="cli__sigla" aria-hidden="true">Ai</span><span>Aider</span></li>
         </ul>
       </div>
     </div>
@@ -609,7 +550,6 @@
         <svg class="adeo" data-adeo="quieta" width="86" height="60" aria-hidden="true"></svg>
         <p class="adeo-dice adeo-dice--izq" data-en="adeo.queEs">Esto es lo que hay dentro. Elige una pantalla y te la abro arriba, en la demo.</p>
       </div>
-      <p class="etiqueta" data-en="queEs.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Qué hace</p>
       <h2 class="explica__tit" data-en="queEs.tit"><b>Siete pantallas,</b> <span>una ventana</span></h2>
       <p class="explica__entrada" data-en="queEs.entrada">
         Panel, Cabina, Chat, Decisiones, Lienzo, Perfil y Ajustes, y en el Perfil tus cuentas,
@@ -724,26 +664,25 @@
       <svg class="adeo" data-adeo="trabaja" width="86" height="60" aria-hidden="true"></svg>
       <p class="adeo-dice adeo-dice--izq" data-en="adeo.trabajo">Mientras tus agentes trabajan, yo tecleo con ellos. Cuando uno acaba, te aviso.</p>
     </div>
-    <p class="etiqueta" data-en="trabajo.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Cómo trabaja</p>
     <h2 class="seccion__tit" data-aparece data-en="trabajo.tit">Tres pasos y ya están trabajando</h2>
     </div>
 
     <div class="bloque__cuerpo">
     <ol class="pasos__lista">
       <li class="paso">
-        <span class="paso__num" aria-hidden="true">01</span>
+        <span class="paso__num" aria-hidden="true">1</span>
         <h3 class="paso__tit" data-en="trabajo.p1.tit">Elige el proyecto</h3>
         <p data-en="trabajo.p1.p">Tus carpetas salen en la lista. Un clic y se abre una terminal dentro,
            con tu PATH y tu perfil.</p>
       </li>
       <li class="paso">
-        <span class="paso__num" aria-hidden="true">02</span>
+        <span class="paso__num" aria-hidden="true">2</span>
         <h3 class="paso__tit" data-en="trabajo.p2.tit">Elige el cliente</h3>
         <p data-en="trabajo.p2.p">Claude Code, Codex, Gemini o el que uses. Entra con la sesión que ese
            CLI ya tiene en tu equipo: ni te pide una clave ni te crea otra cuenta.</p>
       </li>
       <li class="paso">
-        <span class="paso__num" aria-hidden="true">03</span>
+        <span class="paso__num" aria-hidden="true">3</span>
         <h3 class="paso__tit" data-en="trabajo.p3.tit">Suelta el encargo</h3>
         <p data-en="trabajo.p3.p">Escríbelo o díctalo. Si es grande, Adeo lo parte por archivos y
            lo reparte entre hasta seis terminales, cada una con lo suyo.</p>
@@ -779,7 +718,6 @@
       <svg class="adeo" data-adeo="escucha" width="86" height="60" aria-hidden="true"></svg>
       <p class="adeo-dice adeo-dice--izq" data-en="adeo.movil">¿Sales de casa? Me vengo contigo en el móvil.</p>
     </div>
-    <p class="etiqueta" data-en="movil.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>En el móvil</p>
     <h2 class="seccion__tit" data-aparece data-en="movil.tit">Tu cabina, también en el bolsillo</h2>
     <p class="seccion__entrada" data-en="movil.entrada">
       Desde el móvil, una tablet u otro ordenador, estés donde estés: ves quién te
@@ -791,19 +729,19 @@
     <div class="bloque__cuerpo">
     <ol class="pasos__lista">
       <li class="paso">
-        <span class="paso__num" aria-hidden="true">01</span>
+        <span class="paso__num" aria-hidden="true">1</span>
         <h3 class="paso__tit" data-en="movil.p1.tit">Instala Tailscale</h3>
         <p data-en="movil.p1.p">En el PC y en el móvil, con la misma cuenta. Es una red privada entre
            tus aparatos, gratis para uso personal.</p>
       </li>
       <li class="paso">
-        <span class="paso__num" aria-hidden="true">02</span>
+        <span class="paso__num" aria-hidden="true">2</span>
         <h3 class="paso__tit" data-en="movil.p2.tit">Enciéndelo en Adeorq</h3>
         <p data-en="movil.p2.p">En Ajustes › Móvil, activa el interruptor. Tres filas dicen cómo
            están este PC, Tailscale y tu móvil, y la que falla te dice qué hacer.</p>
       </li>
       <li class="paso">
-        <span class="paso__num" aria-hidden="true">03</span>
+        <span class="paso__num" aria-hidden="true">3</span>
         <h3 class="paso__tit" data-en="movil.p3.tit">Empareja el móvil</h3>
         <p data-en="movil.p3.p">Escanea el QR y escribe el código de seis cifras. Abajo del menú, en
            Ajustes, eliges tus avisos, lo pones a tu gusto y lo instalas como una app.</p>
@@ -876,7 +814,6 @@
          data-celebra="¡Allá va! Instálalo y nos vemos en tu barra." data-en-attr="data-celebra:adeo.celebra">Dos minutos
          y estoy en tu barra, esperando a tus agentes.</p>
     </div>
-    <p class="etiqueta" data-en="descarga.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Descarga</p>
     <h2 class="seccion__tit" data-aparece data-en="descarga.tit">Móntate la cabina en dos minutos</h2>
     <p class="seccion__entrada" data-en="descarga.entrada">
       Para Windows y Linux de 64 bits, y para Mac con Apple Silicon. Necesitas
@@ -935,7 +872,6 @@
       <svg class="adeo" data-adeo="baila" width="86" height="60" aria-hidden="true"></svg>
       <p class="adeo-dice adeo-dice--izq" data-en="adeo.novedades">Me mejoran casi todos los días. Por eso bailo.</p>
     </div>
-    <p class="etiqueta" data-en="novedades.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Novedades</p>
     <h2 class="seccion__tit" data-aparece data-en="novedades.tit">Se mueve casi todos los días</h2>
     <p class="seccion__entrada" data-en="novedades.entrada">
       <b data-log-cuenta>155</b> versiones publicadas desde que arrancó. No es una
@@ -945,7 +881,7 @@
 
     <div class="bloque__cuerpo">
     <ol class="log" data-log></ol>
-    <a class="btn btn--fantasma" href="https://github.com/Mun1to/Adeorq-releases/releases" rel="noopener" data-en="novedades.todas">
+    <a class="btn btn--fantasma btn--grande" href="https://github.com/Mun1to/Adeorq-releases/releases" rel="noopener" data-en="novedades.todas">
       Ver todas las versiones
     </a>
     </div>
@@ -963,7 +899,6 @@
         <svg class="adeo" data-adeo="duda" width="86" height="60" aria-hidden="true"></svg>
         <p class="adeo-dice adeo-dice--izq" data-en="adeo.faq">¿Dudas? Estas son las que más me hacen.</p>
       </div>
-      <p class="etiqueta" data-en="faq.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Preguntas</p>
     <h2 class="seccion__tit" data-aparece data-en="faq.tit">Lo que suelen preguntar</h2>
     </div>
 
@@ -979,8 +914,8 @@
 
       <details class="pregunta" name="faq">
         <summary><span data-en="faq.q2">¿Funciona con algo que no sea Claude Code?</span><svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <p data-en="faq.r2">Conoce 22 clientes, entre ellos Codex, Gemini CLI, Copilot, Cursor,
-           opencode, Antigravity, Kiro, Grok y Qwen, y sabe instalar los que te
+        <p data-en="faq.r2">Conoce 11 clientes, entre ellos Codex, Gemini CLI, Copilot, Cursor,
+           opencode, Antigravity, Kiro, Grok y Pi, y sabe instalar los que te
            falten. Y como las terminales son reales, dentro puedes ejecutar lo que
            quieras, incluidos tus propios scripts.</p>
       </details>
@@ -1058,7 +993,7 @@
         El panel donde trabajan todos tus agentes. En Windows, Linux y Mac, y
         contigo en el móvil.
       </p>
-      <p class="pie__estado" data-en="pie.estado"><span class="pie__punto" aria-hidden="true"></span>Gratis, y en marcha.</p>
+      <p class="pie__estado" data-en="pie.estado">Gratis, y en marcha.</p>
     </div>
 
     <nav class="pie__cols" aria-label="Pie" data-en-attr="aria-label:pie.aria">

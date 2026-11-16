@@ -239,9 +239,11 @@ export default function CrewBoard({
               <button
                 className="mini crew-cerrar"
                 data-armado={cerrando === team.id || undefined}
-                data-tip={t("Cerrar las {n} terminales de esta cuadrilla", {
-                  n: puestos.length,
-                })}
+                data-tip={
+                  puestos.length === 1
+                    ? t("Cerrar la terminal de esta cuadrilla")
+                    : t("Cerrar las {n} terminales de esta cuadrilla", { n: puestos.length })
+                }
                 onClick={(e) => {
                   e.stopPropagation();
                   if (cerrando === team.id) {

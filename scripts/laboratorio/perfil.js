@@ -92,11 +92,11 @@ async (page) => {
   pasos.resumenes = await page.$$eval(".perfil-seccion", (s) => s.map((x) => x.innerText.replace(/\s+/g, " ").trim()));
   const resumen = (n) => pasos.resumenes.find((x) => x.startsWith(n)) ?? "";
   debe(pasos.resumenes.length === 4, `cuatro resúmenes (${pasos.resumenes.length})`);
-  debe(/^Cuentas › 2 conectadas/.test(resumen("Cuentas")) && /81 %/.test(resumen("Cuentas")), `Cuentas: las conectadas y su límite (${resumen("Cuentas")})`);
-  debe(/^Agenda › 2 pendientes hoy 1 hecho Cerrar la pestaña Perfil Publicar la 0.9.219$/.test(resumen("Agenda")), `Agenda: lo de hoy (${resumen("Agenda")})`);
+  debe(/^Cuentas 2 conectadas/.test(resumen("Cuentas")) && /81 %/.test(resumen("Cuentas")), `Cuentas: las conectadas y su límite (${resumen("Cuentas")})`);
+  debe(/^Agenda 2 pendientes hoy 1 hecho Cerrar la pestaña Perfil Publicar la 0.9.219$/.test(resumen("Agenda")), `Agenda: lo de hoy (${resumen("Agenda")})`);
   // «en Notas»: el nombre de la bóveda va con su preposición desde el 2026-10-18.
-  debe(/^Memoria › 412 notas en Notas$/.test(resumen("Memoria")), `Memoria: tus notas (${resumen("Memoria")})`);
-  debe(/^Comandos › 5 skills tuyas \/fin/.test(resumen("Comandos")), `Comandos: los tuyos (${resumen("Comandos")})`);
+  debe(/^Memoria 412 notas en Notas$/.test(resumen("Memoria")), `Memoria: tus notas (${resumen("Memoria")})`);
+  debe(/^Comandos 5 skills tuyas \/fin/.test(resumen("Comandos")), `Comandos: los tuyos (${resumen("Comandos")})`);
   // La 4 (Munir, 2026-10-17): tu nombre y tus secciones en la misma fila, y lo demás debajo.
   pasos.orden4 = await page.evaluate(() => {
     const caja = (s) => document.querySelector(s).getBoundingClientRect();
@@ -155,7 +155,7 @@ async (page) => {
   await page.locator(".panel.agenda").first().waitFor({ timeout: 10000 });
   pasos.volver = await page.$eval(".perfil-volver", (x) => x.innerText.replace(/\s+/g, " ").trim());
   pasos.enAgenda = await encendida();
-  debe(pasos.volver === "‹ Perfil Agenda" && pasos.enAgenda === "perfil", `en la Agenda, la vuelta encima y el Perfil encendido (${pasos.volver}; ${pasos.enAgenda})`);
+  debe(pasos.volver === "Perfil Agenda" && pasos.enAgenda === "perfil", `en la Agenda, la vuelta encima y el Perfil encendido (${pasos.volver}; ${pasos.enAgenda})`);
   pasos.orden = await page.evaluate(() => {
     const v = document.querySelector(".perfil-volver");
     const a = document.querySelector(".panel.agenda");
@@ -177,7 +177,7 @@ async (page) => {
   await page.keyboard.press("Enter");
   await page.locator(".perfil-volver").waitFor({ timeout: 10000 });
   pasos.memoria = await page.$eval(".perfil-volver", (x) => x.innerText.replace(/\s+/g, " ").trim());
-  debe(pasos.memoria === "‹ Perfil Memoria" && (await encendida()) === "perfil", `Ctrl+K abre la Memoria dentro del Perfil (${pasos.memoria})`);
+  debe(pasos.memoria === "Perfil Memoria" && (await encendida()) === "perfil", `Ctrl+K abre la Memoria dentro del Perfil (${pasos.memoria})`);
 
   // 5. Con la Memoria apagada, ni su resumen ni la paleta.
   await page.goto(`${URL_APP}?vez=2&partes=memoria`);

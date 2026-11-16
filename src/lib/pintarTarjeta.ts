@@ -15,7 +15,7 @@
 // sale de la app no cambia con el tema de quien la mira.
 
 /** La letra de la app (`01-base.css`). */
-const LETRA = '"Segoe UI Variable", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif';
+const LETRA = '"Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif';
 
 /** La proa de Adeorq (`src/assets/adeorq.svg`), en su caja de 1024. */
 const PROA = "M 236 112 L 788 112 L 1016 756 L 944 848 L 80 848 L 8 756 Z M 512 240 L 712 730 Q 512 572 312 730 Z";

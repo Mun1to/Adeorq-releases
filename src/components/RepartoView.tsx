@@ -299,9 +299,11 @@ export default function RepartoView({ cuentas, sugerido, inicial, onAbrirLote, o
         <header className="wiz-head">
           <h3 className="modal-title">{t("Repartir varias tareas")}</h3>
           <span className="rep-cuenta">
-            {crudas.length
-              ? t("{n} tareas", { n: crudas.length })
-              : t("ninguna todavía")}
+            {crudas.length === 1
+              ? t("1 tarea")
+              : crudas.length
+                ? t("{n} tareas", { n: crudas.length })
+                : t("ninguna todavía")}
           </span>
         </header>
 

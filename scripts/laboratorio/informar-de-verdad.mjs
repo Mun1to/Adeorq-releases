@@ -132,8 +132,8 @@ const MEDIR = (sel) => `(() => {
 })()`;
 
 const ESPERADO = {
-  es: { linea: "Adeo es una IA y puede equivocarse.", modelo: "Este modelo es una IA y puede equivocarse.", tituloModelo: "un modelo del lienzo", boton: "Informar de un problema", correo: "o por correo", asunto: /^Informe de un problema con /, abre: "Abrir su web", baja: "Descargar" },
-  en: { linea: "Adeo is an AI and can make mistakes.", modelo: "This model is an AI and can make mistakes.", tituloModelo: "a canvas model", boton: "Report an issue", correo: "or by email", asunto: /^Report an issue with /, abre: "Open its site", baja: "Download" },
+  es: { linea: "Adeo es una IA y puede equivocarse.", modelo: "Este modelo es una IA y puede equivocarse.", tituloModelo: "un modelo del lienzo", boton: "Informar de un problema", correo: "o por correo", pulsa: "por correo", asunto: /^Informe de un problema con /, abre: "Abrir su web", baja: "Descargar" },
+  en: { linea: "Adeo is an AI and can make mistakes.", modelo: "This model is an AI and can make mistakes.", tituloModelo: "a canvas model", boton: "Report an issue", correo: "or by email", pulsa: "by email", asunto: /^Report an issue with /, abre: "Open its site", baja: "Download" },
 };
 const CORREO = "munitodev@gmail.com";
 
@@ -230,7 +230,7 @@ async function pasada({ idioma, tienda, n }) {
       dice(!!u0 && !u0.includes(MARCA), "y no lleva nada de ninguna conversación");
       // El correo, para quien no tiene cuenta de GitHub: en la línea, con el Chat vacío.
       const bCorreo = await v.js(MEDIR(".chat-caja-zona .inf-aviso .inf-correo"));
-      dice(!!bCorreo && bCorreo.visible && bCorreo.dentro && bCorreo.h >= 18 && bCorreo.texto === esp.correo, `«${esp.correo}» se ve de verdad junto al botón, con el Chat vacío`, JSON.stringify(bCorreo));
+      dice(!!bCorreo && bCorreo.visible && bCorreo.dentro && bCorreo.h >= 18 && bCorreo.texto === esp.pulsa, `«${esp.pulsa}» (el botón; la «o» va fuera) se ve de verdad junto al botón, con el Chat vacío`, JSON.stringify(bCorreo));
       const ayuda = await v.js(`document.querySelector(".chat-caja-zona .inf-correo")?.getAttribute("data-tip") ?? ""`);
       dice(ayuda.includes(CORREO), "y su ayuda dice la dirección (sin programa de correo, el clic no abre nada)", ayuda);
       await correoDe(".chat-caja-zona .inf-aviso .inf-correo", "Chat vacío");

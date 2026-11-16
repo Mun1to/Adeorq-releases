@@ -15,7 +15,7 @@
   gap: 2px 8px;
   margin: 0;
   color: var(--text);
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.45;
   text-align: center;
 }
@@ -29,7 +29,7 @@
   background: none;
   color: var(--accent);
   font: inherit;
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.45;
   white-space: nowrap;
   cursor: pointer;
@@ -48,8 +48,8 @@
 }
 
 /* «o por correo», para quien no tiene cuenta de GitHub: va solo en la línea de
-   debajo de la caja, justo después del botón, y sin el relleno de la izquierda
-   para que la «o» caiga a la misma distancia que el botón de la frase. */
+   debajo de la caja, justo después del botón. La «o» es texto y el botón es
+   «por correo», sin el relleno de la izquierda para que quede a un espacio. */
 .inf-aviso .inf-correo { padding-left: 0; }
 
 /* Bajo la caja de Adeo de la primera pantalla (`PanelPedir.tsx`): va suelta sobre el
@@ -110,5 +110,5 @@
   flex: none;
   padding: 0 10px 8px;
   background: var(--row);
-  font-size: 12px;
+  font-size: 13px;
 }

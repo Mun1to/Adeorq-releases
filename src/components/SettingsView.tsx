@@ -81,14 +81,14 @@ import TerminalesAparte from "./TerminalesAparte";
 import AjusteBuscador from "./AjusteBuscador";
 import AjusteCabeceraTerminal from "./AjusteCabeceraTerminal";
 import AjusteCompactar from "./AjusteCompactar";
-import { CheckIcon, ChevronIcon, CommandIcon, RobotIcon, SearchIcon, TerminalIcon } from "./Icons";
+import { AvisoIcon, CheckIcon, ChevronIcon, CommandIcon, PlusIcon, RobotIcon, SearchIcon, TerminalIcon } from "./Icons";
 import type { Atajos } from "../lib/atajos";
 
 /** La documentación pública. Vive en adeorq.com, el sitio del proyecto desde
     que el dominio se compró. Apunta a la guía directamente, no a la portada:
     quien pulsa "Ayuda" busca la guía.
     Exportada porque OpenRouterCard también enlaza aquí, a la sección de
-    Cuentas, para el aparte de vibecoding con Aider. */
+    Cuentas, para el aparte de vibecoding con opencode. */
 export const DOCS_URL = "https://adeorq.com/guia";
 
 /** Donde están los instaladores. El botón «Descargas y versiones» apuntaba a la
@@ -1029,12 +1029,16 @@ export default function SettingsView({
                       como un marco azul, la animación no funciona»). */}
                   <span className="setting-line" data-on={ahorrando || undefined}>
                     {ahorrando
-                      ? t("Ahora mismo está puesto: {n} terminales abiertas.", {
-                          n: String(abiertas),
-                        })
-                      : t("Ahora mismo NO está puesto: {n} terminales abiertas.", {
-                          n: String(abiertas),
-                        })}
+                      ? abiertas === 1
+                        ? t("Ahora mismo está puesto: 1 terminal abierta.")
+                        : t("Ahora mismo está puesto: {n} terminales abiertas.", {
+                            n: String(abiertas),
+                          })
+                      : abiertas === 1
+                        ? t("Ahora mismo NO está puesto: 1 terminal abierta.")
+                        : t("Ahora mismo NO está puesto: {n} terminales abiertas.", {
+                            n: String(abiertas),
+                          })}
                   </span>
                 </div>
                 {/* Y la forma de los paneles, aquí porque es la misma familia
@@ -1130,7 +1134,7 @@ export default function SettingsView({
                     </button>
                   )}
                 </div>
-                {fondoError && <p className="setting-line setting-bad">⚠ {fondoError}</p>}
+                {fondoError && <p className="setting-line setting-bad"><AvisoIcon />{fondoError}</p>}
                 {fondo && (
                   <>
                     {/* El encuadre va lo PRIMERO tras elegir el archivo, y no al
@@ -1334,7 +1338,7 @@ export default function SettingsView({
                   />
                   {boot === null && <span className="setting-value">…</span>}
                 </label>
-                {bootError && <p className="setting-line setting-bad">⚠ {bootError}</p>}
+                {bootError && <p className="setting-line setting-bad"><AvisoIcon />{bootError}</p>}
                 <p className="card-hint">
                   {t(
                     "Al abrir Adeorq vuelven las mismas terminales que tenías, en sus carpetas, y cada Claude retoma SU conversación. Con el ajuste automático, una terminal estrecha encoge la letra hasta que la línea vuelve a caber. Cada sesión es un programa aparte: unos 200 MB cada una.",
@@ -1574,8 +1578,9 @@ export default function SettingsView({
                   </Espera>
                 ) : modelos.length === 0 ? (
                   <p className="setting-line setting-bad">
+                    <AvisoIcon />
                     {t(
-                      "⚠ Ollama no responde en 127.0.0.1:11434. Ábrelo y vuelve a esta pantalla; hasta entonces la Agenda funciona igual, solo que sin esa línea.",
+                      "Ollama no responde en 127.0.0.1:11434. Ábrelo y vuelve a esta pantalla; hasta entonces la Agenda funciona igual, solo que sin esa línea.",
                     )}
                   </p>
                 ) : (
@@ -1635,7 +1640,7 @@ export default function SettingsView({
                   )}
                 </p>
                 {discord.on && discordError && (
-                  <p className="setting-line setting-bad">⚠ {discordError}</p>
+                  <p className="setting-line setting-bad"><AvisoIcon />{discordError}</p>
                 )}
                 {discord.on && !discordError && discord.clientId && (
                   <p className="setting-line setting-good">
@@ -1869,7 +1874,7 @@ export default function SettingsView({
                       .catch((e) => setErrorRaiz(String(e)));
                   }}
                 >
-                  {t("＋ Añadir un proyecto")}
+                  <PlusIcon size={14} /> {t("Añadir un proyecto")}
                 </button>
               </section>
 

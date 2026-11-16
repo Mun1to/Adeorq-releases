@@ -34,7 +34,7 @@ import { encaja } from "../lib/buscar";
 import ProjectAvatar from "./ProjectAvatar";
 import ProviderMark, { tieneMarca } from "./ProviderMark";
 import { propsDeVelo } from "../lib/velo";
-import { ChevronIcon, FolderIcon, RefreshIcon, UnlinkIcon } from "./Icons";
+import { ChevronIcon, FolderIcon, PlusIcon, RefreshIcon, UnlinkIcon } from "./Icons";
 import { CAJAS, cabeEnCaja, cajasDisponibles, nombreDeCaja, type Caja } from "../lib/cajas";
 
 /** Everything needed to open one terminal, once both steps are answered. */
@@ -446,12 +446,16 @@ export default function NewSession({
               <>
                 <div className="ret-cuenta">
                   <span>
-                    {marcadas.length
-                      ? t("{n} elegidas de {total}", {
-                          n: marcadas.length,
-                          total: visibles.length,
-                        })
-                      : t("{n} sesiones", { n: visibles.length })}
+                    {marcadas.length === 1
+                      ? t("1 elegida de {total}", { total: visibles.length })
+                      : marcadas.length
+                        ? t("{n} elegidas de {total}", {
+                            n: marcadas.length,
+                            total: visibles.length,
+                          })
+                        : visibles.length === 1
+                          ? t("1 sesión")
+                          : t("{n} sesiones", { n: visibles.length })}
                     {/* Cuántas de esas ya las tienes puestas: dicho aquí, el
                         número de arriba deja de parecer que sobran.
 
@@ -654,7 +658,7 @@ export default function NewSession({
                   <FolderIcon size={14} /> {t("Otra carpeta del disco…")}
                 </button>
                 <button className="mini wiz-alt" onClick={() => setCreating(true)}>
-                  {t("＋ Proyecto nuevo…")}
+                  <PlusIcon size={14} /> {t("Proyecto nuevo…")}
                 </button>
                 {/* Sin proyecto: una terminal para lo de ahora mismo, que no es
                     de ningún proyecto y no tiene por qué inventarse uno. Nace en

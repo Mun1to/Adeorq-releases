@@ -193,9 +193,8 @@ Fedora 36+, Arch).
 ## It runs on YOUR account
 
 Adeorq neither sells nor bundles access to any model. It **uses the subscriptions you already
-pay for** and the CLIs you already have installed, twenty-two of them today: Claude Code,
-Codex, Gemini CLI, Antigravity, Copilot, Cursor, Qwen, Grok, Kimi Code, Kiro, pi, opencode,
-Crush, Amp, Aider, Goose, Droid, Jules, Auggie, Codebuff, Cody and CodeWhale. If you have more
+pay for** and the CLIs you already have installed, eleven of them today: Claude Code, Codex,
+Gemini CLI, Antigravity, Copilot, Cursor, Grok, Kimi Code, Kiro, pi and opencode. If you have more
 than one account, each terminal can be born on a different one.
 
 That is the whole reason it exists: **new model features land on the command line before they

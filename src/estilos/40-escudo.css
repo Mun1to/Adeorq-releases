@@ -31,7 +31,7 @@
 
 .escudo-quien {
   margin: 0 0 6px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--mal);
 }
@@ -51,7 +51,7 @@
 
 .escudo-que code {
   font-family: var(--mono, ui-monospace, "Cascadia Mono", monospace);
-  font-size: 13px;
+  font-size: 14px;
   overflow-wrap: anywhere;
 }
 
@@ -71,7 +71,7 @@
   background: var(--panel-solid);
   color: var(--text);
   font-family: var(--mono, ui-monospace, "Cascadia Mono", monospace);
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -145,7 +145,7 @@
   display: block;
   margin-top: 4px;
   font-family: var(--mono, ui-monospace, "Cascadia Mono", monospace);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -170,7 +170,7 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .escudo-cambio-que b {
@@ -179,7 +179,7 @@
 
 .escudo-cambio-donde {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   overflow-wrap: anywhere;
 }
 

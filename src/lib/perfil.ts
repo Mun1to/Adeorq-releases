@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
 import { detectLang } from "./i18n";
+import { IDS } from "./providers";
 
 // Quién eres y dónde tienes tus cosas: lo que el onboarding pregunta la primera
 // vez que se abre Adeorq.
@@ -69,7 +70,8 @@ export function leerPerfil(): Perfil {
     return {
       ...PERFIL_VACIO,
       ...p,
-      clis: Array.isArray(p.clis) ? p.clis : [],
+      // Sin los CLI que salieron del catálogo, o saldrían como Claude.
+      clis: Array.isArray(p.clis) ? p.clis.filter((id) => IDS.includes(id)) : [],
       extras: Array.isArray(p.extras) ? p.extras : [],
     };
   } catch {

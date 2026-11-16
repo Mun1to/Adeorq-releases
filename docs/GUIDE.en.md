@@ -813,10 +813,9 @@ The screen has a status line ("N connected of N installed", the tightest limit a
 which one is the usual one) and four sections: **Your accounts**, **API keys**,
 **Shortcuts** and **Not installed**.
 
-**Which programs it knows.** The catalogue has 22: Claude Code, Codex, Gemini CLI,
-Qwen Code, GitHub Copilot, Grok, Crush, opencode, Amp, Antigravity, Cursor, Pi, Kiro
-CLI, Kimi Code, CodeWhale, Goose, Droid, Jules, Auggie, Codebuff, Cody and Aider.
-**Eight support several accounts**, because it has been checked that their variable
+**Which programs it knows.** The catalogue has 11: Claude Code, Codex, Gemini CLI,
+GitHub Copilot, Grok, opencode, Antigravity, Cursor, Pi, Kiro CLI and Kimi Code.
+**Six support several accounts**, because it has been checked that their variable
 really moves the folder:
 
 | Program | Variable that moves its folder |
@@ -824,11 +823,9 @@ really moves the folder:
 | Claude Code | `CLAUDE_CONFIG_DIR` |
 | Codex | `CODEX_HOME` |
 | Gemini CLI | `GEMINI_CLI_HOME` |
-| Qwen Code | `QWEN_HOME` |
 | Grok | `GROK_HOME` |
 | Pi | `PI_CODING_AGENT_DIR` |
 | Kimi Code | `KIMI_CODE_HOME` |
-| CodeWhale | `CODEWHALE_HOME` |
 
 The others show up with the note "one account only": no way has been found to move
 their folder, and it is better to say so than to make up a name and have an account
@@ -904,7 +901,7 @@ renews tomorrow.
 
 **API keys** is the other way to pay for what a program consumes: by tokens instead
 of with your subscription. There is a card for each program that accepts a key
-(Claude Code, Codex, Gemini CLI, Grok, opencode, Pi and Aider): *Paste a key*, *Get
+(Claude Code, Codex, Gemini CLI, Grok, opencode and Pi): *Paste a key*, *Get
 one* (the link to where it is obtained), *Forget it* and a switch between **Opens on
 the key (by tokens)** and **Opens on your subscription**. The key is saved encrypted,
 you only see its last four letters and it never comes back to the screen. Where it is
@@ -913,13 +910,13 @@ kept, in [section 17](#17-what-an-outside-program-can-do).
 The **OpenRouter** card is a single key that opens models from many providers,
 including those with no program of their own (Kimi, DeepSeek, Grok…). Once the key is
 pasted, it shows what you have left, today's, the week and the month. Below it
-appears **Vibecoding**: it opens a real terminal of [Aider](https://aider.chat)
+appears **Vibecoding**: it opens a real terminal of [opencode](https://opencode.ai)
 pointing at the model you type (by default, `moonshotai/kimi-k3`). The first time it
-says **Install Aider first**; afterwards, **Open terminal**, with the key in place.
+says **Install opencode first**; afterwards, **Open terminal**, with the key in place.
 
-⚠ **If you open Aider by hand**, always tell it the model (`aider --model
-openrouter/<model>`), or it will take the first key it finds in your environment and
-try with another provider. And the key has to be in `OPENROUTER_API_KEY` in that
+⚠ **If you open opencode by hand**, always tell it the model (`opencode -m
+openrouter/<model>`), or it will use whatever provider it has at hand and never
+touch OpenRouter. And the key has to be in `OPENROUTER_API_KEY` in that
 terminal. The card does both things by itself.
 
 ---

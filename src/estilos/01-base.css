@@ -35,7 +35,68 @@
   --warn: #ffd166;
   --glass-blur: saturate(150%) blur(22px);
   --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.09);
-  font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+}
+
+/* Contraste, el tema de fábrica desde el 2026-11-16. Munir lo eligió en el
+   probador entre tres direcciones («Yo quiero la que se vea mas claro y mejor
+   la letra y las terminales un poco mas gordos los bordes»): blanco y negro de
+   verdad, paneles negros casi opacos, contornos de una línea que se ve, la
+   letra Geist, y lo elegido en blanco lleno con letra negra. El azul queda para
+   el foco y los estados. Aquí van sus colores; sus reglas, en `41-contraste.css`.
+   La especificación con la que se le enseñó: `docs/propuestas/rediseno-app/`. */
+:root[data-theme="contraste"],
+[data-tema-prev="contraste"] {
+  --c3-negro: #000000;
+  --c3-sobre-blanco: #000000;
+  --c3-icono: #c6c6cc;
+  --c3-sombra-2: 0 12px 36px rgba(0, 0, 0, 0.5);
+  --c3-sombra-3: 0 18px 48px rgba(0, 0, 0, 0.7);
+  --c3-sombra-caja: 0 18px 48px rgba(0, 0, 0, 0.5);
+  --c3-capa: #050505;
+  --c3-capa-2: #111113;
+  --c3-capa-3: #1c1c1f;
+  --c3-raya: rgba(255, 255, 255, 0.3);
+  --c3-raya-2: rgba(255, 255, 255, 0.42);
+  --c3-raya-3: rgba(255, 255, 255, 0.85);
+  --c3-tinta: #f4f4f5;
+  --c3-gris: #b4b4bb;
+  --c3-gris-2: #8d8d95;
+  --c3-claro: #e4e4e7;
+  --c3-claro-2: #d4d4d8;
+  --c3-bola: #a1a1aa;
+  --c3-blanco: #fafafa;
+  --c3-pulsado: #d9d9dc;
+  --c3-sobre-blanco-2: #3f3f46;
+  --c3-beta-sobre-blanco: #7a4f00;
+  --c3-rojo: #d4343a;
+  --c3-rojo-2: #e03e44;
+  --bg: rgba(0, 0, 0, 0.68);
+  --page-tint: rgba(0, 0, 0, 0.68);
+  --panel: rgba(0, 0, 0, 0.95);
+  --panel-solid: #000000;
+  --panel-head: #000000;
+  --pane-bg: rgba(0, 0, 0, 0.9);
+  --popover: rgba(0, 0, 0, 0.985);
+  --topbar: rgba(0, 0, 0, 0.97);
+  --row: rgba(255, 255, 255, 0.06);
+  --row-hover: rgba(255, 255, 255, 0.1);
+  --border: var(--c3-raya);
+  --border-strong: var(--c3-raya-2);
+  --line: var(--c3-raya);
+  --text: var(--c3-tinta);
+  --muted: var(--c3-gris);
+  --accent: #4d9fff;
+  --accent-dim: #2a5f9e;
+  --done: #ff9a3c;
+  --on-accent: #050a12;
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --sombra-2: 0 0 0 1px var(--c3-raya-2), 0 8px 24px rgba(0, 0, 0, 0.55);
+  --sombra-3: 0 0 0 1px var(--c3-raya-2), 0 18px 48px rgba(0, 0, 0, 0.7);
+  --xterm-rgb: 0, 0, 0;
+  --xterm-bg: rgba(0, 0, 0, 0.42);
+  font-family: "Geist Variable", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-feature-settings: "ss01" off;
 }
 
 /* Themes: only the colour set changes, the glass and blur stay. Set with
@@ -871,6 +932,35 @@
 
 * {
   box-sizing: border-box;
+}
+
+/* Los controles no heredan la letra: el navegador les pone la suya, y en el
+   motor de WebView2 esa es Arial. Así salían las pestañas de arriba y el
+   «Enviar» del inicio hasta el 2026-11-16 (medido con un Edge sin ventana). Una
+   regla con clase que pone su propia letra, como la mono de un campo de código,
+   sigue ganando: esto solo cambia lo que no decía nada. */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* El triángulo de aviso (`AvisoIcon`) delante del texto de un aviso, donde
+   antes iba un «⚠» escrito: del color del texto y sentado en su renglón. */
+.icono-aviso {
+  flex: none;
+  vertical-align: -0.17em;
+  margin-right: 0.4em;
+}
+
+/* El chevron de `ChevronIcon` para lo que solo se pinta desde la hoja (el
+   `::before` de un desplegable), donde antes iban «▸» y «▾» escritos. Va como
+   máscara: el `::before` se rellena con `currentColor` y toma el color del
+   texto, como los iconos de verdad. */
+:root {
+  --chevron-der: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.5 6 15.5 12l-6 6'/%3E%3C/svg%3E");
+  --chevron-abajo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9.5 12 15.5l6-6'/%3E%3C/svg%3E");
 }
 
 /* Scrollbars everywhere (sidebar and xterm viewports): thin blue pill */

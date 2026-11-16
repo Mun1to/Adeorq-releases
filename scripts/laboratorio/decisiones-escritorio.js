@@ -203,8 +203,13 @@ async (page) => {
   await page.waitForTimeout(600);
 
   // 1. La pestaña cuenta las que te esperan, en ámbar.
-  const cuenta = await tab.locator(".tab-count").evaluate((x) => ({ n: x.textContent, espera: x.dataset.espera }));
-  debe(cuenta.n === "2" && cuenta.espera === "true", `la pestaña cuenta 2 en ámbar (${JSON.stringify(cuenta)})`);
+  const cuenta = await tab.locator(".tab-count").evaluate((x) => ({
+    n: x.textContent,
+    teToca: x.dataset.teToca,
+    opacidad: getComputedStyle(x).opacity,
+  }));
+  debe(cuenta.n === "2" && cuenta.teToca === "true", `la pestaña cuenta 2 en ámbar (${JSON.stringify(cuenta)})`);
+  debe(cuenta.opacidad === "1", `la cuenta no sale apagada como si cargara (${cuenta.opacidad})`);
 
   // 2. Abre en la primera que te espera, sin nada marcado aunque haya recomendada.
   await tab.click();

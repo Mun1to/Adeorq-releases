@@ -4,6 +4,8 @@ import { useT } from "../lib/i18n";
 import Espera, { Ocupado } from "./Espera";
 import { providerOf } from "../lib/providers";
 import { DOCS_URL } from "./SettingsView";
+import { AvisoIcon } from "./Icons";
+import ProviderMark from "./ProviderMark";
 import {
   openrouterConnect,
   openrouterForget,
@@ -24,12 +26,13 @@ import {
 // volver a esta pantalla el campo sale vacío aunque estés conectado.
 //
 // El vibecoding de aquí abajo reutiliza ESA MISMA clave para abrir una terminal
-// de Aider (github.com/Aider-AI/aider) contra el modelo de OpenRouter que
-// escribas: es el único CLI de la casa que acepta un modelo de OpenRouter con
-// un simple `--model openrouter/<lo-que-sea>`, sin fichero de configuración de
-// por medio (comprobado en aider.chat/docs/llms/openrouter.html, 2026-08-20).
-// No pasa por `providers.ts`: esa tabla es de programas con su propio login, y
-// esto es un CLI cualquiera hablando con una clave que ya vive aquí.
+// de opencode contra el modelo de OpenRouter que escribas, con un simple
+// `-m openrouter/<lo-que-sea>` y la clave en `OPENROUTER_API_KEY`, sin fichero
+// de configuración de por medio. Hasta el 2026-11-16 lo hacía Aider, que salió
+// del catálogo con otros diez. Comprobado ese día con la 1.18.16 y una clave
+// falsa: `opencode run -m openrouter/moonshotai/kimi-k2.6` llega a OpenRouter
+// (contesta «User not found», su 401), y un modelo que su lista no trae, como
+// `moonshotai/kimi-k3`, también pasa: el nombre no se filtra antes de salir.
 
 /** Dólares, como los enseña OpenRouter. Cuatro decimales cuando es calderilla:
     con dos, todo lo que has gastado en un día pone $0.00 y parece roto. */
@@ -50,21 +53,21 @@ const MODELO_KEY = "adeorq-vibecoding-modelo";
 const MODELO_VALIDO = /^[a-z0-9]([a-z0-9._-]*\/)+[a-z0-9](?:[a-z0-9._:-]*[a-z0-9])?$/i;
 
 interface Props {
-  /** Si `aider` está instalado en este equipo. Sin él, el botón instala en vez
-      de abrir: una terminal que empieza con "aider: command not found" no
-      enseña nada. */
-  aiderInstalado: boolean;
-  onInstalarAider: () => void;
+  /** Si `opencode` está instalado en este equipo. Sin él, el botón instala en
+      vez de abrir: una terminal que empieza con "opencode: command not found"
+      no enseña nada. */
+  opencodeInstalado: boolean;
+  onInstalarOpencode: () => void;
   onVibecoding: (modelo: string) => void;
   /** Dentro del paquete de la Microsoft Store no se lanza el instalador de otro
-      (políticas 10.2.2 y 10.2.3): el botón manda a la web de Aider en vez de
+      (políticas 10.2.2 y 10.2.3): el botón manda a la web de opencode en vez de
       abrir una terminal que lo instala. Fuera de la Tienda, `false` y todo igual. */
   enTienda?: boolean;
 }
 
-export default function OpenRouterCard({ aiderInstalado, onInstalarAider, onVibecoding, enTienda = false }: Props) {
+export default function OpenRouterCard({ opencodeInstalado, onInstalarOpencode, onVibecoding, enTienda = false }: Props) {
   const { t } = useT();
-  const aider = providerOf("aider");
+  const opencode = providerOf("opencode");
   const [info, setInfo] = useState<OpenRouterInfo | null>(null);
   const [cargando, setCargando] = useState(true);
   const [clave, setClave] = useState("");
@@ -83,8 +86,8 @@ export default function OpenRouterCard({ aiderInstalado, onInstalarAider, onVibe
     }
     setErrorModelo(null);
     localStorage.setItem(MODELO_KEY, limpio);
-    if (aiderInstalado) onVibecoding(limpio);
-    else onInstalarAider();
+    if (opencodeInstalado) onVibecoding(limpio);
+    else onInstalarOpencode();
   };
 
   const mirar = () => {
@@ -118,7 +121,9 @@ export default function OpenRouterCard({ aiderInstalado, onInstalarAider, onVibe
   };
 
   return (
-    <section className="account-group">
+    // `accounts-fija` y no `account-group`, como «No instalados»: con la de un
+    // CLI plegable la tarjeta salía vacía, porque nadie le pone `data-abierto`.
+    <section className="accounts-fija">
       {/* Se llamaba «Por clave», y justo debajo venía «Claves de API»: dos
           títulos que dicen lo mismo, uno detrás de otro, así que la pantalla
           parecía tener la misma sección repetida (Munir, 2026-08-12). Se llama
@@ -222,36 +227,35 @@ export default function OpenRouterCard({ aiderInstalado, onInstalarAider, onVibe
             </>
           )}
 
-          {error && <p className="setting-line setting-bad">⚠ {error}</p>}
+          {error && <p className="setting-line setting-bad"><AvisoIcon />{error}</p>}
         </article>
 
         {/* Solo con la clave puesta: sin ella, abrir la terminal es enseñarle
-            a Aider un "OpenRouter dice que esa clave no vale" en vez de un
+            a opencode un "OpenRouter dice que esa clave no vale" en vez de un
             campo vacío que explica lo mismo mejor. */}
         {info && (
-          <article className="panel-card account-card" style={{ ["--c" as string]: aider.hue }}>
+          <article className="panel-card account-card" style={{ ["--c" as string]: opencode.hue }}>
             <div className="account-top">
-              <span className="pavatar" data-plate="tint" style={{ ["--c" as string]: aider.hue }}>
-                {aider.label.slice(0, 2)}
+              <span className="pavatar" data-plate="tint" style={{ ["--c" as string]: opencode.hue }}>
+                <ProviderMark id="opencode" />
               </span>
               <span className="account-name">{t("Vibecoding")}</span>
             </div>
             <p className="account-empty">
               {t(
-                "Abre una terminal de Aider con esta misma clave, contra el modelo que escribas.",
+                "Abre una terminal de opencode con esta misma clave, contra el modelo que escribas.",
               )}
             </p>
             {/* La confusión de siempre, escrita aquí porque el botón la evita
-                pero abrir Aider a mano no: sin --model coge la primera clave
-                que encuentre (Gemini, Anthropic…) y prueba con OTRO
-                proveedor, sin tocar OpenRouter. Vista en vivo (Munir,
-                2026-08-20): arrancó "aider" a secas y acabó pidiéndole a un
-                Gemini que ya no existe. */}
+                pero abrirlo a mano no: sin el modelo coge el proveedor que
+                tenga a mano (Anthropic, Gemini…) y no toca OpenRouter. Vista en
+                vivo con Aider (Munir, 2026-08-20): arrancó a secas y acabó
+                pidiéndole a un Gemini que ya no existe. */}
             <p className="card-hint">
               {t(
                 "Con el botón no hace falta pensar en esto. Si lo abres a mano: dile siempre el modelo (",
               )}
-              <code>aider --model openrouter/…</code>
+              <code>opencode -m openrouter/…</code>
               {t(") y pon la clave en ")}
               <code>OPENROUTER_API_KEY</code>
               {t(" en esa terminal, o cogerá otra clave que tengas puesta y ni tocará OpenRouter.")}
@@ -272,7 +276,7 @@ export default function OpenRouterCard({ aiderInstalado, onInstalarAider, onVibe
             />
             <div className="account-actions">
               <button className="np-btn" disabled={!modelo.trim()} onClick={vibecoding}>
-                {aiderInstalado ? t("Abrir terminal") : enTienda ? t("Bajar Aider de su web") : t("Instalar Aider primero")}
+                {opencodeInstalado ? t("Abrir terminal") : enTienda ? t("Bajar opencode de su web") : t("Instalar opencode primero")}
               </button>
               <button
                 className="mini"
@@ -281,7 +285,7 @@ export default function OpenRouterCard({ aiderInstalado, onInstalarAider, onVibe
                 {t("Ver cómo se hace")}
               </button>
             </div>
-            {errorModelo && <p className="setting-line setting-bad">⚠ {errorModelo}</p>}
+            {errorModelo && <p className="setting-line setting-bad"><AvisoIcon />{errorModelo}</p>}
           </article>
         )}
       </div>

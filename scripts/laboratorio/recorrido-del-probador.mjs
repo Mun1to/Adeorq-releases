@@ -181,7 +181,7 @@ async function recorrido(idioma, n) {
     visto("los botones de la barra del lienzo", herramientas.join("\n      "));
     const nodos = () => js(`document.querySelectorAll(".react-flow__node").length`);
     const abrirAdd = async () => {
-      await js(`[...document.querySelectorAll(".canvas-bar button")].find((b) => /^＋ ?(Add|Añadir)/.test(b.textContent.trim()))?.click(); "ok"`);
+      await js(`[...document.querySelectorAll(".canvas-bar button")].find((b) => /^(Add|Añadir)$/.test(b.textContent.trim()))?.click(); "ok"`);
       await dormir(700);
     };
     await abrirAdd();

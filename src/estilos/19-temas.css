@@ -65,7 +65,7 @@
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 12.5px;
+  font-size: 13.5px;
   padding: 5px 13px;
   border-radius: var(--r-pastilla);
   cursor: pointer;
@@ -103,7 +103,7 @@
   background: none;
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   padding: 8px 0;
   outline: none;
 }
@@ -189,7 +189,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   line-height: 1.25;
 }

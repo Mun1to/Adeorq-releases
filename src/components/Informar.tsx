@@ -45,15 +45,21 @@ export function BotonInformar({ donde }: { donde: DondeInforma }) {
  *  el clic no abre nada y quien lee puede escribir a mano. */
 function BotonCorreo({ donde }: { donde: DondeInforma }) {
   const { t, lang } = useT();
+  // La «o» va fuera del botón: un enlace que empieza por «o» se lee como si la
+  // conjunción fuera lo que se pulsa. Junta con él en un mismo trozo, para que
+  // al partirse la línea no se quede sola al final de la de arriba.
   return (
-    <button
-      className="inf-boton inf-correo"
-      aria-label={t("Informar de un problema por correo")}
-      data-tip={t("Abre tu programa de correo con un mensaje ya escrito para {correo}. No lleva tu conversación: pegas tú lo que quieras enseñar.", { correo: CORREO })}
-      onClick={() => void informarPorCorreo(donde, lang === "en")}
-    >
-      {t("o por correo")}
-    </button>
+    <span className="inf-o">
+      {t("o")}{" "}
+      <button
+        className="inf-boton inf-correo"
+        aria-label={t("Informar de un problema por correo")}
+        data-tip={t("Abre tu programa de correo con un mensaje ya escrito para {correo}. No lleva tu conversación: pegas tú lo que quieras enseñar.", { correo: CORREO })}
+        onClick={() => void informarPorCorreo(donde, lang === "en")}
+      >
+        {t("por correo")}
+      </button>
+    </span>
   );
 }
 

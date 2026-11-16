@@ -14,13 +14,18 @@
 //   x-volver-<vista>                   «‹ Perfil › Agenda», encima de las
 //                                      cuatro que viven dentro del Perfil
 //   x-porfolio-N                       la lista de tu uso con su pestaña N
+//   x-chatlista-N                      la lista del Chat con su pestaña N
+//   x-posponer                         el menú de «Posponer» de Decisiones
 //   x-objetivos, x-pulso, x-paleta,
 //   x-capataz, x-lateral-N, x-barra-N  lo que se abre encima o al lado
+//                                      (x-capataz es Adeo flotando; en la
+//                                      Cabina es x-lateral-0)
 //   raiz.json                          los atributos de <html> y <body>
 // y en `volcado/`: hojas.css, las hojas de estilo que la página tiene cargadas.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { abrir, apartarRaton, dormir, sinWebgl, vista } from "./escena.mjs";
 import { cabina, montar } from "./tablero.mjs";
+import { TEXTOS } from "./textos.mjs";
 
 const [idioma, ...solo] = process.argv.slice(2);
 if (!["en", "es"].includes(idioma)) {
@@ -88,10 +93,25 @@ if (quiere("panel")) {
 
 if (quiere("chat")) {
   await vista(p, "chat", 2500);
-  // Con una conversación abierta, y una que ya terminó: el hilo sale del
+  // La lista tiene dos pestañas, Adeo y Sesiones, y nace en la de Adeo: se
+  // vuelca la lista con cada una (`x-chatlista-N`), y la hoja en Sesiones con
+  // una conversación abierta, y una que ya terminó: el hilo sale del
   // transcript de esa sesión, y a mitad de turno solo habría una pregunta.
-  await intentar(() => p.clic("button.chat-fila", es ? "prueba del descuento" : "Discount test"));
-  await dormir(3500);
+  const pestanas = `document.querySelectorAll('.chat-pestanas button.chat-pestana')`;
+  const n = await p.js(`${pestanas}.length`);
+  for (let i = 0; i < n; i++) {
+    await p.js(`${pestanas}[${i}].click()`);
+    await dormir(900);
+    if (i === n - 1) {
+      await intentar(() => p.clic("button.chat-fila", es ? "prueba del descuento" : "Discount test"));
+      await dormir(3500);
+    }
+    await volcar(`x-chatlista-${i}`, `document.querySelector('aside.chat-lista')`);
+  }
+  if (!n) {
+    await intentar(() => p.clic("button.chat-fila", es ? "prueba del descuento" : "Discount test"));
+    await dormir(3500);
+  }
   await volcar("v-chat", RAIZ_VISTA);
 }
 
@@ -125,9 +145,20 @@ if (quiere("agenda")) {
 
 if (quiere("decisiones")) {
   await vista(p, "decisiones", 2500);
-  await intentar(() => p.clic("button.dec-fila"));
+  // Desde la lista única, «Te toca» empieza por la terminal que espera
+  // respuesta: se abre la decisión de Sam por su título, como en la foto.
+  await intentar(() => p.clic("button.dec-fila", TEXTOS[idioma].decisiones[0].titulo));
   await dormir(1000);
   await volcar("v-decisiones", RAIZ_VISTA);
+  // El menú de «Posponer» de esa decisión. Cuelga de la raíz de Decisiones,
+  // colocado encima de la barra del pie, y se cierra con su «Cancelar».
+  await intentar(async () => {
+    await p.clic(".dec-doc button[data-posponer]");
+    await dormir(900);
+    await volcar("x-posponer", `document.querySelector('.dec-posponer')`);
+    await p.js(`document.querySelector('.dec-posponer > button.mini')?.click()`);
+    await dormir(600);
+  });
 }
 
 if (quiere("memoria")) {
@@ -206,9 +237,12 @@ if (quiere("extras")) {
     await p.enviar("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
     await dormir(600);
   });
-  // El Capataz, que abre el orbe de la barra. Flota fuera de `.app`, en `body`,
-  // y se cierra con Escape desde su caja, que nace con el foco.
+  // Adeo, el orbe de la barra. Desde la Cabina se abre en la barra de la
+  // derecha (va abajo, con las otras caras); flotando en `body`, fuera de
+  // `.app`, solo desde las demás vistas, así que se vuelca desde el Panel. Se
+  // cierra con Escape desde su caja, que nace con el foco.
   await intentar(async () => {
+    await vista(p, "panel", 1500);
     await p.clic("button.foreman-call");
     await dormir(1500);
     await volcar("x-capataz", `document.querySelector('body > .foreman-overlay')`);
@@ -218,17 +252,18 @@ if (quiere("extras")) {
     await p.js(`document.querySelector('body > .foreman-overlay') && document.querySelector('button.foreman-call').click()`);
     await dormir(600);
   });
-  // La barra de la derecha: uso, skills y archivos (el cuarto botón abre una
-  // web en un panel, no un lateral). Con una terminal enfocada, las tres
-  // hablan de SU proyecto.
-  const LATERALES = 3;
+  await vista(p, "cabina", 2000);
+  // La barra de la derecha: Adeo, uso, skills y archivos, en el orden de la
+  // franja. Lo que va detrás de su raya (el navegador) abre una web, no un
+  // lateral. Con una terminal enfocada, todas hablan de SU proyecto.
+  const LATERALES = await p.js(`(() => { let n = 0; for (const e of document.querySelectorAll('nav.franja > *')) { if (e.matches('.franja-raya')) break; if (e.matches('button.franja-btn')) n++; } return n; })()`);
   await intentar(() => p.clic(".view-cabina .xterm-screen"));
   await dormir(800);
   for (let i = 0; i < LATERALES; i++) {
     await intentar(async () => {
       await p.js(`document.querySelectorAll('nav.franja button.franja-btn')[${i}].click()`);
       await dormir(2800);
-      if (i === LATERALES - 1) {
+      if (await p.js(`document.querySelector('aside.lateral')?.dataset.cara === 'archivos'`)) {
         for (const carpeta of ["src", "test"]) {
           await intentar(() => p.clic('button.arch-fila[data-carpeta="true"]', carpeta));
           await dormir(600);

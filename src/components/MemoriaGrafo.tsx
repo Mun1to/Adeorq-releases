@@ -938,11 +938,11 @@ export default function MemoriaGrafo({
         hctx.beginPath(); hctx.arc(q.sx, q.sy, r, 0, 6.2832); hctx.fill();
         nctx.globalAlpha = Math.min(1, a); nctx.fillStyle = "#ffdca8";
         nctx.beginPath(); nctx.arc(q.sx, q.sy, r * 0.6, 0, 6.2832); nctx.fill();
-        const cuerpo = Math.max(11, Math.min(22, 13 * q.f * 3.2));
+        const cuerpo = Math.max(13, Math.min(22, 13 * q.f * 3.2));
         rotular(s.title, q.sx, q.sy - r - cuerpo * 0.75, "#ffcf8e", a * 0.95, cuerpo, "600");
       });
       if (SK.length > 1 && centroQ && centroQ.v > 0.35) {
-        const cuerpo = Math.max(12, Math.min(30, 15 * centroQ.f * 3.2));
+        const cuerpo = Math.max(13, Math.min(30, 15 * centroQ.f * 3.2));
         rctx.letterSpacing = "0.14em";
         rotular("SKILLS", cenX, cenY, AMBAR, 0.78 * centroQ.v * (F ? 0.3 : 1), cuerpo, "700");
         rctx.letterSpacing = "0px";
@@ -1003,7 +1003,7 @@ export default function MemoriaGrafo({
       cand.sort((a, b) => a[1].prof - b[1].prof);
       for (const [p, q] of cand.slice(0, F ? 110 : galaxiaRef.current ? 34 : 70)) {
         const txt = p.title.slice(0, 26);
-        const w = txt.length * 6.4;
+        const w = txt.length * 6.7;
         const y = q.sy - 12;
         const mirado = p.id === bajo?.id || p.id === activo || p.id === fijo?.id;
         if (!mirado && !hueco(q.sx, y, w)) continue;
@@ -1011,7 +1011,7 @@ export default function MemoriaGrafo({
         /* El suelo del alfa no baja de 0,78: un nombre solo se dibuja si ya has
            decidido que ese nodo merece nombre, y entonces o se lee o sobra. Lo
            que sigue haciendo la distancia es matizar, no desvanecer. */
-        rotular(txt, q.sx, y, mirado ? "#fff" : "#eaf1fb", mirado ? 1 : Math.min(1, 0.55 + q.v * 0.45), 12.5);
+        rotular(txt, q.sx, y, mirado ? "#fff" : "#eaf1fb", mirado ? 1 : Math.min(1, 0.55 + q.v * 0.45), 13);
       }
       rctx.globalAlpha = 1;
     };

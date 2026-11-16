@@ -34,9 +34,9 @@ export function nombreDeKind(kind: PaneKind): string {
 
 /**
  * De la línea de comando al CLI que arranca. Se mira el ejecutable como un
- * token entero y no con un `includes`: «amp» suelto aparece dentro de
- * cualquier ruta, y bastaría un `C:\campamento\` para que un panel se
- * anunciara como Amp.
+ * token entero y no con un `includes`: «pi» suelto aparece dentro de
+ * cualquier ruta, y bastaría un `C:\pipeline\` para que un panel se
+ * anunciara como Pi.
  */
 export function kindDeComando(joined: string): PaneKind {
   const linea = sinEncargo(joined).toLowerCase();

@@ -16,8 +16,8 @@
    Y se incrusta entre dos marcadores del HTML de la portada, no en un fichero
    aparte que haya que traerse con `fetch`. Dos motivos, y los dos importan:
 
-     1. El sprite tiene que estar DENTRO del documento que lo pinta. Codex,
-        Copilot y Qwen se recortan con una <mask>, y `mask="url(#pm-codex)"` se
+     1. El sprite tiene que estar DENTRO del documento que lo pinta. Codex y
+        Copilot se recortan con una <mask>, y `mask="url(#pm-codex)"` se
         resuelve siempre contra el documento actual: desde un fichero externo no
         encuentra la mascara, no recorta, y Codex sale como un cuadrado azul.
         Ya paso una vez, en la maqueta que tuvo la portada.
@@ -191,8 +191,8 @@ function construir() {
   return [
     `${INICIO} · generado por scripts/extraer-clientes.mjs, no editar a mano.`,
     `     ${todos.length} clientes en src/lib/providers.ts, ${conDibujo.length} con dibujo propio.`,
-    `     El sprite va aquí dentro y no en un fichero aparte porque Codex, Copilot`,
-    `     y Qwen se recortan con una <mask>, y una máscara solo se resuelve contra`,
+    `     El sprite va aquí dentro y no en un fichero aparte porque Codex y`,
+    `     Copilot se recortan con una <mask>, y una máscara solo se resuelve contra`,
     `     el documento que la pinta. -->`,
     leerSprite(),
     `<section class="cinta" id="cinta" aria-labelledby="cinta-tit">`,

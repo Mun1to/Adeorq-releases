@@ -6,15 +6,13 @@
    HTML, y si una clave falta aquí el build se para y dice cuál.
 
    Las que llevan HTML dentro lo llevan igual que en español (negritas,
-   enlaces, el punto de la etiqueta). `{n}` es el primer número del texto
-   español del mismo elemento: los 22 clientes o las versiones publicadas, que
-   no se escriben a mano en ningún idioma.
+   enlaces). `{n}` es el primer número del texto español del mismo elemento:
+   el número de clientes o las versiones publicadas, que no se escriben a mano en
+   ningún idioma.
 
    Los nombres de las pantallas son los de la app en inglés (src/lib/i18n.ts):
    Dashboard, Cockpit, Foreman, Canvas, Memory, Accounts, Commands, Settings.
    ========================================================================= */
-
-const PUNTO = '<span class="etiqueta__punto" aria-hidden="true"></span>'
 
 export default {
   /* ── Cabecera ──────────────────────────────────────────────────────────── */
@@ -99,7 +97,6 @@ export default {
   'codigo.btn': 'See the code on GitHub',
 
   /* ── Qué hace ──────────────────────────────────────────────────────────── */
-  'queEs.etiqueta': PUNTO + 'What it does',
   'queEs.tit': '<b>Seven screens,</b> <span>one window</span>',
   'queEs.entrada':
     'Dashboard, Cockpit, Chat, Decisions, Canvas, Profile and Settings, and in the Profile your accounts, ' +
@@ -153,7 +150,6 @@ export default {
   'rasgo.comandos.alt': 'The list of Claude Code commands, each with a line that says what it is for.',
 
   /* ── Cómo trabaja ──────────────────────────────────────────────────────── */
-  'trabajo.etiqueta': PUNTO + 'How it works',
   'trabajo.tit': 'Three steps and they are already working',
   'trabajo.p1.tit': 'Pick the project',
   'trabajo.p1.p':
@@ -176,7 +172,6 @@ export default {
     'for you and two done.',
 
   /* ── En el móvil ───────────────────────────────────────────────────────── */
-  'movil.etiqueta': PUNTO + 'On your phone',
   'movil.tit': 'Your cockpit, in your pocket too',
   'movil.entrada':
     'From your phone, a tablet or another computer, wherever you are: see who is asking and who is ' +
@@ -223,7 +218,6 @@ export default {
     'screen or record.',
 
   /* ── Descarga ──────────────────────────────────────────────────────────── */
-  'descarga.etiqueta': PUNTO + 'Download',
   'descarga.tit': 'Set up your cockpit in two minutes',
   'descarga.entrada':
     'For 64-bit Windows and Linux, and for Mac with Apple Silicon. You need the CLI you already use ' +
@@ -240,7 +234,6 @@ export default {
     'package is ours.',
 
   /* ── Novedades ─────────────────────────────────────────────────────────── */
-  'novedades.etiqueta': PUNTO + 'What’s new',
   'novedades.tit': 'It moves almost every day',
   'novedades.entrada':
     '<b data-log-cuenta>{n}</b> releases published since it started. This is not a website with a ' +
@@ -248,7 +241,6 @@ export default {
   'novedades.todas': 'See all releases',
 
   /* ── Preguntas ─────────────────────────────────────────────────────────── */
-  'faq.etiqueta': PUNTO + 'Questions',
   'faq.tit': 'What people usually ask',
   'faq.q1': 'Do I need an API key or to pay for anything extra?',
   'faq.r1':
@@ -258,7 +250,7 @@ export default {
   'faq.q2': 'Does it work with anything other than Claude Code?',
   'faq.r2':
     'It knows {n} clients, among them Codex, Gemini CLI, Copilot, Cursor, opencode, Antigravity, ' +
-    'Kiro, Grok and Qwen, and it can install the ones you are missing. And since the terminals are ' +
+    'Kiro, Grok and Pi, and it can install the ones you are missing. And since the terminals are ' +
     'real, you can run whatever you want inside them, your own scripts included.',
   'faq.q3': 'Is it open source?',
   'faq.r3':
@@ -298,7 +290,7 @@ export default {
 
   /* ── El pie ────────────────────────────────────────────────────────────── */
   'pie.lema': 'The panel where all your agents work. On Windows, Linux and Mac, and with you on your phone.',
-  'pie.estado': '<span class="pie__punto" aria-hidden="true"></span>Free, and running.',
+  'pie.estado': 'Free, and running.',
   'pie.aria': 'Footer',
   'pie.producto': 'Product',
   'pie.recursos': 'Resources',

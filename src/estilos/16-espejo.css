@@ -17,7 +17,7 @@
   right: -2px;
   background: color-mix(in srgb, var(--mal) 85%, #000);
   color: white;
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 700;
   border-radius: var(--r-chico);
   padding: 1px 4px;
@@ -62,7 +62,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--espejo);
 }
@@ -79,7 +79,7 @@
   gap: 6px;
   padding: 5px 12px;
   border-radius: var(--r-btn);
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--t-rapida) ease;
@@ -137,7 +137,7 @@
   align-items: center;
   justify-content: center;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   gap: 6px;
   padding: 40px;
   text-align: center;
@@ -145,7 +145,7 @@
 .diff-empty-state p {
   margin: 0;
   opacity: 0.6;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 /* Un archivo de la lista que no tiene cambios. NO es `.diff-empty-state`, que
@@ -154,7 +154,7 @@
 .diff-empty {
   padding: 18px 14px;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 13.5px;
   text-align: center;
 }
 
@@ -170,7 +170,7 @@
 
 .diff-sidebar-title {
   font-family: var(--tipo-mono, monospace);
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--muted);
   letter-spacing: 0.08em;
@@ -206,7 +206,7 @@
 
 .file-status-badge {
   font-family: var(--tipo-mono, monospace);
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 700;
   padding: 1px 4px;
   border-radius: 4px;
@@ -218,7 +218,7 @@
 .file-status-badge.status-d { background: color-mix(in srgb, var(--mal) 60%, #000); color: #fff; } /* Deleted */
 
 .file-item-path {
-  font-size: 12.5px;
+  font-size: 13.5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -236,7 +236,7 @@
 .diff-pre {
   margin: 0;
   font-family: var(--tipo-mono, 'JetBrains Mono', monospace);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -298,8 +298,8 @@
   margin-left: auto;
   padding-left: 12px;
   color: var(--muted);
-  font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
-  font-size: 11px;
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
   user-select: none;
 }
 
@@ -318,7 +318,7 @@
   border-radius: var(--r-chico);
   background: var(--row);
   color: var(--text);
-  font: 12.5px/1.4 "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  font: 13.5px/1.4 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   outline: none;
 }
 
@@ -331,7 +331,7 @@
   align-items: center;
   gap: 6px;
   margin-left: auto;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   cursor: pointer;
   user-select: none;

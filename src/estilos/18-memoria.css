@@ -72,7 +72,7 @@
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 600;
   padding: 7px 15px;
   border-radius: var(--r-btn);
@@ -107,7 +107,7 @@
   backdrop-filter: var(--glass-blur);
   color: var(--text);
   font: inherit;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 600;
   padding: 9px 14px;
   cursor: pointer;
@@ -170,7 +170,7 @@
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   padding: 6px 0;
   border-radius: var(--r-chico);
@@ -205,7 +205,7 @@
   background: none;
   color: var(--text);
   font: inherit;
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 650;
   letter-spacing: 0.1px;
   text-align: left;
@@ -229,7 +229,7 @@
 }
 .mem-carpeta-n {
   flex: none;
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -246,7 +246,7 @@
   background: none;
   color: color-mix(in srgb, var(--text) 72%, transparent);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   text-align: left;
   padding: 5px 8px;
   border-radius: var(--r-chico);
@@ -267,7 +267,7 @@
 
 .mem-lista-eti {
   padding: 2px 10px 8px;
-  font-size: 10.5px;
+  font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
@@ -307,14 +307,14 @@
   gap: 2px;
 }
 .mem-fila-tit {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .mem-fila-sub {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   line-height: 1.35;
   display: -webkit-box;
@@ -326,7 +326,7 @@
 .mem-nada {
   padding: 14px 10px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .mem-doc {
@@ -364,7 +364,7 @@
 .mem-doc-ruta {
   display: block;
   margin-top: 2px;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   font-family: "Cascadia Mono", Consolas, monospace;
   overflow: hidden;
@@ -376,7 +376,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   cursor: pointer;
 }
@@ -479,7 +479,7 @@
 }
 .mem-md code {
   font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 12.5px;
+  font-size: 13.5px;
   background: var(--row);
   border-radius: var(--r-chico);
   padding: 1px 5px;
@@ -527,7 +527,7 @@
   background: none;
   color: var(--text);
   font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.65;
   tab-size: 2;
 }
@@ -545,7 +545,7 @@
 }
 .mem-enlaces h3 {
   margin: 0 0 8px;
-  font-size: 10.5px;
+  font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
@@ -556,7 +556,7 @@
   background: none;
   color: var(--accent);
   font: inherit;
-  font-size: 12.5px;
+  font-size: 13.5px;
   padding: 3px 0;
   cursor: pointer;
   text-align: left;
@@ -670,7 +670,7 @@
   border-radius: var(--r-chico);
   background: var(--panel-solid);
   color: var(--muted);
-  font-size: 9px;
+  font-size: 13px;
   line-height: 1;
   cursor: pointer;
   transition: transform var(--t-rapida) ease, color var(--t-rapida) ease, border-color var(--t-rapida) ease;
@@ -715,23 +715,23 @@
 .arb-ficha:disabled { cursor: default; }
 
 .arb-tit { display: flex; align-items: baseline; gap: 9px; }
-.arb-nombre { font-size: 13.5px; font-weight: 620; }
+.arb-nombre { font-size: 14.5px; font-weight: 620; }
 
 .arb-cuenta {
   color: var(--muted);
-  font-size: 10.5px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   padding: 1px 6px;
   border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--text) 9%, transparent);
 }
 
-.arb-que { color: var(--muted); font-size: 12px; line-height: 1.45; }
+.arb-que { color: var(--muted); font-size: 13px; line-height: 1.45; }
 
 .arb-donde {
   margin-top: 3px;
   font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 10px;
+  font-size: 13px;
   color: color-mix(in srgb, var(--c) 60%, var(--muted));
 }
 
@@ -777,7 +777,7 @@
   align-items: center;
   gap: 8px;
   padding: 4px 0 4px 2px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -855,7 +855,7 @@
    medida del texto. */
 .mapa-etiqueta {
   fill: var(--muted);
-  font-size: 10.5px;
+  font-size: 13px;
   paint-order: stroke;
   stroke: var(--panel-solid);
   stroke-width: 4px;
@@ -880,7 +880,7 @@
 
 .mapa-capa {
   margin: 0;
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 650;
   text-transform: uppercase;
   letter-spacing: 1.1px;
@@ -889,7 +889,7 @@
 
 .mapa-capa-sub {
   margin: -10px 0 2px;
-  font-size: 11.5px;
+  font-size: 13px;
   line-height: 1.4;
   color: var(--muted);
   opacity: 0.8;
@@ -922,7 +922,7 @@
   background: var(--panel-solid);
   color: var(--text);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   max-width: 260px;
   cursor: pointer;
 }
@@ -958,7 +958,7 @@
   flex: 1;
   min-width: 0;
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: 13px;
 }
 
 .mapa-releer {
@@ -967,7 +967,7 @@
   align-items: center;
   gap: 6px;
   padding: 5px 11px;
-  font-size: 12px;
+  font-size: 13px;
   white-space: nowrap;
 }
 
@@ -977,14 +977,14 @@
   border-left: 3px solid var(--wait);
   border-radius: 0 var(--r-chico) var(--r-chico) 0;
   background: color-mix(in srgb, var(--wait) 10%, transparent);
-  font-size: 12.5px;
+  font-size: 13.5px;
 }
 
 .mapa-resumen {
   margin: 0 0 10px;
   max-width: 92ch;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.55;
 }
 
@@ -998,7 +998,7 @@
   padding: 40px 20px;
   text-align: center;
   color: var(--muted);
-  font-size: 13.5px;
+  font-size: 14.5px;
 }
 
 /* Mientras lee: un punto que late, para que se vea que hay alguien trabajando
@@ -1030,13 +1030,13 @@
 .mapa-parar {
   flex: none;
   padding: 5px 14px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .mapa-vacio-sub {
   max-width: 56ch;
   margin: 0;
-  font-size: 12.5px;
+  font-size: 13.5px;
   opacity: 0.85;
   line-height: 1.5;
 }
@@ -1093,7 +1093,7 @@
   border: 1px solid var(--border);
   border-radius: var(--r-pastilla);
   background: var(--popover);
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   pointer-events: none;
 }
@@ -1146,13 +1146,13 @@
   box-shadow: var(--sombra-2);
 }
 
-.mapa-nombre { font-size: 13.5px; font-weight: 620; line-height: 1.3; }
-.mapa-que { font-size: 11.5px; line-height: 1.45; color: var(--muted); }
+.mapa-nombre { font-size: 14.5px; font-weight: 620; line-height: 1.3; }
+.mapa-que { font-size: 13px; line-height: 1.45; color: var(--muted); }
 
 .mapa-donde {
   margin-top: 2px;
   font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 10px;
+  font-size: 13px;
   color: color-mix(in srgb, var(--c) 60%, var(--muted));
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1169,7 +1169,7 @@
 .mapa-pista {
   margin: 8px 0 0;
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: 13px;
 }
 
 /* Las dos vistas. Un par de pastillas, no dos botones sueltos: son la MISMA
@@ -1192,7 +1192,7 @@
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   transition: background var(--t-rapida) ease, color var(--t-rapida) ease;
 }
@@ -1228,7 +1228,7 @@
 }
 .mem-cerebro-panel h3 {
   margin: 0;
-  font-size: 10.5px;
+  font-size: 13px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
@@ -1246,7 +1246,7 @@
   border-radius: var(--r-chico);
   background: none;
   font: inherit;
-  font-size: 10.5px;
+  font-size: 13px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-weight: 700;
@@ -1272,7 +1272,7 @@
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 2px;
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--muted);
 }
 .mem-cerebro-mandos label b {
@@ -1297,7 +1297,7 @@
   border-radius: var(--r-chico);
   background: none;
   font: inherit;
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--muted);
   cursor: pointer;
 }
@@ -1310,7 +1310,7 @@
    decía nadie y parecía una avería. */
 .mem-cerebro-nota {
   margin: 6px 0 0;
-  font-size: 11.5px;
+  font-size: 13px;
   line-height: 1.4;
   color: var(--muted);
 }
@@ -1330,7 +1330,7 @@
   border-radius: var(--r-chico);
   background: none;
   font: inherit;
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--muted);
   text-align: left;
   cursor: pointer;
@@ -1357,7 +1357,7 @@
 }
 .mem-cerebro-n {
   font-variant-numeric: tabular-nums;
-  font-size: 10.5px;
+  font-size: 13px;
   opacity: 0.7;
 }
 .mem-cerebro-salir {
@@ -1366,7 +1366,7 @@
   border-radius: var(--r-chico);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   font: inherit;
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--text);
   cursor: pointer;
 }
@@ -1391,10 +1391,10 @@
   pointer-events: none;
 }
 .mem-cerebro-eti b {
-  font-size: 13px;
+  font-size: 14px;
 }
 .mem-cerebro-eti span {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -1403,7 +1403,7 @@
   left: 16px;
   bottom: 16px;
   z-index: 1;
-  font-size: 11px;
+  font-size: 13px;
   color: color-mix(in srgb, var(--muted) 80%, transparent);
   pointer-events: none;
 }
@@ -1438,7 +1438,7 @@
 
 .mem-bienvenida-eti {
   margin: 0 0 10px;
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -1530,7 +1530,7 @@
 }
 .mem-vault-nombre em {
   font-style: normal;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1544,14 +1544,14 @@
   grid-row: 1 / span 2;
   grid-column: 2;
   align-self: center;
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .mem-vault-ruta {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   font-family: "Cascadia Mono", Consolas, monospace;
   overflow: hidden;

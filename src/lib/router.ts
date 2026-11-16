@@ -276,7 +276,6 @@ const RELEVOS: Array<{ cli: string; fuerte: Trabajo[]; porque: string }> = [
   { cli: "agy", fuerte: ["lectura", "diseno"], porque: "Gemini aguanta bien leer mucho de golpe" },
   { cli: "gemini", fuerte: ["lectura", "texto"], porque: "va sobrado de contexto para leer" },
   { cli: "opencode", fuerte: ["codigo"], porque: "está conectado y sirve para esto" },
-  { cli: "qwen", fuerte: ["codigo"], porque: "está conectado y sirve para esto" },
 ];
 
 /** Las de un CLI que están instaladas y con sesión iniciada. */
@@ -468,7 +467,13 @@ export function elegirCuenta(lista: CuentaViva[], ahora: number, modelo?: ModelA
       .filter((c) => !conSitio.includes(c))
       .map((c) => parada(c, ahora) ? t("«{label}» está parada por su tope de 5 horas", { label: c.cuenta.label }) : t("«{label}» no entra por llegar al {agotada} %: {gasto}", { label: c.cuenta.label, agotada: AGOTADA, gasto: gastoYPrevision(c, ahora, t) }));
     const p = Math.round(orden[0].p);
-    const cuanto = otras.length ? t("{p} puntos al día, frente a {otras}", { p, otras: otras.join(t(" y ")) }) : t("{p} puntos al día", { p });
+    const cuanto = otras.length
+      ? p === 1
+        ? t("1 punto al día, frente a {otras}", { otras: otras.join(t(" y ")) })
+        : t("{p} puntos al día, frente a {otras}", { p, otras: otras.join(t(" y ")) })
+      : p === 1
+        ? t("1 punto al día")
+        : t("{p} puntos al día", { p });
     porque = t("Con {retrato}: es la que más cuota perdería sin usar ({cuanto}){fuera}.", {
       retrato: retrato(viva, ahora, t),
       cuanto,

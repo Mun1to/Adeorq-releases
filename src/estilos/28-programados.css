@@ -19,7 +19,7 @@
   border-radius: var(--r-btn);
   border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
   background: color-mix(in srgb, var(--warn) 10%, transparent);
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--text);
 }
 
@@ -30,7 +30,7 @@
 .prog-vacio {
   margin: 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .prog-lista {
@@ -76,7 +76,7 @@
 }
 .prog-cuando {
   flex: none;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--accent);
 }
 
@@ -107,14 +107,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text);
 }
 .prog-pie {
   display: flex;
   gap: 10px;
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 .prog-proxima {
@@ -125,7 +125,7 @@
   padding: 8px 12px;
   border-radius: var(--r-btn);
   background: color-mix(in srgb, var(--wait) 12%, transparent);
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--text);
 }
 
@@ -159,7 +159,7 @@
   border-radius: var(--r-btn);
   padding: 11px 13px;
   font-family: inherit;
-  font-size: 13.5px;
+  font-size: 14.5px;
   line-height: 1.55;
 }
 .prog-campos {
@@ -172,7 +172,7 @@
   flex-direction: column;
   gap: 4px;
   min-width: 0;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 .prog-cuando-in {
@@ -203,7 +203,7 @@
   background: none;
   color: var(--muted);
   font: inherit;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -217,7 +217,7 @@
 }
 .prog-a-las {
   margin: 0 2px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--muted);
 }
 .prog-hora {
@@ -236,6 +236,6 @@
 }
 .prog-falta {
   margin-right: auto;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }

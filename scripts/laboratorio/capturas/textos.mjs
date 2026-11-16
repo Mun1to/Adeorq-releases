@@ -256,13 +256,13 @@ export const TEXTOS = { en, es };
 /** Los cuatro paneles de la Cabina: [proyecto, grabación, CLI, título]. */
 export const PANELES = {
   en: [
-    ["storefront-api", "en-storefront", "claude", "Discount test failure in npm test"],
+    ["storefront-api", "en-storefront", "claude", "Discount test failure"],
     ["mobile-app", "en-mobile", "claude", "Dependency install and test run"],
     ["invoice-cli", "en-invoice-mid", "codex", "Currency flag for the total"],
     ["landing-web", "en-landing-mid", "claude", "Header dark mode toggle"],
   ],
   es: [
-    ["storefront-api", "es-storefront", "claude", "Fallo en prueba del descuento"],
+    ["storefront-api", "es-storefront", "claude", "Fallo en la prueba del descuento"],
     ["mobile-app", "es-mobile", "claude", "Dependencias y pruebas"],
     ["invoice-cli", "es-invoice-mid", "codex", "Opción de moneda para el total"],
     ["landing-web", "es-landing-mid", "claude", "Botón de modo oscuro"],

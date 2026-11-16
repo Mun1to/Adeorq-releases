@@ -407,11 +407,11 @@ pub fn rename_session(
     if title.is_empty() {
         return Err("El título está vacío".into());
     }
-    // Codex, Pi y Gemini: su fichero es de su programa y no lleva carpeta de
-    // Claude, así que el título se guarda en Adeorq (ver
-    // `sessions::titulos_propios`). La misma rama por CLI que tiene
-    // `delete_session` más abajo.
-    if matches!(fuente.as_deref(), Some("codex") | Some("pi") | Some("gemini")) {
+    // Codex, Pi, Gemini y cualquier otro que no sea Claude (Copilot, Kiro…):
+    // su fichero es de su programa y no lleva carpeta de Claude, así que el
+    // título se guarda en Adeorq (ver `sessions::titulos_propios`). Sin
+    // fuente es una llamada antigua, que siempre fue de Claude.
+    if fuente.as_deref().is_some_and(|f| f != "claude") {
         return crate::sessions::guardar_titulo_propio(&session_id, title);
     }
     let path = transcript_path(&folder, &session_id)?;

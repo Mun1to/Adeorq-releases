@@ -23,7 +23,7 @@
 .pu-nada,
 .pu-pista {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 
@@ -35,7 +35,7 @@
    2026-10-17: «Tokens» con la T mayúscula, no «TOKENS»). */
 .pu-titulo {
   margin: 0 0 8px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--muted);
 }
@@ -100,7 +100,7 @@
 
 .pu-cifra > em {
   font-style: normal;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--muted);
 }
@@ -111,7 +111,7 @@
   align-items: baseline;
   gap: 4px 18px;
   margin-top: 6px;
-  font-size: 13.5px;
+  font-size: 14.5px;
   color: var(--muted);
 }
 
@@ -165,7 +165,7 @@
   border: 0;
   background: none;
   font: inherit;
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 600;
   color: var(--muted);
   text-decoration: underline 2px transparent;
@@ -193,7 +193,7 @@
   align-items: center;
   gap: 12px;
   padding: 5px 0;
-  font-size: 13.5px;
+  font-size: 14.5px;
 }
 
 .pu-parte-nombre {
@@ -326,7 +326,7 @@
 
 .pu-mes em {
   font-style: normal;
-  font-size: 10px;
+  font-size: 13px;
   text-align: center;
   color: var(--muted);
   text-transform: uppercase;
@@ -341,7 +341,7 @@
   border-radius: var(--r-chico);
   background: rgba(255, 255, 255, 0.04);
   font: inherit;
-  font-size: 9.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -400,7 +400,7 @@
 
 .pu-pista {
   margin-top: 8px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 @media (max-width: 900px) {
@@ -434,6 +434,6 @@
 /* Con los días de unos 23 px, «568M» a 9,5 ya no cabe en su casilla. */
 @media (max-width: 360px) {
   .pu-mes button {
-    font-size: 8px;
+    font-size: 13px;
   }
 }

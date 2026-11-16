@@ -26,7 +26,8 @@ export const THEME_KEY = "adeorq-theme";
  * · `claro` los de fondo claro, aparte porque cambian la app entera de tono.
  */
 export const THEMES = [
-  // De la casa, de frío a cálido.
+  // El de fábrica desde el 2026-11-16, y luego los de la casa, de frío a cálido.
+  { id: "contraste", es: "Contraste", en: "Contrast", familia: "casa" },
   { id: "azul", es: "Azul noche", en: "Midnight blue", familia: "casa" },
   { id: "oceano", es: "Océano", en: "Ocean", familia: "casa" },
   { id: "turquesa", es: "Turquesa", en: "Turquoise", familia: "casa" },
@@ -158,6 +159,7 @@ const EN: Record<string, string> = {
   // tarjetas grandes, y el contador del final de cada CLI plegado.
   // `conectada` a secas ya vive más abajo, con las cuentas: no se repite aquí.
   conectadas: "connected",
+  "de 1 instalado": "of 1 installed",
   "de {n} instalados": "of {n} installed",
   "es la de siempre": "is the usual one",
   "con ella nacen las terminales nuevas": "new terminals open with it",
@@ -222,8 +224,10 @@ const EN: Record<string, string> = {
     "none waiting on you",
   "propuestas de tus agentes":
     "proposals from your agents",
-  "{p} pasos · {i} ideas":
-    "{p} steps · {i} ideas",
+  "1 paso": "1 step",
+  "{n} pasos": "{n} steps",
+  "1 idea": "1 idea",
+  "{n} ideas": "{n} ideas",
   "nada apuntado":
     "nothing jotted down",
   "objetivos para hoy":
@@ -350,8 +354,8 @@ const EN: Record<string, string> = {
     "Name of the new project",
   "Creando…":
     "Creating…",
-  "＋ Proyecto nuevo…":
-    "＋ New project…",
+  "Proyecto nuevo…":
+    "New project…",
   // La terminal viva en el cajón de las sueltas. Las dos frases largas van
   // dentro de un ternario, así que el comprobador no las ve: si faltan, la app
   // en inglés las enseña en español sin decir nada.
@@ -481,6 +485,7 @@ const EN: Record<string, string> = {
   "Modelo favorito": "Favourite model",
   "Leído de tus conversaciones de Claude Code y Codex: mirar esto no gasta nada.":
     "Read from your Claude Code and Codex conversations: looking at it costs nothing.",
+  "Cargar 1 sesión más antigua": "Load 1 older session",
   "Cargar {n} sesiones más antiguas": "Load {n} older sessions",
   "sesión": "session",
   esperando: "waiting",
@@ -496,8 +501,12 @@ const EN: Record<string, string> = {
     "Written on the “{acc}” account, and that is where it resumes",
   "Cuenta: {acc}": "Account: {acc}",
   "Quitar el filtro": "Clear the filter",
+  "1 proyecto escondido por el filtro. Pulsa para verlo.":
+    "1 project hidden by the filter. Click to see it.",
   "{n} proyectos escondidos por el filtro. Pulsa para verlos.":
     "{n} projects hidden by the filter. Click to see them.",
+  "1 traída a mano. Pulsa para quitarla de la lista.":
+    "1 brought over by hand. Click to take it off the list.",
   "{n} traídas a mano. Pulsa para quitarlas de la lista.":
     "{n} brought over by hand. Click to take them off the list.",
   "Entendido: dejar de avisar. Las sesiones se quedan donde están.":
@@ -542,8 +551,10 @@ const EN: Record<string, string> = {
   Cancelar: "Cancel",
   Archivar: "Archive",
   "sesión abierta ahora": "session open right now",
+  "Abrir su sesión": "Open its session",
   "Abrir sus {n} sesiones a la vez": "Open all {n} sessions at once",
   "Ocultar las sesiones archivadas": "Hide archived sessions",
+  "Ver la sesión archivada": "Show the archived session",
   "Ver las {n} sesiones archivadas": "Show the {n} archived sessions",
   "Grupos de {p}": "Groups in {p}",
   "C:\\proyectos · sesiones de ~/.claude": "C:\\proyectos · sessions from ~/.claude",
@@ -678,6 +689,7 @@ const EN: Record<string, string> = {
   "{n} cambiados": "{n} changed",
   "{n} borrado": "{n} deleted",
   "{n} borrados": "{n} deleted",
+  "1 línea": "1 line",
   "{n} líneas": "{n} lines",
   "Releer del disco": "Reload from disk",
   "Sin guardar": "Unsaved",
@@ -781,6 +793,10 @@ const EN: Record<string, string> = {
   "El color de las terminales": "The colour of the terminals",
   "Buscar un tema": "Search themes",
   "Buscar en esta terminal": "Search in this terminal",
+  "Ahora mismo está puesto: 1 terminal abierta.":
+    "It is on right now: 1 terminal open.",
+  "Ahora mismo NO está puesto: 1 terminal abierta.":
+    "It is NOT on right now: 1 terminal open.",
   "Ahora mismo está puesto: {n} terminales abiertas.":
     "It is on right now: {n} terminals open.",
   "Ahora mismo NO está puesto: {n} terminales abiertas.":
@@ -1142,6 +1158,7 @@ const EN: Record<string, string> = {
   "Ponerlo en esta terminal": "Put it in this terminal",
   "Abrir una nueva así": "Open a new one like this",
   "Lo recomendado para esta tarea": "What this task calls for",
+  "1 vez el peso de haiku": "1 time haiku's weight",
   "{n} veces el peso de haiku": "{n} times haiku's weight",
   "Cuánto se lo piensa antes de responder": "How long it thinks before answering",
   "Esa terminal es de otro CLI: ábrela nueva": "That terminal is another CLI: open a new one",
@@ -1186,6 +1203,7 @@ const EN: Record<string, string> = {
   "Atajos en tus proyectos": "Shortcuts on your projects",
 
   // Leer en paz: la terminal se queda quieta mientras miras hacia arriba.
+  "En pausa · 1 línea nueva": "Paused · 1 new line",
   "En pausa · {n} líneas nuevas": "Paused · {n} new lines",
   "En pausa mientras lees": "Paused while you read",
   "Volver al final y ver lo que ha llegado": "Jump to the end and see what came in",
@@ -1198,12 +1216,13 @@ const EN: Record<string, string> = {
   Conectar: "Connect",
   "Comprobando…": "Checking…",
   "Olvidar la clave": "Forget the key",
-  // El aparte de vibecoding con Aider, que llegó sin sus traducciones (commit
-  // 4dbeed0). No es de esta sesión, pero dejaba `pnpm i18n` en rojo para todos,
-  // y una comprobación que siempre falla deja de mirarse.
+  // El aparte de vibecoding (con Aider hasta el 2026-11-16, hoy con opencode),
+  // que llegó sin sus traducciones (commit 4dbeed0). No es de esta sesión, pero
+  // dejaba `pnpm i18n` en rojo para todos, y una comprobación que siempre falla
+  // deja de mirarse.
   Vibecoding: "Vibecoding",
-  "Abre una terminal de Aider con esta misma clave, contra el modelo que escribas.":
-    "Opens an Aider terminal with this same key, against whatever model you type.",
+  "Abre una terminal de opencode con esta misma clave, contra el modelo que escribas.":
+    "Opens an opencode terminal with this same key, against whatever model you type.",
   "Con el botón no hace falta pensar en esto. Si lo abres a mano: dile siempre el modelo (":
     "With the button you do not have to think about this. Opening it by hand: always tell it the model (",
   ") y pon la clave en ": ") and put the key in ",
@@ -1212,7 +1231,7 @@ const EN: Record<string, string> = {
   "Eso no parece un modelo de OpenRouter (va así: organización/modelo)":
     "That does not look like an OpenRouter model (it goes: organisation/model)",
   "Abrir terminal": "Open terminal",
-  "Instalar Aider primero": "Install Aider first",
+  "Instalar opencode primero": "Install opencode first",
   "Ver cómo se hace": "See how it works",
   "Te queda": "You have left",
   "Tope de la clave": "Key limit",
@@ -1238,8 +1257,8 @@ const EN: Record<string, string> = {
   "En la Agenda, quién te espera sale del disco y es exacto: eso funciona siempre. Lo que no se puede saber sin leer es QUÉ te está preguntando cada sesión, y esa línea la escribe un modelo que corre en tu propio ordenador (Ollama), sin gastar cuota de nadie. Elige uno pequeño: es una frase, no un ensayo.":
     "In the Agenda, who is waiting on you comes from disk and is exact: that always works. What cannot be known without reading is WHAT each session is asking you, and that line is written by a model running on your own machine (Ollama), spending nobody's quota. Pick a small one: it is a sentence, not an essay.",
   "Mirando si Ollama está abierto…": "Checking whether Ollama is open…",
-  "⚠ Ollama no responde en 127.0.0.1:11434. Ábrelo y vuelve a esta pantalla; hasta entonces la Agenda funciona igual, solo que sin esa línea.":
-    "⚠ Ollama is not answering on 127.0.0.1:11434. Open it and come back to this screen; until then the Agenda works the same, just without that line.",
+  "Ollama no responde en 127.0.0.1:11434. Ábrelo y vuelve a esta pantalla; hasta entonces la Agenda funciona igual, solo que sin esa línea.":
+    "Ollama is not answering on 127.0.0.1:11434. Open it and come back to this screen; until then the Agenda works the same, just without that line.",
   Ninguno: "None",
 
   // El panel del proyecto, al pasar el ratón
@@ -1267,8 +1286,10 @@ const EN: Record<string, string> = {
   "Borrar la carpeta del disco": "Delete the folder from disk",
   "Esto borra del disco la CARPETA de «{n}», con todo lo que tenga dentro. Va a la papelera, así que se recupera desde allí, pero deja de estar en su sitio y lo que la use dejará de encontrarla.":
     "This deletes “{n}”'s FOLDER from disk, with everything inside it. It goes to the bin, so you can get it back from there, but it stops being where it was and anything using it will no longer find it.",
-  "⚠ Tiene {n} sesiones de Claude. Sus conversaciones NO se borran: viven en tu carpeta de Claude, no en esta. Pero se quedarán apuntando a una carpeta que ya no está.":
-    "⚠ It has {n} Claude sessions. Their conversations are NOT deleted: they live in your Claude folder, not this one. But they will be left pointing at a folder that is gone.",
+  "Tiene 1 sesión de Claude. Su conversación NO se borra: vive en tu carpeta de Claude, no en esta. Pero se quedará apuntando a una carpeta que ya no está.":
+    "It has 1 Claude session. Its conversation is NOT deleted: it lives in your Claude folder, not this one. But it will be left pointing at a folder that is gone.",
+  "Tiene {n} sesiones de Claude. Sus conversaciones NO se borran: viven en tu carpeta de Claude, no en esta. Pero se quedarán apuntando a una carpeta que ya no está.":
+    "It has {n} Claude sessions. Their conversations are NOT deleted: they live in your Claude folder, not this one. But they will be left pointing at a folder that is gone.",
   "Si lo que quieres es dejar de verlo en la barra, no hace falta borrar nada:":
     "If all you want is to stop seeing it in the rail, nothing needs deleting:",
   "Quitar de Adeorq, sin tocar la carpeta": "Remove from Adeorq, leaving the folder alone",
@@ -1294,6 +1315,7 @@ const EN: Record<string, string> = {
   "lo más caro que hay; solo si sabes por qué":
     "the most expensive there is; only if you know why",
   "{u} de {w} tokens usados": "{u} of {w} tokens used",
+  "1 archivo sin guardar": "1 unsaved file",
   "{n} archivos sin guardar": "{n} unsaved files",
   "todo guardado": "all committed",
   "sin plan detectado": "no plan detected",
@@ -1400,6 +1422,7 @@ const EN: Record<string, string> = {
   "Vuelve a leer el historial de tus clientes, por si abriste algo desde que entraste aquí":
     "Reads your clients' history again, in case you opened something since you got here",
   "Leyendo tus sesiones…": "Reading your sessions…",
+  "1 elegida de {total}": "1 of {total} picked",
   "{n} elegidas de {total}": "{n} of {total} picked",
   "{n} sesiones": "{n} sessions",
   Todas: "All",
@@ -1482,7 +1505,7 @@ const EN: Record<string, string> = {
   "No está en este equipo y no tiene un comando de instalación de fiar, así que hay que bajarlo de su web:":
     "Not on this machine, and it has no install command worth trusting, so it has to come from its own site:",
   "Abrir su web": "Open its site",
-  "Bajar Aider de su web": "Get Aider from its site",
+  "Bajar opencode de su web": "Get opencode from its site",
   "No está en este equipo. Desde la Microsoft Store, Adeorq no instala programas de otros: bájalo de su web oficial.":
     "It is not on this computer. From the Microsoft Store, Adeorq does not install other people's programs: download it from its official site.",
   instalar: "install",
@@ -1599,6 +1622,8 @@ const EN: Record<string, string> = {
   Calculadora: "Calculator",
   Minutos: "Minutes",
   "Se acabó el tiempo": "Time is up",
+  "La cuenta atrás de 1 minuto ha llegado a cero.":
+    "The 1 minute countdown has reached zero.",
   "La cuenta atrás de {n} minutos ha llegado a cero.":
     "The {n} minute countdown has reached zero.",
   "Se acabó la concentración": "Focus time is over",
@@ -1617,6 +1642,7 @@ const EN: Record<string, string> = {
   "te espera": "waiting for you",
   "te esperan": "waiting for you",
   "Se han dicho": "What they told each other",
+  "Cerrar la terminal de esta cuadrilla": "Close this crew's terminal",
   "Cerrar las {n} terminales de esta cuadrilla": "Close this crew's {n} terminals",
   "¿Cerrar {n}?": "Close {n}?",
   "Apartar sus terminales (siguen trabajando)": "Set its terminals aside (they keep working)",
@@ -1634,7 +1660,8 @@ const EN: Record<string, string> = {
   "Cerrar todas las terminales": "Close every terminal",
   "Se cierran las {n} terminales de la Cabina y se mata a sus agentes. Las conversaciones NO se borran: siguen en la lista de la izquierda y se retoman cuando quieras.":
     "This closes the cockpit's {n} terminals and kills their agents. The conversations are NOT deleted: they stay in the list on the left and can be resumed whenever you want.",
-  "⚠ {n} están trabajando ahora mismo:": "⚠ {n} of them are working right now:",
+  "1 está trabajando ahora mismo:": "1 of them is working right now:",
+  "{n} están trabajando ahora mismo:": "{n} of them are working right now:",
   "… y {n} más": "… and {n} more",
   "Mejor apartarlas": "Set them aside instead",
   "Devolver al mosaico todo lo que está apartado":
@@ -1676,6 +1703,7 @@ const EN: Record<string, string> = {
   coincidencias: "matches",
   Antes: "Before",
   Después: "After",
+  "línea distinta": "line differs",
   "líneas distintas": "lines differ",
   Iguales: "Identical",
   Texto: "Text",
@@ -1856,7 +1884,7 @@ const EN: Record<string, string> = {
   "Abre un formulario público en GitHub. No lleva tu conversación: pegas tú lo que quieras enseñar.":
     "Opens a public form on GitHub. It does not carry your conversation: you paste whatever you want to show.",
   // El correo, para quien no tiene cuenta de GitHub: solo en la línea de debajo de la caja.
-  "o por correo": "or by email",
+  "por correo": "by email",
   "Informar de un problema por correo": "Report an issue by email",
   "Abre tu programa de correo con un mensaje ya escrito para {correo}. No lleva tu conversación: pegas tú lo que quieras enseñar.":
     "Opens your email program with a message already written to {correo}. It does not carry your conversation: you paste whatever you want to show.",
@@ -1975,6 +2003,7 @@ const EN: Record<string, string> = {
   "Quitar del lienzo todo lo cogido": "Remove everything picked from the canvas",
   "Dejar de tenerlo cogido": "Drop it",
   "¿Seguro?": "Sure?",
+  "Se cierra 1 terminal. ¿Seguro?": "1 terminal will be closed. Sure?",
   "Se cierran {n} terminales. ¿Seguro?": "{n} terminals will be closed. Sure?",
   "Sí, borrar": "Yes, delete",
 
@@ -2198,6 +2227,7 @@ const EN: Record<string, string> = {
   "Un agente ha pedido una flecha que cierra un círculo.":
     "An agent asked for an arrow that closes a loop.",
   "Lienzo importado sin abrir terminales.": "Canvas imported without opening terminals.",
+  "Lienzo importado: 1 terminal abriéndose.": "Canvas imported: 1 terminal opening.",
   "Lienzo importado: {n} terminales abriéndose.": "Canvas imported: {n} terminals opening.",
   terminales: "terminals",
   cacharros: "gadgets",
@@ -2412,7 +2442,7 @@ const EN: Record<string, string> = {
     "You can add loose projects from anywhere on disk.",
   "Quitarlo del panel. La carpeta no se toca.":
     "Take it out of the sidebar. The folder itself is left alone.",
-  "＋ Añadir un proyecto": "＋ Add a project",
+  "Añadir un proyecto": "Add a project",
   "Elige la carpeta del proyecto": "Choose the project folder",
   "Ese proyecto ya estaba en el panel.": "That project was already in the sidebar.",
 
@@ -2481,6 +2511,7 @@ const EN: Record<string, string> = {
   "tus proyectos, uno a uno · sesiones de ~/.claude":
     "your projects, one by one · sessions from ~/.claude",
   "varias tareas a la vez": "several tasks at once",
+  "1 tarea": "1 task",
   "{n} tareas": "{n} tasks",
   "ninguna todavía": "none yet",
   "Una tarea por línea. Se clasifican todas de una vez, cada una se abre con el cliente y el modelo que pide, y se atan por el BUZON.md del proyecto para que no se pisen.":
@@ -2561,6 +2592,7 @@ const EN: Record<string, string> = {
   Capa: "Layer",
   "Guardado en {f}": "Saved in {f}",
   "Elemento mandado al agente": "Element sent to the agent",
+  "1 elemento mandado al agente": "1 element sent to the agent",
   "{n} elementos mandados al agente": "{n} elements sent to the agent",
   "Se lo he pedido al agente": "Asked the agent to do it",
   "Abre una terminal para poder mandarle esto": "Open a terminal to send this to",
@@ -2833,6 +2865,7 @@ const EN: Record<string, string> = {
   // Los encargos programados de la Agenda (`components/AgendaProgramados.tsx`).
   "Encargos programados": "Scheduled orders",
   "encargos programados": "scheduled orders",
+  "1 parado por el freno": "1 stopped by the breaker",
   "{n} parados por el freno": "{n} stopped by the breaker",
   "el siguiente, {c}": "next one, {c}",
   "se lanzan solos a su hora": "they launch on their own, on time",
@@ -2908,6 +2941,7 @@ const EN: Record<string, string> = {
   "leyendo…": "reading…",
   "sin descripción": "no description",
   "Su historial reciente no trae ninguno.": "Its recent history has none.",
+  "1 desplegado en total; aquí, los que siguen fuera y los últimos.": "1 dispatched in total; here, the ones still out and the latest.",
   "{n} desplegados en total; aquí, los que siguen fuera y los últimos.": "{n} dispatched in total; here, the ones still out and the latest.",
   "Contados en el historial de la sesión: es el dato exacto.": "Counted in the session's history: the exact figure.",
   "1 agente trabajando ahora dentro de esta sesión": "1 agent working inside this session right now",
@@ -3033,13 +3067,17 @@ const EN: Record<string, string> = {
   "tu plan no lo incluye": "your plan does not include it",
   "una abierta ahora": "one open right now",
   "{a} de {b}": "{a} of {b}",
+  "1 archivo propuesto. Clic para ver el diff.": "1 proposed file. Click to see the diff.",
   "{n} archivos propuestos. Clic para ver diffs.": "{n} proposed files. Click to see the diffs.",
+  "1 desplegado en total": "1 deployed in total",
   "{n} desplegados en total": "{n} deployed in total",
   "{n} sesiones esperan tu respuesta": "{n} sessions are waiting for your answer",
   "{n} sesiones recientes": "{n} recent sessions",
   "{n} sesión espera tu respuesta": "{n} session is waiting for your answer",
   "{n} sesión reciente": "{n} recent session",
   "{p} no tiene sesiones recientes": "{p} has no recent sessions",
+  "{p}: plegar su sesión": "{p}: fold its session",
+  "{p}: ver su sesión": "{p}: show its session",
   "{p}: plegar sus {n} sesiones": "{p}: fold its {n} sessions",
   "{p}: ver sus {n} sesiones": "{p}: show its {n} sessions",
   "«{n}» se ocultará de la lista. Es reversible (botón ⊟ arriba) y no borra nada del disco: ni la conversación ni tus archivos.":
@@ -3219,7 +3257,9 @@ const EN: Record<string, string> = {
   "«{label}» está parada por su tope de 5 horas": "“{label}” is held at its 5-hour limit",
   "«{label}» no entra por llegar al {agotada} %: {gasto}": "“{label}” is left out for reaching {agotada} %: {gasto}",
   " y ": " and ",
+  "1 punto al día, frente a {otras}": "1 point a day, against {otras}",
   "{p} puntos al día, frente a {otras}": "{p} points a day, against {otras}",
+  "1 punto al día": "1 point a day",
   "{p} puntos al día": "{p} points a day",
   "Con {retrato}: es la que más cuota perdería sin usar ({cuanto}){fuera}.":
     "With {retrato}: it is the one that would lose the most quota if left unused ({cuanto}){fuera}.",
@@ -3475,6 +3515,7 @@ const EN: Record<string, string> = {
   "Paso 2 de 2: {p}": "Step 2 of 2: {p}",
   "Paso 2 de 2: la respuesta a tu pregunta de seguridad (en emisión no se enseña).":
     "Step 2 of 2: the answer to your security question (not shown while streaming).",
+  "Esa no es la respuesta. Te queda 1 intento.": "That is not the answer. You have 1 try left.",
   "Esa no es la respuesta. Te quedan {n} intentos.": "That is not the answer. You have {n} tries left.",
   "No lo dejes": "Don't allow it",
   "Aprobar con mi PIN": "Approve with my PIN",
@@ -3518,6 +3559,7 @@ const EN: Record<string, string> = {
     "The important files (rules, memory, agent settings) and who changed them. ",
   "Lo que cambió sin pasar por el escudo sale en rojo, y ": "What changed without going through the shield shows in red, and ",
   "«Deshacer» lo deja como estaba": "«Undo» puts it back as it was",
+  "Miro 1 archivo cada 30 segundos.": "I check 1 file every 30 seconds.",
   "Miro {n} archivos cada 30 segundos.": "I check {n} files every 30 seconds.",
   "La última vez, {c}.": "Last time, {c}.",
   "En esta ventana de desarrollo no miro los archivos: lo hace la Adeorq instalada.": "In this development window I do not check the files: the installed Adeorq does.",

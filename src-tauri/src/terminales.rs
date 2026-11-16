@@ -557,8 +557,9 @@ pub struct Remoto {
     pub arranque: std::sync::atomic::AtomicU64,
     /// El número más alto que ha abierto el proceso en su vida.
     pub mayor: std::sync::atomic::AtomicU32,
-    /// Para cortar la conexión a mano (las pruebas hacen así de «app que se cae»).
-    sock: TcpStream,
+    /// Para cortar la conexión a mano (al actualizar, y las pruebas hacen así de
+    /// «app que se cae»). Es la misma conexión que leen y escriben sus hilos.
+    sock: Arc<TcpStream>,
 }
 
 /// Cuánto se espera a que el proceso conteste una orden.
@@ -570,18 +571,22 @@ impl Remoto {
     /// terminales (la app se cayó y vuelve), se traen al espejo con su historial.
     pub fn conectar(señas: &Señas, salida: Arc<dyn Salida>) -> Result<Arc<Remoto>, String> {
         let dir = std::net::SocketAddr::from(([127, 0, 0, 1], señas.puerto));
-        let flujo = TcpStream::connect_timeout(&dir, Duration::from_secs(2)).map_err(|e| e.to_string())?;
+        // Una sola conexión, compartida y sin copias. Una copia hecha justo
+        // después de `connect_timeout` sale a veces creyendo que no está
+        // conectada, y su `shutdown` falla con 10057: `cortar` no cortaba nada y
+        // el proceso seguía viendo a la app enganchada (`cortar_corta_siempre`).
+        // Leer, escribir y cortar desde hilos distintos sobre el mismo socket
+        // vale: `&TcpStream` lee y escribe.
+        let flujo = Arc::new(TcpStream::connect_timeout(&dir, Duration::from_secs(2)).map_err(|e| e.to_string())?);
         let _ = flujo.set_nodelay(true);
-        let mut escribe = crate::clon_sin_herencia(&flujo).map_err(|e| e.to_string())?;
-        let sock = crate::clon_sin_herencia(&flujo).map_err(|e| e.to_string())?;
-        let lee = BufReader::new(flujo);
+        let escribe = flujo.clone();
 
-        // El escritor: lo único que toca el socket de salida, y el canal no
+        // El escritor: lo único que escribe en el socket, y el canal no
         // bloquea a quien manda (la tecla, en el hilo de la ventana).
         let (sale, rx) = std::sync::mpsc::channel::<String>();
         std::thread::spawn(move || {
             for l in rx {
-                if escribe.write_all(l.as_bytes()).is_err() {
+                if (&*escribe).write_all(l.as_bytes()).is_err() {
                     break;
                 }
             }
@@ -598,7 +603,7 @@ impl Remoto {
             pid: señas.pid,
             arranque: Default::default(),
             mayor: Default::default(),
-            sock,
+            sock: flujo.clone(),
         });
 
         // El lector: avisos de las terminales al espejo y a la ventana, y las
@@ -606,6 +611,7 @@ impl Remoto {
         let (tx_hola, rx_hola) = std::sync::mpsc::channel::<Result<usize, String>>();
         let r = remoto.clone();
         std::thread::spawn(move || {
+            let lee = BufReader::new(&*flujo);
             let mut hola = Some(tx_hola);
             for l in lee.lines() {
                 let Ok(l) = l else { break };
@@ -655,9 +661,17 @@ impl Remoto {
             }
         });
 
-        let terminales = rx_hola.recv_timeout(Duration::from_secs(5)).map_err(|_| "el proceso de terminales no saludó".to_string())??;
-        if terminales > 0 {
-            remoto.traer_las_vivas()?;
+        let listo = rx_hola
+            .recv_timeout(Duration::from_secs(5))
+            .map_err(|_| "el proceso de terminales no saludó".to_string())
+            .and_then(|r| r)
+            .and_then(|terminales| if terminales > 0 { remoto.traer_las_vivas() } else { Ok(()) });
+        if let Err(e) = listo {
+            // Enganchada a medias no sirve: sin cortar, el proceso seguiría
+            // creyendo que la app está y le diría «ya hay una app» a la
+            // siguiente (`si_conectar_falla_a_medias_se_corta`).
+            remoto.cortar();
+            return Err(e);
         }
         Ok(remoto)
     }
@@ -802,7 +816,8 @@ impl Remoto {
     }
 
     /// Corta la conexión sin despedirse: lo que le pasa al proceso cuando la app
-    /// muere de golpe. Lo usan las pruebas para hacer de app que se cae.
+    /// muere de golpe. Lo usa la app al cerrarse para actualizar (las terminales
+    /// se quedan para la versión nueva) y las pruebas para hacer de app que se cae.
     pub fn cortar(&self) {
         let _ = self.sock.shutdown(std::net::Shutdown::Both);
     }
@@ -1584,10 +1599,84 @@ mod pruebas {
         let rotos: Vec<usize> = socks
             .iter()
             .enumerate()
-            .filter(|(_, (c, s))| c.peer_addr().is_err() || s.peer_addr().is_err() || c.try_clone().and_then(|mut x| x.write_all(b"x")).is_err())
+            .filter(|(_, (c, s))| c.peer_addr().is_err() || s.peer_addr().is_err() || crate::clon_sin_herencia(c).and_then(|mut x| x.write_all(b"x")).is_err())
             .map(|(i, _)| i)
             .collect();
         assert!(rotos.is_empty(), "abrir y matar terminales rompió {} de {} sockets: {rotos:?}", rotos.len(), socks.len());
+    }
+
+    /// `cortar` corta SIEMPRE: el otro lado ve el fin de la conexión. Con la copia
+    /// del socket de antes, una de cada cuarenta conexiones no cortaba nada (su
+    /// `shutdown` daba 10057, «no está conectado») y el proceso seguía creyendo
+    /// que la app estaba enganchada: las dos pruebas que fallaban con el equipo
+    /// cargado (`al_actualizar_no_se_despide`, `la_app_como_cliente_y_su_espejo`),
+    /// medido el 2026-11-16. Doscientas vueltas: con una de cada cuarenta, sale
+    /// en rojo 99 veces de cada 100.
+    #[test]
+    fn cortar_corta_siempre() {
+        struct Nada;
+        impl Salida for Nada {
+            fn datos(&self, _: u32, _: String) {}
+            fn fin(&self, _: u32, _: Option<u32>) {}
+            fn mudo(&self, _: u32) {}
+        }
+        let mut sin_corte = 0;
+        for _ in 0..200 {
+            let escucha = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+            let señas = Señas { puerto: escucha.local_addr().unwrap().port(), token: String::new(), pid: 0, version: VERSION };
+            // Un proceso de mentira: saluda y espera a que la app corte.
+            let lado = std::thread::spawn(move || {
+                let (s, _) = escucha.accept().unwrap();
+                let mut lee = BufReader::new(&s);
+                let mut l = String::new();
+                lee.read_line(&mut l).unwrap();
+                (&s).write_all(linea(&Aviso::Hola { pid: 0, version: VERSION, terminales: 0, arranque: 1, mayor: 0 }).as_bytes()).unwrap();
+                s.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+                l.clear();
+                matches!(lee.read_line(&mut l), Ok(0))
+            });
+            let r = Remoto::conectar(&señas, Arc::new(Nada)).unwrap();
+            r.cortar();
+            if !lado.join().unwrap() {
+                sin_corte += 1;
+            }
+        }
+        assert_eq!(sin_corte, 0, "de 200 conexiones, {sin_corte} no se cortaron al cortar");
+    }
+
+    /// Si `conectar` falla después de engancharse (aquí, el proceso no da la
+    /// lista de las vivas), corta: si no, el proceso sigue creyendo que la app
+    /// está, contesta «ya hay una app» a la siguiente, y `arrancar` acaba
+    /// lanzando un segundo proceso en el mismo canal.
+    #[test]
+    fn si_conectar_falla_a_medias_se_corta() {
+        struct Nada;
+        impl Salida for Nada {
+            fn datos(&self, _: u32, _: String) {}
+            fn fin(&self, _: u32, _: Option<u32>) {}
+            fn mudo(&self, _: u32) {}
+        }
+        let escucha = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let señas = Señas { puerto: escucha.local_addr().unwrap().port(), token: String::new(), pid: 0, version: VERSION };
+        let lado = std::thread::spawn(move || {
+            let (s, _) = escucha.accept().unwrap();
+            // Con plazo también aquí: si la app cortara antes de pedir la lista,
+            // la prueba sale roja en vez de quedarse esperando.
+            s.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
+            let mut lee = BufReader::new(&s);
+            let mut l = String::new();
+            lee.read_line(&mut l).unwrap();
+            (&s).write_all(linea(&Aviso::Hola { pid: 0, version: VERSION, terminales: 1, arranque: 1, mayor: 1 }).as_bytes()).unwrap();
+            l.clear();
+            lee.read_line(&mut l).unwrap();
+            let Ok(Orden::Listar { n }) = serde_json::from_str::<Orden>(l.trim()) else { panic!("esperaba la lista: {l}") };
+            (&s).write_all(linea(&Aviso::Error { n, error: "sin lista".into() }).as_bytes()).unwrap();
+            s.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+            l.clear();
+            matches!(lee.read_line(&mut l), Ok(0))
+        });
+        assert!(Remoto::conectar(&señas, Arc::new(Nada)).is_err());
+        assert!(lado.join().unwrap(), "conectar falló y dejó la conexión enganchada");
     }
 
     /// Ningún socket nuestro se hereda: si no, cada terminal que se abre se
@@ -1608,7 +1697,7 @@ mod pruebas {
             unsafe { GetHandleInformation(raw as _, &mut f) };
             f & HANDLE_FLAG_INHERIT != 0
         };
-        let a_pelo = c.try_clone().unwrap();
+        let a_pelo = c.try_clone().unwrap(); // heredable a propósito: es lo que se mide
         assert!(hereda(a_pelo.as_raw_socket()), "si try_clone deja de dar copias heredables, clon_sin_herencia sobra");
         let cuales: Vec<(&str, bool)> = vec![
             ("escucha", hereda(escucha.as_raw_socket())),
@@ -1617,6 +1706,36 @@ mod pruebas {
             ("clon sin herencia", hereda(crate::clon_sin_herencia(&c).unwrap().as_raw_socket())),
         ];
         assert!(cuales.iter().all(|(_, h)| !h), "hay sockets heredables: {cuales:?}");
+    }
+
+    /// Ninguna copia de un socket se hace a pelo fuera de `clon_sin_herencia`:
+    /// tampoco en las pruebas. El servidor de mentira de
+    /// `escudo::pruebas::el_protocolo_de_punta_a_punta` copiaba su conexión
+    /// así, los procesos que lanzan las demás pruebas a la vez se la llevaban, y
+    /// al morir uno el cliente recibía un «ConnectionReset» (10054): una de cada
+    /// tres vueltas de `cargo test --lib`, medido el 2026-11-16. Una copia
+    /// heredable de verdad lleva «a propósito» en su línea.
+    #[test]
+    fn ninguna_copia_de_socket_a_pelo() {
+        let patron = [".try_", "clone("].concat();
+        let raiz = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+        let mut pendientes = vec![raiz.clone()];
+        let mut malas = Vec::new();
+        while let Some(d) = pendientes.pop() {
+            for e in std::fs::read_dir(&d).unwrap().flatten() {
+                let p = e.path();
+                if p.is_dir() {
+                    pendientes.push(p);
+                } else if p.extension().is_some_and(|x| x == "rs") && p != raiz.join("lib.rs") {
+                    for (i, l) in std::fs::read_to_string(&p).unwrap().lines().enumerate() {
+                        if l.contains(&patron) && !l.contains("a propósito") {
+                            malas.push(format!("{}:{}", p.strip_prefix(&raiz).unwrap().display(), i + 1));
+                        }
+                    }
+                }
+            }
+        }
+        assert!(malas.is_empty(), "copias de socket a pelo (van por crate::clon_sin_herencia): {malas:?}");
     }
 
     /// ¿Desmontar una terminal cierra un identificador que ya no es suyo? Tras

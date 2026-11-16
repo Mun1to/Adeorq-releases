@@ -691,7 +691,9 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
             que={t("propuestas de tus agentes")}
             pie={
               notes.length
-                ? t("{p} pasos · {i} ideas", { p: pasos, i: notes.length - pasos })
+                ? `${pasos === 1 ? t("1 paso") : t("{n} pasos", { n: pasos })} · ${
+                    notes.length - pasos === 1 ? t("1 idea") : t("{n} ideas", { n: notes.length - pasos })
+                  }`
                 : t("nada apuntado")
             }
             onClick={() => onPropuestas?.()}
@@ -717,7 +719,9 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
             que={t("encargos programados")}
             pie={
               parados
-                ? t("{n} parados por el freno", { n: parados })
+                ? parados === 1
+                  ? t("1 parado por el freno")
+                  : t("{n} parados por el freno", { n: parados })
                 : siguiente
                   ? t("el siguiente, {c}", { c: cuandoFalta(siguiente.cuando, new Date(), t) })
                   : t("se lanzan solos a su hora")
@@ -749,25 +753,27 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
           <button
             className="ag-cal-mover"
             data-tip={t("El mes anterior")}
+            aria-label={t("El mes anterior")}
             onClick={() => {
               const v = mesVecino(anio, mes, -1);
               setAnio(v.anio);
               setMes(v.mes);
             }}
           >
-            ‹
+            <ChevronIcon izq size={16} />
           </button>
           <h2>{nombreDelMes(anio, mes, lang)}</h2>
           <button
             className="ag-cal-mover"
             data-tip={t("El mes siguiente")}
+            aria-label={t("El mes siguiente")}
             onClick={() => {
               const v = mesVecino(anio, mes, 1);
               setAnio(v.anio);
               setMes(v.mes);
             }}
           >
-            ›
+            <ChevronIcon der size={16} />
           </button>
           {mesDe(hoyTxt) !== `${anio}-${String(mes).padStart(2, "0")}` && (
             <button

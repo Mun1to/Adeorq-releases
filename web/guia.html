@@ -23,23 +23,23 @@
 <meta property="og:locale" content="es_ES">
 <meta property="og:url" content="https://adeorq.com/guia">
 <meta property="og:title" content="Guía de Adeorq · cómo se usa la cabina">
-<meta property="og:description" content="Que hace cada pantalla de Adeorq, como se instala, los estados de una sesion, los objetivos del dia, los atajos y donde guarda tus cosas.">
-<meta property="og:image" content="https://adeorq.com/assets/og.png?v=9489ba56">
+<meta property="og:description" content="Qué hace cada pantalla de Adeorq, cómo se instala, los estados de una sesión, los objetivos del día, los atajos y dónde guarda tus cosas.">
+<meta property="og:image" content="https://adeorq.com/assets/og.png?v=43caab35">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Adeorq: all your agents, one single screen">
 
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Guía de Adeorq · cómo se usa la cabina">
-<meta name="twitter:description" content="Que hace cada pantalla de Adeorq, como se instala, los estados de una sesion, los objetivos del dia, los atajos y donde guarda tus cosas.">
-<meta name="twitter:image" content="https://adeorq.com/assets/og.png?v=9489ba56">
+<meta name="twitter:description" content="Qué hace cada pantalla de Adeorq, cómo se instala, los estados de una sesión, los objetivos del día, los atajos y dónde guarda tus cosas.">
+<meta name="twitter:image" content="https://adeorq.com/assets/og.png?v=43caab35">
 
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "TechArticle",
-  "headline": "Guia de Adeorq",
-  "description": "Como se usa Adeorq: cada pantalla, la instalacion, los atajos y donde guarda tus cosas.",
+  "headline": "Guía de Adeorq",
+  "description": "Cómo se usa Adeorq: cada pantalla, la instalación, los atajos y dónde guarda tus cosas.",
   "inLanguage": "es-ES",
   "url": "https://adeorq.com/guia",
   "author": {
@@ -90,7 +90,6 @@
 })();
 </script>
 
-<link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/favicon-32.png" sizes="32x32">
@@ -178,15 +177,14 @@
 
   <!-- =========================== PORTADA =========================== -->
   <div class="doc-portada">
-    <p class="doc-portada__eyebrow" data-i18n="guia.eyebrow">Documentación</p>
     <h1 data-i18n="guia.titulo">Cómo se usa la cabina.</h1>
     <p data-i18n="guia.entrada">
-      Adeorq es un panel de escritorio para Windows y Linux donde tus agentes trabajan en
+      Adeorq es un panel de escritorio para Windows, Linux y Mac donde tus agentes trabajan en
       terminales de verdad, y que también se usa desde el móvil. Esta guía cuenta qué hace cada pantalla, en el orden en que te las vas encontrando.
       No hace falta leerla entera: el índice de la izquierda lleva directo a lo que buscas.
     </p>
     <div class="doc-portada__meta">
-      <span data-i18n="guia.meta1">Windows 10 y 11 · Linux</span>
+      <span data-i18n="guia.meta1">Windows 10 y 11 · Linux · Mac con Apple Silicon</span>
       <span data-i18n="guia.meta2">Gratis, sin cuenta</span>
       <span data-i18n="guia.meta3">Funciona con tus suscripciones</span>
     </div>
@@ -750,8 +748,8 @@
 
       <h3 data-i18n="guia.cuentas.h3a">Qué programas admiten varias cuentas</h3>
       <p data-i18n-html="guia.cuentas.pa">
-        Adeorq conoce una veintena de programas, pero solo <b>ocho admiten varias cuentas</b>:
-        Claude Code, Codex, Gemini CLI, Qwen Code, Grok, Pi, Kimi Code y CodeWhale. En esos se ha
+        Adeorq conoce once programas, y <b>seis admiten varias cuentas</b>:
+        Claude Code, Codex, Gemini CLI, Grok, Pi y Kimi Code. En esos se ha
         comprobado que una variable de entorno mueve de verdad la carpeta del programa. Los
         demás salen con la nota «una sola cuenta»: es preferible decirlo a inventarse un nombre
         y que una cuenta acabe escribiendo donde no toca. Antigravity guarda su estado dentro de
@@ -787,23 +785,22 @@
         </li>
       </ul>
 
-      <h3 data-i18n="guia.cuentas.h3v">Vibecoding con OpenRouter (Aider)</h3>
+      <h3 data-i18n="guia.cuentas.h3v">Vibecoding con OpenRouter (opencode)</h3>
       <p data-i18n-html="guia.cuentas.pv1">
         La tarjeta de OpenRouter, dentro de <b>Claves de API</b>, es una sola clave que abre
         modelos de muchos proveedores, incluidos los que no tienen CLI propio (Kimi, DeepSeek,
         Grok…). Con la clave puesta, debajo aparece una segunda tarjeta, <b>Vibecoding</b>, que
-        abre una terminal real de <a href="https://aider.chat" target="_blank" rel="noopener">Aider</a>
-        apuntando al modelo que escribas ahí (por defecto, <code>moonshotai/kimi-k3</code>). La
-        primera vez el botón instala Aider solo; las siguientes, abre la terminal directamente
-        con la clave puesta.
+        abre una terminal real de <a href="https://opencode.ai" target="_blank" rel="noopener">opencode</a>
+        apuntando al modelo que escribas ahí (por defecto, <code>moonshotai/kimi-k3</code>). Si
+        aún no tienes opencode, el botón dice <b>Instalar opencode primero</b>; después,
+        <b>Abrir terminal</b>, con la clave puesta.
       </p>
       <div class="doc-caja doc-caja--ojo">
         <p data-i18n-html="guia.cuentas.pv2">
-          <span class="doc-caja__titulo">Si abres Aider a mano, en vez de con el botón:</span>
-          dile siempre el modelo (<code>aider --model openrouter/&lt;modelo&gt;</code>), porque sin
-          eso coge la primera clave que encuentre en tu entorno y prueba con OTRO proveedor, y
-          pon la clave en <code>OPENROUTER_API_KEY</code> en ESA terminal. La tarjeta hace las
-          dos cosas sola.
+          <span class="doc-caja__titulo">Si abres opencode a mano, en vez de con el botón:</span>
+          dile siempre el modelo (<code>opencode -m openrouter/&lt;modelo&gt;</code>), o usará el
+          proveedor que tenga a mano y no tocará OpenRouter, y pon la clave en
+          <code>OPENROUTER_API_KEY</code> en ESA terminal. La tarjeta hace las dos cosas sola.
         </p>
       </div>
     </section>
@@ -1368,18 +1365,18 @@
           <tbody>
             <tr><td><kbd>Ctrl</kbd> + <kbd>K</kbd></td><td data-i18n="guia.atajos.a7">La paleta: escribe y ve a cualquier pestaña, terminal abierta o proyecto, o lanza cualquiera de estos atajos. Funciona también dentro de una terminal</td></tr>
             <tr><td><kbd>Ctrl</kbd> + <kbd>P</kbd></td><td data-i18n="guia.atajos.a8">Abrir un archivo del proyecto por su nombre (dentro de una terminal esa tecla es del programa: ahí, por Ctrl+K)</td></tr>
-            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>T</kbd></td><td data-i18n="guia.atajos.a9">Terminal nueva, en la carpeta de la activa</td></tr>
-            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>→</kbd></td><td data-i18n="guia.atajos.a10">Partir la terminal activa a la derecha</td></tr>
-            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>↓</kbd></td><td data-i18n="guia.atajos.a11">Partir la terminal activa hacia abajo</td></tr>
-            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>F</kbd></td><td data-i18n="guia.atajos.a12">Maximizar o restaurar la terminal activa</td></tr>
-            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>A</kbd></td><td data-i18n="guia.atajos.a1">Llamar a Adeo</td></tr>
-            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>M</kbd></td><td data-i18n="guia.atajos.a2">Llamar a Adeo y dictarle</td></tr>
-            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>E</kbd></td><td data-i18n="guia.atajos.a3">Modo emisión</td></tr>
-            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>P</kbd></td><td data-i18n="guia.atajos.a4">Tapar la pantalla entera</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd data-i18n="guia.tecla.mayus">Mayús</kbd> + <kbd>T</kbd></td><td data-i18n="guia.atajos.a9">Terminal nueva, en la carpeta de la activa</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd data-i18n="guia.tecla.mayus">Mayús</kbd> + <kbd>→</kbd></td><td data-i18n="guia.atajos.a10">Partir la terminal activa a la derecha</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd data-i18n="guia.tecla.mayus">Mayús</kbd> + <kbd>↓</kbd></td><td data-i18n="guia.atajos.a11">Partir la terminal activa hacia abajo</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd data-i18n="guia.tecla.mayus">Mayús</kbd> + <kbd>F</kbd></td><td data-i18n="guia.atajos.a12">Maximizar o restaurar la terminal activa</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd data-i18n="guia.tecla.mayus">Mayús</kbd> + <kbd>A</kbd></td><td data-i18n="guia.atajos.a1">Llamar a Adeo</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd data-i18n="guia.tecla.mayus">Mayús</kbd> + <kbd>M</kbd></td><td data-i18n="guia.atajos.a2">Llamar a Adeo y dictarle</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd data-i18n="guia.tecla.mayus">Mayús</kbd> + <kbd>E</kbd></td><td data-i18n="guia.atajos.a3">Modo emisión</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd data-i18n="guia.tecla.mayus">Mayús</kbd> + <kbd>P</kbd></td><td data-i18n="guia.atajos.a4">Tapar la pantalla entera</td></tr>
             <tr><td><kbd>Alt</kbd> <span data-i18n="guia.atajos.mantener">(mantener)</span></td><td data-i18n="guia.atajos.a5">Mirar debajo del modo emisión</td></tr>
             <tr><td><kbd>Ctrl</kbd> + <kbd>Z</kbd></td><td data-i18n="guia.atajos.a13">Reabrir la última terminal cerrada (fuera de una terminal y de un cuadro de texto)</td></tr>
-            <tr><td><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>Mayús</kbd> + <kbd>0</kbd></td><td data-i18n="guia.atajos.a14">Apagar todos los mods</td></tr>
-            <tr><td><kbd>Ctrl</kbd> + <kbd>C</kbd> / <kbd>Ctrl</kbd> + <kbd>V</kbd></td><td data-i18n="guia.atajos.a15">En una terminal: copiar (si no hay nada seleccionado, Ctrl+C va al programa) y pegar</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd data-i18n="guia.tecla.mayus">Mayús</kbd> + <kbd>0</kbd></td><td data-i18n="guia.atajos.a14">Apagar todos los mods</td></tr>
+            <tr><td><span class="doc-combo"><kbd>Ctrl</kbd> + <kbd>C</kbd></span> / <span class="doc-combo"><kbd>Ctrl</kbd> + <kbd>V</kbd></span></td><td data-i18n="guia.atajos.a15">En una terminal: copiar (si no hay nada seleccionado, Ctrl+C va al programa) y pegar</td></tr>
             <tr><td><kbd>Ctrl</kbd> + <kbd>F</kbd></td><td data-i18n="guia.atajos.a16">En una terminal: buscar dentro de ella. No le llega al agente</td></tr>
             <tr><td><kbd>Esc</kbd></td><td data-i18n="guia.atajos.a6">Cerrar lo que esté abierto encima</td></tr>
           </tbody>
@@ -1601,7 +1598,7 @@
           <span class="marca__texto">Adeorq</span>
         </a>
         <p class="pie__lema" data-i18n="guia.pie.lema">
-          El panel donde tus agentes trabajan en terminales de verdad. En Windows y en Linux, y
+          El panel donde tus agentes trabajan en terminales de verdad. En Windows, Linux y Mac, y
           contigo en el móvil.
         </p>
       </div>

@@ -137,7 +137,19 @@ const TEMA = EditorView.theme({
   // Plegar: la flecha solo se ve al acercarse al margen, para que el margen
   // siga siendo números y no una columna de flechas.
   ".cm-foldGutter .cm-gutterElement": { cursor: "pointer", padding: "0 4px 0 0" },
-  ".cod-pliega": { opacity: "0", transition: "opacity .12s ease" },
+  // La flecha es el chevron de la casa como máscara (`--chevron-abajo`/`-der`,
+  // de 01-base.css), no un «▾» escrito que cada letra pinta a su manera.
+  ".cod-pliega": {
+    display: "inline-block",
+    width: "11px",
+    height: "11px",
+    verticalAlign: "-1px",
+    background: "currentColor",
+    mask: "var(--chevron-abajo) center / contain no-repeat",
+    opacity: "0",
+    transition: "opacity .12s ease",
+  },
+  ".cod-pliega.cod-plegado": { maskImage: "var(--chevron-der)" },
   // Lo que ya está plegado se ve siempre: si no, no sabrías que falta algo.
   ".cm-gutters:hover .cod-pliega, .cod-plegado": { opacity: "0.85" },
   ".cm-foldPlaceholder": {
@@ -160,8 +172,8 @@ const TEMA = EditorView.theme({
     alignItems: "center",
     gap: "6px",
     padding: "8px 34px 8px 10px",
-    fontFamily: '"Segoe UI Variable", "Segoe UI", system-ui, sans-serif',
-    fontSize: "12.5px",
+    fontFamily: '"Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif',
+    fontSize: "13.5px",
   },
   // «Ir a la línea» es un diálogo de CodeMirror (`.cm-dialog`), no un panel de
   // búsqueda: lleva su formulario dentro y su aspa aparte.
@@ -174,7 +186,7 @@ const TEMA = EditorView.theme({
     borderRadius: "var(--r-chico)",
     padding: "5px 9px",
     margin: "0",
-    fontSize: "12.5px",
+    fontSize: "13.5px",
     minWidth: "190px",
     outline: "none",
   },
@@ -187,7 +199,7 @@ const TEMA = EditorView.theme({
     borderRadius: "var(--r-chico)",
     padding: "4px 10px",
     margin: "0",
-    fontSize: "12.5px",
+    fontSize: "13.5px",
     cursor: "pointer",
   },
   ".cm-panel .cm-button:hover": { backgroundColor: "var(--row-hover)" },
@@ -196,7 +208,7 @@ const TEMA = EditorView.theme({
     alignItems: "center",
     gap: "4px",
     color: "var(--muted)",
-    fontSize: "12px",
+    fontSize: "13px",
   },
   ".cm-panel.cm-search input[type=checkbox]": { accentColor: "var(--accent)", margin: "0" },
   ".cm-panel.cm-search [name=close], .cm-panel .cm-dialog-close": {
@@ -286,7 +298,6 @@ const FRASES_ES: Record<string, string> = {
 
 function flecha(abierto: boolean): HTMLElement {
   const s = document.createElement("span");
-  s.textContent = abierto ? "▾" : "▸";
   s.className = abierto ? "cod-pliega" : "cod-pliega cod-plegado";
   return s;
 }

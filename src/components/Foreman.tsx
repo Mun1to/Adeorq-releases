@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   findAgy,
   foremanAgente,
@@ -60,7 +60,8 @@ import { makeT, useT, type Translate } from "../lib/i18n";
 import { useMenu } from "./Overlays";
 import Orbe, { type EstadoOrbe } from "./Orbe";
 import { AvisoIA, BotonInformar } from "./Informar";
-import { BoltIcon, CheckIcon, CloseIcon, VozIcon } from "./Icons";
+import { AvisoIcon, BoltIcon, BroadcastIcon, CheckIcon, CloseIcon, CommandIcon, EnterIcon, GroupIcon, SearchIcon, TerminalIcon, VozIcon } from "./Icons";
+import ProviderMark from "./ProviderMark";
 import { decir, parar, vozElegida, VOCES, VOZ_KEY } from "../lib/hablar";
 import { propsDeVelo } from "../lib/velo";
 import { dictar, transcribir, vozLista, type Dictado } from "../lib/voz";
@@ -636,16 +637,19 @@ function missionFile(project: string, encargo: string): string {
   return `# MISION.md · ${project}\n\n> Generado por Adeo, de Adeorq (${stamp}). Coordinación del equipo:\n> todos los agentes leen este archivo y avisan de sus avances en BUZON.md.\n\n## Encargo para Antigravity\n\n${encargo}\n`;
 }
 
-function actionIcon(a: PlanAction): string {
-  if (a.tipo === "abrir_sesion") return "▶";
-  if (a.tipo === "claude_nuevo") return "✦";
-  if (a.tipo === "comando") return "⌘";
-  if (a.tipo === "a_todas") return "⇉";
-  if (a.tipo === "terminal") return ">_";
-  if (a.tipo === "cerrar_panel") return "✕";
-  if (a.tipo === "revisar") return "⌕";
-  if (a.tipo === "cuadrilla") return "⚏";
-  return "AG";
+/** El icono de cada paso del plan, dibujado: eran glifos (▶ ✦ ⌘ ⇉ ⌕ ⚏) que cada
+    letra pinta a su manera y que al lado de los iconos de la casa se veían de
+    otro sitio. Claude y Antigravity llevan su marca, la de sus paneles. */
+function actionIcon(a: PlanAction): ReactNode {
+  if (a.tipo === "abrir_sesion") return <EnterIcon size={14} />;
+  if (a.tipo === "claude_nuevo") return <ProviderMark id="claude" />;
+  if (a.tipo === "comando") return <CommandIcon size={14} />;
+  if (a.tipo === "a_todas") return <BroadcastIcon size={14} />;
+  if (a.tipo === "terminal") return <TerminalIcon size={14} />;
+  if (a.tipo === "cerrar_panel") return <CloseIcon size={14} />;
+  if (a.tipo === "revisar") return <SearchIcon size={14} />;
+  if (a.tipo === "cuadrilla") return <GroupIcon size={14} />;
+  return <ProviderMark id="agy" />;
 }
 
 function actionLabel(c: Checked): string {
@@ -1562,7 +1566,9 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir, enLa
                     data-tip={
                       m === ficha.receta.modelo
                         ? t("Lo recomendado para esta tarea")
-                        : t("{n} veces el peso de haiku", { n: String(PESO[m]) })
+                        : PESO[m] === 1
+                          ? t("1 vez el peso de haiku")
+                          : t("{n} veces el peso de haiku", { n: String(PESO[m]) })
                     }
                     onClick={() => setElegido({ ...elegido, cli: "claude", modelo: m })}
                   >
@@ -1654,7 +1660,13 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir, enLa
                   {actionLabel(c)}
                   {c.action.motivo ? ` · ${c.action.motivo}` : ""}
                   {c.ok && cuentasAparte(c) ? ` · ${t("en {c}", { c: cuentasAparte(c) })}` : ""}
-                {!c.ok && ` · ⚠ ${c.why}`}
+                {!c.ok && (
+                  <>
+                    {" · "}
+                    <AvisoIcon size={13} />
+                    {c.why}
+                  </>
+                )}
                 </span>
                 {/* Con qué cerebro abre. Antes solo se veía en la revisión y
                     escrito dentro del texto; ahora va en todas las que abren un

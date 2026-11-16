@@ -872,8 +872,8 @@ pub fn guardar_titulo_propio(session_id: &str, titulo: &str) -> Result<(), Strin
 /// justo lo que hace falta. Pi y Gemini también se leen (`scan_pi`,
 /// `scan_gemini`); Gemini guarda cada sesión sola desde hace tiempo, aunque el
 /// 2026-07-30 su carpeta estaba vacía y aquí se llegó a escribir que solo
-/// guardaba con `/chat save`. Qwen, Copilot y Crush no dejan historial
-/// legible. Cuando alguno empiece a guardarlo, se añade aquí al lado.
+/// guardaba con `/chat save`. Copilot no deja historial legible. Cuando
+/// empiece a guardarlo, se añade aquí al lado.
 fn scan_codex() -> Vec<SessionInfo> {
     casas_de_codex().iter().flat_map(|(cuenta, raiz)| scan_codex_en(raiz, cuenta)).collect()
 }

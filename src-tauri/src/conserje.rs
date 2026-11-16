@@ -268,7 +268,7 @@ impl Conversacion {
 /// Cómo habla un programa sin interfaz: con qué banderas se le cierra todo
 /// menos las manos de Adeorq y en qué forma devuelve lo que va haciendo. Es el
 /// formato de su modo sin interfaz, no su nombre: otro CLI que copie uno de
-/// estos (Qwen copia el de Claude Code) entraría por la misma rama.
+/// estos entraría por la misma rama.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Dialecto {
     /// `claude -p … --output-format stream-json`: lo de siempre (`correr`).
@@ -310,7 +310,7 @@ pub struct Pensador {
 /// permiten `powershell` y `git push`: entra el día que se le pueda quitar la
 /// herramienta); Copilot y opencode (se pueden cerrar igual, pero opencode no
 /// tiene login aquí y Copilot no tiene una tabla de escalones: entran
-/// midiendo un tiro de cada uno); Qwen (sin login en este equipo).
+/// midiendo un tiro de cada uno).
 pub const PENSADORES: &[Pensador] = &[
     Pensador { id: "claude", exe: "claude", modelos: ["haiku", "sonnet", "opus"], dialecto: Dialecto::Claude },
     Pensador {
@@ -2889,7 +2889,8 @@ mod tests {
     /// con un modelo que el menú no enseña.
     #[test]
     fn los_modelos_de_cada_pensador_son_los_de_la_tabla() {
-        let tabla = std::fs::read_to_string("../src/lib/providers.ts").expect("providers.ts");
+        // Desde la carpeta del crate, no desde donde se lance el binario de pruebas.
+        let tabla = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../src/lib/providers.ts")).expect("providers.ts");
         for p in PENSADORES.iter().filter(|p| p.dialecto != Dialecto::Claude) {
             let fila = format!(
                 "modelos: {{ haiku: \"{}\", sonnet: \"{}\", opus: \"{}\" }}",

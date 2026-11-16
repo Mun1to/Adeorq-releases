@@ -53,7 +53,7 @@ try {
   await dormir(1500);
   await hasta(() => a.v.js(`document.readyState === "complete" && !!document.querySelector(".app, #root > *")`), 20_000);
   await hasta(() => a.v.js(`(() => { const t = [...document.querySelectorAll(".tab")].find((x) => /Cabina/.test(x.textContent ?? "")); t?.click(); return !!t; })()`), 15_000);
-  await hasta(() => a.v.js(`(() => { const b = [...document.querySelectorAll(".project-main")].find((x) => /demo/.test(x.textContent ?? "")); if (!b) return false; if (/▸/.test(b.textContent ?? "")) b.click(); return true; })()`), 15_000);
+  await hasta(() => a.v.js(`(() => { const b = [...document.querySelectorAll(".project-main")].find((x) => /demo/.test(x.textContent ?? "")); if (!b) return false; if (b.getAttribute("aria-expanded") === "false") b.click(); return true; })()`), 15_000);
   const fila = () => a.v.js(`document.querySelector('[data-sesion="${SID}"]')?.textContent ?? ""`);
   const edad = (t) => Number(/(\d+)\s*min/.exec(t)?.[1] ?? NaN);
   const antes = await hasta(async () => (await fila()) || null, 20_000, 500);

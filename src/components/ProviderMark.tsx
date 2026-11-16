@@ -9,8 +9,8 @@
 // proveedor y del tema (un PNG bajado de una web se queda con su fondo blanco
 // en los 24 temas oscuros), y no añaden ni un archivo que se pueda perder.
 //
-// Los seis que Munir mandó el 29 de julio de 2026 —Codex, Cursor, opencode,
-// Qwen, Copilot y Antigravity— están rehechos MIRANDO su logo, así que siguen
+// Los que Munir mandó el 29 de julio de 2026 —Codex, Cursor, opencode, Copilot
+// y Antigravity— están rehechos MIRANDO su logo, así que siguen
 // su forma real y no una idea mía de por dónde iban. Los que llevan hueco
 // (Codex, Cursor, opencode, Copilot) lo llevan de verdad: se recortan con una
 // máscara o con `fill-rule="evenodd"`, y por el agujero se ve el fondo que haya
@@ -20,10 +20,11 @@
 // El criterio de cada dibujo es que se reconozca de un vistazo a 15px, que es
 // el tamaño real en la fila. Por eso son formas, no letras.
 //
-// Crush y Amp NO tienen marca aquí, y es a propósito: sus dibujos eran míos, no
-// venían de su logo, y Munir los quitó al verlos (2026-07-29). Quien no está en
-// esta lista sale con sus iniciales, que es honesto: dos letras no pretenden ser
-// el logo de nadie. Si algún día llegan los suyos, se añaden y ya.
+// Quien no está en esta lista sale con sus iniciales, que es honesto: dos letras
+// no pretenden ser el logo de nadie (Munir quitó el 2026-07-29 dos dibujos que
+// eran míos y no venían de su logo). Hoy les pasa a Pi y a Kimi: la marca de Pi
+// es un patrón geométrico que no se leyó con claridad, y la web de Kimi no
+// sirve un SVG. Si algún día llegan los suyos, se añaden y ya.
 
 import { useId } from "react";
 import type { ReactElement } from "react";
@@ -85,55 +86,6 @@ const MARCAS: Record<string, (uid: string) => ReactElement> = {
       d="M12 1.6c0 5.7 4.7 10.4 10.4 10.4C16.7 12 12 16.7 12 22.4 12 16.7 7.3 12 1.6 12 7.3 12 12 7.3 12 1.6Z"
       fill="currentColor"
     />
-  ),
-
-  // Qwen: su hexagrama tejido.
-  //
-  // Cuarto intento, y el que por fin se le parece (Munir, 2026-08-01, con su
-  // logo delante). Lo que fallaba en los tres anteriores no era la forma sino
-  // el GROSOR: se dibujaba con trazo fino, y un hexagrama de línea fina es una
-  // estrella de David. El logo de Qwen son BANDAS anchas, casi tan gruesas
-  // como el hueco que dejan entre ellas, y eso es lo que lo hace un nudo.
-  //
-  // Y el entrelazado sí se puede, aunque las dos bandas sean del mismo color:
-  // el truco es la máscara. Antes de pintar la banda de abajo se le recorta por
-  // donde pasa la de arriba, dejando un hueco de 1,4 a cada lado, así que se
-  // ve quién pasa por encima sin necesidad de dos colores ni degradado.
-  //
-  // Se probaron cuatro variantes renderizadas y miradas a tamaño real, incluida
-  // una con el trenzado alternando (cada banda por encima en un cruce y por
-  // debajo en el otro): a 15 px esa se rompe y parece un hexagrama partido. Con
-  // una banda siempre encima se lee bien tanto a 15 px como a 80.
-  qwen: (uid) => (
-    <>
-      <mask id={uid} maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
-        <rect width="24" height="24" fill="#fff" />
-        <path
-          d="M12 2.6 20.1 16.6 3.9 16.6Z"
-          fill="none"
-          stroke="#000"
-          strokeWidth="7.4"
-          strokeLinejoin="miter"
-        />
-      </mask>
-      <path
-        d="M12 21.4 3.9 7.4h16.2Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="4.6"
-        strokeLinejoin="miter"
-        mask={`url(#${uid})`}
-      />
-      <path
-        d="M12 2.6 20.1 16.6 3.9 16.6Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="4.6"
-        strokeLinejoin="miter"
-      />
-      {/* El triángulo del centro, que en su logo es macizo y apunta abajo. */}
-      <path d="M12 15.4 9.5 10.9h5Z" fill="currentColor" />
-    </>
   ),
 
   // Copilot: su cara. Las dos lentes y la banda de abajo son huecos de verdad,
@@ -222,55 +174,6 @@ const MARCAS: Record<string, (uid: string) => ReactElement> = {
 export function tieneMarca(id: string): boolean {
   return id in MARCAS;
 }
-
-/* ── Los del 2026-08-23, y por qué solo son DOS ────────────────────────────
- *
- * Munir pidió los doce logos que faltaban. En julio ya se intentó y los rechazó
- * con razón, porque estaban dibujados de memoria. Así que esta vez el método
- * fue otro: bajar el SVG REAL de cada uno, mirarlo ampliado en pantalla,
- * redibujarlo, y **volver a mirarlo al lado del original a 24 y a 15 píxeles**,
- * que es el tamaño en el que de verdad vive. Salieron dos.
- *
- * Los que se quedan fuera, y el motivo de cada uno, para no repetir el trabajo:
- *
- * - `droid` (Factory): su flor de ocho pétalos. DOS intentos, macizo y de
- *   trazo, y ninguno se le parece: macizo sale un copo de nieve y en trazo un
- *   mandala, y a 15px las dos cosas son una mancha. A la segunda se para.
- * - `goose` (Block): es un cocodrilo ilustrado con un cuaderno. No hay silueta
- *   que sobreviva a 15px.
- * - `aider`: no tiene símbolo, su logo es la palabra escrita. Nada que dibujar.
- * - `pi`: su marca es un patrón geométrico que no se leyó con claridad.
- * - `amp`, `kimi`, `codebuff`: su web no sirve un SVG, devuelve la página.
- * - `crush`, `codewhale`, `cody`: no se encontró el archivo en su repositorio.
- *
- * Todos esos salen con sus iniciales, que es lo honesto: dos letras no
- * pretenden ser el logo de nadie. */
-Object.assign(MARCAS, {
-  // Jules: su pulpo. Cúpula con dos ojos y cuatro tentáculos, que es lo que
-  // queda de él cuando se le quita el relleno y se reduce a 24 píxeles.
-  jules: () => (
-    <g strokeWidth="1.8" {...T}>
-      <path d="M5.4 15.2V9.6a6.6 6.6 0 0 1 13.2 0v5.6" />
-      <path d="M6.4 15.2v4.6a1.7 1.7 0 0 1-3.4 0v-.7" />
-      <path d="M17.6 15.2v4.6a1.7 1.7 0 0 0 3.4 0v-.7" />
-      <path d="M10.1 15.2v4.4M13.9 15.2v4.4" />
-      <path d="M9.3 9.8h.01M14.7 9.8h.01" strokeWidth="2.4" />
-    </g>
-  ),
-
-  // Auggie (Augment): su cara de corchetes. Dos llaves enfrentadas que casi
-  // cierran un cuadrado, dos ojos dentro y las dos antenas asomando arriba. El
-  // primer intento las tenía demasiado separadas y bajas, y a 15px no se leía
-  // nada: aquí van juntas y ocupando la caja entera.
-  auggie: () => (
-    <g strokeWidth="1.8" {...T}>
-      <path d="M10.6 6.4H8.1A2.1 2.1 0 0 0 6 8.5v6.6a2.1 2.1 0 0 0 2.1 2.1h2.5" />
-      <path d="M13.4 6.4h2.5A2.1 2.1 0 0 1 18 8.5v6.6a2.1 2.1 0 0 1-2.1 2.1h-2.5" />
-      <path d="M10.4 3.1v3M13.6 3.1v3" />
-      <path d="M10.2 11.5h.01M13.8 11.5h.01" strokeWidth="2.3" />
-    </g>
-  ),
-});
 
 /**
  * La marca del proveedor. Devuelve null si no tenemos dibujo suyo, para que

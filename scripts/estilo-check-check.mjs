@@ -10,6 +10,7 @@ import fs from "node:fs";
 import {
   animacionesSinFin,
   arreglar,
+  arreglarLetra,
   arreglarTiempos,
   capas,
   clase,
@@ -22,12 +23,16 @@ import {
   fotogramasConVariable,
   juzgarColor,
   juzgarEsquina,
+  juzgarFamilia,
+  juzgarLetra,
   juzgarSombra,
   juzgarTiempo,
+  LETRA_SUELO,
   revisar,
   revisarBucles,
   revisarCodigo,
   revisarColoresYTiempos,
+  revisarLetra,
   sinComentarios,
   sombraNueva,
   tiempoNuevo,
@@ -202,6 +207,33 @@ ok("y dice por qué y dónde mirar", /hilo principal en cada fotograma/.test(buc
 es("cruza las hojas: el @keyframes en una y el bucle en otra", revisarBucles([{ ruta: "k.css", css: "@keyframes filo { to { --ang: 1turn; } }" }, { ruta: "u.css", css: ".x::before { animation: filo 6s linear infinite; }" }]).map((f) => `${f.ruta}:${f.linea}`).join(" "), "u.css:1");
 es("una animación sin fin sin @keyframes con variable no es un bucle de los malos", animacionesSinFin(".x { animation: espera-gira 0.7s linear infinite; }").length === 1 && revisarBucles([{ ruta: "x.css", css: ".x { animation: espera-gira 0.7s linear infinite; }" }]).length === 0, true);
 
+/* ── La letra ────────────────────────────────────────────────────────────── */
+
+es("el suelo es 13", LETRA_SUELO, 13);
+ok("una letra de 12,5 px falla, y dice cuánto", /letra de 12\.5px/.test(juzgarLetra("font-size", "12.5px") ?? ""));
+ok("13 px y más pasan, y un tamaño relativo no se mira", ["13px", "14.5px", "0.92em", "inherit", "var(--letra)"].every((v) => juzgarLetra("font-size", v) === null));
+ok("el atajo `font` también cuenta, por su tamaño y no por su interlineado", juzgarLetra("font", '600 11px/1.4 var(--mono, ui-monospace, monospace)') !== null && juzgarLetra("font", "13px/10px Geist") === null);
+ok("el mínimo de un clamp cuenta", juzgarLetra("font-size", "clamp(10px, 2vw, 14px)") !== null && juzgarLetra("font-size", "clamp(13px, 2.6cqmin, 26px)") === null);
+ok("otra propiedad con px no es letra", juzgarLetra("line-height", "11px") === null && juzgarLetra("letter-spacing", "0.5px") === null);
+// En rem (16 px la de la raíz) y en pt (4/3 de px) es la misma letra pequeña escrita de otra forma.
+ok("una letra en rem o en pt se mira en px, y dice lo escrito", /letra de 0\.7rem \(11\.2px\)/.test(juzgarLetra("font-size", "0.7rem") ?? "") && /letra de 9pt \(12px\)/.test(juzgarLetra("font", "600 9pt/1.4 Geist") ?? ""));
+ok("y en rem o pt lo que llega al suelo pasa", ["0.8125rem", "1rem", "10pt", "12pt"].every((v) => juzgarLetra("font-size", v) === null));
+es("--arreglar sube una en rem al suelo en px", arreglarLetra(".a { font-size: 0.75rem; }").css, ".a { font-size: 13px; }");
+const LETRAS = `
+/* font-size: 9px; en un comentario no cuenta */
+.a { font-size: 11px; line-height: 11px; }
+.b { font: 650 10.5px/1 "Cascadia Mono", monospace; }
+.c { font-size: 12.5px !important; --tam: 8px; }
+.d { font-size: 13px; }
+`;
+es("en una hoja caza las tres, con su línea", revisarLetra(LETRAS).map((f) => `${f.linea}:${f.propiedad}`).join(" "), "3:font-size 4:font 5:font-size");
+const al = arreglarLetra(LETRAS);
+es("--arreglar las sube a 13 sin tocar nada más", al.css, LETRAS.replace("font-size: 11px", "font-size: 13px").replace("650 10.5px/1", "650 13px/1").replace("12.5px !important", "13px !important"));
+es("y dice cuántas", al.cambiadas, 3);
+ok("pedir \"Segoe UI Variable\" falla, que WebView2 no la encuentra", /Segoe UI Variable Text/.test(juzgarFamilia("font-family", '"Segoe UI Variable", "Segoe UI", system-ui') ?? "") && juzgarFamilia("font", "13.5px/1.4 'Segoe UI Variable', sans-serif") !== null);
+ok("sus caras con nombre pasan", ['"Segoe UI Variable Text", "Segoe UI"', '"Segoe UI Variable Display"', '"Geist Variable", "Segoe UI"'].every((v) => juzgarFamilia("font-family", v) === null));
+es("y en una hoja sale con su línea", revisarLetra('.a {\n  font-family: "Segoe UI Variable", sans-serif;\n}').map((f) => `${f.linea}:${f.propiedad}`).join(" "), "2:font-family");
+
 /* ── Lo escrito dentro del código ────────────────────────────────────────── */
 
 const TSX = [
@@ -209,20 +241,28 @@ const TSX = [
   "const b = { borderRadius: 'var(--r-chico)', boxShadow: `0 0 6px ${color}, 0 0 12px ${color}` };",
   'const c = <i style={{ boxShadow: "0 8px 24px rgba(0, 0, 0, 0.18)" }} />;',
   'const d = { borderRadius: "2px" };',
+  'const e = { labelStyle: { fill: "var(--text)", fontSize: 11 } };',
+  'const f = { fontSize: "12.5px", g: { fontSize: 13 }, h: { fontSize: 8 * zoom }, i: { fontSize: "18px" } };',
+  `const LETRA = '"Segoe UI Variable", "Segoe UI", system-ui';`,
+  `const BIEN = '"Segoe UI Variable Text", "Segoe UI", system-ui';`,
+  'const j = { fontSize: "0.7rem", k: { fontSize: "1rem" } };',
+  // Un atributo de SVG va en unidades de su viewBox, no en px: no se mira.
+  "const l = <text fontSize={8} />;",
 ].join("\n");
 const enCodigo = revisarCodigo(TSX);
-es("en el código caza la esquina y la sombra a mano, y nada más", enCodigo.map((f) => `${f.linea}:${f.propiedad}`).join(" "), "1:borderRadius 3:boxShadow");
+es("en el código caza la esquina, la sombra, la letra (también en rem) y la familia a mano, y nada más", enCodigo.map((f) => `${f.linea}:${f.propiedad}`).join(" "), "1:borderRadius 3:boxShadow 5:fontSize 6:fontSize 9:fontSize 7:familia");
 ok("el editor de la web está apartado, con su porqué", Object.keys(EN_LINEA_EXENTOS).length === 1 && !codigo().some((f) => f.ruta in EN_LINEA_EXENTOS));
 
 /* ── Y la de verdad ──────────────────────────────────────────────────────── */
 
 let enLinea = 0;
 for (const c of codigo()) enLinea += revisarCodigo(fs.readFileSync(c.entera, "utf8")).length;
-ok("en el código de la app no hay ninguna esquina ni sombra a mano", enLinea === 0, `${enLinea}`);
+ok("en el código de la app no hay ninguna esquina, sombra ni letra pequeña a mano", enLinea === 0, `${enLinea}`);
 
 let sueltas = 0;
 let miradas = 0;
 let coloresYTiempos = 0;
+let letraChica = 0;
 const hojas = [];
 for (const t of tramos()) {
   const css = fs.readFileSync(t.entera, "utf8");
@@ -230,7 +270,9 @@ for (const t of tramos()) {
   miradas += declaraciones(css).length;
   sueltas += revisar(css).length;
   coloresYTiempos += revisarColoresYTiempos(css).length;
+  letraChica += revisarLetra(css).length;
 }
+ok("ninguna letra de la hoja por debajo del suelo", letraChica === 0, `${letraChica}: \`node scripts/estilo-check.mjs\` dice cuáles`);
 ok("la hoja de la app tiene esquinas y sombras que mirar", miradas > 400, `${miradas}`);
 ok("y ninguna se sale de la escala", sueltas === 0, `${sueltas} sueltas: \`node scripts/estilo-check.mjs\` dice cuáles`);
 ok("ni un color con matiz ni una velocidad a mano en la hoja", coloresYTiempos === 0, `${coloresYTiempos}: \`node scripts/estilo-check.mjs\` dice cuáles`);

@@ -593,6 +593,20 @@ export function EstadoIcon({ estado, size = 13 }: Props & { estado: string }) {
   );
 }
 
+/** El aviso: un triángulo con su marca. Va delante del texto de un aviso en vez
+    de un «⚠» escrito, que cada letra pinta a su manera (en Geist no existe y
+    caía al emoji de colores) y al lado de los iconos de la casa se ve de otro
+    sitio. Toma el color del texto y se alinea con él (`.icono-aviso`). */
+export function AvisoIcon({ size = 15 }: Props) {
+  return (
+    <svg {...svg(size)} className="icono-aviso">
+      <path d="M12 4.5 21 19.5H3z" />
+      <line x1="12" y1="10" x2="12" y2="14" />
+      <circle cx="12" cy="16.8" r="0.9" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function GitBranchIcon({ size = 17 }: Props) {
   return (
     <svg {...svg(size)}>

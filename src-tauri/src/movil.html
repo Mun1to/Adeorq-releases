@@ -790,9 +790,12 @@
   }
   /* El toque mide 44 px, pero la línea no crece: lo que sobra se descuenta con margen. */
   .aviso-ia a.informar { margin: -8px 0; }
+  /* «o» + «por correo» van juntos: la «o» es texto y el enlace empieza a un espacio. */
+  .o-correo { white-space: nowrap; }
+  .o-correo a.informar { padding-left: 2px; }
   /* En un móvil la frase, el enlace y «o por correo» no caben en una línea, y partirla
      deja «o por correo» solo abajo: la frase arriba y los dos enlaces juntos debajo. */
-  @media (max-width: 520px) { .aviso-ia > span { display: block; } }
+  @media (max-width: 520px) { .aviso-ia > span:not(.o-correo) { display: block; } }
   a.informar:active { background: color-mix(in srgb, var(--acento) 16%, transparent); }
   a.informar:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
   .turno.con-informe { flex-direction: column; align-items: flex-start; }
@@ -1404,7 +1407,7 @@ const EN = {
     "Opens a public form on GitHub. It does not carry your conversation: you paste whatever you want to show.",
   "Informe de un problema con Adeo: ": "Report an issue with Adeo: ",
   // El correo de debajo de la caja, para quien no tiene cuenta de GitHub.
-  "o por correo": "or by email",
+  "por correo": "by email",
   "Informar de un problema por correo": "Report an issue by email",
   "Abre tu programa de correo con un mensaje ya escrito para {correo}. No lleva tu conversación: pegas tú lo que quieras enseñar.":
     "Opens your email program with a message already written to {correo}. It does not carry your conversation: you paste whatever you want to show.",
@@ -3437,7 +3440,8 @@ function avisoIA() {
     dirección porque, sin un programa de correo, el toque no abre nada. */
 function enlaceCorreo() {
   const ayuda = tr("Abre tu programa de correo con un mensaje ya escrito para {correo}. No lleva tu conversación: pegas tú lo que quieras enseñar.").replace("{correo}", CORREO);
-  return `<a class="informar por-correo" href="${esc(correoDelInforme(versionDeAdeorq))}" aria-label="${esc(tr("Informar de un problema por correo"))}" title="${esc(ayuda)}">${tr("o por correo")}</a>`;
+  // La «o» va fuera del enlace: uno que empieza por la conjunción se lee como si se tocara la «o».
+  return `<span class="o-correo">${tr("o")} <a class="informar por-correo" href="${esc(correoDelInforme(versionDeAdeorq))}" aria-label="${esc(tr("Informar de un problema por correo"))}" title="${esc(ayuda)}">${tr("por correo")}</a></span>`;
 }
 function cargarVersion() {
   if (versionPedida) return;

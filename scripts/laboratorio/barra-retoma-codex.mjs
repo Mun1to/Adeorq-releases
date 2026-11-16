@@ -61,7 +61,7 @@ try {
   await hasta(() => a.v.js(`document.readyState === "complete" && !!document.querySelector(".app, #root > *")`), 20_000);
   await hasta(() => a.v.js(`(() => { const t = [...document.querySelectorAll(".tab")].find((x) => /Cabina/.test(x.textContent ?? "")); t?.click(); return !!t; })()`), 15_000);
   await dormir(800);
-  await hasta(() => a.v.js(`(() => { const b = [...document.querySelectorAll(".project-main")].find((x) => /demo/.test(x.textContent ?? "")); if (!b) return false; if (/▸/.test(b.textContent ?? "")) b.click(); return true; })()`), 15_000);
+  await hasta(() => a.v.js(`(() => { const b = [...document.querySelectorAll(".project-main")].find((x) => /demo/.test(x.textContent ?? "")); if (!b) return false; if (b.getAttribute("aria-expanded") === "false") b.click(); return true; })()`), 15_000);
   const fila = await hasta(() => a.v.js(`!!document.querySelector('[data-sesion="${ID}"]')`), 20_000);
   dice(!!fila, "la sesión de Codex sale en la barra");
   // El clic lo coge `.session`, dentro de la fila, no la fila.

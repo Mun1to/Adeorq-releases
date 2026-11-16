@@ -299,9 +299,10 @@ function Hoja({
   }, [visible]);
 
   // Lo que la cabecera necesita saber de esta hoja.
+  const lineas = archivo?.texto != null ? archivo.texto.split("\n").length : 0;
   const chip =
     archivo?.texto != null
-      ? `${t("{n} líneas", { n: archivo.texto.split("\n").length })} · ${peso(archivo.peso)}`
+      ? `${lineas === 1 ? t("1 línea") : t("{n} líneas", { n: lineas })} · ${peso(archivo.peso)}`
       : archivo && vistoComo
         ? [imagen ? medida : "PDF", peso(archivo.peso)].filter(Boolean).join(" · ")
         : "";

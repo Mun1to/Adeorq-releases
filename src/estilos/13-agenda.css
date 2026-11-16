@@ -30,7 +30,7 @@
 .obj-date {
   display: block;
   margin-top: 2px;
-  font-size: 11.5px;
+  font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
@@ -68,7 +68,7 @@
 }
 .obj-anillo-num {
   position: relative;
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
@@ -196,7 +196,7 @@
 
 .obj-empty {
   color: var(--muted);
-  font-size: 13.5px;
+  font-size: 14.5px;
   padding: 6px 10px 10px;
 }
 
@@ -215,7 +215,7 @@
   background: color-mix(in srgb, var(--accent) 8%, transparent);
   color: color-mix(in srgb, var(--text) 82%, var(--accent));
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   text-align: left;
   cursor: pointer;
@@ -377,11 +377,11 @@
   line-height: 1.1;
 }
 .pulso-dato b {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 .pulso-dato span {
-  font-size: 8.5px;
+  font-size: 13px;
   letter-spacing: 0.08em;
   color: var(--muted);
 }
@@ -423,7 +423,7 @@
 }
 .pulso-detalle .card-hint {
   margin: 10px 0 0;
-  font-size: 12.5px;
+  font-size: 13.5px;
 }
 
 .pulso-fila {
@@ -433,7 +433,7 @@
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--muted);
   margin-bottom: 5px;
 }
@@ -460,7 +460,7 @@
 }
 .pulso-linea {
   margin: 0;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--muted);
 }
 
@@ -482,7 +482,7 @@
 }
 .obj-flota-titulo .obj-date {
   margin-top: 3px;
-  font-size: 10.5px;
+  font-size: 13px;
 }
 .obj-flota-head:active {
   cursor: grabbing;
@@ -507,13 +507,13 @@
   padding: 10px 12px;
 }
 .obj-flota[data-plegado="true"] h3 {
-  font-size: 13.5px;
+  font-size: 14.5px;
 }
 
 /* El avance sube al título cuando está recogido: es lo único que hace falta
    ver, y evita tener que desplegarlo solo para saber si queda algo. */
 .obj-plegado-num {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
@@ -596,7 +596,7 @@ body.arrastrando .obj-flota {
   flex: none;
   min-width: 4ch;
   text-align: right;
-  font-size: 11px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
@@ -618,7 +618,7 @@ body.arrastrando .obj-flota {
   height: 30px;
 }
 .obj-flota-head .obj-anillo-num {
-  font-size: 9.5px;
+  font-size: 13px;
 }
 
 /* MIENTRAS ARRASTRAS UN SEPARADOR, EL CRISTAL SE APAGA.
@@ -750,15 +750,15 @@ body[data-redim] .divider {
 
 /* Las flechas de mes, sueltas: al pasar, solo el color (2026-10-17). */
 .ag-cal-mover {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 26px;
   height: 26px;
   border: none;
   border-radius: var(--r-chico);
   background: none;
   color: var(--dim);
-  font: inherit;
-  font-size: 15px;
-  line-height: 1;
   cursor: pointer;
 }
 
@@ -780,7 +780,7 @@ body[data-redim] .divider {
 .ag-cal-inicial {
   padding-bottom: 6px;
   color: var(--dim);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 650;
   letter-spacing: 0.06em;
   text-align: center;
@@ -821,7 +821,7 @@ body[data-redim] .divider {
 }
 
 .ag-cal-num {
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 620;
   font-variant-numeric: tabular-nums;
 }
@@ -836,7 +836,7 @@ body[data-redim] .divider {
   border-radius: var(--r-caja);
   background: color-mix(in srgb, color-mix(in srgb, var(--done) 70%, #fff) 16%, transparent);
   color: var(--warn);
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -853,7 +853,7 @@ body[data-redim] .divider {
   padding: 2px 6px;
   border-radius: var(--r-chico);
   background: color-mix(in srgb, var(--accent) 22%, transparent);
-  font-size: 10.5px;
+  font-size: 13px;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -928,7 +928,7 @@ body[data-redim] .divider {
 }
 
 .ag-dia .ag-quedan {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--dim);
   font-variant-numeric: tabular-nums;
 }
@@ -984,14 +984,14 @@ body[data-redim] .divider {
 }
 
 .ag-q {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.4;
 }
 
 .ag-q small {
   display: block;
   margin-top: 3px;
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--dim);
 }
 
@@ -1052,7 +1052,7 @@ body[data-redim] .divider {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--dim);
 }
 
@@ -1061,7 +1061,7 @@ body[data-redim] .divider {
   border-radius: var(--r-chico);
   background: color-mix(in srgb, color-mix(in srgb, var(--accent) 80%, #fff) 14%, transparent);
   color: color-mix(in srgb, var(--accent) 65%, #fff);
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1222,7 +1222,7 @@ body[data-redim] .divider {
   width: 32px;
   height: 32px;
   border-radius: var(--r-avatar, var(--r-btn));
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .pick-all {
@@ -1293,7 +1293,7 @@ body[data-redim] .divider {
 }
 
 .agenda-card .card-hint {
-  font-size: 13.5px;
+  font-size: 14.5px;
   line-height: 1.55;
 }
 
@@ -1367,7 +1367,7 @@ body[data-redim] .divider {
 .cal-date {
   flex: none;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   opacity: 0.8;
 }
@@ -1405,7 +1405,7 @@ body[data-redim] .divider {
 .idea-state,
 .idea-proj {
   flex: none;
-  font-size: 10.5px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.7px;
   color: var(--muted);
@@ -1426,7 +1426,7 @@ body[data-redim] .divider {
 }
 
 .idea-cond {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--muted);
 }
@@ -1460,15 +1460,15 @@ body[data-redim] .divider {
 }
 
 .pavatar.pavatar-mini {
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
   border-radius: var(--r-avatar, var(--r-chico));
-  font-size: 9px;
+  font-size: 13px;
 }
 
 .meta-when {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   padding-left: 30px;
 }
@@ -1476,7 +1476,7 @@ body[data-redim] .divider {
 .parked-list {
   gap: 7px;
   margin-top: 8px;
-  font-size: 13.5px;
+  font-size: 14.5px;
   color: var(--muted);
 }
 
@@ -1526,6 +1526,6 @@ body[data-redim] .divider {
 
 .count-max {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 

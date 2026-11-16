@@ -7,12 +7,28 @@
    ============================================================================ */
 
 .pie {
+  /* Los alias de sections.css, aquí también: la guía carga este pie sin
+     sections.css, y sin ellos se quedaba sin fondo, sin rayas y sin colores. */
+  --s-bg-alt:   var(--bg-alt,   var(--fondo-hondo,  #eaeff8));
+  --s-line:     var(--line,     var(--borde,        rgba(16, 34, 68, 0.10)));
+  --s-text:     var(--text,     var(--tinta,        #0b1220));
+  --s-muted:    var(--muted,    var(--tinta-media,  #3a4a66));
+  --s-dim:      var(--dim,      var(--tinta-suave,  #5f7191));
+  --s-accent:   var(--accent,   var(--acento,       #1f6feb));
+  --s-accent-2: var(--accent-2, var(--s-accent));
+  --s-cian:     var(--cian,     #0e7c97);
+  --s-vivo:     var(--vivo,     #15803d);
+  --s-ease-ui:  var(--curva-ui, cubic-bezier(0.4, 0, 0.2, 1));
   position: relative;
   padding: clamp(48px, 7vh, 80px) var(--e5, 1.5rem) var(--e6, 2rem);
   background: var(--s-bg-alt);
   border-top: 1px solid var(--s-line);
   font-size: var(--t-pie, 0.92rem);
 }
+
+/* La guía envuelve el pie en .pie__inner y llama .pie__rejilla a la fila de
+   columnas; la maqueta de secciones la llama .pie__alto. Las dos van igual. */
+.pie__inner { width: min(100%, var(--ancho, 1440px)); margin: 0 auto; }
 
 /* Hilo de marca en el borde superior, sin coste de pintado */
 .pie::before {
@@ -25,7 +41,8 @@
   pointer-events: none;
 }
 
-.pie__alto {
+.pie__alto,
+.pie__rejilla {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
   gap: clamp(28px, 4vw, 56px);
@@ -93,14 +110,13 @@
   flex: none;
 }
 
+/* El nombre de cada grupo, en negrita y en la letra de la página, como en el
+   pie de la portada: nada de mayúsculas espaciadas en letra de máquina. */
 .pie__titulo {
   margin-bottom: var(--e3, 0.75rem);
-  font-family: var(--tipo-mono, ui-monospace, monospace);
-  font-size: var(--t-micro, 0.76rem);
-  font-weight: var(--peso-normal, 420);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--s-dim);
+  font-size: 15.5px;
+  font-weight: 650;
+  color: var(--tinta, currentColor);
 }
 
 .pie__col ul {
@@ -154,11 +170,11 @@
 .pie__privacidad { color: var(--s-dim); }
 
 @media (max-width: 900px) {
-  .pie__alto { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pie__alto, .pie__rejilla { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pie__marca { grid-column: 1 / -1; }
 }
 
 @media (max-width: 520px) {
-  .pie__alto { grid-template-columns: 1fr; gap: var(--e6, 2rem); }
+  .pie__alto, .pie__rejilla { grid-template-columns: 1fr; gap: var(--e6, 2rem); }
   .pie__bajo { flex-direction: column; align-items: flex-start; }
 }

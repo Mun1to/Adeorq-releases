@@ -2065,7 +2065,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                                     "properties": {
                                         "cli": {
                                             "type": "string",
-                                            "description": "Which agent to run: claude, codex, gemini, qwen, copilot, grok, crush, opencode, amp, cursor, pi, kiro, kimi, codewhale, goose, droid, jules, auggie, codebuff, cody, aider, agy — or 'shell' for a plain terminal. Defaults to claude."
+                                            "description": "Which agent to run: claude, codex, gemini, copilot, grok, opencode, cursor, pi, kiro, kimi, agy — or 'shell' for a plain terminal. Defaults to claude."
                                         },
                                         "project": {
                                             "type": "string",
@@ -3679,7 +3679,7 @@ mod tests {
     fn adeorq_de_mentira(l: TcpListener, ultimo: &'static str) -> thread::JoinHandle<Vec<Value>> {
         thread::spawn(move || {
             let (s, _) = l.accept().unwrap();
-            let mut w = s.try_clone().unwrap();
+            let mut w = crate::clon_sin_herencia(&s).unwrap();
             let mut leidas = Vec::new();
             for linea in BufReader::new(s).lines() {
                 let v: Value = serde_json::from_str(&linea.unwrap()).unwrap();

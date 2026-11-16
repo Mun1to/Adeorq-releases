@@ -201,6 +201,17 @@ function longDate(iso, lang = 'es') {
   return d.toLocaleDateString(lang === 'en' ? 'en-GB' : 'es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
+// Up to 190 characters, cut at the last full stop that fits or, when there is
+// none past the middle, at the last whole word: cut mid-word ("cuya rejilla
+// na…") it read like a bug. Same rule as `corta` in portada/datos.js.
+function cutSummary(text) {
+  if (text.length <= 190) return text
+  const stop = text.slice(0, 191).lastIndexOf('. ')
+  if (stop >= 95) return text.slice(0, stop + 1)
+  const space = text.slice(0, 188).lastIndexOf(' ')
+  return `${text.slice(0, space > 0 ? space : 187).replace(/[\s,;:.]+$/, '')}…`
+}
+
 /**
  * Writes the version, the release count and the last three releases INTO the
  * served front page. portada/datos.js still refreshes them in the browser, but
@@ -236,7 +247,7 @@ function bakeReleaseData() {
         const rows = log.entries.slice(0, 3).map((e) => {
           const enSummary = lang === 'en' && e.en ? e.en.summary || e.en.title : ''
           const text = (enSummary || e.summary || e.title || '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim()
-          const short = text.length > 190 ? `${text.slice(0, 187).trimEnd()}…` : text
+          const short = cutSummary(text)
           const marca = lang === 'en' && !enSummary ? ' lang="es"' : ''
           return `<li class="log__fila"><b class="log__ver">${escapeHtml(e.version ? `v${e.version}` : e.tag || '')}</b>` +
             `<span class="log__fecha">${escapeHtml(longDate(e.publishedAt || e.date, lang))}</span>` +

@@ -159,7 +159,7 @@ async (page) => {
   }, [hace(2), hace(26), hace(50)]);
   await abrirAgenda("es");
   pasos.cifraCortada = (await cifra().innerText()).replace(/\s+/g, " ").trim();
-  debe(/^2 encargos programados 1 parados por el freno$/.test(pasos.cifraCortada), `la cifra con uno cortado: «${pasos.cifraCortada}»`);
+  debe(/^2 encargos programados 1 parado por el freno$/.test(pasos.cifraCortada), `la cifra con uno cortado: «${pasos.cifraCortada}»`);
   debe((await cifra().getAttribute("data-viva")) === "true", "la cifra no se enciende con uno cortado");
   await cifra().click();
   await page.waitForTimeout(500);

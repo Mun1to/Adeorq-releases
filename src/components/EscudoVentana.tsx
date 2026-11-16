@@ -135,7 +135,11 @@ export default function EscudoVentana({ panes, stream = false }: { panes: Pane[]
           cerrar();
           return;
         }
-        setError(t("Esa no es la respuesta. Te quedan {n} intentos.", { n: FALLOS_MAX - n }));
+        setError(
+          FALLOS_MAX - n === 1
+            ? t("Esa no es la respuesta. Te queda 1 intento.")
+            : t("Esa no es la respuesta. Te quedan {n} intentos.", { n: FALLOS_MAX - n }),
+        );
       })
       .catch((e) => {
         setOcupado(false);

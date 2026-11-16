@@ -13,7 +13,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { encode } from "uqr";
 import { useT } from "../lib/i18n";
 import Espera, { Ocupado } from "./Espera";
-import { MovilIcon, PcIcon, RedIcon } from "./Icons";
+import { AvisoIcon, MovilIcon, PcIcon, RedIcon } from "./Icons";
 import { hace } from "../lib/uso";
 import {
   movilAvisar,
@@ -432,7 +432,7 @@ export default function AjustesMovil() {
           )}
         </>
       )}
-      {error && <p className="setting-line setting-bad">⚠ {error}</p>}
+      {error && <p className="setting-line setting-bad"><AvisoIcon />{error}</p>}
     </section>
   );
 }

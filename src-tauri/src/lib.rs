@@ -181,6 +181,12 @@ pub fn dir_datos() -> Result<std::path::PathBuf, String> {
 /// cuatro sockets, solo el copiado era heredable, y con terminales abriéndose al
 /// lado la conexión del proceso de terminales se rompía sin que el otro lado se
 /// enterase. Toda copia de un socket va por aquí.
+///
+/// Y una copia hecha justo después de `TcpStream::connect_timeout` puede salir
+/// creyendo que no está conectada: escribe bien, pero su `shutdown` falla con
+/// 10057 y no corta nada (una de cada cuarenta, medido el 2026-11-16; con
+/// `connect` a secas o copiando 50 ms después, ninguna). Para cortar, el
+/// original: si varios hilos lo necesitan, se comparte con un `Arc<TcpStream>`.
 pub fn clon_sin_herencia(s: &std::net::TcpStream) -> std::io::Result<std::net::TcpStream> {
     let c = s.try_clone()?;
     #[cfg(windows)]

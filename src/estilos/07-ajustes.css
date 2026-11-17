@@ -1277,8 +1277,11 @@
   /* Ancho FIJO, y de él sale el relleno que le reserva la tarjeta. Sin fijarlo,
      cada chapa medía lo que midiera su palabra y no había número que reservar:
      unas cabían y otras no.
-     96 y no 90: la palabra más larga es «PREDETERMINADA», que mide 90,1, y por
-     esa décima se partía en «PREDETERMINAD» y «A» con la app en español. */
+     96 y no 90: la palabra más larga es «POR DEFECTO», que mide 94 en
+     Contraste y 88,4 en Azul noche (2026-11-17, 13 px y 700). Antes decía
+     «PREDETERMINADA», que con esa letra mide 124 y se partía en dos; llevar la
+     columna a 130 le quitaba a las barras la fecha de renovación. «SIN
+     CONECTAR» y «NOT CONNECTED» no caben y van en dos renglones a propósito. */
   width: 96px;
   display: flex;
   flex-direction: column;
@@ -1314,6 +1317,14 @@
      líneas a que se coma el texto de al lado. */
   white-space: normal;
   overflow-wrap: anywhere;
+}
+/* Y la conectada también sin caja: `.account-state[data-ok="true"]`, más abajo,
+   vale lo mismo que la regla de arriba (0,2,0) y gana por ir después, así que
+   le devolvía a «CONECTADA» su fondo verde (se ve en la captura
+   `es/accounts.png` del 2026-11-16; el borde no, que solo cambia de color y
+   sigue a 0). Con la clase delante pesa (0,3,0). */
+.account-card .account-chips > .account-state {
+  background: none;
 }
 
 .account-card[data-default="true"] {

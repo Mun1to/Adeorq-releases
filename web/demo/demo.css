@@ -38,12 +38,13 @@ html, body {
 [hidden] { display: none !important; }
 
 /* ------------------------------- LA LETRA ---------------------------------
-   La app es Segoe UI Variable y Cascadia Mono, que en Windows están. Fuera,
-   Inter y JetBrains Mono (las de la web) antes que la genérica del sistema. */
+   La de la interfaz la pone la hoja de la app según el tema: Segoe UI Variable
+   Text en Azul noche (con el que abre la demostración) y Geist en Contraste,
+   que viaja en `fuentes/` (lo copia `hacer-demo.mjs`). Aquí no se fuerza, o un
+   cambio de tema en Ajustes no cambiaría la letra como en la app. Las
+   terminales son Cascadia Mono, que en Windows está; fuera, JetBrains Mono
+   antes que la genérica del sistema. */
 
-:root, body, button, input, textarea, select {
-  font-family: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", "Inter", system-ui, sans-serif;
-}
 .xterm-rows, .xterm-rows span {
   font-family: "Cascadia Mono", Consolas, "JetBrains Mono", ui-monospace, Menlo, monospace !important;
 }

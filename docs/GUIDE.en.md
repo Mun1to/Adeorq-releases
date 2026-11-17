@@ -175,7 +175,7 @@ From left to right:
 | **The Pulse** | A pill with three figures: what Adeorq and its agents use in CPU, in memory (RAM) and how many agents are alive (AG). It turns amber when Adeorq uses a quarter or more of the machine's CPU or memory, and red when the whole machine is at 90% or Adeorq alone goes over 50% CPU. A click opens **What Adeorq is using**, with the detail. It measures the whole tree of processes, not just the window. |
 | **The music strip** | Only appears if something is playing on the PC: title, artist, previous, pause and next. The volume stays in the system mixer. It is not there on Linux and Mac. |
 | **Streaming** | The shield for broadcasting, icon only. Ctrl+Shift+E turns it on. Details in [section 20](#20-streaming-mode). |
-| **The orb** | Calls Adeo. Ctrl+Shift+A opens and closes it; Ctrl+Shift+M opens it already listening to you. More in [section 18](#18-adeo-and-the-split). |
+| **The orb** | Calls Adeo, outside the Cockpit (in the Cockpit, Adeo is the first icon of the right-hand strip). Ctrl+Shift+A opens and closes it; Ctrl+Shift+M opens it already listening to you. More in [section 18](#18-adeo-and-the-split). |
 | **Three more icons** | Only in the Cockpit and with more than one terminal: **Minimise all** (they stay alive in the strip below and it turns into **Bring them all back**), **Layout** (a grid of up to 4 by 4, or "one big one and the rest beside it") and **Close all**, which asks first because it kills their agents and tells you which ones are working. |
 
 The **update** is no longer a bar at the top: it is a card at the end of the sidebar
@@ -1045,7 +1045,7 @@ names appear below so you can jump to one.
   it came*.
 - **Language**: Spanish or English. It changes the whole app, this guide included. The
   terminals keep speaking whatever each agent speaks.
-- **Theme**: 32 themes in five families (House, Familiar, Loud, Blacked out and Light
+- **Theme**: 26 themes in five families (House, Familiar, Loud, Blacked out and Light
   background), with a filter and a search box. Each card is a miniature of the app with
   that palette. You can ask it to follow the **light or dark of the system**, with a
   theme for each case, and **To match your photo** picks the theme whose accent
@@ -1288,8 +1288,8 @@ agent you do not trust: you do not give that one the key.
 ## 18. Adeo and the Split
 
 Adeo is your orchestrator agent. You write what you want and it proposes a
-plan; **nothing is run without your OK**. It opens with the orb in the top bar, with
-**Ctrl+Shift+A**, and from any tab. **Ctrl+Shift+M** opens it already listening to
+plan; **nothing is run without your OK**. It opens with its orb (in the Cockpit, the first one on the right-hand
+strip; in the other tabs, the one in the top bar), with **Ctrl+Shift+A**, and from any tab. **Ctrl+Shift+M** opens it already listening to
 you, and with OpenRouter's voice it can answer you aloud. It is the same Adeo that opens
 sessions from the Chat and from the phone.
 

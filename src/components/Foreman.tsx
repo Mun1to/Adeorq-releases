@@ -66,6 +66,7 @@ import { decir, parar, vozElegida, VOCES, VOZ_KEY } from "../lib/hablar";
 import { propsDeVelo } from "../lib/velo";
 import { dictar, transcribir, vozLista, type Dictado } from "../lib/voz";
 import { COMMANDS } from "../lib/commands";
+import { alPegarEnCaja } from "../lib/pegarImagen";
 
 /** Executors provided by App: the deterministic side of the Foreman. */
 export interface ForemanExec {
@@ -1294,6 +1295,8 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir, enLa
             value={text}
             disabled={phase === "thinking"}
             onChange={(e) => setText(e.currentTarget.value)}
+            // Una captura con Ctrl+V: a disco, y su ruta aquí (`lib/pegarImagen.ts`).
+            onPaste={(e) => alPegarEnCaja(e, (v) => setText(v), (m) => setError(m))}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();

@@ -45,18 +45,25 @@ export default {
   'hero.linea1': 'All your agents,',
   'hero.linea2': 'on one single screen',
   'hero.entrada':
-    'Claude Code, Codex, Gemini and nineteen other clients, each in its own real terminal, with ' +
-    'your projects one click away. You hand over the job and they get to work.',
+    'Claude Code, Codex, Gemini and eight other clients <b class="clave">working at once</b>, each in its own ' +
+    '<b class="clave">real terminal</b>, with your projects one click away. You hand over the job and they get to work.',
   'descarga.windows': 'Download for Windows',
   'descarga.gratis': 'free, no account',
   'hero.verComo': 'See how it works',
-  'hero.nota1': 'Windows, Linux and Mac · 64-bit',
-  'hero.nota2': 'Signed updates',
-  'hero.nota3': 'Uses the session you already have',
+  'hero.cifra1': '<i>supported </i>clients',
+  // El mismo número que en index.html (30,5 MB, medido el 2026-11-17), con punto.
+  'hero.instalada': '30.5 MB',
+  'hero.cifra2': 'installed<i> size</i>',
+  'hero.cifra3': 'systems<i>: Windows, Linux and Mac. <em>On Mac, signed and notarized by Apple</em></i>',
   'hero.demo': 'Adeorq running, you can use it',
   'hero.demo.corto': 'Adeorq running',
   'hero.demo.src': '/demo/?desnuda=1&lang=en',
-  'hero.pie': 'This is not a screenshot: try it right here.',
+  'hero.pestanas': 'Demo screens',
+  'hero.p.cabina': 'Cockpit',
+  'hero.p.lienzo': 'Canvas',
+  'hero.p.chat': 'Chat',
+  'hero.p.decisiones': 'Decisions',
+  'hero.p.panel': 'Dashboard',
   'hero.grande': 'Open it full size',
   'hero.grande.href': '/demo/?lang=en',
 
@@ -68,32 +75,70 @@ export default {
   'adeo.movil': 'Heading out? I’ll come along on your phone.',
   'adeo.cuenta': 'I don’t send anything to any server of ours. Your work stays between you and your CLI.',
   'adeo.descarga': 'Two minutes and I’m in your top bar, waiting for your agents.',
-  'adeo.novedades': 'They improve me almost every day. That’s why I dance.',
+  'adeo.novedades': 'They improve me almost every day. That’s why I&nbsp;dance.',
   'adeo.faq': 'Questions? These are the ones I get asked most.',
 
   /* ── Los clientes ──────────────────────────────────────────────────────── */
-  'cinta.rotulo': 'The <b>{n} clients</b><br>it can open',
+  'cinta.rotulo': 'Works with what you already use',
   'cinta.legal':
     'All are trademarks of their owners. Adeorq is not affiliated with any of them and does not ' +
     'resell their access: it works with the session you already have on your machine.',
 
-  /* ── El manifiesto ─────────────────────────────────────────────────────── */
-  'manifiesto.b': 'Type the job, dictate it, or hand the whole mission to six agents at once.',
-  'manifiesto.span':
-    'Each one opens its terminal, works in your folder and leaves you the result. You review what ' +
-    'comes out, not the syntax.',
-  'manifiesto.em': 'Vibe coding through the terminal, with the face of an app.',
-  'manifiesto.firma': 'Adeorq is built by using it every day.',
+  /* ── Sin Adeorq y con Adeorq ───────────────────────────────────────────── */
+  'comparar.tit': 'From loose windows to one work app',
+  'comparar.entrada': 'One agent per window works until you have four. With all of them in one, you see who finished, <b class="clave">who is waiting on you</b> and <b class="clave">how much you have spent</b>, without going to look.',
+  'comparar.sin': 'Without Adeorq',
+  'comparar.sin1': 'One loose window per agent',
+  'comparar.sin2': "You don't know who finished",
+  'comparar.sin3': 'An agent waiting for your yes',
+  'comparar.sin4': 'Quota runs out with no warning',
+  'comparar.sin5': 'Close it and lose the session',
+  'comparar.sin6': 'A big job, one step at a time',
+  'comparar.sin7': 'Away from the PC, blind',
+  'comparar.sin8': 'Accounts switched by hand',
+  'comparar.con': 'With Adeorq',
+  'comparar.con1': 'All in one window',
+  'comparar.con2': 'Its pane lights up when done',
+  'comparar.con3': 'Adeo tells you when it asks',
+  'comparar.con4': 'You see what each account used',
+  'comparar.con5': 'Resume Claude, Codex and Gemini ones',
+  'comparar.con6': 'Adeo splits it across up to six',
+  'comparar.con7': 'You answer from your phone',
+  'comparar.con8': 'Pick the account as it opens',
+
+  /* ── Adeo lo reparte ───────────────────────────────────────────────────── */
+  'reparte.tit': 'You say it once. Adeo splits it up.',
+  'reparte.entrada': 'Type it or dictate it <b class="clave">however it comes out</b>. If it is two jobs, Adeo <b class="clave">opens two sessions</b>, each in its own project.',
+  'reparte.cab': 'Before Friday: the discount has to round properly and the landing page needs a dark mode.',
+  'reparte.marcha': '2 sessions running',
+  'reparte.dicho': 'Before Friday: the discount has to round properly and the landing page needs a dark mode.',
+  'reparte.r1': "Those are two separate jobs, so I'm opening two sessions:",
+  'reparte.r2': 'one in <b>storefront-api</b> for the discount',
+  'reparte.r3': 'another in <b>landing-web</b> for dark mode',
+  'reparte.r4': "I'll let you know when either asks you something.",
+  'reparte.trabajando': 'working',
+  'reparte.t1': 'Make the discount round to whole cents',
+  'reparte.t1porque': '<b>The router picked it.</b> It needs judgement: if it goes wrong, it may not show.',
+  'reparte.t2': 'Dark mode on the landing page',
+  'reparte.t2porque': '<b>The router picked it.</b> Everyday work.',
+  'reparte.caja': 'Tell it what needs doing',
+  'reparte.ia': 'Adeo is an AI and can make mistakes.',
 
   /* ── El código, a la vista ─────────────────────────────────────────────── */
   // «Source available» y ninguna etiqueta de software libre: la licencia es
   // PolyForm Shield, lo mismo que dicen el pie y las preguntas.
+  'codigo.sec': 'Read all of it, and make it yours',
   'codigo.tit': 'The full source code is on GitHub',
   'codigo.p': 'Read every line, build it yourself or make your own fork, and see for yourself what it does on your machine.',
   'codigo.licencia':
     'Source available under the ' +
     '<a href="https://github.com/Mun1to/Adeorq-releases/blob/main/LICENSE" rel="noopener">PolyForm Shield</a> ' +
     'licence: you can use, modify and share it, not sell it or compete with it.',
+  'codigo.seguro':
+    '<b>Don’t trust it: <a href="https://github.com/Mun1to/Adeorq-releases#dont-trust-it-check-it" rel="noopener">check it</a>.</b> ' +
+    'The security tests ship with the code: they attack an isolated Adeorq the way a bad program ' +
+    'already on your PC would, and check that what was closed stays closed. And the ' +
+    '<span class="junto">AI-AUDIT.md</span> prompt asks your own AI to review it.',
   'codigo.btn': 'See the code on GitHub',
 
   /* ── Qué hace ──────────────────────────────────────────────────────────── */
@@ -101,7 +146,7 @@ export default {
   'queEs.entrada':
     'Dashboard, Cockpit, Chat, Decisions, Canvas, Profile and Settings, and in the Profile your accounts, ' +
     'agenda, memory, commands and usage. All inside a ' +
-    'native app of about 6 MB, without a whole browser packed inside.',
+    '<b class="clave">native app</b>, without a whole browser packed inside.',
   // La muestra: cada rasgo con su captura en inglés (assets/screens/en) y su alt.
   'rasgo.demo': 'Try it in the demo',
   'rasgo.cabina.tit': 'Cockpit',
@@ -142,12 +187,6 @@ export default {
   'rasgo.cuentas.src': '/assets/screens/en/accounts.png',
   'rasgo.cuentas.alt':
     'The Claude Code and Codex accounts, each with its usage bars for the session and the week.',
-  'rasgo.comandos.tit': 'Commands',
-  'rasgo.comandos.p':
-    'Everything you can type inside each agent, found by what you want to do, not by what it is ' +
-    'called. One click sends it to the terminal.',
-  'rasgo.comandos.src': '/assets/screens/en/commands.png',
-  'rasgo.comandos.alt': 'The list of Claude Code commands, each with a line that says what it is for.',
 
   /* ── Cómo trabaja ──────────────────────────────────────────────────────── */
   'trabajo.tit': 'Three steps and they are already working',
@@ -174,8 +213,8 @@ export default {
   /* ── En el móvil ───────────────────────────────────────────────────────── */
   'movil.tit': 'Your cockpit, in your pocket too',
   'movil.entrada':
-    'From your phone, a tablet or another computer, wherever you are: see who is asking and who is ' +
-    'working, answer any terminal and hand Adeo new work.',
+    'From your phone, a tablet or another computer, <b class="clave">wherever you are</b>: see who is asking and who is ' +
+    'working, <b class="clave">answer any terminal</b> and hand Adeo new work.',
   'movil.p1.tit': 'Install Tailscale',
   'movil.p1.p':
     'On the PC and on your phone, with the same account. It is a private network between your ' +
@@ -220,7 +259,7 @@ export default {
   /* ── Descarga ──────────────────────────────────────────────────────────── */
   'descarga.tit': 'Set up your cockpit in two minutes',
   'descarga.entrada':
-    'For 64-bit Windows and Linux, and for Mac with Apple Silicon. You need the CLI you already use ' +
+    'For 64-bit Windows and Linux, and for Mac with Apple Silicon. You need <b class="clave">the CLI you already use</b> ' +
     'installed, because Adeorq works ' +
     'with it.',
   'descarga.btnWindows': 'Download for Windows <em>free, no account</em>',
@@ -235,13 +274,18 @@ export default {
 
   /* ── Novedades ─────────────────────────────────────────────────────────── */
   'novedades.tit': 'It moves almost every day',
+  'novedades.tira': '<b><span data-tira-cuenta>{n}</span> of the last 90 days</b> shipped a new release.',
+  'novedades.hace90': '90 days ago',
+  'novedades.hoy': 'today',
   'novedades.entrada':
     '<b data-log-cuenta>{n}</b> releases published since it started. This is not a website with a ' +
-    'product behind it: it is a product used while it is being built.',
+    'product behind it: it is a product <b class="clave">used while it is being built</b>.',
   'novedades.todas': 'See all releases',
 
   /* ── Preguntas ─────────────────────────────────────────────────────────── */
   'faq.tit': 'What people usually ask',
+  'faq.entrada': 'If yours is not here, ask it on GitHub: it gets answered and added here.',
+  'faq.preguntar': 'Ask on GitHub',
   'faq.q1': 'Do I need an API key or to pay for anything extra?',
   'faq.r1':
     'No. Adeorq uses the CLI you already have installed and the session you are already signed ' +
@@ -276,9 +320,9 @@ export default {
     'what you see on the phone is your PC.',
   'faq.q7': 'How big is it and how much does it use?',
   'faq.r7':
-    'The Windows installer is around 6 MB. It is a native app made with Tauri and does not ship a ' +
-    'whole browser inside, so it starts instantly and at rest you barely notice it. The rest is ' +
-    'whatever your agents use, which is what they already use.',
+    'Installed, it takes 30.5 MB on Windows, and its installer is around 8 MB. It is a native app ' +
+    'made with Tauri: it does not ship a whole browser inside. The rest is whatever your agents ' +
+    'use, which is what they already use.',
   'faq.q8': 'Does my data leave my computer?',
   'faq.r8':
     'Only what already went out through your CLI. Adeorq reads local files to show you your ' +
@@ -289,6 +333,30 @@ export default {
     'read them. Nothing else.',
 
   /* ── El pie ────────────────────────────────────────────────────────────── */
+  /* ── Mods ──────────────────────────────────────────────────────────────── */
+  'mods.tit': 'And your own mods, in your folder, not in the app',
+  'mods.p': 'Ask your agent for a change in how Adeorq looks, like round icons. It is saved in your mods folder, apart from the app, built so that an update leaves it&nbsp;alone.',
+  'mods.donde': 'They come switched off: turn them on in Settings › Mods, and if one gets in your way, Ctrl + Alt + Shift + 0 switches them all off.',
+  'mods.btn': 'How mods work',
+
+  /* ── Docs y ayuda ──────────────────────────────────────────────────────── */
+  'ayuda.tit': 'Docs and help',
+  'ayuda.guia': 'The guide',
+  'ayuda.guia.p': 'Every screen, in the order you come across them.',
+  'ayuda.movil': 'On your phone',
+  'ayuda.movil.p': 'How to pair your phone and answer your agents away from the PC.',
+  'ayuda.privacidad': 'Privacy',
+  'ayuda.privacidad.p': 'What it reads on your machine, what it keeps and what leaves it.',
+  'ayuda.novedades': 'What’s new',
+  'ayuda.novedades.p': 'What each release brings, with its date.',
+  'ayuda.preguntar': 'Ask',
+  'ayuda.preguntar.p': 'Can’t find it? Ask on GitHub: it gets answered and added to the guide.',
+
+  /* ── Apoyar el proyecto ────────────────────────────────────────────────── */
+  'apoyar.tit': 'If it saves you time, buy me a coffee',
+  'apoyar.p': 'Adeorq is free. If it helps you and you feel like supporting it, a coffee helps keep the releases coming.',
+  'apoyar.btn': 'Buy me a coffee',
+
   'pie.lema': 'The panel where all your agents work. On Windows, Linux and Mac, and with you on your phone.',
   'pie.estado': 'Free, and running.',
   'pie.aria': 'Footer',

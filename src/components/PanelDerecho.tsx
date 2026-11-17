@@ -105,7 +105,13 @@ export default function PanelDerecho({
             key={c.id}
             className="franja-btn"
             data-on={cara === c.id}
-            data-tip={cara === c.id ? t("Ocultar panel") : t(c.titulo)}
+            data-tip={
+              cara === c.id
+                ? t("Ocultar panel")
+                : c.id === "adeo"
+                  ? t("Llamar a Adeo (Ctrl+Mayús+A · Ctrl+Mayús+M para dictarle)")
+                  : t(c.titulo)
+            }
             onClick={() => onCara(cara === c.id ? "" : c.id)}
           >
             {c.icono}

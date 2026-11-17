@@ -152,6 +152,16 @@ function manos(router: boolean, abrirDa: number | null = 7): Manos & { abiertas:
     programasDeSesion([{ provider: "codex" }, { provider: "kimi" }, { provider: "gemini" }]).join() === "claude,codex,gemini",
     programasDeSesion([{ provider: "codex" }, { provider: "kimi" }, { provider: "gemini" }]).join(),
   );
+  {
+    // La lista de cuentas trae la principal de todos los CLI, haya programa o no.
+    const todas = [{ provider: "codex" }, { provider: "gemini" }, { provider: "kimi" }];
+    const solo = programasDeSesion(todas, new Set(["claude", "gemini"])).join();
+    ok("con lo instalado a la vista, no se ofrece un programa que no está", solo === "claude,gemini", solo);
+    const sinClaude = programasDeSesion(todas, new Set(["codex"])).join();
+    ok("Claude se ofrece siempre, aunque la detección no lo vea", sinClaude === "claude,codex", sinClaude);
+    const sinSaber = programasDeSesion(todas, null).join();
+    ok("sin saber qué hay instalado, como antes", sinSaber === "claude,codex,gemini", sinSaber);
+  }
 
   // ── Lo que falla se dice ────────────────────────────────────────────────────
   {

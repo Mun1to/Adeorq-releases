@@ -3,7 +3,7 @@
 // del sistema»). Elegir un tema a mano lo desactiva: si lo acabas de elegir,
 // es que lo quieres, y un cambio del sistema no debería quitártelo.
 
-import { THEME_KEY, THEMES, type ThemeId } from "./i18n";
+import { TEMAS_QUITADOS, THEME_KEY, THEMES, type ThemeId } from "./i18n";
 
 export interface TemaSistema {
   activo: boolean;
@@ -15,7 +15,15 @@ export interface TemaSistema {
 
 const CLAVE = "adeorq-tema-sistema";
 const ids = new Set<string>(THEMES.map((t) => t.id));
-const valido = (v: unknown, siNo: ThemeId): ThemeId => (typeof v === "string" && ids.has(v) ? (v as ThemeId) : siNo);
+/** Un tema que salió de la lista se lee como su gemelo (`TEMAS_QUITADOS`), no como uno roto. */
+const alDia = (v: unknown): unknown => {
+  const gemelo = typeof v === "string" ? TEMAS_QUITADOS[v] : undefined;
+  return typeof gemelo === "string" ? gemelo : v;
+};
+const valido = (v: unknown, siNo: ThemeId): ThemeId => {
+  const t = alDia(v);
+  return typeof t === "string" && ids.has(t) ? (t as ThemeId) : siNo;
+};
 
 /** El tema de fábrica: Contraste desde el 2026-11-16, cuando Munir lo eligió. */
 export const TEMA_DE_FABRICA: ThemeId = "contraste";
@@ -44,7 +52,11 @@ export function temaInicial(): ThemeId {
       return TEMA_DE_FABRICA;
     }
   }
-  return guardado != null && ids.has(guardado) ? (guardado as ThemeId) : TEMA_DE_FABRICA;
+  // Después de lo de Contraste y no antes: quien eligió Tokyo Night pasa a Azul
+  // noche porque se le parece, y ese Azul noche no es el que venía puesto.
+  const tema = alDia(guardado);
+  if (tema !== guardado && typeof tema === "string") localStorage.setItem(THEME_KEY, tema);
+  return valido(tema, TEMA_DE_FABRICA);
 }
 
 export function leerTemaSistema(): TemaSistema {

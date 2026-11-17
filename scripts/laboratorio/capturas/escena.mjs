@@ -129,6 +129,16 @@ const GUARDA = `(() => {
   const responde = (valor) => Promise.resolve(new Response(JSON.stringify(valor), { status: 200, headers: { "content-type": "application/json", "Tauri-Response": "ok" } }));
   const enHoras = (l) => ({ ...l, lines: l.lines.map((x) => (x.resetsAt ? { ...x, resetsAt: Date.now() + x.resetsAt * 3600000 } : x)) });
   const historiaDeSam = ${historiaDeSam.toString()};
+  // Sin WebGL2, las terminales nacen con el pintado de reserva, que es texto y
+  // el que sale en las fotos y en el volcado. Si nacían con WebGL y luego se
+  // les quitaba (sinWebgl), las columnas se quedaban las que midió WebGL, que a
+  // doble escala redondea la celda a píxeles del dispositivo (Cascadia a 15 px:
+  // 8,5 en vez de 8,79): en la Cabina, 90 columnas en un hueco de 87 y la
+  // última cortada por la derecha («whole numbe»). Solo xterm pide WebGL2.
+  const contexto = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (tipo, ...resto) {
+    return tipo === "webgl2" ? null : contexto.call(this, tipo, ...resto);
+  };
   window.fetch = (a, b) => {
     const url = typeof a === "string" ? a : (a && a.url) || "";
     if (/supabase\\.co|openrouter\\.ai/.test(url)) return Promise.reject(new TypeError("Failed to fetch"));

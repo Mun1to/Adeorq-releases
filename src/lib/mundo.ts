@@ -91,6 +91,30 @@ function fresco<T>(s: Sello<T> | null | undefined, vida: number): s is Sello<T> 
 }
 
 /**
+ * Qué CLIs hay en el equipo, mirado como mucho cada cinco minutos y compartido
+ * con el router. `null` si todavía no se sabe (la detección falló y no había
+ * nada anterior): quien lo use no debe dar nada por desinstalado con eso.
+ */
+export async function programasInstalados(): Promise<ReadonlySet<string> | null> {
+  if (!fresco(programas, VIDA_PROGRAMAS)) {
+    const found = await detectClis(
+      PROVIDERS.map((p) => [p.id, p.exe] as [string, string]),
+    ).catch(() => null);
+    // Si la detección falla se conserva lo anterior: dar por desinstalado todo
+    // haría que el router dijera "no tienes nada conectado", que es peor
+    // consejo que el que daba antes de preguntar.
+    if (found) programas = { valor: new Set(found.map((f) => f.id)), cuando: Date.now() };
+  }
+  return programas?.valor ?? null;
+}
+
+/** Lo mismo sin esperar: lo último que se vio, o `null`. Para pintar un menú
+    ya filtrado la primera vez, sin que encoja al llegar la respuesta. */
+export function programasEnCache(): ReadonlySet<string> | null {
+  return programas?.valor ?? null;
+}
+
+/**
  * Lo que sabe el sondeo de cuota, para el router.
  *
  * `AvisoCuota` sondea las cuentas de Claude cada veinte minutos mientras hay
@@ -206,16 +230,7 @@ async function mirarMundoSinReloj(cuentas: Account[]): Promise<CuentaViva[]> {
     }),
   );
 
-  if (!fresco(programas, VIDA_PROGRAMAS)) {
-    const found = await detectClis(
-      PROVIDERS.map((p) => [p.id, p.exe] as [string, string]),
-    ).catch(() => null);
-    // Si la detección falla se conserva lo anterior: dar por desinstalado todo
-    // haría que el router dijera "no tienes nada conectado", que es peor
-    // consejo que el que daba antes de preguntar.
-    if (found) programas = { valor: new Set(found.map((f) => f.id)), cuando: Date.now() };
-  }
-  const hay = programas?.valor ?? new Set(cuentas.map((c) => c.provider));
+  const hay = (await programasInstalados()) ?? new Set(cuentas.map((c) => c.provider));
 
   const vivas: CuentaViva[] = [];
   for (const cuenta of cuentas) {

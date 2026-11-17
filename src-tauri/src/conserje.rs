@@ -1458,6 +1458,63 @@ pub async fn conserje_enviar(
     Ok(Respuesta { texto: dice, acciones, descartes })
 }
 
+/// Cuántas capturas pegadas se le dan a Adeo en un mensaje, y cuánto puede pesar cada una.
+const IMAGENES_MAX: usize = 5;
+const IMAGEN_MAX_BYTES: u64 = 5 * 1024 * 1024;
+
+/// Las capturas pegadas que nombra el prompt (rutas dentro de `pastes`, como las deja
+/// `save_pasted_image`), leídas: su tipo y su contenido en base64. Solo `pegado-*` de esa
+/// carpeta, con extensión de imagen, que existan y pesen 5 MB o menos; sin repetir, y las
+/// cinco últimas que se nombran (lo último que pegaste es lo que preguntas).
+fn imagenes_pegadas(prompt: &str, pastes: &std::path::Path) -> Vec<(&'static str, String)> {
+    use base64::Engine;
+    // Tal cual la escribe `save_pasted_image` (la misma `dir_datos`): sin pasar a
+    // minúsculas, que cambia la longitud de algunas letras y descuadraría los cortes.
+    let carpeta = pastes.to_string_lossy().into_owned();
+    let mut nombres: Vec<String> = Vec::new();
+    let mut desde = 0;
+    while let Some(i) = prompt[desde..].find(&carpeta) {
+        let resto = &prompt[desde + i + carpeta.len()..];
+        desde += i + carpeta.len();
+        let Some(resto) = resto.strip_prefix(['\\', '/']) else { continue };
+        let nombre: String = resto.chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '.').collect();
+        let nombre = nombre.trim_end_matches('.').to_string();
+        if nombre.starts_with("pegado-") && !nombres.contains(&nombre) {
+            nombres.push(nombre);
+        }
+    }
+    let empieza = nombres.len().saturating_sub(IMAGENES_MAX);
+    nombres[empieza..]
+        .iter()
+        .filter_map(|n| {
+            let tipo = match n.rsplit('.').next()?.to_lowercase().as_str() {
+                "png" => "image/png",
+                "jpg" | "jpeg" => "image/jpeg",
+                "gif" => "image/gif",
+                "webp" => "image/webp",
+                _ => return None,
+            };
+            let ruta = pastes.join(n);
+            if std::fs::metadata(&ruta).ok()?.len() > IMAGEN_MAX_BYTES {
+                return None;
+            }
+            let bytes = std::fs::read(&ruta).ok()?;
+            Some((tipo, base64::engine::general_purpose::STANDARD.encode(bytes)))
+        })
+        .collect()
+}
+
+/// El mensaje de `--input-format stream-json`: las imágenes primero y el prompt detrás.
+fn mensaje_con_imagenes(prompt: &str, imagenes: &[(&'static str, String)]) -> String {
+    let mut bloques: Vec<serde_json::Value> = imagenes
+        .iter()
+        .map(|(tipo, datos)| serde_json::json!({ "type": "image", "source": { "type": "base64", "media_type": tipo, "data": datos } }))
+        .collect();
+    bloques.push(serde_json::json!({ "type": "text", "text": prompt }));
+    let linea = serde_json::json!({ "type": "user", "message": { "role": "user", "content": bloques } });
+    format!("{linea}\n")
+}
+
 /// La línea de órdenes de `correr`, SIN el prompt: va por la entrada, que
 /// `claude -p` lee cuando no lleva el texto detrás. En la línea no cabía:
 /// Windows no lanza un proceso cuya línea pase de 32.767 caracteres, y el
@@ -1547,6 +1604,16 @@ fn correr(
 
     let sesion = crate::foreman::SinRastro::nueva();
     let mut cmd = orden_claude(modelo, cfg, sesion.id());
+    // Las capturas pegadas con Ctrl+V en la caja de Adeo llegan como su ruta
+    // (`lib/pegarImagen.ts`), y este Claude no puede leer archivos (`Read` va en
+    // `--disallowedTools`, a propósito). Se le dan como imágenes dentro del mensaje,
+    // por la entrada en stream-json: así las ve sin abrirle el disco.
+    let imagenes = crate::dir_datos()
+        .map(|d| imagenes_pegadas(prompt, &d.join("pastes")))
+        .unwrap_or_default();
+    if !imagenes.is_empty() {
+        cmd.args(["--input-format", "stream-json"]);
+    }
     let mut child = cmd
         .current_dir(crate::workspace::raiz_por_defecto())
         .sin_ventana()
@@ -1559,7 +1626,7 @@ fn correr(
     // Desde otro hilo, y al soltarla se cierra, que es lo que le dice que ya
     // está todo: un prompt más grande que la tubería bloquearía este hilo.
     let mut entrada = child.stdin.take().ok_or("no se abrió su entrada")?;
-    let texto = prompt.to_string();
+    let texto = if imagenes.is_empty() { prompt.to_string() } else { mensaje_con_imagenes(prompt, &imagenes) };
     std::thread::spawn(move || {
         let _ = entrada.write_all(texto.as_bytes());
     });
@@ -1984,6 +2051,42 @@ mod tests {
 
     fn quien(nombre: &str, idioma: &str) -> Quien {
         Quien { nombre: nombre.into(), idioma: idioma.into() }
+    }
+
+    /// Una captura pegada en la caja de Adeo llega como su ruta: se le da como imagen
+    /// si es un `pegado-*` de `pastes` que existe, y nada más (ni otra carpeta, ni otro
+    /// nombre, ni una que no está, ni la misma dos veces).
+    #[test]
+    fn las_capturas_pegadas_van_como_imagenes() {
+        let dir = std::env::temp_dir().join(format!("adeorq-pegadas-{}", std::process::id()));
+        let pastes = dir.join("pastes");
+        std::fs::create_dir_all(&pastes).unwrap();
+        std::fs::write(pastes.join("pegado-1.png"), [137u8, 80, 78, 71]).unwrap();
+        std::fs::write(pastes.join("pegado-2.jpg"), [255u8, 216, 255]).unwrap();
+        std::fs::write(pastes.join("secreto.png"), [1u8]).unwrap();
+        std::fs::write(dir.join("pegado-3.png"), [1u8]).unwrap();
+        let p = pastes.display();
+        let prompt = format!(
+            "mira \"{p}{s}pegado-1.png\" y \"{p}{s}pegado-2.jpg\". Otra vez \"{p}{s}pegado-1.png\". \
+             No: \"{p}{s}secreto.png\", \"{d}{s}pegado-3.png\", \"{p}{s}pegado-9.png\".",
+            s = std::path::MAIN_SEPARATOR,
+            d = dir.display(),
+        );
+        let imagenes = imagenes_pegadas(&prompt, &pastes);
+        let tipos: Vec<&str> = imagenes.iter().map(|(t, _)| *t).collect();
+        assert_eq!(tipos, ["image/png", "image/jpeg"]);
+        assert_eq!(imagenes[0].1, "iVBORw==");
+        assert!(imagenes_pegadas("sin rutas", &pastes).is_empty());
+
+        let linea = mensaje_con_imagenes("¿qué ves?", &imagenes);
+        assert!(linea.ends_with('\n'));
+        let v: serde_json::Value = serde_json::from_str(linea.trim()).unwrap();
+        assert_eq!(v["type"], "user");
+        let bloques = v["message"]["content"].as_array().unwrap();
+        assert_eq!(bloques.len(), 3);
+        assert_eq!(bloques[0]["source"]["media_type"], "image/png");
+        assert_eq!(bloques[2], json!({ "type": "text", "text": "¿qué ves?" }));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// Windows no lanza un proceso cuya línea de órdenes pase de 32.767

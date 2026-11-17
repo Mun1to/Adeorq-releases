@@ -68,6 +68,7 @@ import {
 import Mascota from "./Mascota";
 import { claveDe, conserjeSesion, conserjeSoltar, nuevoId, paneDe, pedidoPendiente, type Ficha, type Trabajo } from "../lib/conserje";
 import { abrirEnlacesFuera } from "../lib/enlacesFuera";
+import { alPegarEnCaja } from "../lib/pegarImagen";
 import {
   ChatIcon,
   ChevronIcon,
@@ -659,6 +660,8 @@ ${v}` : txt));
                 setTexto(e.currentTarget.value);
                 if (seCayo) setSeCayo(false);
               }}
+              // Una captura con Ctrl+V: a disco, y su ruta aquí (`lib/pegarImagen.ts`).
+              onPaste={(e) => alPegarEnCaja(e, (v) => setTexto(v))}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();

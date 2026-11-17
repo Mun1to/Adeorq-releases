@@ -399,10 +399,19 @@ function recetaDe(a: Extract<Accion, { tipo: "abrir" }>, m: Manos): Elegida {
 
 /** Los programas con los que se pueden abrir las sesiones de Adeo: el de
  *  fábrica y los que tienen una cuenta en Adeorq, si aceptan el encargo en su
- *  línea de arranque (sin eso la sesión nacería vacía). En el orden de la tabla. */
-export function programasDeSesion(cuentas: Pick<Account, "provider">[]): string[] {
+ *  línea de arranque (sin eso la sesión nacería vacía). En el orden de la tabla.
+ *  Con `instalados` (lo que `programasInstalados` vio en el equipo), fuera los
+ *  que no están: la lista de cuentas lleva la principal de TODOS los CLI, haya
+ *  o no programa, y Sesiones y el móvil ofrecían ocho cuando había tres. Sin
+ *  saberlo (`null`), como antes. Claude se queda siempre: es el de fábrica. */
+export function programasDeSesion(
+  cuentas: Pick<Account, "provider">[],
+  instalados: ReadonlySet<string> | null = null,
+): string[] {
   const con = new Set(cuentas.map((c) => c.provider));
-  return PROVIDERS.filter((p) => (p === CLAUDE || con.has(p.id)) && sabe(p.id, "encargoEnLinea")).map((p) => p.id);
+  return PROVIDERS.filter(
+    (p) => (p === CLAUDE || (con.has(p.id) && (!instalados || instalados.has(p.id)))) && sabe(p.id, "encargoEnLinea"),
+  ).map((p) => p.id);
 }
 
 export async function ejecutar(acciones: Accion[], m: Manos): Promise<Hecho> {

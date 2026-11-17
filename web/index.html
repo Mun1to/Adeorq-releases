@@ -143,7 +143,7 @@
           "name": "¿Cuánto ocupa y cuánto consume?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "El instalador de Windows ronda los 6 MB. Es una aplicación nativa hecha con Tauri, no lleva un navegador entero empaquetado dentro, así que arranca al instante y en reposo casi no se nota. Lo demás será lo que consuman tus agentes, que es lo que ya consumen."
+            "text": "Instalada ocupa 30,5 MB en Windows, y su instalador ronda los 8 MB. Es una aplicación nativa hecha con Tauri: no lleva un navegador entero empaquetado dentro. Lo demás será lo que consuman tus agentes, que es lo que ya consumen."
           }
         },
         {
@@ -179,6 +179,7 @@
 })();
 </script>
 
+<link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="./portada/barra.css">
 <link rel="stylesheet" href="./portada/portada.css">
 <link rel="stylesheet" href="./portada/valvula.css">
@@ -282,9 +283,9 @@
       <span class="titular__linea"><span data-en="hero.linea2">en una sola pantalla</span></span>
     </h1>
     <p class="entrada" data-en="hero.entrada">
-      Claude Code, Codex, Gemini y otros diecinueve clientes, cada uno en su
-      terminal de verdad, con tus proyectos a un clic. Tú sueltas el encargo y
-      ellos trabajan.
+      Claude Code, Codex, Gemini y otros ocho clientes <b class="clave">trabajando a la vez</b>, cada
+      uno en su <b class="clave">terminal de verdad</b> y con tus proyectos a un clic. Tú sueltas el
+      encargo y ellos trabajan.
     </p>
     <div class="acciones">
       <!-- Sin numero de version en el enlace: `releases/latest/download` con
@@ -297,11 +298,29 @@
       </a>
       <a class="btn btn--fantasma btn--grande" href="#trabajo" data-en="hero.verComo">Ver cómo trabaja</a>
     </div>
-    <ul class="notas">
-      <li data-en="hero.nota1">Windows, Linux y Mac · 64 bits</li>
-      <li data-en="hero.nota2">Actualizaciones firmadas</li>
-      <li data-en="hero.nota3">Usa la sesión que ya tienes</li>
+    <!-- Las cifras de verdad, con el número grande y lo que quiere decir debajo
+         (Munir eligió «Números de verdad» el 2026-11-16), y las que le importan
+         a quien va a usarla (Munir, 2026-11-17: «a la gente no le interesa el
+         instalador sino el tamaño de la app en sí», «11 clientes soportados, no
+         que pueda abrir», «y ya firmado por Apple»).
+         · Los clientes los escribe el build (vite.config.js), contando la cinta.
+         · 30,5 MB es la carpeta instalada en Windows (adeorq.exe, 30,2 MB, más
+           el desinstalador), medida el 2026-11-17 con la 0.9.257. GitHub no lo
+           sabe, así que no sale de datos.js: se escribe aquí, en la respuesta
+           «¿Cuánto ocupa y cuánto consume?» de las preguntas (y su copia de
+           arriba, en el JSON-LD) y, con punto, en `hero.instalada` y `faq.r7`
+           de portada/en.mjs.
+         · En Mac va firmada y notarizada por Apple desde la 0.9.249. El
+           instalador de Windows no lleva certificado: no se dice «firmada» a secas. -->
+    <ul class="cifras">
+      <li><b data-cifra-clientes>11</b><span data-en="hero.cifra1">clientes <i>soportados</i></span></li>
+      <li><b data-en="hero.instalada">30,5 MB</b><span data-en="hero.cifra2"><i>ocupa </i>instalada</span></li>
+      <li><b>3</b><span data-en="hero.cifra3">sistemas<i>: Windows, Linux y Mac. <em>En Mac, firmada y notarizada por Apple</em></i></span></li>
     </ul>
+    <!-- Aquí iban cuatro notas a mano y, encima de la demo, una frase de «toca
+         la app». Fuera el 2026-11-17 (Munir: «estructúralo mejor, me explota la
+         cabeza de tantas cosas»; eligió «Dos columnas»): la primera pantalla es
+         el mensaje a la izquierda, las cifras a la derecha y la app debajo. -->
   </div>
 
   <!-- La ventana. `loading="lazy"` no: es lo primero que se ve, y por eso sube
@@ -313,6 +332,25 @@
        «Descargar» con unas motas dentro; antes, cinco versiones en WebGL y una
        imagen con filamento y humo. -->
   <div class="ventana" id="ventana">
+    <!-- Encima de la ventana, a la izquierda: el enlace para verla grande
+         (/demo/ suelta ocupa toda la pantalla) y, a su derecha, las pestañas de
+         texto de winshotx.com, que llevan la demo a cada pantalla
+         (portada/pestanas.js) para quien no se atreve a tocarla por dentro.
+         Iban en una fila propia entre los botones y la ventana; Munir,
+         2026-11-17: «lo de la cabina, lienzo, chat… al lado de abrirla en
+         grande, a la derecha». Va antes que la demo en el HTML para que el
+         teclado llegue primero aquí. La derecha de esta línea es de Adeo. -->
+    <div class="ventana__encima">
+      <a class="ventana__grande" href="/demo/" target="_blank" rel="noopener"
+         data-en="hero.grande" data-en-attr="href:hero.grande.href">Abrirla en grande</a>
+      <div class="pestanas-demo" role="group" aria-label="Pantallas de la demo" data-en-attr="aria-label:hero.pestanas" data-pestanas-demo>
+        <button type="button" data-vista="cabina" aria-pressed="true" data-en="hero.p.cabina">Cabina</button>
+        <button type="button" data-vista="lienzo" aria-pressed="false" data-en="hero.p.lienzo">Lienzo</button>
+        <button type="button" data-vista="chat" aria-pressed="false" data-en="hero.p.chat">Chat</button>
+        <button type="button" data-vista="decisiones" aria-pressed="false" data-en="hero.p.decisiones">Decisiones</button>
+        <button type="button" data-vista="panel" aria-pressed="false" data-en="hero.p.panel">Panel</button>
+      </div>
+    </div>
     <div class="ventana__caja">
       <!-- `data-src` y no `src`: la maqueta son 845 KB en 21 peticiones y los
            pide OTRO documento, asi que no salen en las metricas de esta pagina.
@@ -334,14 +372,6 @@
          soy <b>Adeo</b>. Vivo en tu Adeorq y te aviso cuando un agente te necesita.</p>
       <svg class="adeo" data-adeo="quieta" width="128" height="90" aria-hidden="true"></svg>
     </div>
-    <!-- El aviso va ENCIMA de la ventana (2026-10-13): debajo, pequeño y en
-         gris, casi nadie se enteraba de que la demo se toca. Y a su lado, la
-         forma de verla grande: /demo/ abierta suelta ocupa toda la pantalla. -->
-    <p class="ventana__aviso">
-      <span data-en="hero.pie">Esto no es una captura: pruébalo aquí mismo.</span>
-      <a class="ventana__grande" href="/demo/" target="_blank" rel="noopener"
-         data-en="hero.grande" data-en-attr="href:hero.grande.href">Abrirla en grande</a>
-    </p>
   </div>
 </section>
 
@@ -441,7 +471,7 @@
 <section class="cinta" id="cinta" aria-labelledby="cinta-tit">
   <div class="cinta__caja">
     <p class="cinta__rotulo" id="cinta-tit" data-en="cinta.rotulo">
-      Los <b>11 clientes</b><br>que sabe abrir
+      Funciona con lo que ya usas
     </p>
     <div class="cinta__ventana">
       <div class="cinta__pista">
@@ -455,8 +485,8 @@
         <li class="cli" style="--cli: #7aa6ff"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-agy"/></svg><span>Antigravity</span></li>
         <li class="cli" style="--cli: #c9d1d9"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-cursor"/></svg><span>Cursor</span></li>
         <li class="cli" style="--cli: #a855f7"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-kiro"/></svg><span>Kiro CLI</span></li>
-        <li class="cli" style="--cli: #2dd4bf"><span class="cli__sigla" aria-hidden="true">Pi</span><span>Pi</span></li>
-        <li class="cli" style="--cli: #0a7aff"><span class="cli__sigla" aria-hidden="true">Kc</span><span>Kimi Code</span></li>
+        <li class="cli" style="--cli: #2dd4bf"><span>Pi</span></li>
+        <li class="cli" style="--cli: #0a7aff"><span>Kimi Code</span></li>
         </ul>
         <ul class="cinta__grupo" aria-hidden="true" data-copia>
         <li class="cli" style="--cli: #d97757"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-claude"/></svg><span>Claude Code</span></li>
@@ -468,8 +498,8 @@
         <li class="cli" style="--cli: #7aa6ff"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-agy"/></svg><span>Antigravity</span></li>
         <li class="cli" style="--cli: #c9d1d9"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-cursor"/></svg><span>Cursor</span></li>
         <li class="cli" style="--cli: #a855f7"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-kiro"/></svg><span>Kiro CLI</span></li>
-        <li class="cli" style="--cli: #2dd4bf"><span class="cli__sigla" aria-hidden="true">Pi</span><span>Pi</span></li>
-        <li class="cli" style="--cli: #0a7aff"><span class="cli__sigla" aria-hidden="true">Kc</span><span>Kimi Code</span></li>
+        <li class="cli" style="--cli: #2dd4bf"><span>Pi</span></li>
+        <li class="cli" style="--cli: #0a7aff"><span>Kimi Code</span></li>
         </ul>
       </div>
     </div>
@@ -485,41 +515,108 @@
 </section>
 <!-- CLIENTES:FIN -->
 
-<!-- ========================= EL MANIFIESTO =========================
-     Una sola frase a tamaño de cartel, en tres tonos: lo que HACES en
-     blanco, lo que pasa DESPUES en gris, y el remate en el azul de la
-     marca. El contraste de tono es lo que hace que se lea como una idea
-     con principio y final en vez de como un parrafo grande.
-
-     Los tres tramos van en <b>, <span> y <em> dentro del mismo <p>: es
-     UNA frase, y partirla en tres elementos de bloque la dejaria sin
-     sentido para quien la escucha con un lector de pantalla. -->
-<section class="manifiesto" id="manifiesto">
-  <p class="manifiesto__frase">
-    <b data-en="manifiesto.b">Escribe el encargo, díctalo, o suéltale la misión entera a seis agentes a la vez.</b>
-    <span data-en="manifiesto.span">Cada uno abre su terminal, trabaja en tu carpeta y te deja el resultado.
-    Tú revisas lo que sale, no la sintaxis.</span>
-    <em data-en="manifiesto.em">Vibe coding por terminal, con cara de aplicación.</em>
-  </p>
-  <p class="manifiesto__firma" data-en="manifiesto.firma">
-    Adeorq se construye usándolo todos los días.
-  </p>
+<!-- ======================= SIN ADEORQ Y CON ADEORQ ======================
+     El «Sin Orquio / Con Orquio» de orquio.com hecho Adeorq (Munir lo sumó a
+     la portada el 2026-11-16) y enfrentado línea a línea, la variante 1 «pero
+     más simple» que eligió el 2026-11-17: sin cajas ni marcas, una flecha en
+     medio. El título dice la ventaja de tenerlo todo en una app en vez de
+     repartido (su «G»). Todo lo de la derecha existe en la app de hoy. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true"
+     style="position:absolute;width:0;height:0;overflow:hidden">
+  <symbol id="i-flecha" viewBox="0 0 24 24"><path d="M4 12h15m0 0-5.5-5.5M19 12l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+<section class="comparar" id="comparar" aria-labelledby="comparar-tit">
+  <div class="comparar__caja">
+    <h2 class="seccion__tit seccion__tit--centro" id="comparar-tit" data-aparece data-en="comparar.tit">De ventanas sueltas a una sola app de trabajo</h2>
+    <p class="seccion__entrada comparar__entrada" data-en="comparar.entrada">Un agente por ventana funciona hasta que tienes cuatro. Con todos en una, ves quién acabó, <b class="clave">quién te espera</b> y <b class="clave">cuánto llevas gastado</b> sin ir a buscarlo.</p>
+    <table class="comparar__tabla" data-aparece>
+      <thead><tr><th scope="col" data-en="comparar.sin">Sin Adeorq</th><th aria-hidden="true"></th><th scope="col" data-en="comparar.con">Con Adeorq</th></tr></thead>
+      <tbody>
+      <tr><td data-en="comparar.sin1">Una ventana por agente</td><td aria-hidden="true"><svg class="comparar__flecha"><use href="#i-flecha"/></svg></td><td data-en="comparar.con1">Todas en una ventana</td></tr>
+      <tr><td data-en="comparar.sin2">No sabes quién acabó</td><td aria-hidden="true"><svg class="comparar__flecha"><use href="#i-flecha"/></svg></td><td data-en="comparar.con2">Se enciende al acabar</td></tr>
+      <tr><td data-en="comparar.sin3">Un agente esperando tu sí</td><td aria-hidden="true"><svg class="comparar__flecha"><use href="#i-flecha"/></svg></td><td data-en="comparar.con3">Adeo te avisa si pregunta</td></tr>
+      <tr><td data-en="comparar.sin4">La cuota se acaba sin avisar</td><td aria-hidden="true"><svg class="comparar__flecha"><use href="#i-flecha"/></svg></td><td data-en="comparar.con4">Ves lo gastado por cuenta</td></tr>
+      <tr><td data-en="comparar.sin5">Cierras y pierdes la sesión</td><td aria-hidden="true"><svg class="comparar__flecha"><use href="#i-flecha"/></svg></td><td data-en="comparar.con5">Retomas las de Claude, Codex y Gemini</td></tr>
+      <tr><td data-en="comparar.sin6">Un encargo grande, en serie</td><td aria-hidden="true"><svg class="comparar__flecha"><use href="#i-flecha"/></svg></td><td data-en="comparar.con6">Adeo lo reparte en hasta seis</td></tr>
+      <tr><td data-en="comparar.sin7">Lejos del PC, a ciegas</td><td aria-hidden="true"><svg class="comparar__flecha"><use href="#i-flecha"/></svg></td><td data-en="comparar.con7">Contestas desde el móvil</td></tr>
+      <tr><td data-en="comparar.sin8">La cuenta, cambiada a mano</td><td aria-hidden="true"><svg class="comparar__flecha"><use href="#i-flecha"/></svg></td><td data-en="comparar.con8">La cuenta, al abrir la terminal</td></tr>
+      </tbody>
+    </table>
+  </div>
 </section>
 
-<!-- ======================= EL CÓDIGO, A LA VISTA =======================
-     Pegada al manifiesto para que se vea sin buscarla (Munir, 2026-10-16:
-     «di bien claro que pueden ver el código»). Antes lo decía media frase gris
-     en la firma de arriba, y por eso la firma ya no lo repite.
+<!-- ========================== ADEO LO REPARTE ==========================
+     Un encargo con dos trabajos y Adeo abriendo una sesión para cada uno, en el
+     Chat de la app tal cual: la burbuja tuya en el azul al 24 % con su borde,
+     la respuesta de Adeo sin burbuja, cada sesión con su marca, su punto verde
+     que late y el porqué del router, y la caja de escribir con sus mandos. Las
+     medidas salen de src/estilos/21-chat.css y 22-conserje.css, y los textos,
+     de la captura del móvil (assets/screens/es/phone-concierge.png). Munir lo
+     pidió así el 2026-11-17: «como en el Chat, pero que se vea como en la app». -->
+<section class="reparte" id="reparte">
+  <div class="reparte__caja">
+    <h2 class="seccion__tit seccion__tit--centro" data-aparece data-en="reparte.tit">Se lo dices una vez. Adeo lo reparte.</h2>
+    <p class="seccion__entrada reparte__entrada" data-en="reparte.entrada">Escríbelo o díctalo <b class="clave">como te salga</b>. Si son dos trabajos, Adeo <b class="clave">abre dos sesiones</b>, cada una en su proyecto.</p>
+    <div class="rchat" data-aparece>
+      <div class="rchat__cab">
+        <svg class="adeo" data-adeo="trabaja" width="46" height="32" aria-hidden="true"></svg>
+        <p><b data-en="reparte.cab">Antes del viernes: que el descuento redondee bien y que la portada tenga modo oscuro.</b><span data-en="reparte.marcha">2 sesiones en marcha</span></p>
+      </div>
+      <div class="rchat__hilo">
+        <p class="rchat__tu" data-en="reparte.dicho">Antes del viernes: que el descuento redondee bien y que la portada tenga modo oscuro.</p>
+        <div class="rchat__adeo">
+          <p data-en="reparte.r1">Son dos trabajos distintos, así que abro dos sesiones:</p>
+          <ul>
+            <li data-en="reparte.r2">una en <b>storefront-api</b> para el descuento</li>
+            <li data-en="reparte.r3">otra en <b>landing-web</b> para el modo oscuro</li>
+          </ul>
+          <p data-en="reparte.r4">Te aviso cuando alguna te pregunte algo.</p>
+        </div>
+        <div class="rchat__trabajo" data-estado="trabajando">
+          <p class="rchat__trabajo-cab"><svg class="prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-claude"/></svg><b>storefront-api · Claude Opus</b><span class="rchat__estado"><i aria-hidden="true"></i><span data-en="reparte.trabajando">trabajando</span></span></p>
+          <p class="rchat__para" data-en="reparte.t1">Que el descuento redondee a céntimos enteros</p>
+          <p class="rchat__porque" data-en="reparte.t1porque"><b>Lo eligió el router.</b> Es de los de juicio: si sale mal, puede no notarse.</p>
+        </div>
+        <div class="rchat__trabajo" data-estado="trabajando">
+          <p class="rchat__trabajo-cab"><svg class="prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-claude"/></svg><b>landing-web · Claude Sonnet</b><span class="rchat__estado"><i aria-hidden="true"></i><span data-en="reparte.trabajando">trabajando</span></span></p>
+          <p class="rchat__para" data-en="reparte.t2">Modo oscuro en la portada</p>
+          <p class="rchat__porque" data-en="reparte.t2porque"><b>Lo eligió el router.</b> Es oficio del día a día.</p>
+        </div>
+      </div>
+      <div class="rchat__caja" aria-hidden="true">
+        <span class="rchat__escribe" data-en="reparte.caja">Dile qué hay que hacer</span>
+        <span class="rchat__mandos">
+          <span class="rchat__mas"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="rchat__pastilla">Sonnet · Router</span>
+          <span class="rchat__enviar"><svg viewBox="0 0 24 24"><path d="M12 19V5m0 0-6 6m6-6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </span>
+      </div>
+      <p class="rchat__ia" data-en="reparte.ia">Adeo es una IA y puede equivocarse.</p>
+    </div>
+  </div>
+</section>
 
-     «A la vista», y ninguna etiqueta de software libre: la licencia es
+<!-- ===================== EL CÓDIGO A LA VISTA, Y TUS MODS =====================
+     Arriba en la página para que se vea sin buscarla (Munir, 2026-10-16:
+     «di bien claro que pueden ver el código»), y desde el 2026-11-17 con los
+     mods al lado (su «G»: que «también puedes añadir tus propios mods con el
+     apartado de mods»).
+
+     «A la vista», y NUNCA una etiqueta de software libre: la licencia es
      PolyForm Shield, que deja leer, compilar y hacer un fork pero no vender
      ni competir (lo mismo que dicen el pie y las preguntas). La línea de la
-     licencia va aquí mismo para que el titular no se lea como lo que no es. -->
-<section class="codigo" id="codigo" aria-labelledby="codigo-tit">
+     licencia va aquí mismo para que el titular no se lea como lo que no es.
+     Los mods, solo lo que hacen hoy (docs/contexto/mods.md): cambian cómo se
+     ve, los escribe tu agente y viven en tu carpeta, aparte de la app; se
+     encienden en Ajustes › Mods. Nada de código. Que aguantan una actualización
+     es para lo que están hechos, pero todavía no se ha medido con una de verdad
+     (mods.md, «NO PROBADO»): por eso se dice dónde viven y no «sobreviven». -->
+<section class="codigo" id="codigo" aria-labelledby="codigo-sec">
+  <h2 class="seccion__tit seccion__tit--centro codigo__sec" id="codigo-sec" data-aparece data-en="codigo.sec">Léelo entero y cámbialo a tu gusto</h2>
   <div class="codigo__caja">
-    <svg class="gh-marca codigo__marca" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-github"/></svg>
-    <div class="codigo__texto">
-      <h2 class="codigo__tit" id="codigo-tit" data-en="codigo.tit">Todo el código, a la vista en GitHub</h2>
+    <div class="codigo__mitad">
+      <svg class="gh-marca codigo__marca" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-github"/></svg>
+      <h3 class="codigo__tit" data-en="codigo.tit">Todo el código, a la vista en GitHub</h3>
       <p class="codigo__p" data-en="codigo.p">
         Puedes leerlo entero, compilarlo tú mismo y hacer tu fork: así ves qué
         hace en tu equipo.
@@ -529,11 +626,35 @@
         <a href="https://github.com/Mun1to/Adeorq-releases/blob/main/LICENSE" rel="noopener">PolyForm Shield</a>:
         puedes usarlo, modificarlo y compartirlo, no venderlo ni competir con él.
       </p>
+      <!-- La seguridad, dicha como se comprueba y sin prometer de más (Munir,
+           2026-11-17: «publica los laboratorios y di eso»): las pruebas son
+           scripts/laboratorio/*-de-verdad.mjs, que atacan una Adeorq aislada, y
+           AI-AUDIT.md es el prompt para revisarla con tu IA. Nada de «100 %». -->
+      <p class="codigo__seguro" data-en="codigo.seguro">
+        <b>No te fíes: <a href="https://github.com/Mun1to/Adeorq-releases#dont-trust-it-check-it" rel="noopener">compruébalo</a>.</b>
+        Las pruebas de seguridad van con el código: atacan una Adeorq aislada como
+        lo haría un programa malo ya metido en tu PC y comprueban que lo cerrado
+        sigue cerrado. Y el prompt <span class="junto">AI-AUDIT.md</span> le pide a tu propia IA que la revise.
+      </p>
+      <a class="btn btn--fantasma btn--grande codigo__btn" href="https://github.com/Mun1to/Adeorq-releases" rel="noopener">
+        <svg class="gh-marca" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-github"/></svg>
+        <span data-en="codigo.btn">Ver el código en GitHub</span>
+      </a>
     </div>
-    <a class="btn btn--fantasma btn--grande codigo__btn" href="https://github.com/Mun1to/Adeorq-releases" rel="noopener">
-      <svg class="gh-marca" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-github"/></svg>
-      <span data-en="codigo.btn">Ver el código en GitHub</span>
-    </a>
+    <div class="codigo__mitad">
+      <svg class="codigo__marca" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 19.5c2.5 0 4.5-1.4 4.5-3.6 0-1.3-1-2.4-2.3-2.4-1.4 0-2.2 1-2.2 2.4 0 1.7-.6 2.9-1.5 3.6h1.5Zm4.7-5.2 9.6-9.6a1.6 1.6 0 0 1 2.3 2.3l-9.6 9.6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h3 class="codigo__tit" data-en="mods.tit">Y tus mods, en tu carpeta y no en la app</h3>
+      <p class="codigo__p" data-en="mods.p">
+        Pídele a tu agente un cambio en cómo se ve Adeorq, por ejemplo los iconos
+        redondos. Se guarda en tu carpeta de mods, aparte de la app, pensado para
+        que una actualización no se lo&nbsp;lleve.
+      </p>
+      <p class="codigo__licencia" data-en="mods.donde">
+        Vienen apagados: se encienden en Ajustes › Mods, y si uno te estorba,
+        Ctrl + Alt + Mayús + 0 los apaga todos.
+      </p>
+      <a class="btn btn--fantasma btn--grande codigo__btn" href="/guia#ajustes" data-en="mods.btn">Cómo funcionan los mods</a>
+    </div>
   </div>
 </section>
 
@@ -553,12 +674,14 @@
       <h2 class="explica__tit" data-en="queEs.tit"><b>Siete pantallas,</b> <span>una ventana</span></h2>
       <p class="explica__entrada" data-en="queEs.entrada">
         Panel, Cabina, Chat, Decisiones, Lienzo, Perfil y Ajustes, y en el Perfil tus cuentas,
-        tu agenda, tu memoria, tus comandos y tu uso. Todo dentro de una aplicación nativa de
-        unos 6 MB, sin un navegador entero empaquetado dentro.
+        tu agenda, tu memoria, tus comandos y tu uso. Todo dentro de una <b class="clave">aplicación nativa</b>,
+        sin un navegador entero empaquetado dentro.
       </p>
     </header>
 
-    <!-- LA MUESTRA. Seis rasgos y, al lado, la captura de verdad de cada uno:
+    <!-- LA MUESTRA. Cinco rasgos, por orden de importancia (Munir, 2026-11-17:
+         «lo de comandos quítalo, no es lo más importante»), y, al lado, la
+         captura de verdad de cada uno:
          las de assets/screens, las mismas de la guía, así que se rehacen solas
          con cada versión. Sin JavaScript es una lista, cada rasgo con su frase
          y su foto. Con él (portada/muestra.js) solo el rasgo elegido enseña lo
@@ -634,20 +757,6 @@
                data-en-attr="src:rasgo.cuentas.src|alt:rasgo.cuentas.alt">
         </figure>
       </div>
-
-      <div class="rasgo">
-        <div class="rasgo__texto">
-          <h3 class="rasgo__tit" data-en="rasgo.comandos.tit">Comandos</h3>
-          <p class="rasgo__p" data-en="rasgo.comandos.p">Todo lo que puedes escribir dentro de cada agente, buscado por lo que
-             quieres hacer y no por cómo se llama. Un clic y va a la terminal.</p>
-          <a class="rasgo__demo" href="#haz" data-demo-vista="comandos" data-en="rasgo.demo">Tocarlo en la demo</a>
-        </div>
-        <figure class="rasgo__foto">
-          <img src="/assets/screens/es/commands.png" width="3840" height="2160" loading="lazy" decoding="async"
-               alt="La lista de comandos de Claude Code, cada uno con una frase que dice para qué sirve."
-               data-en-attr="src:rasgo.comandos.src|alt:rasgo.comandos.alt">
-        </figure>
-      </div>
     </div>
   </div>
 </section>
@@ -720,8 +829,8 @@
     </div>
     <h2 class="seccion__tit" data-aparece data-en="movil.tit">Tu cabina, también en el bolsillo</h2>
     <p class="seccion__entrada" data-en="movil.entrada">
-      Desde el móvil, una tablet u otro ordenador, estés donde estés: ves quién te
-      pregunta y quién trabaja, contestas a cualquier terminal y le encargas
+      Desde el móvil, una tablet u otro ordenador, <b class="clave">estés donde estés</b>: ves quién te
+      pregunta y quién trabaja, <b class="clave">contestas a cualquier terminal</b> y le encargas
       trabajo nuevo a Adeo.
     </p>
     </div>
@@ -817,7 +926,7 @@
     <h2 class="seccion__tit" data-aparece data-en="descarga.tit">Móntate la cabina en dos minutos</h2>
     <p class="seccion__entrada" data-en="descarga.entrada">
       Para Windows y Linux de 64 bits, y para Mac con Apple Silicon. Necesitas
-      tener instalado el CLI que ya uses, porque Adeorq trabaja con él.
+      tener instalado <b class="clave">el CLI que ya uses</b>, porque Adeorq trabaja con él.
     </p>
     </div>
 
@@ -875,11 +984,20 @@
     <h2 class="seccion__tit" data-aparece data-en="novedades.tit">Se mueve casi todos los días</h2>
     <p class="seccion__entrada" data-en="novedades.entrada">
       <b data-log-cuenta>155</b> versiones publicadas desde que arrancó. No es una
-      web con un producto detrás: es un producto que se usa mientras se construye.
+      web con un producto detrás: es un producto que <b class="clave">se usa mientras se construye</b>.
     </p>
     </div>
 
     <div class="bloque__cuerpo">
+    <!-- Un palito por día de los últimos 90, en azul el día que salió versión,
+         como en las páginas de estado (de munito.dev; Munir lo sumó el
+         2026-11-16). Los palitos y la cuenta los escribe el build
+         (vite.config.js) y los pone al día portada/datos.js. -->
+    <div class="tira">
+      <p class="tira__tit" id="tira-tit" data-en="novedades.tira">En <b><span data-tira-cuenta>49</span> de los últimos 90 días</b> salió una versión nueva.</p>
+      <div class="tira__dias" role="img" aria-labelledby="tira-tit" data-tira-dias></div>
+      <p class="tira__pie"><span data-en="novedades.hace90">hace 90 días</span><span data-en="novedades.hoy">hoy</span></p>
+    </div>
     <ol class="log" data-log></ol>
     <a class="btn btn--fantasma btn--grande" href="https://github.com/Mun1to/Adeorq-releases/releases" rel="noopener" data-en="novedades.todas">
       Ver todas las versiones
@@ -899,7 +1017,12 @@
         <svg class="adeo" data-adeo="duda" width="86" height="60" aria-hidden="true"></svg>
         <p class="adeo-dice adeo-dice--izq" data-en="adeo.faq">¿Dudas? Estas son las que más me hacen.</p>
       </div>
-    <h2 class="seccion__tit" data-aparece data-en="faq.tit">Lo que suelen preguntar</h2>
+    <h2 class="seccion__tit" data-aparece data-en="faq.tit">Lo que suelen&nbsp;preguntar</h2>
+    <p class="seccion__entrada" data-en="faq.entrada">Si la tuya no está, pregúntala en GitHub: se contesta y se añade aquí.</p>
+    <a class="btn btn--fantasma btn--grande faq__preguntar" href="https://github.com/Mun1to/Adeorq-releases/issues" rel="noopener">
+      <svg class="gh-marca" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-github"/></svg>
+      <span data-en="faq.preguntar">Preguntar en GitHub</span>
+    </a>
     </div>
 
 
@@ -956,10 +1079,9 @@
 
       <details class="pregunta" name="faq">
         <summary><span data-en="faq.q7">¿Cuánto ocupa y cuánto consume?</span><svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <p data-en="faq.r7">El instalador de Windows ronda los 6 MB. Es una aplicación nativa hecha con Tauri, no
-           lleva un navegador entero empaquetado dentro, así que arranca al instante
-           y en reposo casi no se nota. Lo demás será lo que consuman tus agentes,
-           que es lo que ya consumen.</p>
+        <p data-en="faq.r7">Instalada ocupa 30,5 MB en Windows, y su instalador ronda los 8 MB. Es una
+           aplicación nativa hecha con Tauri: no lleva un navegador entero empaquetado
+           dentro. Lo demás será lo que consuman tus agentes, que es lo que ya consumen.</p>
       </details>
 
       <details class="pregunta" name="faq">
@@ -972,6 +1094,53 @@
            Mozilla), que los entrega sin poder leerlos. Nada más.</p>
       </details>
     </div>
+  </div>
+</section>
+
+<!-- ============================ DOCS Y AYUDA ============================
+     Todo lo que se lee para usarla, en un sitio (Munir, 2026-11-17: «hacer una
+     sección de docs y ayuda»): la guía, el móvil, la privacidad, las novedades
+     y preguntar en GitHub. Cinco enlaces con su frase, sin tarjetas. -->
+<section class="ayuda" id="ayuda" aria-labelledby="ayuda-tit">
+  <div class="ayuda__caja">
+    <h2 class="seccion__tit" id="ayuda-tit" data-aparece data-en="ayuda.tit">Docs y ayuda</h2>
+    <ul class="ayuda__lista">
+      <li>
+        <a class="ayuda__enlace" href="/guia"><span data-en="ayuda.guia">La guía</span></a>
+        <p data-en="ayuda.guia.p">Cada pantalla, en el orden en que te las encuentras.</p>
+      </li>
+      <li>
+        <a class="ayuda__enlace" href="/guia#movil"><span data-en="ayuda.movil">En el móvil</span></a>
+        <p data-en="ayuda.movil.p">Cómo emparejar el móvil y contestar a tus agentes lejos del PC.</p>
+      </li>
+      <li>
+        <a class="ayuda__enlace" href="/privacidad" data-en-attr="href:pie.privacidad.href"><span data-en="ayuda.privacidad">Privacidad</span></a>
+        <p data-en="ayuda.privacidad.p">Qué lee de tu equipo, qué guarda y qué sale de él.</p>
+      </li>
+      <li>
+        <a class="ayuda__enlace" href="#novedades"><span data-en="ayuda.novedades">Novedades</span></a>
+        <p data-en="ayuda.novedades.p">Lo que trae cada versión, con su fecha.</p>
+      </li>
+      <li>
+        <a class="ayuda__enlace" href="https://github.com/Mun1to/Adeorq-releases/issues" rel="noopener"><span data-en="ayuda.preguntar">Preguntar</span></a>
+        <p data-en="ayuda.preguntar.p">¿No lo encuentras? Pregúntalo en GitHub: se contesta y se añade a la guía.</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================ APOYAR EL PROYECTO ============================
+     Su página de Buy Me a Coffee, la misma que enlaza como «Invítame a un café»
+     en el README de TaskbarGroupsFluent. Sin urgencia ni culpa (regla BC): una
+     frase y un botón secundario, que el principal es solo el de descargar. -->
+<section class="apoyar" id="apoyar" aria-labelledby="apoyar-tit">
+  <div class="apoyar__caja">
+    <svg class="adeo" data-adeo="quieta" width="86" height="60" aria-hidden="true"></svg>
+    <div class="apoyar__texto">
+      <h2 class="apoyar__tit" id="apoyar-tit" data-en="apoyar.tit">Si te ahorra tiempo, invítame a un café</h2>
+      <p class="apoyar__p" data-en="apoyar.p">Adeorq es gratis. Si te sirve y te apetece apoyarlo, un café ayuda a seguir sacando versiones.</p>
+    </div>
+    <a class="btn btn--fantasma btn--grande apoyar__btn" href="https://buymeacoffee.com/munito" rel="noopener" data-en="apoyar.btn">Invitar a un café</a>
   </div>
 </section>
 
@@ -1037,6 +1206,7 @@
 <script type="module" src="./portada/muestra.js"></script>
 <script type="module" src="./portada/adeo.js"></script>
 <script src="./portada/valvula.js" defer></script>
+<script src="./portada/pestanas.js" defer></script>
 <script src="./portada/datos.js" defer></script>
 <script src="./portada/idioma.js" defer></script>
 <script src="./portada/menu.js" defer></script>

@@ -2,8 +2,8 @@
   "nombre": "es-mobile",
   "sesion": "b9e93900-a4b3-410b-a2cb-2164db1cb4ae",
   "cwd": "P:\\projects\\mobile-app",
-  "cols": 90,
-  "rows": 22,
+  "cols": 87,
+  "rows": 21,
   "command": [
     "cmd.exe",
     "/k",

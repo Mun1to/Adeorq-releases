@@ -1,11 +1,11 @@
 {
-  "version": "0.9.259",
-  "notes": "Contraste es el aspecto nuevo de fabrica, ninguna letra baja de 13 px, iconos dibujados en vez de simbolos; once programas en el catalogo; Vibecoding abre opencode; Copilot, Pi y Kiro reciben el encargo al abrirse; Conectar tu Claude Code ya no se queda girando",
-  "pub_date": "2026-11-16T19:05:48Z",
+  "version": "0.9.260",
+  "notes": "Temas oscuros con la forma de Contraste y siete gemelos fuera, pegar imagenes en las cajas de Adeo y su Chat las ve, carpeta nueva en la barra sin reiniciar, y portada nueva en la web",
+  "pub_date": "2026-11-17T19:51:05Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzVGNzNLQ2x6QUlDbk00RlZ5M1RKRE9zK0N1NWZpam9KTlZLNDlqWVVLd1RacVlWM0VuM3p4Y1pESHgrTWJ5cWttZWsybEgxTjFxVGZsQVRVZHhSRUE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0ODU1OTQwCWZpbGU6QWRlb3JxXzAuOS4yNTlfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNTkKUGhINEJOMW93dlQrd2RURmIzVUhmK3RZMVpabngyeVNRaHF2TTlGb2xPZUpoNmtjZXJIUkdXYWxCVG5iN2d4aHVUZytiSlVuNWR1VDAxU3Z1Nno2Q0E9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.259/Adeorq_0.9.259_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzVMWDI4TWliN2YwUUYyS2hrUEVWOVlvREE3UExjNmZuYU50UTZ5YktCb1dacFd1TzhkNWR4Szk5M2ZUMGlCRUw5UW9ENlhlSjVpUGF3OXEzZExSalFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0OTQ1MDUzCWZpbGU6QWRlb3JxXzAuOS4yNjBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNjAKVXFxY1FyUlBsalk1bityRDJyV3ZIcW0yeXZ6bExkMTNiODNKcDFYTndaTit6ZFVkMTlLcmZGVzE5NkZnZmJ4NGZDOFFQR0plNWRVdU1YYXgzZkhJQ1E9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.260/Adeorq_0.9.260_x64-setup.exe"
     }
   }
 }

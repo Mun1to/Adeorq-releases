@@ -5,7 +5,7 @@
 // Munir, F1 del 2026-11-15: encendido de fábrica en las instalaciones NUEVAS, y
 // la suya (y cualquiera de antes) se queda con lo que ya eligió. Una instalación
 // de antes se reconoce por tener ya su tema guardado (`THEME_KEY`).
-import { THEME_KEY } from "../src/lib/i18n";
+import { TEMAS_QUITADOS, THEME_KEY, THEMES } from "../src/lib/i18n";
 import { guardarTemaSistema, leerTemaSistema, TEMA_DE_FABRICA, temaInicial } from "../src/lib/temaSistema";
 
 const almacen = new Map<string, string>();
@@ -65,11 +65,37 @@ t = temaInicial();
 ok("y si vuelve a Azul noche, se queda en Azul noche", t === "azul", t);
 
 almacen.clear();
-almacen.set(THEME_KEY, "nord");
+almacen.set(THEME_KEY, "dracula");
 t = temaInicial();
-ok("quien eligió otro tema se queda con el suyo", t === "nord" && almacen.get(THEME_KEY) === "nord", t);
+ok("quien eligió otro tema se queda con el suyo", t === "dracula" && almacen.get(THEME_KEY) === "dracula", t);
 almacen.set(THEME_KEY, "un-tema-que-ya-no-existe");
 ok("un tema que ya no existe arranca en el de fábrica", temaInicial() === "contraste");
+
+// 5. Los siete que salieron el 2026-11-17 por parecerse a otro: quien tenía uno
+//    puesto pasa a su gemelo, no al de fábrica.
+const enLista = new Set<string>(THEMES.map((x) => x.id));
+ok("salieron siete", Object.keys(TEMAS_QUITADOS).length === 7, Object.keys(TEMAS_QUITADOS));
+for (const [viejo, gemelo] of Object.entries(TEMAS_QUITADOS)) {
+  almacen.clear();
+  almacen.set("adeorq-tema-contraste", "1");
+  almacen.set(THEME_KEY, viejo);
+  t = temaInicial();
+  ok(
+    `quien tenía «${viejo}» pasa a «${gemelo}», que sí está en la lista, y queda guardado`,
+    t === gemelo && almacen.get(THEME_KEY) === gemelo && enLista.has(gemelo) && !enLista.has(viejo),
+    t,
+  );
+}
+almacen.clear();
+almacen.set(THEME_KEY, "tokyo"); // de antes de Contraste: aún no ha pasado por aquello
+t = temaInicial();
+ok("quien eligió Tokyo Night pasa a Azul noche, no a Contraste", t === "azul" && almacen.get(THEME_KEY) === "azul", t);
+ok("y en el arranque siguiente sigue en Azul noche", temaInicial() === "azul");
+almacen.clear();
+almacen.set(THEME_KEY, "papel");
+almacen.set("adeorq-tema-sistema", JSON.stringify({ activo: true, oscuro: "nord", claro: "papel" }));
+c = leerTemaSistema();
+ok("el tema del oscuro de Windows también pasa a su gemelo", c.oscuro === "oceano" && c.activo === true, c);
 
 console.log(fallos ? `\n${fallos} FALLAN` : "\nTodo bien.");
 if (fallos) process.exit(1);

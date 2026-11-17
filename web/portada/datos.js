@@ -97,9 +97,29 @@
 
   /* ── Las novedades ────────────────────────────────────────────────────── */
 
+  /* Un palito por día de los últimos 90, encendido el día que salió versión.
+     La misma cuenta que hace el build (vite.config.js, bakeReleaseData). */
+  function tira(entradas) {
+    var caja = document.querySelector('[data-tira-dias]');
+    if (!caja || !entradas.length) return;
+    var dias = {};
+    entradas.forEach(function (e) { dias[String(e.date || e.publishedAt || '').slice(0, 10)] = true; });
+    var hoy = new Date();
+    var html = '';
+    var con = 0;
+    for (var i = 89; i >= 0; i--) {
+      var dia = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), hoy.getUTCDate() - i)).toISOString().slice(0, 10);
+      if (dias[dia]) con++;
+      html += dias[dia] ? '<i data-si></i>' : '<i></i>';
+    }
+    caja.innerHTML = html;
+    poner('[data-tira-cuenta]', String(con));
+  }
+
   traer('changelog.json').then(function (d) {
     if (!d) return;
     if (d.count) poner('[data-log-cuenta]', String(d.count));
+    tira(d.entries || []);
 
     var lista = document.querySelector('[data-log]');
     if (!lista || !d.entries || !d.entries.length) return;

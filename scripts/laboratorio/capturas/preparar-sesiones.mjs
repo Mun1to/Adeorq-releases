@@ -23,14 +23,14 @@ const GRABADAS = {
   en: [
     { rec: "en-storefront", hace: 7 },
     { rec: "en-mobile", hace: 1 },
-    { rec: "en-landing", corte: 37450, hace: 0 },
-    { rec: "en-invoice", corte: 48500, hace: 0, codex: true },
+    { rec: "en-landing", corte: 41900, hace: 0 },
+    { rec: "en-invoice", corte: 49800, hace: 0, codex: true },
   ],
   es: [
     { rec: "es-storefront", hace: 7 },
     { rec: "es-mobile", hace: 1 },
-    { rec: "es-landing", corte: 32600, hace: 0 },
-    { rec: "es-invoice", corte: 49800, hace: 0, codex: true },
+    { rec: "es-landing", corte: 39500, hace: 0 },
+    { rec: "es-invoice", corte: 38100, hace: 0, codex: true },
   ],
 };
 
@@ -117,9 +117,11 @@ for (const g of GRABADAS[idioma]) {
     let dia = join(CASA, ".codex", "sessions", ...partes);
     let candidatos = buscar(dia, meta.inicio - 2000);
     if (!candidatos.length) {
-      // El hogar real ya se limpió: la copia guardada de este idioma.
+      // El hogar real ya se limpió: la copia guardada de este idioma. Con el
+      // mismo límite que en el hogar: `respaldo/` guarda también los rollouts de
+      // grabaciones anteriores del mismo día, y sin él salía el más viejo.
       dia = join(RESPALDO, "codex", "sessions", ...partes);
-      candidatos = buscar(dia, 0);
+      candidatos = buscar(dia, meta.inicio - 2000);
     }
     if (!candidatos.length) {
       console.log(`- ${g.rec}: no encuentro su rollout de Codex ni en el hogar ni en respaldo/${idioma}`);

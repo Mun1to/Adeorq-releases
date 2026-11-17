@@ -49,8 +49,7 @@ for (const [w, h] of [[1600, 1000], [1280, 860], [900, 800], [430, 900]]) {
       logos: document.querySelectorAll('.cinta__grupo:not([data-copia]) .cli').length,
       copias: document.querySelectorAll('.cinta__grupo').length,
       pisa, vacias, suelto,
-      manifiesto: !!document.querySelector('.manifiesto__frase'),
-      firma: document.querySelector('.manifiesto__autor')?.textContent.trim() || 'SIN FIRMA',
+      reparte: !!document.querySelector('.rchat'),
       parrafos: document.querySelectorAll('.explica p').length,
     };
   });
@@ -71,7 +70,7 @@ for (const [w, h] of [[1600, 1000], [1280, 860], [900, 800], [430, 900]]) {
   console.log(
     `${String(w).padStart(4)}px  luz ${r.luz ? 'SI' : 'no'}  titular ${r.titular.padEnd(9)}` +
     `  cinta ${r.logos} logos x${r.copias} ${c1 !== c2 ? 'rodando' : 'PARADA'}` +
-    `  manifiesto ${r.manifiesto ? 'si' : 'NO'}  parrafos ${r.parrafos}`
+    `  reparte ${r.reparte ? 'si' : 'NO'}  parrafos ${r.parrafos}`
   );
   await pag.screenshot({ path: `resp-${w}.png` });
   await ctx.close();

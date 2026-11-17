@@ -1,7 +1,7 @@
 # Adeorq
 
 > Panel de escritorio para Windows, Linux y Mac que ejecuta clientes de agente de IA en
-> terminales reales. Claude Code, Codex, Gemini CLI, Copilot, Cursor y 17 clientes
+> terminales reales. Claude Code, Codex, Gemini CLI, Copilot, Cursor y 6 clientes
 > más trabajando a la vez en una sola ventana, con los proyectos del disco a un clic.
 > Gratis, sin cuenta y sin claves de API: usa el CLI que ya está instalado y la
 > sesión que ya está iniciada en él.
@@ -28,7 +28,7 @@ afiliado ni patrocinado por ninguno de ellos.
 ## In English
 
 Adeorq is a desktop panel for Windows, Linux and Mac that runs AI agent clients (Claude
-Code, Codex, Gemini CLI, Copilot, Cursor and 17 more) in real terminals, all at once,
+Code, Codex, Gemini CLI, Copilot, Cursor and 6 more) in real terminals, all at once,
 with the projects on disk one click away. Free, no account and no API keys: it uses
 the CLI already installed and the session already signed in. It can also be used
 from a phone or any browser, over Tailscale. The code is published under the

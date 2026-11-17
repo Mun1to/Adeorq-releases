@@ -1,6 +1,6 @@
 // Un tema a juego con la foto de fondo (MEJORAS, «Tema sacado de tu foto de
 // fondo»): se mira de qué color tira la imagen y se propone el tema de la casa
-// cuyo acento esté más cerca. No se inventa una paleta nueva: los 32 temas ya
+// cuyo acento esté más cerca. No se inventa una paleta nueva: los temas ya
 // están afinados a mano para leerse sobre cristal, y una paleta sacada de una
 // foto no lo estaría. Lo que la foto decide es CUÁL de ellos.
 //

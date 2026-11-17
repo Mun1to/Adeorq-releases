@@ -1,11 +1,11 @@
 /**
- * La muestra de «Qué hace»: seis rasgos, cada uno con su captura de la app.
+ * La muestra de «Qué hace»: cinco rasgos, cada uno con su captura de la app.
  *
- * El HTML ya trae los seis con su frase y su foto, y así se lee sin esto. Aquí
+ * El HTML ya trae los cinco con su frase y su foto, y así se lee sin esto. Aquí
  * solo se elige: el título de cada rasgo pasa a ser un botón, el rasgo elegido
  * enseña lo suyo y los demás se quedan en su título (el reparto lo hace
  * portada.css con `data-vivo` y `data-activa`). No hay carrusel: cambia cuando
- * la persona lo pide.
+ * la persona lo pide, con un clic o, a lo ancho, bajando por la lista.
  *
  * Y tres cosas más: la captura se abre en grande, su descarga se adelanta al
  * acercar el puntero, y «Tocarlo en la demo» abre esa misma vista en la demo
@@ -61,6 +61,56 @@ if (muestra) {
 
   elegir(rasgos[0])
   muestra.setAttribute('data-vivo', '')
+
+  /* A lo ancho, el rasgo se elige también bajando: se enciende el que cruza la
+     línea del centro de la pantalla, y portada.css apaga y desenfoca los demás
+     (Munir, 2026-11-17: «que se note ese apartado»). En el móvil no, porque allí
+     cada rasgo abre su foto debajo y la lista cambiaría de alto al bajar. Tras
+     un clic, el observador calla mientras la página se desliza hasta él, para
+     que no se enciendan los de por medio.
+
+     Lo decide la POSICIÓN, no el último en entrar. Antes mandaba el último que
+     asomaba por una franja del 16 % de la pantalla, y como en esa franja caben
+     dos a la vez, al subir un poco se quedaba encendido el de abajo con el de
+     arriba en mitad de la pantalla, apagado y borroso (Munir, 2026-11-17, con
+     Cuentas en el centro y la foto de Comandos: «en cuentas no se puede ver»).
+     Medido antes de arreglarlo: 8 de 20 llegadas a un rasgo (bajando, subiendo
+     y en zigzag) dejaban encendido el de al lado. El observador solo avisa de
+     que la línea ha cambiado de rasgo; quién se enciende sale de medir. */
+  const ancho = matchMedia('(min-width: 901px)')
+  let callado = 0
+  const textos = rasgos.map((rasgo) => rasgo.querySelector('.rasgo__texto'))
+  const delCentro = () => {
+    const medio = innerHeight / 2
+    let mejor = textos[0]
+    let cerca = Infinity
+    for (const texto of textos) {
+      const { top, bottom } = texto.getBoundingClientRect()
+      const lejos = top > medio ? top - medio : bottom < medio ? medio - bottom : 0
+      if (lejos < cerca) { cerca = lejos; mejor = texto }
+    }
+    return mejor.closest('.rasgo')
+  }
+  const vigia = new IntersectionObserver(() => {
+    if (ancho.matches && Date.now() >= callado) elegir(delCentro())
+  }, { rootMargin: '-50% 0px -50% 0px' })
+  for (const rasgo of rasgos) {
+    const texto = rasgo.querySelector('.rasgo__texto')
+    vigia.observe(texto)
+    // Con el teclado: el rasgo que recibe el foco se enciende (antes seguía
+    // apagado y borroso), y el observador calla mientras el navegador lo trae
+    // a la vista.
+    texto.addEventListener('focusin', () => {
+      if (!ancho.matches) return
+      callado = Date.now() + 900
+      elegir(rasgo)
+    })
+    texto.addEventListener('click', (e) => {
+      if (!ancho.matches || e.target.closest('a')) return
+      callado = Date.now() + 900
+      texto.scrollIntoView({ block: 'center' })
+    })
+  }
 }
 
 /* La captura a toda pantalla. Se crea la primera vez que alguien la pide. */

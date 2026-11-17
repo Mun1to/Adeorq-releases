@@ -173,7 +173,7 @@ De izquierda a derecha:
 | **El Pulso** | Una píldora con tres cifras: lo que gasta Adeorq con sus agentes en CPU, en memoria (RAM) y cuántos agentes hay vivos (AG). Se pone ámbar cuando Adeorq usa un cuarto o más de la CPU o de la memoria del equipo, y roja cuando el equipo entero va al 90 % o Adeorq por sí solo pasa del 50 % de CPU. Un clic abre **Lo que gasta Adeorq**, con el detalle. Mide el árbol entero de procesos, no solo la ventana. |
 | **La tira de música** | Solo aparece si algo suena en el PC: título, artista, anterior, pausa y siguiente. El volumen se queda en el mezclador del sistema. En Linux y Mac no está. |
 | **Emisión** | El escudo para retransmitir, solo con icono. Ctrl+Mayús+E lo enciende. Detalle en el [punto 20](#20-modo-emisión). |
-| **El orbe** | Llama a Adeo. Ctrl+Mayús+A abre y cierra; Ctrl+Mayús+M lo abre ya escuchándote. Más en el [punto 18](#18-adeo-y-el-reparto). |
+| **El orbe** | Llama a Adeo, fuera de la Cabina (en la Cabina, Adeo es el primer icono de la franja de la derecha). Ctrl+Mayús+A abre y cierra; Ctrl+Mayús+M lo abre ya escuchándote. Más en el [punto 18](#18-adeo-y-el-reparto). |
 | **Tres iconos más** | Solo en la Cabina y con más de una terminal: **Minimizar todas** (siguen vivas en la tira de abajo y pasa a **Traer todas**), **Disposición** (una rejilla de hasta 4 por 4, o «una grande y el resto al lado») y **Cerrar todas**, que pregunta antes porque mata a sus agentes y te dice cuáles están trabajando. |
 
 La **actualización** ya no es una barra de arriba: es una tarjeta al final de la
@@ -1011,7 +1011,7 @@ salen sus nombres para saltar a una.
   *Como venía de fábrica*.
 - **Idioma**: español o inglés. Cambia la app entera, incluida esta guía. Las
   terminales siguen hablando lo que hable cada agente.
-- **Tema**: 32 temas en cinco familias (De la casa, Conocidos, De los que se notan,
+- **Tema**: 26 temas en cinco familias (De la casa, Conocidos, De los que se notan,
   Apagados y De fondo claro), con filtro y buscador. Cada tarjeta es una miniatura de
   la app con esa paleta. Puedes pedir que siga el **claro u oscuro del sistema**, con
   un tema para cada caso, y **A juego con tu foto** elige el tema cuyo acento se parece
@@ -1244,8 +1244,9 @@ confías: a ese no se le da la clave.
 ## 18. Adeo y el Reparto
 
 Adeo es tu agente orquestador. Le escribes lo que quieres y te propone un plan;
-**nada se ejecuta sin tu OK**. Se abre con el orbe de la barra de arriba, con
-**Ctrl+Mayús+A**, y desde cualquier pestaña. **Ctrl+Mayús+M** lo abre ya escuchándote, y
+**nada se ejecuta sin tu OK**. Se abre con su orbe (en la Cabina, el primero de la franja de la
+derecha; en las demás pestañas, el de la barra de arriba), con **Ctrl+Mayús+A**, y desde
+cualquier pestaña. **Ctrl+Mayús+M** lo abre ya escuchándote, y
 con la voz de OpenRouter puede contestarte en alto. Es el mismo Adeo que abre
 sesiones desde el Chat y desde el móvil.
 

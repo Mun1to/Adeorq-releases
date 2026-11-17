@@ -48,8 +48,11 @@ async (page) => {
   }
   await pestana("Cabina");
   pasos.antes = await estado();
+  // Una sola puerta: en la Cabina, Adeo está en la franja y no también arriba (17-nov).
+  pasos.orbeArribaEnCabina = await page.locator(".foreman-call").count();
+  debe(pasos.orbeArribaEnCabina === 0, "en la Cabina sigue el orbe de Adeo en la barra de arriba, además del de la franja");
 
-  await page.locator(".foreman-call").first().click();
+  await page.locator(".franja-btn:has(.orbe)").first().click(); // en la Cabina, Adeo se llama desde la franja
   await page.waitForTimeout(700);
   pasos.conLaBola = await estado();
   debe(!pasos.conLaBola.velo, "con la bola, en la Cabina, sale el velo que lo oscurece todo");

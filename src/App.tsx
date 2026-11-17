@@ -167,6 +167,7 @@ import {
   temaQueToca,
   type TemaSistema,
 } from "./lib/temaSistema";
+import { trioRgb } from "./lib/tonoTerminal";
 import { IDS, lineaDeRetomar, lineasEnVivo, PROVIDERS, providerOf, sabe, type Provider } from "./lib/providers";
 import { planDeArranque } from "./lib/arranque";
 import { actaDeRelevo } from "./lib/relevo";
@@ -556,6 +557,13 @@ function App() {
     () => Number(localStorage.getItem(TERMINAL_VER_KEY) ?? -1),
   );
 
+  // Theme lives on <html> so it also tints things rendered outside .app.
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem(THEME_KEY, theme);
+    void ponerBarraDelTema(theme);
+  }, [theme]);
+
   useEffect(() => {
     const root = document.documentElement;
     if (terminalVer < 0) {
@@ -565,8 +573,7 @@ function App() {
       // El color se compone ENTERO aquí. Escribir `rgba(var(--xterm-rgb), …)`
       // parece más limpio y rompe las terminales: TerminalPane lee esta
       // variable y se la da a xterm tal cual, y xterm no resuelve var().
-      const rgb =
-        getComputedStyle(root).getPropertyValue("--xterm-rgb").trim() || "13, 21, 36";
+      const rgb = trioRgb(getComputedStyle(root).getPropertyValue("--xterm-rgb"));
       const abre = 1 - terminalVer / 100;
       // El tinte se pinta UNA vez (`.pane-term`) desde la 0.9.159; hasta
       // entonces xterm lo apilaba tres veces sobre el texto. Para que el mando
@@ -584,13 +591,13 @@ function App() {
     // Las terminales ya abiertas leyeron el color al nacer, así que hay que
     // avisarlas para que lo relean.
     window.dispatchEvent(new Event(FONDO_EVENTO));
-    // `fondo` está en las dependencias aunque no se use aquí, y es a propósito:
-    // poner o quitar la foto cambia el valor automático (0.45 -> 0.2) y hasta
-    // ahora no lo anunciaba NADIE, así que las terminales abiertas se quedaban
-    // con el color de antes hasta reiniciar la app. Este efecto corre después
-    // de pintar, o sea con el elemento .fondo ya en el DOM, que es lo que hace
-    // que el nuevo valor esté disponible cuando se lee.
-  }, [terminalVer, fondo]);
+    // `fondo` y `theme` están en las dependencias aunque no se usen aquí, y es a
+    // propósito: la foto cambia el valor automático (0.45 -> 0.2) y el tema, el
+    // tono del tinte; sin anunciarlo, las terminales abiertas se quedaban con el
+    // color de antes hasta reiniciar la app. Por eso el efecto del tema va
+    // ENCIMA de este: pone `data-theme` antes de que aquí se lea `--xterm-rgb`
+    // (y este corre después de pintar, con `.fondo` ya en el DOM).
+  }, [terminalVer, fondo, theme]);
 
   useEffect(() => {
     void leerFondo()
@@ -647,13 +654,6 @@ function App() {
   const raizArchivosRef = useRef("");
   raizArchivosRef.current = raizArchivos;
   useDiscordPresence(discordListo ? discord : null, presence, setDiscordError, lang);
-
-  // Theme lives on <html> so it also tints things rendered outside .app.
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem(THEME_KEY, theme);
-    void ponerBarraDelTema(theme);
-  }, [theme]);
 
   /* Seguir el claro/oscuro de Windows (`lib/temaSistema.ts`): con esto puesto,
      el tema lo decide el sistema y cambia solo; elegir uno a mano lo apaga. */
@@ -2836,13 +2836,13 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
             <StreamIcon size={16} on={stream} />
           </span>
         </button>
-        {/* UNA puerta, no dos. El Reparto tenía su propio botón aquí al lado, y
-            el comentario que lo justificaba ya decía lo que era: «la misma
-            pregunta con una lista en vez de una frase». Dos botones seguidos
-            para la misma pregunta es hacer elegir antes de escribir. Ahora se
-            escribe primero y el Asistente reparte solo cuando hay varias
-            líneas (Munir, 2026-08-05). */}
-        <button
+        {/* UNA puerta, no dos: el Reparto tuvo su botón aquí al lado, y era la
+            misma pregunta con una lista (Munir, 2026-08-05). Y en la Cabina, ni
+            esta: Adeo vive en la franja de la derecha (B1) y es su primer icono;
+            eran dos puertas para lo mismo (Munir, 2026-11-17, flecha al orbe:
+            «quítalo de aquí»). Las demás vistas no tienen franja: ahí se queda,
+            o Adeo solo tendría el atajo. */}
+        {view !== "cabina" && <button
           className="tab foreman-call"
           data-tip={t("Llamar a Adeo (Ctrl+Mayús+A · Ctrl+Mayús+M para dictarle)")}
           onClick={() => {
@@ -2851,7 +2851,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           }}
         >
           <Orbe estado={showForeman ? "escucha" : "reposo"} size={28} />
-        </button>
+        </button>}
         {/* El último grupo de la fila, pegado al borde: son los únicos botones
             de aquí que solo aparecen a veces (con la Cabina y más de un
             panel), y una cosa que va y viene en mitad de una barra mueve de

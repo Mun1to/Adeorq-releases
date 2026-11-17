@@ -121,11 +121,11 @@ const NO_SE_CUENTA = [
 const PUBLICOS = ["docs/GUIA.md", "docs/GUIDE.en.md", "web/guia.html", "web/js/guia-i18n.js", "docs/SUPREMA.md", "README.md", "README.es.md"];
 const cuentan = PUBLICOS.filter((p) => NO_SE_CUENTA.some((re) => re.test(leer(p).replace(/\s+/g, " "))));
 dice(cuentan.length === 0, `lo público no cuenta el hueco de las terminales de antes${cuentan.length ? ` (lo cuenta: ${cuentan.join(", ")})` : ""}`);
-// Y lo que lo mide con un impostor no sale en la foto pública.
-const fuera = leer("scripts/publicar-codigo.mjs");
-for (const lab of ["scripts/laboratorio/seguridad-local-de-verdad.mjs", "scripts/laboratorio/motor-viejo-de-verdad.mjs"]) {
-  dice(fuera.includes(`"${lab}"`), `${lab} está en FUERA de publicar-codigo.mjs`);
-}
+// Lo que lo mide con un impostor (`seguridad-local-de-verdad.mjs`, `motor-viejo-de-verdad.mjs`)
+// estuvo fuera de la foto pública hasta el 2026-11-17: ese día Munir dijo «publica los
+// laboratorios», con dos semanas desde la 0.9.239 (un reinicio del PC ya cerró cualquier terminal
+// de antes). Ahora salen, y son la prueba de que sigue cerrado; lo de arriba (que las guías no
+// cuenten el hueco) se queda.
 
 /* ── La guía de la web ──────────────────────────────────────────────────── */
 const html = leer("web/guia.html");

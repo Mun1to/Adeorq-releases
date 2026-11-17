@@ -122,30 +122,16 @@ function leerSprite() {
 
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-/* Las iniciales de quien no tiene dibujo. Dos letras, y por este orden:
-   las de sus dos palabras (Kimi Code -> KC), las de su mayuscula interna
-   (CodeWhale -> CW), o las dos primeras. Si esas dos ya las gasto otro, se
-   coge primera y ultima, que es lo unico que no vuelve a chocar: Codebuff y
-   Cody dan los dos «Co», y dos chapas iguales en la misma fila no dicen nada. */
-function siglaDe(label, gastadas) {
-  const palabras = label.split(/[\s.-]+/).filter(Boolean);
-  let s = null;
-  if (palabras.length > 1) s = palabras[0][0] + palabras[1][0];
-  else {
-    const may = label.slice(1).match(/[A-Z]/);
-    s = may ? label[0] + may[0] : label.slice(0, 2);
-  }
-  s = s[0].toUpperCase() + s[1].toLowerCase();
-  if (gastadas.has(s)) s = (label[0] + label[label.length - 1]).replace(/^./, m => m.toUpperCase());
-  gastadas.add(s);
-  return s;
-}
-
-function pieza(c, gastadas) {
+/* Quien no tiene dibujo va con su nombre solo. Antes llevaba delante sus
+   iniciales en una chapa tintada («Pi» y «Kc»), que en el letrero gigante era
+   una caja de 57 px alrededor de dos letras, y en el caso de Pi repetía el
+   nombre entero (revisión del 2026-11-17; las cajas alrededor de algo corto
+   son lo que Munir llama cárceles). */
+function pieza(c) {
   const color = c.hue ? ` style="--cli: ${c.hue}"` : '';
   const dibujo = c.marca
     ? `<svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-${c.id}"/></svg>`
-    : `<span class="cli__sigla" aria-hidden="true">${esc(siglaDe(c.label, gastadas))}</span>`;
+    : '';
   return `        <li class="cli"${color}>${dibujo}<span>${esc(c.label)}</span></li>`;
 }
 
@@ -183,10 +169,8 @@ function construir() {
 
   // El grupo se escribe DOS veces: la pista se desplaza justo la mitad de su
   // ancho, y en ese momento la segunda copia esta exactamente donde empezo la
-  // primera, asi que la vuelta no se ve. Las siglas se reparten UNA vez y las
-  // dos copias llevan las mismas, o en la segunda vuelta cambiarian las letras.
-  const gastadas = new Set();
-  const grupo = lista.map(c => pieza(c, gastadas)).join("\n");
+  // primera, asi que la vuelta no se ve.
+  const grupo = lista.map(c => pieza(c)).join("\n");
 
   return [
     `${INICIO} · generado por scripts/extraer-clientes.mjs, no editar a mano.`,
@@ -198,7 +182,7 @@ function construir() {
     `<section class="cinta" id="cinta" aria-labelledby="cinta-tit">`,
     `  <div class="cinta__caja">`,
     `    <p class="cinta__rotulo" id="cinta-tit" data-en="cinta.rotulo">`,
-    `      Los <b>${todos.length} clientes</b><br>que sabe abrir`,
+    `      Funciona con lo que ya usas`,
     `    </p>`,
     `    <div class="cinta__ventana">`,
     `      <div class="cinta__pista">`,

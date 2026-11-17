@@ -16,6 +16,7 @@
                                               vista, sección y panel lateral
      demo/app.css                             las hojas de estilo de la app
      demo/fondo.jpg                           el fondo del taller de demostración
+     demo/fuentes/*.woff2                     las letras de la app (Geist)
 
    Lo que se escribe a mano y este script no toca: demo/index.html, demo/demo.css
    y demo/vivo.js (lo que hace que se pueda pulsar).
@@ -23,8 +24,8 @@
    Se lanza con:  node scripts/hacer-demo.mjs [carpeta del volcado]
    ========================================================================= */
 
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
 
@@ -85,16 +86,54 @@ function unTema(texto, propia) {
   return id;
 }
 
+/* Nada se escribe en `demo/` hasta que todo ha pasado sus guardias: cada
+   escritura se apunta aquí y se hacen todas al final. Antes los `datos-*.html`
+   y el fondo se escribían dentro del bucle y la guardia de las letras paraba
+   después, y quedaba una demostración a medias (datos nuevos con la hoja vieja). */
+const alFinal = [];
+
 let fondoEscrito = false;
+const FONDO_PORTADA = resolve(AQUI, '../../scripts/laboratorio/capturas/fondo-demo.jpg');
+
+/* El tema con el que abre la demostración. La app nace en Contraste desde la
+   0.9.259, pero Munir la quiere en la portada con Azul noche (2026-11-16, con
+   la captura de su tarjeta «Midnight blue ✓»). La hoja trae todos los temas, así
+   que basta con decir cuál va en <html> y marcar su tarjeta en Ajustes: quien
+   la mira puede seguir cambiándolo allí, como en la app. */
+const TEMA_DEMO = 'azul';
+
+function conTema(raiz) {
+  const tarjetas = [...raiz.querySelectorAll('.tema-tarjeta')];
+  const elegida = tarjetas.find((t) => t.querySelector('[data-tema-prev]')?.getAttribute('data-tema-prev') === TEMA_DEMO);
+  if (elegida) {
+    const marca = raiz.querySelector('.tema-tarjeta[data-on="true"] .tema-nombre svg');
+    for (const t of tarjetas) t.setAttribute('data-on', String(t === elegida));
+    if (marca) elegida.querySelector('.tema-nombre')?.appendChild(marca);
+  }
+  // El desplegable del tema oscuro enseña el elegido.
+  for (const sel of raiz.querySelectorAll('select')) {
+    const opcion = sel.querySelector(`option[value="${TEMA_DEMO}"]`);
+    if (!opcion || !sel.querySelector('option[value="contraste"]')) continue;
+    for (const o of sel.querySelectorAll('option')) o.removeAttribute('selected');
+    opcion.setAttribute('selected', '');
+  }
+}
 
 /** Deja un trozo del volcado listo para publicarse. */
 function limpiar(raiz) {
+  conTema(raiz);
   // El fondo viaja incrustado (la casa de pruebas no lo puede servir): a un archivo.
   for (const img of raiz.querySelectorAll('img')) {
     const src = img.getAttribute('src') || '';
     if (src.startsWith('data:image/jpeg;base64,')) {
       if (!fondoEscrito) {
-        writeFileSync(resolve(DEMO, 'fondo.jpg'), Buffer.from(src.slice('data:image/jpeg;base64,'.length), 'base64'));
+        // El de la portada es el de Munir, su foto de fondo de Adeorq (él lo
+        // pidió y dio el sí a publicarla, 2026-11-16); sin ella, el de la casa.
+        if (existsSync(FONDO_PORTADA)) alFinal.push(() => copyFileSync(FONDO_PORTADA, resolve(DEMO, 'fondo.jpg')));
+        else {
+          const bytes = Buffer.from(src.slice('data:image/jpeg;base64,'.length), 'base64');
+          alFinal.push(() => writeFileSync(resolve(DEMO, 'fondo.jpg'), bytes));
+        }
         fondoEscrito = true;
       }
       img.setAttribute('src', 'fondo.jpg');
@@ -187,6 +226,7 @@ for (const idioma of IDIOMAS) {
   }
 
   const raiz = JSON.parse(leer(idioma, 'raiz.json') || '{"html":{}}');
+  raiz.html['data-theme'] = TEMA_DEMO;
   // El saludo del Panel sale de la hora a la que se volcó la app: de madrugada
   // dice «Aún en pie, Sam.», y eso en una portada se lee raro a cualquier hora.
   // En la demostración es siempre el de media tarde.
@@ -204,7 +244,7 @@ for (const idioma of IDIOMAS) {
 
   sinFugas(salida, idioma);
 
-  writeFileSync(resolve(DEMO, `datos-${idioma}.html`), salida, 'utf8');
+  alFinal.push(() => writeFileSync(resolve(DEMO, `datos-${idioma}.html`), salida, 'utf8'));
   total += salida.length;
   console.log(`datos-${idioma}.html -> ${(salida.length / 1024).toFixed(0)} KB, ${piezas.length} piezas`);
 }
@@ -233,12 +273,49 @@ function sinAnchura(css) {
   return salida;
 }
 
-const hojas = sinAnchura(readFileSync(resolve(DESDE, 'hojas.css'), 'utf8'));
+/* Las letras de la app (Geist y Geist Mono, de @fontsource) llegan al volcado
+   como `url("/node_modules/…/x.woff2")`: rutas del servidor de desarrollo, que en
+   adeorq.com dan 404, y la demostración caía en silencio a otra letra (así salió
+   hasta la 0.9.258). Se copian a `demo/fuentes/` y la hoja apunta allí; las que ya
+   no use nadie se quitan. Si falta un archivo, se para: mejor eso que publicar
+   una demostración con otra letra sin saberlo. */
+function conFuentes(css) {
+  const carpeta = resolve(DEMO, 'fuentes');
+  const usadas = new Map();
+  const salida = css.replace(/url\("?(\/node_modules\/[^)"]+\.woff2)"?\)/g, (_, ruta) => {
+    const origen = resolve(AQUI, '../..', '.' + ruta);
+    if (!existsSync(origen)) {
+      console.error(`hacer-demo: falta la letra ${ruta} (se busca en ${origen}); ¿falta pnpm install?`);
+      process.exit(1);
+    }
+    const nombre = basename(origen);
+    usadas.set(nombre, origen);
+    return `url("fuentes/${nombre}")`;
+  });
+  alFinal.push(() => {
+    mkdirSync(carpeta, { recursive: true });
+    for (const [nombre, origen] of usadas) copyFileSync(origen, resolve(carpeta, nombre));
+    // Solo se barren letras: lo que no sea .woff2 lo puso alguien a mano.
+    for (const viejo of readdirSync(carpeta)) if (viejo.endsWith('.woff2') && !usadas.has(viejo)) rmSync(resolve(carpeta, viejo));
+  });
+  // Una ruta del servidor de desarrollo que el patrón de arriba no reconoce
+  // (otra extensión, otras comillas) daría 404 en la web sin que nadie lo viera.
+  const queda = salida.match(/\/node_modules\/[^)"'\s]*/);
+  if (queda) {
+    console.error(`hacer-demo: la hoja aún pide ${queda[0]}, que en adeorq.com da 404`);
+    process.exit(1);
+  }
+  console.log(`fuentes -> ${usadas.size} archivos en demo/fuentes`);
+  return salida;
+}
+
+const hojas = conFuentes(sinAnchura(readFileSync(resolve(DESDE, 'hojas.css'), 'utf8')));
 const coloresTerminal = [...temas].map(([id, t]) => `/* ==== el color de las terminales, tema ${id} ==== */\n${t.split('xterm-tema-@').join('xterm-tema-' + id).replace(/\bblink_(underline|bar|block)_@/g, 'blink_$1_' + id)}`).join('\n\n');
 const css =
   `/* GENERADO por scripts/hacer-demo.mjs: las hojas de estilo que la app tiene\n   cargadas (la suya, la de xterm y la del lienzo). No editar a mano. */\n\n` +
   hojas + '\n\n' + coloresTerminal + '\n';
 sinFugas(css, 'app.css');
-writeFileSync(resolve(DEMO, 'app.css'), css, 'utf8');
+alFinal.push(() => writeFileSync(resolve(DEMO, 'app.css'), css, 'utf8'));
+for (const escribir of alFinal) escribir();
 console.log(`app.css -> ${(css.length / 1024).toFixed(0)} KB (${temas.size} tema${temas.size === 1 ? '' : 's'} de terminal)`);
 console.log(`total: ${((total + css.length) / 1024).toFixed(0)} KB sin comprimir`);

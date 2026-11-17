@@ -50,7 +50,7 @@
   --parado:            #BE3A31;
 
   /* Tipografia */
-  --tipo-ui:   "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --tipo-ui:   "Geist", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   --tipo-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, "Consolas", monospace;
 
   --t-micro:  clamp(0.84rem, 0.82rem + 0.10vw, 0.90rem);
@@ -61,9 +61,9 @@
   --t-h2:     clamp(1.75rem, 1.20rem + 1.90vw, 2.90rem);
   --t-titulo: clamp(2.40rem, 1.50rem + 4.10vw, 5.00rem);
 
-  --peso-normal: 420;
-  --peso-medio:  560;
-  --peso-alto:   680;
+  --peso-normal: 500;
+  --peso-medio:  620;
+  --peso-alto:   760;
 
   /* Espaciado (escala 4) */
   --e1: 0.25rem;  --e2: 0.5rem;   --e3: 0.75rem;  --e4: 1rem;
@@ -178,6 +178,8 @@ body {
 }
 
 h1, h2, h3, p, ul, figure { margin: 0; }
+/* Ningún párrafo acaba con una palabra sola en su última línea; sin peso. */
+:where(p, li, dd) { text-wrap: pretty; }
 ul { padding: 0; list-style: none; }
 img, svg { display: block; max-width: 100%; }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }

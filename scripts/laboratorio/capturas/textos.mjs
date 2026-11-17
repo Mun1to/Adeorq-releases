@@ -22,19 +22,20 @@ function lienzo(idioma, t) {
     // de pintarse y sale su tarjeta con el nombre.
     nodos: [
       { tipo: "kanban", id: "k1", x: -380, y: -200, w: 760, h: 400, pendientes: t.pendientes.map(([texto, proyecto], i) => ({ id: `p${i + 1}`, texto, ...(proyecto ? { ruta: P(proyecto) } : {}) })) },
-      // Codex pinta con posiciones absolutas: su grabación solo sale limpia al
-      // tamaño exacto en que se hizo (90 × 22, el de la Cabina). A 860 de ancho
-      // esta terminal mide 95 columnas, así que se estrecha hasta las 90. Las
-      // otras rehacen la pantalla entera y aguantan cualquier tamaño.
-      { tipo: "term", id: "t3", x: 580, y: -260, w: 815, h: 520, kind: "shell", proyecto: "invoice-cli", ruta: P("invoice-cli"), cmd: repetir(`${idioma}-invoice-mid`, "codex") },
-      { tipo: "term", id: "t1", x: -380, y: 320, w: 860, h: 520, kind: "claude", proyecto: "storefront-api", ruta: P("storefront-api"), cmd: repetir(`${idioma}-storefront`) },
-      { tipo: "term", id: "t2", x: 580, y: 320, w: 860, h: 520, kind: "claude", proyecto: "landing-web", ruta: P("landing-web"), cmd: repetir(`${idioma}-landing-mid`) },
+      // Las grabaciones solo salen limpias reproducidas al tamaño EXACTO en que
+      // se hicieron, el de la Cabina (87 × 21 desde Contraste, 0.9.259): Codex
+      // pinta con posiciones absolutas, y Claude Code, con otras filas, deja
+      // restos de pantallas anteriores (a 95 × 22 salían letras sueltas y
+      // tachadas). 785 × 500 da 87 × 21 en las tres: se mira en `p/rec/repetir.log`.
+      { tipo: "term", id: "t3", x: 580, y: -260, w: 785, h: 500, kind: "shell", proyecto: "invoice-cli", ruta: P("invoice-cli"), cmd: repetir(`${idioma}-invoice-mid`, "codex") },
+      { tipo: "term", id: "t1", x: -380, y: 320, w: 785, h: 500, kind: "claude", proyecto: "storefront-api", ruta: P("storefront-api"), cmd: repetir(`${idioma}-storefront`) },
+      { tipo: "term", id: "t2", x: 580, y: 320, w: 785, h: 500, kind: "claude", proyecto: "landing-web", ruta: P("landing-web"), cmd: repetir(`${idioma}-landing-mid`) },
       // El enjambre ocupa la esquina de arriba a la derecha y las notas bajan,
       // algo más cortas, hasta donde acaban las terminales: el tablero solo se
       // ensancha 80 px, no crece de alto y el zoom no cae de 0,55.
-      { tipo: "enjambre", id: "j1", x: 1500, y: -260, w: 440, h: 520, conv: ENJAMBRE, nombre: t.enjambre.nombre, color: "azul", miembros: [{ nodo: "t1" }, { nodo: "t2" }], plegadas: false },
-      { tipo: "nota", id: "n1", x: 1500, y: 300, w: 360, h: 250, nota: "lanzamiento", color: "#f2c14e" },
-      { tipo: "nota", id: "n2", x: 1500, y: 590, w: 360, h: 250, nota: "ideas", color: "#7fb6f0" },
+      { tipo: "enjambre", id: "j1", x: 1470, y: -260, w: 440, h: 500, conv: ENJAMBRE, nombre: t.enjambre.nombre, color: "azul", miembros: [{ nodo: "t1" }, { nodo: "t2" }], plegadas: false },
+      { tipo: "nota", id: "n1", x: 1470, y: 300, w: 360, h: 240, nota: "lanzamiento", color: "#f2c14e" },
+      { tipo: "nota", id: "n2", x: 1470, y: 580, w: 360, h: 240, nota: "ideas", color: "#7fb6f0" },
     ],
     flechas: [{ id: "e1", de: "t1", a: "t2", encargo: t.flecha, auto: false }],
     trazos: [],
@@ -257,7 +258,7 @@ export const TEXTOS = { en, es };
 export const PANELES = {
   en: [
     ["storefront-api", "en-storefront", "claude", "Discount test failure"],
-    ["mobile-app", "en-mobile", "claude", "Dependency install and test run"],
+    ["mobile-app", "en-mobile", "claude", "Dependencies and test suite"],
     ["invoice-cli", "en-invoice-mid", "codex", "Currency flag for the total"],
     ["landing-web", "en-landing-mid", "claude", "Header dark mode toggle"],
   ],

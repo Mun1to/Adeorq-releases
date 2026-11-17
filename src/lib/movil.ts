@@ -59,10 +59,14 @@ import { enviarAlConserje } from "./conserjeEnvio";
 import { FONDO_DESENFOQUE_KEY, FONDO_OPACIDAD_KEY } from "./fondo";
 import { limitesDe } from "./cuota";
 import { cerebroPorDefecto, ULTIMOS } from "./models";
-import { fotoRapida } from "./mundo";
+import { conReloj, fotoRapida, programasInstalados } from "./mundo";
 import { ESFUERZOS, type CuentaViva } from "./router";
 import { etiquetaCorta, leerRenovacion } from "./uso";
 import { lineaDeRetomar, lineasEnVivo, providerOf, PROVIDERS, sabe } from "./providers";
+
+/** Lo instalado, sin dejar al móvil esperando: si la detección tarda más de dos
+    segundos, `null`, y la lista sale como antes de filtrar. */
+const instaladosConReloj = () => conReloj(programasInstalados(), 2000);
 
 export interface Dispositivo {
   /** El principio de su huella: sirve para quitarlo, no para entrar. */
@@ -310,7 +314,7 @@ async function proyectosParaElMovil(exec: ConserjeExec): Promise<Record<string, 
 /** Abre una terminal nueva en uno de tus proyectos, pedida desde el móvil. */
 async function abrirDesdeElMovil(p: PedidoMovil, exec: ConserjeExec): Promise<Record<string, unknown>> {
   const cli = typeof p.cli === "string" ? p.cli : "";
-  if (!programasDeSesion(exec.cuentas()).includes(cli)) return { error: "Ese programa no está instalado en el PC." };
+  if (!programasDeSesion(exec.cuentas(), await instaladosConReloj()).includes(cli)) return { error: "Ese programa no está instalado en el PC." };
   const pedida = carpetaComparable(typeof p.carpeta === "string" ? p.carpeta : "");
   const proyecto = pedida ? (await listProjects()).find((x) => carpetaComparable(x.path) === pedida) : undefined;
   if (!proyecto) return { error: "Esa carpeta no es uno de tus proyectos." };
@@ -446,8 +450,9 @@ export async function atenderPedido(p: PedidoMovil, exec: ConserjeExec): Promise
   // «Sesiones» del móvil: la MISMA lista que la del PC (`programasDeSesion`),
   // con su nombre y si admite un modelo fijo (sin eso, el modelo es del router).
   if (p.clase === "programas") {
+    const instalados = await instaladosConReloj();
     return {
-      programas: programasDeSesion(exec.cuentas()).map((cli) => ({
+      programas: programasDeSesion(exec.cuentas(), instalados).map((cli) => ({
         id: cli,
         nombre: providerOf(cli).marca ?? providerOf(cli).label,
         modelo: sabe(cli, "modelo"),

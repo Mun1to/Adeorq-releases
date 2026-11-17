@@ -6,7 +6,7 @@ import {
   findAgy,
   detectClis,
   forgetProjectIcons,
-  listProjects,
+  listProjects, soloSiCambian,
   loadUiState,
   openInAntigravity,
   projectDirty,
@@ -424,6 +424,7 @@ export default function Sidebar({
     // que se repite sola, y con la ventana tapada la lista no la mira nadie.
     const parar = latido(() => {
       scanSessions().then(setSessions).catch(() => {});
+      listProjects().then((n) => setProjects((a) => soloSiCambian(a, n))).catch(() => {});
       // Y los rastros: lo que se cierra con la app abierta se archiva aquí, no al reiniciar.
       rastrosCerradas().then(setCerradas).catch(() => {});
     }, SCAN_EVERY_MS);

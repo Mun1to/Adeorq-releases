@@ -261,6 +261,25 @@ whatever you use. It is the same prompt in every public repository here, so you 
 > y te dirá en tu idioma qué hace este programa de verdad: qué envía por internet, qué toca
 > en tu ordenador y qué ejecuta al instalarse.
 
+The security tests are here too. Four labs in `scripts/laboratorio/`
+(`seguridad-local-de-verdad.mjs`, `motor-viejo-de-verdad.mjs`, `abrir-desde-fuera-de-verdad.mjs`
+and `bots-conectar-de-verdad.mjs`) start an isolated Adeorq and attack it the way a program
+already running on your computer would: taking a saved key without asking, pretending to be a
+trusted agent to get more permissions, opening a terminal from outside with a task already typed
+in and no confirmation window, reaching further than allowed through a connected bot. All of that
+worked in the versions of early November 2026 and was closed between 0.9.239 and 0.9.241; each
+lab shows it step by step and checks that it stays closed. A terminal opened from outside with no
+task still opens without a window, on purpose: it starts in the permission mode set in Settings,
+which out of the box is not auto. One line stays marked as open on purpose, and it is Windows, not Adeorq:
+any program running as you can read your own Windows Credential Manager.
+
+> **ES:** Las pruebas de seguridad también están aquí: cuatro laboratorios de `scripts/laboratorio/`
+> (`seguridad-local`, `motor-viejo`, `abrir-desde-fuera` y `bots-conectar`, todos `*-de-verdad.mjs`)
+> atacan una Adeorq aislada como lo haría un programa que ya corre en tu ordenador. Lo que pasaba
+> en las versiones de principios de noviembre de 2026 (se cerró entre la 0.9.239 y la 0.9.241) se
+> ve paso a paso, y se comprueba que sigue cerrado. Queda una línea abierta a propósito, y es de
+> Windows: cualquier programa que corre con tu usuario puede leer tu Gestor de credenciales.
+
 <details>
 <summary><b>Building it yourself</b></summary>
 

@@ -1,8 +1,8 @@
 {
   "nombre": "es-invoice",
   "cwd": "P:\\projects\\invoice-cli",
-  "cols": 90,
-  "rows": 22,
+  "cols": 87,
+  "rows": 21,
   "command": ["cmd.exe", "/k", "chcp 65001 >nul && codex -c check_for_update_on_startup=false -c model_reasoning_effort=low -s danger-full-access -a never"],
   "pasos": [
     { "espera": "Update available", "ms": 6000, "opcional": true, "escribe": "\u001b[B", "confirma": "› 2. Skip", "entonces": "\r" },

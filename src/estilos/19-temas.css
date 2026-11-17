@@ -113,8 +113,14 @@
    aplastadas. */
 .tema-rejilla {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(204px, 1fr));
+  gap: 20px 16px;
+}
+.tema-rejilla .tema-tarjeta {
+  gap: 9px;
+}
+.tema-rejilla .tema-nombre {
+  font-size: 14.5px;
 }
 
 .tema-tarjeta {
@@ -130,59 +136,123 @@
   cursor: pointer;
 }
 
-/* La miniatura. El borde se enciende con el tema puesto, no un tick suelto en
-   una esquina: lo que se elige es la imagen, así que la marca va en ella. */
+/* La miniatura: la app en pequeño, pintada con la paleta de SU tema (la trae
+   `data-tema-prev`, ver `01-base.css`). Hasta el 2026-11-17 era una caja de
+   145 x 76 con una barra y tres rayas: enseñaba cinco colores y nada de la
+   forma, y dos temas de fondo parecido no se distinguían. Ahora lleva la barra
+   con el proyecto elegido, las pestañas, una terminal con su marco y lo que
+   escribe el agente, y la caja de escribir. Todo dibujado con fondos sobre las
+   tres piezas de siempre: es un adorno (`aria-hidden`), no lleva texto.
+   El borde se enciende con el tema puesto, no un tick suelto en una esquina:
+   lo que se elige es la imagen, así que la marca va en ella. */
 .tema-prev {
+  /* Lo elegido, como lo pinta ese tema: lleno, con la letra del otro color. */
+  --tm-fila: var(--c3-blanco);
+  --tm-fila-tinta: var(--c3-sobre-blanco);
+  --tm-raya: var(--border-strong);
+  --tm-tenue: color-mix(in srgb, var(--muted) 78%, transparent);
   display: flex;
-  height: 76px;
-  border-radius: var(--r-btn);
+  height: 136px;
+  border-radius: var(--r-caja);
   overflow: hidden;
-  border: 1.5px solid var(--border);
+  border: 1px solid var(--tm-raya);
   /* El fondo opaco del tema, no su `--bg`, que es translúcido y dejaría ver
      el panel de Ajustes por debajo: la miniatura estaría mintiendo. */
   background: var(--panel-solid);
   transition: border-color var(--t-rapida) ease, transform var(--t-rapida) ease;
+}
+/* Los dos claros siguen con el cristal de siempre: lo elegido va teñido, no lleno. */
+.tema-prev:is([data-tema-prev="claro"], [data-tema-prev="papel"]) {
+  --tm-fila: color-mix(in srgb, var(--accent) 26%, transparent);
+  --tm-fila-tinta: var(--text);
 }
 .tema-tarjeta:hover .tema-prev {
   transform: translateY(-2px);
 }
 .tema-tarjeta[data-on="true"] .tema-prev {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+  box-shadow: 0 0 0 2px var(--accent);
 }
 
-/* La barra lateral de la miniatura: es lo primero que distingue a un tema de
-   otro en la app de verdad. */
+/* La barra lateral: el punto y el nombre de la app, el proyecto elegido (la
+   fila llena) y tres más. Es lo primero que distingue a un tema de otro en la
+   app de verdad. */
 .tema-prev-barra {
   flex: none;
-  width: 26px;
-  background: var(--panel-head);
-  border-right: 1px solid var(--border);
+  width: 32%;
+  border-right: 1px solid var(--tm-raya);
+  background:
+    linear-gradient(var(--accent), var(--accent)) 9px 11px / 7px 7px no-repeat,
+    linear-gradient(var(--text), var(--text)) 21px 13px / 38% 4px no-repeat,
+    linear-gradient(var(--tm-fila-tinta), var(--tm-fila-tinta)) 13px 37px / 54% 4px no-repeat,
+    linear-gradient(var(--tm-fila), var(--tm-fila)) 5px 30px / calc(100% - 10px) 18px no-repeat,
+    linear-gradient(var(--tm-tenue), var(--tm-tenue)) 13px 59px / 62% 4px no-repeat,
+    linear-gradient(var(--tm-tenue), var(--tm-tenue)) 13px 77px / 44% 4px no-repeat,
+    linear-gradient(var(--tm-tenue), var(--tm-tenue)) 13px 95px / 56% 4px no-repeat,
+    var(--panel-head);
 }
 
+/* El cuerpo es una terminal con su marco; encima (`::before`), las pestañas
+   con la elegida llena, y abajo (`::after`), la caja de escribir con su cursor. */
 .tema-prev-cuerpo {
+  position: relative;
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 7px;
-  padding: 0 10px;
+  justify-content: flex-start;
+  gap: 8px;
+  margin: 27px 8px 8px;
+  padding: 10px 9px 0;
+  border: 1.5px solid var(--tm-raya);
+  border-radius: var(--r-btn);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+.tema-prev-cuerpo::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  right: -8px;
+  top: -28px;
+  height: 19px;
+  border-bottom: 1px solid var(--tm-raya);
+  background:
+    linear-gradient(var(--tm-fila-tinta), var(--tm-fila-tinta)) 14px 8px / 20px 4px no-repeat,
+    linear-gradient(var(--tm-fila), var(--tm-fila)) 8px 3px / 32px 13px no-repeat,
+    linear-gradient(var(--tm-tenue), var(--tm-tenue)) 50px 8px / 20px 4px no-repeat,
+    linear-gradient(var(--tm-tenue), var(--tm-tenue)) 80px 8px / 26px 4px no-repeat;
+}
+.tema-prev-cuerpo::after {
+  content: "";
+  margin: auto -9px 0;
+  height: 17px;
+  border-top: 1px solid var(--tm-raya);
+  background:
+    linear-gradient(var(--accent), var(--accent)) 9px 5px / 2px 7px no-repeat,
+    linear-gradient(var(--tm-tenue), var(--tm-tenue)) 16px 7px / 36% 3px no-repeat;
 }
 
+/* Lo que escribe el agente: el punto del color del tema y su texto, una línea
+   de salida, y el aviso de «terminó» en su naranja. */
 .tema-prev-linea {
   display: block;
-  height: 5px;
-  border-radius: var(--r-pastilla);
-  background: color-mix(in srgb, var(--text) 55%, transparent);
+  height: 4px;
+  width: 62%;
+  margin-left: 11px;
+  border-radius: 2px;
+  background: var(--tm-tenue);
 }
 .tema-prev-linea.tema-prev-acento {
-  background: var(--accent);
-  width: 62%;
+  width: 82%;
+  margin-left: 0;
+  border-radius: 0;
+  background: linear-gradient(90deg, var(--accent) 0 5px, transparent 5px 11px, var(--text) 11px);
 }
-.tema-prev-corta {
-  width: 44%;
-  background: color-mix(in srgb, var(--muted) 70%, transparent);
+.tema-prev-linea.tema-prev-corta {
+  width: 48%;
+  margin-left: 0;
+  border-radius: 0;
+  background: linear-gradient(90deg, var(--done) 0 5px, transparent 5px 11px, var(--tm-tenue) 11px);
 }
 
 .tema-nombre {

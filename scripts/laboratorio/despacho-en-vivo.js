@@ -42,7 +42,7 @@ async (page) => {
     await page.locator("[data-pane-id]").first().click({ position: { x: 60, y: 60 } });
     await page.waitForTimeout(400);
     await page.evaluate(() => { window.__llamadas.length = 0; });
-    await page.locator(".foreman-call").first().click();
+    await page.locator(".franja-btn:has(.orbe)").first().click(); // en la Cabina, Adeo está en la franja
     await page.waitForTimeout(400);
     await page.locator(".foreman-input").first().fill("revisa el login");
     // El botón del encargo (no «Planear» ni «Preguntar»): busca por su texto.

@@ -1,8 +1,8 @@
 # Las capturas de la web y de los README
 
 Las veinte capturas de `web/assets/screens/es` y `/en` salen de aquí (más `board.png` y `swarm.png`,
-recortadas de `canvas.png` con las cajas que imprime `fotos.mjs` por dos: `crop=922:486:814:574` y
-`crop=534:632:3096:500` con las de hoy). Son **la app de verdad**
+recortadas de `canvas.png` con las cajas que imprime `fotos.mjs` por dos: `crop=934:492:816:578` y
+`crop=542:614:3090:504` con las de hoy). Son **la app de verdad**
 (el binario de desarrollo) abierta en una casa de pruebas, con un taller inventado (Sam y sus seis
 proyectos) y fotografiada **por dentro**, por el puerto de depuración del WebView: ni ratón ni
 teclado en el escritorio de nadie, y nada de lo que hay encima de la ventana se cuela.
@@ -87,10 +87,13 @@ ffmpeg -f lavfi -i color=c=black:s=1920x1080 -filter_script:v fondo.filtro -fram
    fiarse de un corte, `grep -a -c -i "Users\|AppData" p/rec/*-mid.bin` tiene que dar cero.
    Claude Code y Codex enseñan en su línea de estado «running PreToolUse hook» o «Running hook»
    mientras corre un gancho; el corte se busca en un instante en que no lo digan.
-   **Codex pinta con posiciones absolutas**: su grabación solo sale limpia reproducida al tamaño EXACTO
-   en que se hizo (90 × 22, el de la Cabina; con otro se ve texto suelto de pantallas anteriores).
-   `p/rec/repetir.log` dice a qué tamaño se pintó cada panel, y la terminal de Codex del Lienzo mide
-   90 × 22 con `w: 815` en `textos.mjs` (a 860 mide 95 columnas). Si se toca el lienzo, se mira ahí.
+   **Las grabaciones solo salen limpias reproducidas al tamaño EXACTO en que se hicieron**: Codex pinta
+   con posiciones absolutas, y Claude Code con otras filas también deja texto suelto de pantallas
+   anteriores. Hoy ese tamaño es **87 × 21**, el de la Cabina con Contraste (antes de la 0.9.259 era
+   90 × 22). `p/rec/repetir.log` dice a qué tamaño se pintó cada panel, y las tres terminales del Lienzo
+   miden 87 × 21 con `w: 785, h: 500` en `textos.mjs`. Si cambia la hoja (otro tema de fábrica, otro
+   borde, otra letra) o se toca el lienzo, se mira ahí ANTES de grabar, con `node fotos.mjs en cockpit
+   canvas`, y los ocho guiones van a esa medida (`cols` y `rows`).
 3. **Sesiones**: `node preparar-sesiones.mjs en` (y `es`; con el Vite del worktree encendido el
    renombrado final puede dar `EPERM`: se copia `sesiones/<idioma>.nuevo` a `sesiones/<idioma>`). Pone en `PANELES` de `textos.mjs` los
    títulos que imprime. Guarda además el transcript entero de cada grabada en `respaldo/<idioma>/`,
@@ -190,8 +193,12 @@ Una parte suelta se repite con `node volcar.mjs es chat barra`.
 **La foto**
 
 - Se saca a doble escala (`Emulation.setDeviceMetricsOverride`). El lienzo WebGL de xterm no se
-  entera de esa escala (mide píxeles de verdad) y pinta un cuarto de la terminal: se le suelta el
-  contexto (`sinWebgl`) y la terminal cae a su pintado de reserva, que es texto y sale nítido.
+  entera de esa escala (mide píxeles de verdad) y pinta un cuarto de la terminal, así que las
+  terminales van con su pintado de reserva, que es texto y sale nítido. Desde el 2026-11-16 la casa
+  no ofrece WebGL2 (`GUARDA` de `escena.mjs`) y nacen ya con él: si nacían con WebGL y luego se les
+  soltaba el contexto (`sinWebgl`, que queda de red), se quedaban con las columnas que midió WebGL,
+  que a doble escala redondea la celda a píxeles del dispositivo (Cascadia a 15 px: 8,5 en vez de
+  8,79). En la Cabina eran 90 columnas en un hueco de 87 y la última salía cortada («whole numbe»).
 - La escala muere al cerrar la conexión, y con ella cambia el tamaño de los paneles. Todo lo de una
   tanda va en UNA conexión.
 - Lo que se siembra en `localStorage` se pone con un guion de arranque de página

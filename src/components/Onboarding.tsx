@@ -400,10 +400,9 @@ export default function Onboarding({ lang, theme, onLang, onTheme, onDone, onPar
                     key={th.id}
                     className="onb-tema"
                     data-on={theme === th.id}
-                    data-theme={th.id}
                     onClick={() => onTheme(th.id)}
                   >
-                    <span className="onb-tema-muestra" />
+                    <span className="onb-tema-muestra" data-tema-prev={th.id} />
                     <span className="onb-tema-nom">{lang === "en" ? th.en : th.es}</span>
                   </button>
                 ))}

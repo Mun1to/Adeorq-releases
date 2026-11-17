@@ -435,9 +435,13 @@ export default function AccountsView({
           {(it?.plan?.subscription || it?.limits?.plan) && (
             <span className="account-plan">{it?.plan?.subscription || it?.limits?.plan}</span>
           )}
+          {/* «Por defecto», como el botón que la marca («Usar por defecto»).
+              «Predeterminada» medía 124 px en mayúsculas a 13 px y la columna
+              96: se partía en dos renglones, y ensanchar la columna le quitaba
+              la fecha de renovación a las barras (medido el 2026-11-17). */}
           {isDefault && (
             <span className="account-badge" data-tip={t("Las terminales nuevas usan esta")}>
-              {t("predeterminada")}
+              {t("por defecto")}
             </span>
           )}
           {/* El estado, donde se busca: arriba y a la derecha. Antes había que

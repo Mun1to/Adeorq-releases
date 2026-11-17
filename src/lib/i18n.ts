@@ -20,8 +20,8 @@ export const THEME_KEY = "adeorq-theme";
  * Las familias dicen algo verdadero, no son cajones de adorno:
  * · `casa` los dibujados aquí para Adeorq;
  * · `prestado` los que vienen de otro sitio y se llaman por su nombre real
- *   (Nord, Dracula, Gruvbox…), que es lo honesto y además lo que hace que se
- *   reconozcan;
+ *   (Dracula, Monokai, Catppuccin…), que es lo honesto y además lo que hace que
+ *   se reconozcan;
  * · `fuerte` los que no pretenden ser discretos;
  * · `claro` los de fondo claro, aparte porque cambian la app entera de tono.
  */
@@ -32,29 +32,22 @@ export const THEMES = [
   { id: "oceano", es: "Océano", en: "Ocean", familia: "casa" },
   { id: "turquesa", es: "Turquesa", en: "Turquoise", familia: "casa" },
   { id: "esmeralda", es: "Esmeralda", en: "Emerald", familia: "casa" },
-  { id: "verde", es: "Bosque", en: "Forest", familia: "casa" },
   { id: "grafito", es: "Grafito", en: "Graphite", familia: "casa" },
   { id: "violeta", es: "Violeta", en: "Violet", familia: "casa" },
   { id: "ciruela", es: "Ciruela", en: "Plum", familia: "casa" },
   { id: "carmin", es: "Carmín", en: "Crimson", familia: "casa" },
-  { id: "volcano", es: "Volcán", en: "Volcano", familia: "casa" },
   { id: "ocaso", es: "Ocaso", en: "Sunset", familia: "casa" },
   { id: "ambar", es: "Ámbar", en: "Amber", familia: "casa" },
   { id: "arena", es: "Arena", en: "Sand", familia: "casa" },
   // Prestados, con su nombre de siempre.
-  { id: "nord", es: "Ártico", en: "Nord", familia: "prestado" },
-  { id: "tokyo", es: "Tokyo Night", en: "Tokyo Night", familia: "prestado" },
   { id: "onedark", es: "One Dark", en: "One Dark", familia: "prestado" },
   { id: "catppuccin", es: "Catppuccin Mocha", en: "Catppuccin Mocha", familia: "prestado" },
   { id: "dracula", es: "Drácula", en: "Dracula", familia: "prestado" },
   { id: "rose", es: "Rosé Pine", en: "Rosé Pine", familia: "prestado" },
-  { id: "kanagawa", es: "Kanagawa", en: "Kanagawa", familia: "prestado" },
   { id: "everforest", es: "Everforest", en: "Everforest", familia: "prestado" },
-  { id: "gruvbox", es: "Gruvbox", en: "Gruvbox", familia: "prestado" },
   { id: "monokai", es: "Monokai", en: "Monokai", familia: "prestado" },
   { id: "solarized", es: "Solarizado", en: "Solarized Dark", familia: "prestado" },
   // De los que se notan.
-  { id: "neon", es: "Neón", en: "Neon", familia: "fuerte" },
   { id: "cyberpunk", es: "Cyberpunk", en: "Cyberpunk", familia: "fuerte" },
   { id: "synthwave", es: "Synthwave '84", en: "Synthwave '84", familia: "fuerte" },
   { id: "matrix", es: "Matrix", en: "Matrix", familia: "fuerte" },
@@ -67,6 +60,24 @@ export const THEMES = [
 ] as const;
 
 export type ThemeId = (typeof THEMES)[number]["id"];
+
+/**
+ * Los temas que salieron de la lista y a cuál pasa quien los tenía puestos.
+ *
+ * El 2026-11-17 se midieron los 33 (fondo y acento, en OKLab): 23 de los 31
+ * oscuros tenían otro de fondo casi igual, y siete eran casi el mismo tema que
+ * uno que se queda. Munir eligió quitarlos. Quien tenga uno guardado pasa a su
+ * gemelo, que es el que se le parecía, y no al de fábrica: lo eligió él.
+ */
+export const TEMAS_QUITADOS: Readonly<Record<string, ThemeId>> = {
+  verde: "esmeralda",
+  volcano: "carmin",
+  neon: "carmin",
+  nord: "oceano",
+  tokyo: "azul",
+  kanagawa: "onedark",
+  gruvbox: "arena",
+};
 
 /** Las familias en su orden, con el nombre que se lee encima de cada grupo. */
 export const FAMILIAS_TEMA = [
@@ -1516,7 +1527,7 @@ const EN: Record<string, string> = {
   "Se crea una carpeta suya y se abre una terminal para que hagas el login. Tu cuenta de siempre no se toca.":
     "It gets a folder of its own and a terminal opens so you can log in. Your usual account is left alone.",
   "Las terminales nuevas usan esta": "New terminals use this one",
-  predeterminada: "default",
+  "por defecto": "default",
   // El resumen de cabecera de Cuentas y el estado de cada tarjeta.
   "cuentas conectadas": "accounts connected",
   "el límite más apretado": "tightest limit",

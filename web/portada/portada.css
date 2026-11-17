@@ -19,13 +19,17 @@
   --p-fondo:   #05080e;
   --p-panel:   #101624;
   --p-texto:   #e6edfa;
-  --p-suave:   #b7c7e0;
+  /* Más claro que el #b7c7e0 del tema: con la letra sólida (2026-11-17) el
+     texto de lectura no va en gris apagado (14,3:1 sobre el fondo). */
+  --p-suave:   #cfdbee;
   --p-tenue:   #8fa3c4;
   --p-acento:  #4d9fff;
   --p-linea:   rgba(140, 170, 220, .16);
   --p-linea2:  rgba(150, 185, 240, .30);
 
-  --p-tipo: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  /* Geist, servida desde fonts/fonts.css, a pesos sólidos: Munir la eligió el
+     2026-11-17 entre cuatro variantes medidas («más gorda y sólida»). */
+  --p-tipo: "Geist", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   --p-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, Consolas, monospace;
 
   /* Por si esta hoja se carga suelta: el interruptor del <head> lo pisa. */
@@ -44,6 +48,7 @@ body {
   color: var(--p-texto);
   font-family: var(--p-tipo);
   font-size: 16px;
+  font-weight: 500;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
@@ -57,6 +62,11 @@ body {
 .saltar:focus { left: 0; }
 
 :where(a) { color: inherit; text-decoration: none; }
+/* Ningún párrafo acaba con una palabra sola en su última línea. Sin peso, para
+   que los titulares con `balance` sigan mandando. */
+:where(p, li, dd) { text-wrap: pretty; }
+/* Y ningún titular parte dejando una palabra sola: las líneas, parejas. */
+:where(h1, h2, h3) { text-wrap: balance; }
 :where(a):focus-visible,
 :where(button):focus-visible {
   outline: 2px solid var(--p-acento);
@@ -207,6 +217,23 @@ body {
   transition-duration: .07s;
 }
 
+/* La flecha de descarga delante del botón principal, pintada con una máscara y
+   puesta la primera con `order`: así el texto del botón, que traduce
+   scripts/hacer-ingles.mjs, no se toca. El trazo, 1,9 como los iconos de la app. */
+[data-descarga-hero]::after,
+[data-descarga-enlace]::after {
+  content: "";
+  order: -1;
+  flex: none;
+  align-self: center;
+  width: 19px;
+  height: 19px;
+  margin: -2px 0;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
 /* ============================== EL HAZ ==================================== */
 
 .haz {
@@ -215,7 +242,7 @@ body {
      sin que haga falta una flechita que lo diga; al bajar se ve ENTERA, con
      su rotulo debajo, que es para lo que esta el relleno de abajo. */
   min-height: 100svh;
-  padding: clamp(104px, 13vh, 150px) 0 clamp(64px, 9vh, 104px);
+  padding: clamp(92px, 11vh, 132px) 0 clamp(64px, 9vh, 104px);
   overflow: hidden;
   isolation: isolate;
 }
@@ -274,10 +301,9 @@ html[data-ligero] .haz__nube--b {
 }
 
 /* -------- el texto --------
-   Centrado y corto, para que la ventana entre en la primera pantalla: lo que
-   convence es la app moviéndose, no un párrafo (Munir eligió «primero la
-   demo» el 2026-11-16; antes el texto iba a la izquierda y la ventana empezaba
-   a 650 px de arriba en una pantalla de 1600 x 900). */
+   Corto, para que la ventana entre en la primera pantalla: lo que convence es
+   la app moviéndose, no un párrafo (Munir eligió «primero la demo» el
+   2026-11-16). Centrado en estrecho; a lo ancho va en dos columnas (más abajo). */
 .haz__texto {
   position: relative;
   z-index: 3;
@@ -287,13 +313,27 @@ html[data-ligero] .haz__nube--b {
   text-align: center;
 }
 
+/* En dos líneas siempre, y la segunda en el azul de la marca: la de winshotx.com
+   (Munir eligió «Escaparate» el 2026-11-16). A 800 desde que la web va en
+   Geist: él pidió la letra «más gorda y sólida» y eligió este peso medido. */
 .titular {
   margin: 0 0 16px;
-  font-size: clamp(2.3rem, 1rem + 3.4vw, 4.1rem);
+  font-size: clamp(2.3rem, 1rem + 3.9vw, 4.8rem);
+  /* Que una línea partida no deje una palabra sola debajo («screen», a 390). */
+  text-wrap: pretty;
   line-height: 1.02;
-  letter-spacing: -.035em;
-  /* 600 y no 800: a este tamaño una negra se lee como un grito. */
-  font-weight: 600;
+  letter-spacing: -.05em;
+  font-weight: 800;
+}
+.titular__linea:nth-child(2) { color: var(--p-acento); }
+/* Cada línea, si en un móvil estrecho se parte, en dos mitades parejas: con Geist
+   a 360 «pantalla» se quedaba sola. */
+.titular__linea > span { text-wrap: balance; }
+/* Y en un teléfono estrecho, la letra justa para que cada línea quepa entera:
+   medida con Geist a 800, la más larga («on one single screen») ocupa 9,25
+   veces el tamaño de la letra. */
+@media (max-width: 440px) {
+  .titular { font-size: min(2.3rem, calc((100vw - 40px) / 9.5)); }
 }
 
 /* Cada linea entra desde debajo de su propia caja, no desde la nada: es lo que
@@ -302,10 +342,6 @@ html[data-ligero] .haz__nube--b {
    interlineado de 1.02 la caja acaba en la línea base y se comía la «g» de
    «agentes» y la «p» de «pantalla». Por eso el texto sale desde un 112 %. */
 .titular__linea { display: block; overflow: hidden; padding-bottom: .1em; margin-bottom: -.1em; }
-/* A lo ancho, las dos mitades en una sola línea. */
-@media (min-width: 1180px) {
-  .titular__linea { display: inline-block; }
-}
 .titular__linea > span {
   display: block;
   transform: translateY(calc(112% * var(--motion-gain)));
@@ -319,26 +355,92 @@ html[data-ligero] .haz__nube--b {
   margin: 0 auto 26px;
   max-width: 58ch;
   color: var(--p-suave);
-  font-size: clamp(1rem, .95rem + .35vw, 1.22rem);
+  font-size: clamp(1.06rem, 1rem + .4vw, 1.3rem);
   line-height: 1.55;
 }
 
+/* Las palabras clave de la entrada de cada sección: una o dos por frase, en
+   negrita y en el azul de la marca (Munir eligió «En azul» el 2026-11-17, tras
+   «mejora las cosas que resaltas»). Pocas: si todo resalta, nada resalta. */
+.clave { color: var(--p-acento); font-weight: 700; }
+
 .acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-bottom: 18px; }
 
-.notas {
-  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px;
-  margin: 0; padding: 0; list-style: none;
-  color: var(--p-suave); font-size: 14.5px;
+/* Las cifras: el número grande y lo que quiere decir debajo, sin caja. */
+.cifras {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 14px clamp(30px, 4vw, 70px);
+  margin: 10px 0 0; padding: 0; list-style: none;
 }
-.notas li { display: flex; align-items: center; gap: 8px; }
-.notas li + li::before {
-  content: ""; width: 3px; height: 3px; border-radius: 50%;
-  background: currentColor; opacity: .5; margin-right: 14px;
+.cifras li { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.cifras b {
+  color: var(--p-texto);
+  font-size: clamp(1.8rem, 1.2rem + 1.3vw, 2.5rem);
+  font-weight: 760;
+  letter-spacing: -.035em;
+  line-height: 1.05;
+}
+/* Con tope de ancho: la etiqueta larga (los tres sistemas y lo de Apple) va en
+   dos líneas parejas, y su número no se queda descolgado de los otros dos. */
+.cifras span { max-width: 19em; color: var(--p-suave); font-size: 15.5px; text-wrap: balance; text-align: center; }
+.cifras i, .cifras em { font-style: normal; }
+/* En el móvil, las tres en una fila y con la etiqueta corta («clientes»,
+   «instalada», «sistemas»): en dos filas bajaban la demo fuera de la primera
+   pantalla. */
+@media (max-width: 560px) {
+  .cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 6px; margin-top: 4px; }
+  .cifras b { font-size: 1.6rem; }
+  .cifras span { font-size: 13.5px; }
+  .cifras i { display: none; }
+}
+
+/* A lo ancho, dos columnas: el mensaje a la izquierda (titular, frase y
+   botones) y las cifras a la derecha, a la vista sin bajar. Munir lo eligió el
+   2026-11-17 entre tres caminos, tras «estructúralo mejor, me explota la cabeza
+   de tantas cosas»: antes iba centrado, con cuatro notas a mano en los lados. */
+@media (min-width: 1180px) {
+  .haz__texto {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(390px, 31vw, 450px);
+    column-gap: clamp(40px, 5vw, 96px);
+    align-items: center;
+    max-width: 1360px;
+    text-align: left;
+  }
+  .titular { grid-column: 1; grid-row: 1; font-size: clamp(2.3rem, 1rem + 3vw, 4rem); }
+  .entrada { grid-column: 1; grid-row: 2; margin-inline: 0; }
+  .acciones { grid-column: 1; grid-row: 3; justify-content: flex-start; margin-bottom: 0; }
+  /* Las cifras, en ficha (Munir, 2026-11-17: «lo de los datos de la derecha,
+     estructúramelo mejor»): una fila por dato, los números en su columna,
+     alineados a la derecha, y las etiquetas empezando todas en la misma
+     vertical, sobre la línea base del número; una raya fina entre filas. Antes
+     eran tres bloques sueltos, cada número encima de su frase. */
+  .cifras {
+    grid-column: 2; grid-row: 1 / span 3;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0 20px;
+    margin: 0;
+  }
+  .cifras li {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    align-items: baseline;
+    gap: 0 20px;
+    padding: 15px 0;
+    border-top: 1px solid var(--p-linea);
+  }
+  .cifras li:first-child { border-top: 0; }
+  .cifras b { justify-self: end; font-size: 2rem; }
+  .cifras span { max-width: none; text-align: left; font-size: 16.5px; line-height: 1.4; text-wrap: pretty; }
+  /* Lo de Apple, en su propia línea debajo de los tres sistemas. */
+  .cifras em { display: block; font-size: 15px; }
 }
 
 /* La entrada del texto de abajo del titular, con el dial aplicado al recorrido
    y NUNCA a la opacidad: con `gain: 0` esto sigue siendo un fundido. */
-.entrada, .acciones, .notas {
+.entrada, .acciones, .cifras {
   opacity: 0;
   transform: translateY(calc(18px * var(--motion-gain)));
   transition: opacity .6s ease, transform .7s cubic-bezier(.16,1,.3,1);
@@ -351,7 +453,7 @@ html[data-ligero] .haz__nube--b {
 .entrada { opacity: 1; }
 .haz[data-entrada] .entrada  { opacity: 1; transform: none; transition-delay: .18s; }
 .haz[data-entrada] .acciones { opacity: 1; transform: none; transition-delay: .26s; }
-.haz[data-entrada] .notas    { opacity: 1; transform: none; transition-delay: .34s; }
+.haz[data-entrada] .cifras   { opacity: 1; transform: none; transition-delay: .34s; }
 
 /* -------- la ventana --------
    ENTERA (Munir, 2026-10-12: «se corta, tiene que ser un poco mas pequeña»).
@@ -361,12 +463,49 @@ html[data-ligero] .haz__nube--b {
    del ALTO disponible (la pantalla menos la barra de arriba y un margen), con
    1400 px de tope. Dentro va la maqueta VIVA, que es lo que ninguna captura
    puede hacer: se toca desde la portada. */
+/* Las pestañas de texto encima de la demo, con su raya de 3 px debajo de la
+   marcada (las de winshotx.com, 2026-11-16). */
+.pestanas-demo {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px 26px;
+}
+.pestanas-demo button {
+  position: relative;
+  padding: 8px 1px 11px;
+  border: 0;
+  background: none;
+  color: var(--p-tenue);
+  font: 650 16px/1 var(--p-tipo);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color .16s ease;
+}
+.pestanas-demo button:hover,
+.pestanas-demo button[aria-pressed="true"] { color: var(--p-texto); }
+.pestanas-demo button:focus-visible { outline: 2px solid var(--p-acento); outline-offset: 4px; border-radius: 4px; }
+.pestanas-demo button::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--p-acento);
+  transform: scaleX(0);
+  transition: transform .26s cubic-bezier(.4, 0, .2, 1);
+}
+.pestanas-demo button[aria-pressed="true"]::after { transform: scaleX(1); }
+
 .ventana {
   position: relative;
   z-index: 2;
   width: min(1400px, 88vw, calc((100svh - 150px) * 16 / 9));
-  /* El hueco de arriba es el sitio de Adeo, que va sentado en el borde. */
-  margin: clamp(118px, 14vh, 140px) auto 0;
+  /* El hueco de arriba es el sitio de Adeo, que va sentado en el borde. Más
+     justo desde el 2026-11-17 (y Adeo algo más pequeño): con la letra sólida
+     la demo apenas asomaba, 90 px a 1280 x 860; así asoma 145. */
+  margin: clamp(80px, 9.5vh, 96px) auto 0;
   aspect-ratio: 16 / 9;
   /* Adeo y el aviso de encima se miden por el ancho de la ventana, no de la
      pantalla (ver ADEO, abajo). */
@@ -403,22 +542,21 @@ html[data-ligero] .haz__nube--b {
   transform: scale(var(--esc, .5));
 }
 
-/* El aviso de que la ventana se toca, y el enlace para verla grande. Fuera de
-   la ventana (pintado dentro tapaba la app) y ENCIMA de ella: debajo, a 12,5 px
-   y en gris, no se enteraba nadie (2026-10-13). A la izquierda, juntos: la
-   derecha es de Adeo. */
-.ventana__aviso {
+/* La línea de encima de la ventana, a la izquierda: el enlace para verla grande
+   y, a su derecha, las pestañas (Munir, 2026-11-17: «lo de la cabina, lienzo,
+   chat… al lado de abrirla en grande, a la derecha»). Fuera de la ventana
+   (pintada dentro tapaba la app) y ENCIMA: debajo y en gris no se enteraba
+   nadie (2026-10-13). La derecha de esa línea es de Adeo. */
+.ventana__encima {
   position: absolute;
-  left: 2px; bottom: calc(100% + 12px);
+  left: 2px; bottom: calc(100% + 6px);
   z-index: 4;
   display: flex;
   align-items: center;
   gap: 26px;
-  margin: 0;
-  font-size: 14px;
-  color: var(--p-suave);
 }
 .ventana__grande {
+  font-size: 14px;
   color: var(--p-texto);
   text-decoration: underline;
   text-decoration-thickness: 1px;
@@ -439,15 +577,6 @@ html[data-ligero] .haz__nube--b {
 @media (max-width: 700px) {
   .haz { min-height: auto; padding-bottom: 40px; }
   .ventana { width: 94vw; }
-  .ventana__aviso { display: none; }
-}
-
-/* Con la fila de notas partida en dos lineas, el punto separador se queda
-   colgando al principio de la de abajo. Se va: en columna estrecha las notas ya
-   se leen sueltas y no hacen falta puntos entre ellas. */
-@media (max-width: 700px) {
-  .notas li + li::before { display: none; }
-  .notas { gap: 6px 16px; }
 }
 
 /* ============================================================================
@@ -472,31 +601,29 @@ html[data-ligero] .haz__nube--b {
    con el tabulador, para poder leer un nombre sin perseguirlo.
    ========================================================================= */
 
+/* Un letrero gigante, la 1 de los clientes que eligió Munir el 2026-11-17: los
+   nombres a lo grande rodando de lado a lado y UNA frase encima, «Funciona con
+   lo que ya usas» («y que esté bien construido y los logos bien y solo un texto
+   arriba»). */
 .cinta {
   position: relative;
   z-index: 4;
   background: linear-gradient(180deg, rgba(16, 22, 36, .55), rgba(5, 8, 14, .85));
-  padding: 26px 0 20px;
+  padding: clamp(44px, 7vh, 72px) 0 clamp(26px, 4vh, 40px);
 }
 
-.cinta__caja {
-  display: flex;
-  align-items: center;
-  gap: 40px;
-  max-width: 1320px;
-  margin: 0 auto;
-  padding: 0 clamp(18px, 4vw, 54px);
-}
+.cinta__caja { display: block; }
 
 .cinta__rotulo {
-  flex: none;
-  max-width: 24ch;
-  margin: 0;
-  color: var(--p-tenue);
-  font-size: 14.5px;
-  line-height: 1.45;
+  max-width: 1320px;
+  margin: 0 auto clamp(14px, 2vh, 22px);
+  padding: 0 clamp(18px, 4vw, 54px);
+  color: var(--p-suave);
+  font-size: clamp(1.15rem, 1rem + .6vw, 1.5rem);
+  font-weight: 650;
+  letter-spacing: -.02em;
+  text-align: center;
 }
-.cinta__rotulo b { color: var(--p-suave); font-weight: 620; }
 
 .cinta__link {
   display: block;
@@ -511,11 +638,12 @@ html[data-ligero] .haz__nube--b {
    que hace que los logos se desvanezcan al entrar y al salir en vez de
    aparecer de golpe contra el filo. */
 .cinta__ventana {
-  --cinta-seg: 78s;
-  flex: 1 1 auto;
-  min-width: 0;
+  --cinta-seg: 70s;
   overflow: hidden;
-  mask-image: linear-gradient(90deg, transparent, #000 9%, #000 94%, transparent);
+  /* Un poco de alto de más arriba y abajo: la máscara recorta en caja y a este
+     tamaño se comía las patas de la «p» y la «y». */
+  padding: .06em 0;
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
 }
 
 /* Lo unico que se mueve. Separado de la ventana a proposito: si el elemento que
@@ -538,73 +666,57 @@ html[data-ligero] .haz__nube--b {
 .cinta__grupo {
   display: flex;
   align-items: center;
-  gap: 30px;
+  gap: clamp(22px, 2.6vw, 48px);
   flex: none;
   margin: 0;
-  padding: 0 15px;
+  padding: 0 clamp(11px, 1.3vw, 24px);
   list-style: none;
+  font-size: clamp(2.3rem, 1.1rem + 3.7vw, 5.4rem);
 }
 
 /* El punto separador va en el hueco, no dentro de la pieza: asi la distancia
-   entre dos marcas es siempre la misma y el punto cae justo en medio. */
-.cinta__grupo .cli + .cli::before {
+   entre dos marcas es siempre la misma y el punto cae justo en medio. Delante
+   de TODAS, la primera de cada grupo incluida: sin el suyo, en la junta del
+   bucle (del último nombre al primero) faltaba el punto. */
+.cinta__grupo .cli::before {
   content: "";
-  width: 3px; height: 3px;
-  margin-right: 30px;
+  width: .12em; height: .12em;
+  margin-right: clamp(22px, 2.6vw, 48px);
   border-radius: 50%;
-  background: color-mix(in srgb, var(--p-tenue) 40%, transparent);
+  background: color-mix(in srgb, var(--p-tenue) 55%, transparent);
   flex: none;
 }
 
 .cli {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: .24em;
   flex: none;
-  color: var(--p-tenue);
-  font-size: 15.5px;
-  font-weight: 580;
+  color: var(--p-texto);
+  font-size: inherit;
+  font-weight: 760;
+  letter-spacing: -.045em;
+  line-height: 1.08;
   white-space: nowrap;
-  transition: color .16s ease;
 }
-.cli:hover { color: var(--p-texto); }
 
-/* La marca en el color que le da la app a ese cliente, apagada a la mitad: en
-   fila y a todo color, diez marcas distintas son diez focos peleandose. Al
-   pasar por encima se enciende la suya. */
+/* La marca en el color que le da la app a ese cliente. Todas a la misma altura
+   ÓPTICA, no a la misma caja: cada dibujo ocupa distinto dentro de sus 24
+   unidades (medido el 2026-11-17 sobre la tinta pintada: Codex 22,8 x 20,9;
+   Copilot 18,8 x 17,2 y medio punto más bajo; opencode 14,8 x 19,2; Kiro
+   16,6 x 19), así que cada una lleva su escala para que pesen igual. */
 .cli__marca {
-  width: 22px;
-  height: 22px;
+  width: .8em;
+  height: .8em;
   flex: none;
-  color: color-mix(in srgb, var(--cli, var(--p-tenue)) 62%, var(--p-tenue));
-  transition: color .16s ease;
+  color: var(--cli, var(--p-tenue));
 }
-.cli:hover .cli__marca { color: var(--cli, var(--p-acento)); }
-
-/* Las iniciales de los CLI de los que no tenemos dibujo. Misma caja que una
-   marca, para que la fila no cojee, y el color del cliente al 22 % de fondo:
-   es lo que hace la app cuando ProviderMark devuelve null, asi que la web y el
-   programa cuentan lo mismo. En la letra de la página: la mono es solo para
-   código. */
-.cli__sigla {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px; height: 26px;
-  flex: none;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--cli, var(--p-tenue)) 22%, transparent);
-  border: 1px solid color-mix(in srgb, var(--cli, var(--p-tenue)) 34%, transparent);
-  color: color-mix(in srgb, var(--cli, var(--p-tenue)) 75%, var(--p-texto));
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: -.02em;
-  transition: background .16s ease, border-color .16s ease;
-}
-.cli:hover .cli__sigla {
-  background: color-mix(in srgb, var(--cli, var(--p-acento)) 34%, transparent);
-  border-color: color-mix(in srgb, var(--cli, var(--p-acento)) 55%, transparent);
-}
+.cli:has(use[href="#m-claude"]) .cli__marca { scale: .97; }
+.cli:has(use[href="#m-codex"]) .cli__marca { scale: .92; }
+.cli:has(use[href="#m-copilot"]) .cli__marca { scale: 1.11; translate: 0 -.02em; }
+.cli:has(use[href="#m-grok"]) .cli__marca { scale: 1.06; }
+.cli:has(use[href="#m-opencode"]) .cli__marca { scale: 1.09; }
+.cli:has(use[href="#m-kiro"]) .cli__marca { scale: 1.1; }
 
 .cli--mas a {
   color: var(--p-tenue);
@@ -617,100 +729,263 @@ html[data-ligero] .haz__nube--b {
    son marcas registradas y AGENTS.md lo pone como condicion para vender. */
 .cinta__legal {
   max-width: 1320px;
-  margin: 16px auto 0;
+  margin: clamp(14px, 2vh, 22px) auto 0;
   padding: 0 clamp(18px, 4vw, 54px);
   color: var(--p-tenue);
   font-size: 13.5px;
   line-height: 1.5;
-}
-
-@media (max-width: 900px) {
-  .cinta__caja { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .cinta__rotulo { max-width: none; }
-  .cinta__ventana { width: 100%; }
-}
-
-/* ============================================================================
-   EL MANIFIESTO
-   Una frase a tamano de cartel en tres tonos. El contraste NO es decoracion:
-   marca lo que haces tu (blanco), lo que pasa despues (gris) y el remate
-   (azul), y por eso se lee como una idea con principio y final. Va en un solo
-   <p> con tres elementos en linea: partirla en tres bloques la dejaria sin
-   sentido para quien la escucha con un lector de pantalla.
-   ========================================================================= */
-
-.manifiesto {
-  max-width: 1320px;
-  margin: 0 auto;
-  padding: clamp(56px, 8vh, 100px) clamp(18px, 4vw, 54px) clamp(40px, 6vh, 72px);
-}
-
-.manifiesto__frase {
-  margin: 0;
-  max-width: 46ch;
-  font-size: clamp(1.75rem, .95rem + 2.3vw, 3.05rem);
-  line-height: 1.18;
-  letter-spacing: -.03em;
-  font-weight: 680;
-  /* Ancho corto y lineas equilibradas: una frase de cartel se lee de un golpe
-     de vista, y con sesenta caracteres por linea deja de serlo. */
+  text-align: center;
   text-wrap: balance;
 }
-.manifiesto__frase b { color: var(--p-texto); font-weight: inherit; }
-.manifiesto__frase span { color: color-mix(in srgb, var(--p-tenue) 88%, transparent); }
-.manifiesto__frase em { color: var(--p-acento); font-style: normal; }
-
-.manifiesto__firma {
-  margin: 30px 0 0;
-  color: var(--p-tenue);
-  font-size: 14.5px;
-}
-.manifiesto__firma a {
-  color: var(--p-suave);
-  border-bottom: 1px solid var(--p-linea2);
-}
-.manifiesto__firma a:hover { color: var(--p-texto); }
 
 /* ============================================================================
-   EL CÓDIGO, A LA VISTA
-   Una franja justo debajo del manifiesto: el logo de GitHub, un titular, una
-   frase, la licencia en una línea y un botón secundario (el claro es solo el
-   de descargar). Separada por una línea de un píxel y sin caja con fondo, como
-   el resto de la portada. Por debajo de 760 px el botón baja a su propia fila.
+   SIN ADEORQ Y CON ADEORQ
+   Enfrentadas línea a línea, la 1 «pero más simple» que eligió Munir el
+   2026-11-17: sin tarjetas ni marcas, lo de antes apagado a la izquierda, una
+   flecha y lo de ahora en blanco a la derecha. Es una tabla de verdad: un
+   lector de pantalla lee cada línea con su «Sin» y su «Con».
+   ========================================================================= */
+
+.comparar { padding: clamp(60px, 9vh, 104px) 0 0; }
+.comparar__caja {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 4vw, 54px);
+  text-align: center;
+}
+.comparar .comparar__entrada { margin-inline: auto; text-align: center; text-wrap: balance; }
+.comparar__tabla {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.comparar__tabla th,
+.comparar__tabla td { padding: 15px 0; text-align: left; vertical-align: middle; text-wrap: balance; }
+/* La de antes, pegada a la flecha por la derecha: las dos columnas se miran y
+   no queda hueco en medio. */
+.comparar__tabla th:first-child,
+.comparar__tabla td:first-child { text-align: right; }
+.comparar__tabla th:nth-child(2),
+.comparar__tabla td:nth-child(2) { width: 76px; text-align: center; }
+.comparar__tabla th {
+  padding-top: 0;
+  padding-bottom: 14px;
+  font-size: clamp(1.3rem, 1rem + .9vw, 1.7rem);
+  font-weight: 760;
+  letter-spacing: -.03em;
+  /* Las dos cabeceras en una línea cada una y apoyadas abajo: en inglés a 360,
+     «Without Adeorq» se partía en dos y «With Adeorq» quedaba a media altura. */
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+/* La columna de antes se lee igual de bien que la de después: lo que las
+   distingue es el peso, no un gris apagado (el texto que se lee no va en gris). */
+.comparar__tabla th:first-child { color: var(--p-suave); font-weight: 620; }
+.comparar__tabla tbody tr { border-top: 1px solid var(--p-linea); }
+.comparar__tabla td { font-size: 18px; line-height: 1.35; }
+.comparar__tabla td:first-child { color: var(--p-suave); font-weight: 500; }
+.comparar__tabla td:last-child { color: var(--p-texto); font-weight: 650; }
+.comparar__flecha { display: inline-block; width: 22px; height: 22px; color: var(--p-acento); vertical-align: middle; }
+@media (max-width: 600px) {
+  .comparar__tabla th:nth-child(2),
+  .comparar__tabla td:nth-child(2) { width: 38px; }
+  .comparar__tabla th,
+  .comparar__tabla td { padding: 12px 0; }
+  /* La letra justa para que «Without Adeorq» quepa en su columna de 320 a 600. */
+  .comparar__tabla th { font-size: clamp(15px, 4.6vw, 20.8px); }
+  .comparar__tabla td { font-size: 15.5px; }
+  .comparar__flecha { width: 18px; height: 18px; }
+}
+
+/* ============================================================================
+   ADEO LO REPARTE
+   Un encargo y Adeo abriendo dos sesiones, en el Chat de la app tal cual
+   (Munir, 2026-11-17: «que se vea como en la app»). Ocupa el sitio de la
+   frase de cartel que había aquí («Escribe el encargo…»).
+   ========================================================================= */
+
+.reparte { padding: clamp(60px, 9vh, 104px) 0 clamp(40px, 6vh, 72px); }
+.reparte__caja {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 4vw, 54px);
+  text-align: center;
+}
+.reparte__caja .seccion__tit { margin-inline: auto; text-wrap: balance; }
+.reparte .reparte__entrada { margin-inline: auto; text-wrap: balance; }
+/* El Chat de la app, con sus medidas (src/estilos/21-chat.css y
+   22-conserje.css) un punto más grandes para leerse en una web. */
+.rchat {
+  max-width: 780px;
+  margin: 0 auto;
+  border: 1px solid rgba(150, 185, 240, .24);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #0d1422, #090e18);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .4);
+  text-align: left;
+  overflow: hidden;
+}
+.rchat__cab {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 22px;
+  border-bottom: 1px solid var(--p-linea);
+}
+.rchat__cab .adeo { flex: none; }
+.rchat__cab p { display: flex; flex-direction: column; min-width: 0; margin: 0; }
+.rchat__cab b {
+  overflow: hidden;
+  color: var(--p-texto);
+  font-size: 16.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.rchat__cab span { color: var(--p-tenue); font-size: 14px; }
+.rchat__hilo { display: grid; gap: 20px; padding: 26px 26px 8px; }
+/* Tu mensaje: el azul al 24 % con su borde al 34 %, y la esquina de abajo a la
+   derecha casi recta, como .chat-turno[data-rol="tu"] .chat-burbuja. */
+.rchat__tu {
+  justify-self: end;
+  max-width: 520px;
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--p-acento) 34%, transparent);
+  border-radius: 8px 8px 4px 8px;
+  background: color-mix(in srgb, var(--p-acento) 24%, transparent);
+  color: var(--p-texto);
+  font-size: 17px;
+  line-height: 1.5;
+}
+/* La respuesta de Adeo va sin burbuja, como en la app. */
+.rchat__adeo { color: var(--p-texto); font-size: 17px; line-height: 1.6; }
+.rchat__adeo p { margin: 0; }
+.rchat__adeo ul { margin: 6px 0 8px; padding-left: 24px; list-style: disc; }
+.rchat__adeo li::marker { color: var(--p-tenue); }
+.rchat__adeo b { font-weight: 700; }
+/* Cada sesión que abre, suelta (sin borde ni fondo) como .cj-trabajo. */
+.rchat__trabajo { display: grid; gap: 4px; padding: 4px 0 12px; }
+.rchat__trabajo + .rchat__trabajo { padding-top: 14px; border-top: 1px solid var(--p-linea); }
+.rchat__trabajo p { margin: 0; }
+.rchat__trabajo-cab { display: flex; align-items: center; gap: 9px; }
+.rchat__trabajo-cab .prov-mark { width: 20px; height: 20px; flex: none; color: #d97757; }
+.rchat__trabajo-cab b { min-width: 0; color: var(--p-texto); font-size: 16.5px; font-weight: 700; }
+.rchat__estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  color: #7ee08a;
+  font-size: 14px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.rchat__estado i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 7px rgba(126, 224, 138, .6);
+  animation: rchat-late 1.6s ease-in-out infinite;
+}
+/* Solo opacidad, como el de la app: late también con el movimiento reducido. */
+@keyframes rchat-late { 50% { opacity: .45; } }
+.rchat__para { color: var(--p-suave); font-size: 16px; }
+.rchat__porque { color: var(--p-tenue); font-size: 14.5px; }
+.rchat__porque b { color: var(--p-texto); font-weight: 650; }
+.rchat__caja {
+  display: grid;
+  gap: 14px;
+  margin: 6px 20px 0;
+  padding: 14px 14px 12px 16px;
+  border: 1px solid rgba(150, 185, 240, .26);
+  border-radius: 8px;
+  background: #080c15;
+}
+.rchat__escribe { color: var(--p-tenue); font-size: 16px; }
+.rchat__mandos { display: flex; align-items: center; gap: 8px; }
+.rchat__mas,
+.rchat__enviar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(150, 185, 240, .26);
+  border-radius: 50%;
+  color: var(--p-texto);
+}
+.rchat__mas svg, .rchat__enviar svg { width: 16px; height: 16px; }
+.rchat__pastilla {
+  padding: 6px 13px;
+  border: 1px solid rgba(150, 185, 240, .26);
+  border-radius: 999px;
+  color: var(--p-suave);
+  font-size: 14px;
+  font-weight: 600;
+}
+.rchat__enviar { margin-left: auto; border-color: transparent; background: var(--p-acento); color: #050a12; }
+.rchat__ia { margin: 0; padding: 10px 20px 16px; color: var(--p-tenue); font-size: 13.5px; text-align: center; }
+@media (max-width: 560px) {
+  .rchat__cab { padding: 11px 16px; }
+  .rchat__hilo { gap: 16px; padding: 20px 16px 6px; }
+  .rchat__tu { max-width: 90%; font-size: 16px; }
+  .rchat__adeo { font-size: 16px; }
+  .rchat__trabajo-cab b { font-size: 15.5px; }
+  .rchat__para { font-size: 15px; }
+  .rchat__porque { font-size: 13.5px; }
+  .rchat__caja { margin-inline: 12px; }
+}
+
+/* ============================================================================
+   EL CÓDIGO A LA VISTA, Y TUS MODS
+   Un título y dos mitades enfrentadas, separadas por una raya de un píxel y
+   sin cajas: el código a la izquierda y los mods a la derecha, cada una con su
+   dibujo, su frase, su letra pequeña y su botón secundario (el claro es solo
+   el de descargar). Una debajo de otra por debajo de 860 px.
    ========================================================================= */
 
 .codigo {
   max-width: 1320px;
   margin: 0 auto;
-  padding: 0 clamp(18px, 4vw, 54px) clamp(56px, 9vh, 104px);
+  padding: clamp(28px, 4.5vh, 44px) clamp(18px, 4vw, 54px) clamp(56px, 9vh, 104px);
+  text-align: center;
 }
+.codigo__sec { margin-inline: auto; }
 .codigo__caja {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 18px clamp(18px, 2.4vw, 34px);
-  padding-top: clamp(28px, 4.5vh, 44px);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: clamp(26px, 4vh, 40px);
+  text-align: left;
 }
-/* Arriba, a la altura del titular, y no centrado en el bloque de texto. */
-.codigo__marca { align-self: start; width: 44px; height: 44px; margin-top: 2px; color: var(--p-texto); }
+.codigo__mitad {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 6px clamp(24px, 4vw, 64px);
+}
+.codigo__mitad + .codigo__mitad { border-left: 1px solid var(--p-linea2); }
+.codigo__mitad .codigo__marca { width: 40px; height: 40px; margin-bottom: 18px; color: var(--p-texto); }
 .codigo__tit {
-  margin: 0 0 6px;
-  font-size: clamp(1.3rem, 1.05rem + 1vw, 1.85rem);
+  margin: 0 0 10px;
+  font-size: clamp(1.3rem, 1.05rem + .9vw, 1.75rem);
   line-height: 1.2;
-  letter-spacing: -.022em;
-  font-weight: 660;
+  letter-spacing: -.03em;
+  font-weight: 760;
   text-wrap: balance;
 }
 .codigo__p {
-  max-width: 60ch;
+  max-width: 52ch;
   margin: 0;
   color: var(--p-suave);
-  font-size: clamp(1rem, .96rem + .25vw, 1.12rem);
+  font-size: clamp(1.02rem, .98rem + .25vw, 1.14rem);
   line-height: 1.55;
 }
 .codigo__licencia {
-  max-width: 72ch;
-  margin: 8px 0 0;
+  max-width: 56ch;
+  margin: 10px 0 22px;
   color: var(--p-tenue);
   font-size: 14.5px;
   line-height: 1.5;
@@ -722,13 +997,98 @@ html[data-ligero] .haz__nube--b {
   text-decoration-color: var(--p-linea2);
 }
 .codigo__licencia a:hover { color: var(--p-texto); text-decoration-color: currentColor; }
+/* La línea de seguridad, pegada a la de la licencia y en el blanco suave: se
+   lee, no es letra pequeña. */
+.codigo__licencia:has(+ .codigo__seguro) { margin-bottom: 12px; }
+.codigo__seguro { max-width: 56ch; margin: 0 0 22px; color: var(--p-suave); font-size: 15px; line-height: 1.5; }
+.codigo__seguro b { color: var(--p-texto); font-weight: 700; }
+.codigo__seguro a { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--p-acento); }
+.codigo__seguro a:hover { color: var(--p-acento); }
+/* El nombre de un archivo no se parte por su guion («AI-» y «AUDIT.md» a 360). */
+.junto { white-space: nowrap; }
 /* `.btn` alinea por la línea base, que con un icono dentro deja el logo caído. */
 .codigo__btn { align-items: center; }
 
+@media (max-width: 860px) {
+  .codigo__caja { grid-template-columns: 1fr; gap: 34px; }
+  .codigo__mitad { padding: 0; }
+  .codigo__mitad + .codigo__mitad { border-left: 0; border-top: 1px solid var(--p-linea2); padding-top: 34px; }
+  .codigo__mitad .codigo__marca { width: 34px; height: 34px; margin-bottom: 14px; }
+}
+
+/* ============================================================================
+   DOCS Y AYUDA
+   Cinco enlaces, cada uno con su frase debajo, en fila a lo ancho y uno
+   debajo de otro en el móvil. Sin tarjetas: una raya arriba de cada uno.
+   ========================================================================= */
+
+.ayuda { padding: clamp(56px, 9vh, 104px) 0 clamp(20px, 3vh, 34px); }
+.ayuda__caja { max-width: 1320px; margin: 0 auto; padding: 0 clamp(18px, 4vw, 54px); }
+.ayuda__lista {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 28px clamp(20px, 2.4vw, 36px);
+  margin: clamp(26px, 4vh, 40px) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.ayuda__lista li { padding-top: 18px; border-top: 1px solid var(--p-linea2); }
+.ayuda__enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--p-texto);
+  font-size: clamp(1.12rem, 1rem + .4vw, 1.32rem);
+  font-weight: 720;
+  letter-spacing: -.02em;
+}
+.ayuda__enlace::after {
+  content: "";
+  width: .7em;
+  height: .7em;
+  background: var(--p-acento);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14m0 0-6-6m6 6-6 6'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14m0 0-6-6m6 6-6 6'/%3E%3C/svg%3E") center / contain no-repeat;
+  transition: transform .18s ease;
+}
+.ayuda__enlace:hover::after { transform: translateX(calc(3px * var(--motion-gain, 1))); }
+.ayuda__enlace:hover span { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; }
+.ayuda__lista p { margin: 8px 0 0; color: var(--p-suave); font-size: 15.5px; line-height: 1.5; }
+/* Cinco no se reparten en filas iguales: por debajo de 1100, en vez de una fila
+   coja, una lista con el enlace a la izquierda y su frase al lado. */
+@media (max-width: 1100px) {
+  .ayuda__lista { grid-template-columns: 1fr; gap: 0; }
+  .ayuda__lista li { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 4px 28px; align-items: baseline; padding: 16px 0; }
+  .ayuda__lista p { margin: 0; }
+}
+@media (max-width: 560px) {
+  .ayuda__lista li { grid-template-columns: 1fr; }
+}
+
+/* ============================================================================
+   APOYAR EL PROYECTO
+   Adeo, una frase y un botón secundario, en una fila y sin caja.
+   ========================================================================= */
+
+.apoyar { padding: clamp(30px, 5vh, 56px) 0 clamp(56px, 9vh, 104px); }
+.apoyar__caja {
+  display: flex;
+  align-items: center;
+  gap: clamp(18px, 2.4vw, 34px);
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: clamp(26px, 4vh, 40px) clamp(18px, 4vw, 54px) 0;
+  border-top: 1px solid var(--p-linea);
+}
+.apoyar__caja .adeo { flex: none; }
+.apoyar__texto { flex: 1; min-width: 0; }
+.apoyar__tit { margin: 0 0 6px; font-size: clamp(1.25rem, 1.05rem + .8vw, 1.65rem); font-weight: 760; letter-spacing: -.03em; text-wrap: balance; }
+.apoyar__p { max-width: 62ch; margin: 0; color: var(--p-suave); font-size: clamp(1rem, .97rem + .2vw, 1.1rem); line-height: 1.55; }
+.apoyar__btn { flex: none; }
 @media (max-width: 760px) {
-  .codigo__caja { grid-template-columns: auto minmax(0, 1fr); align-items: start; }
-  .codigo__marca { width: 34px; height: 34px; margin-top: 2px; }
-  .codigo__btn { grid-column: 1 / -1; justify-self: start; }
+  .apoyar__caja { flex-wrap: wrap; }
+  .apoyar__texto { flex-basis: calc(100% - 120px); }
+  .apoyar__btn { margin-left: 0; }
 }
 
 /* ============================================================================
@@ -759,8 +1119,9 @@ html[data-ligero] .haz__nube--b {
   max-width: 24ch;
   font-size: clamp(1.7rem, 1.1rem + 2.1vw, 2.7rem);
   line-height: 1.14;
-  letter-spacing: -.028em;
-  font-weight: 660;
+  letter-spacing: -.04em;
+  font-weight: 760;
+  text-wrap: balance;
 }
 .explica__tit b { font-weight: inherit; }
 .explica__tit span { color: color-mix(in srgb, var(--p-tenue) 85%, transparent); }
@@ -773,7 +1134,7 @@ html[data-ligero] .haz__nube--b {
   line-height: 1.62;
 }
 
-/* La muestra. Seis rasgos, cada uno con su captura de la app (antes eran seis
+/* La muestra. Cinco rasgos, cada uno con su captura de la app (antes eran seis
    fichas de solo texto: 191 palabras y ni una imagen, medido el 2026-10-13).
    Tal como llega en el HTML es una lista, cada rasgo con su frase y su foto, y
    asi se lee sin JavaScript. Con `data-vivo` (lo pone portada/muestra.js) solo
@@ -787,11 +1148,13 @@ html[data-ligero] .haz__nube--b {
   border-top: 1px solid var(--p-linea);
 }
 
+/* Nombres grandes: la 3 de «Siete pantallas» que eligió Munir el 2026-11-17. */
 .rasgo__tit {
   margin: 0;
-  font-size: clamp(1.12rem, 1rem + .5vw, 1.4rem);
-  font-weight: 640;
-  letter-spacing: -.015em;
+  font-size: clamp(1.55rem, 1rem + 1.7vw, 2.55rem);
+  font-weight: 760;
+  line-height: 1.12;
+  letter-spacing: -.035em;
   color: var(--p-texto);
 }
 
@@ -881,17 +1244,57 @@ html[data-ligero] .haz__nube--b {
 @media (min-width: 901px) {
   .muestra[data-vivo] {
     display: grid;
-    grid-template-columns: minmax(250px, 340px) minmax(0, 1fr);
-    column-gap: clamp(28px, 4vw, 58px);
+    grid-template-columns: minmax(300px, 440px) minmax(0, 1fr);
+    column-gap: clamp(32px, 4.4vw, 64px);
     align-items: start;
   }
   /* `contents`: el texto y la foto de cada rasgo pasan a ser piezas de la
      reticula. Los textos bajan por la primera columna y todas las fotos
-     comparten el mismo hueco, que ocupa las seis filas de la lista. */
+     comparten el mismo hueco, que ocupa las cinco filas de la lista. */
   .muestra[data-vivo] .rasgo { display: contents; }
-  .muestra[data-vivo] .rasgo__texto { grid-column: 1; }
-  .muestra[data-vivo] .rasgo__foto { grid-column: 2; grid-row: 1 / span 6; margin: 0; }
+  .muestra[data-vivo] .rasgo__texto { grid-column: 1; padding: clamp(22px, 2.4vw, 34px) 0; }
+  /* La foto se queda fija a media pantalla mientras bajas por la lista. */
+  .muestra[data-vivo] .rasgo__foto {
+    grid-column: 2;
+    grid-row: 1 / span 5;
+    position: sticky;
+    top: max(96px, calc(50vh - 16vw));
+    margin: 0;
+  }
+  /* El apartado al que llegas se nota (Munir, 2026-11-17: «que haya un zoom al
+     apartado o que se note ese apartado como bajar la opacidad o un blur»): al
+     bajar, el rasgo que pasa por el centro de la pantalla se enciende
+     (muestra.js) y los demás se apagan, se desenfocan un poco y encogen. Todos
+     enseñan su frase, para que la lista no cambie de alto mientras bajas. El
+     encogido y el desenfoque siguen al dial `--motion-gain` (con
+     `?motion=off` no hay ninguno); la opacidad no, que no mueve nada. */
+  .muestra[data-vivo] .rasgo:not([data-activa]) .rasgo__p { display: block; }
+  .muestra[data-vivo] .rasgo:not([data-activa]) .rasgo__demo { display: inline-block; }
+  .muestra[data-vivo] .rasgo__texto {
+    transform-origin: left center;
+    transition: opacity .45s ease, filter .45s ease, transform .55s cubic-bezier(.16, 1, .3, 1);
+  }
+  .muestra[data-vivo] .rasgo:not([data-activa]) .rasgo__texto {
+    opacity: .34;
+    filter: blur(calc(1.4px * var(--motion-gain, 1)));
+    transform: scale(calc(1 - .06 * var(--motion-gain, 1)));
+  }
+  .muestra[data-vivo] .rasgo:not([data-activa]) .rasgo__texto:hover { opacity: .72; filter: none; }
+  /* Con el teclado, el rasgo que tiene el foco se lee entero aunque no sea el
+     del centro (muestra.js además lo enciende al recibirlo). `:focus-visible` y
+     no `:focus-within`: tras un clic de ratón el foco se queda en su botón, y
+     al seguir bajando habría dos encendidos. */
+  .muestra[data-vivo] .rasgo:not([data-activa]) .rasgo__texto:has(:focus-visible) { opacity: 1; filter: none; transform: none; }
+  .muestra[data-vivo] .rasgo[data-activa] .rasgo__foto { animation: foto-entra .45s ease; }
+  /* Con el movimiento parado (la válvula o `?motion=off`) la portada congela
+     todas las animaciones, y esta se quedaba en su primer fotograma: la foto en
+     su sitio pero a opacidad 0, así que no se veía ninguna captura (medido el
+     2026-11-17). Cambiar de rasgo lo pide quien baja o pulsa, así que no se
+     para (regla 3 del dial): la foto sale sin fundido, como el menú. */
+  :root[data-quieto] .muestra[data-vivo] .rasgo[data-activa] .rasgo__foto { animation: none !important; }
+  .muestra[data-vivo] .rasgo__boton::after { display: none; }
 }
+@keyframes foto-entra { from { opacity: 0; } }
 
 /* La captura en grande, a todo lo que da la pantalla. Un <dialog> nativo: se
    cierra con Escape sin escribir nada, y con un clic en cualquier sitio. */
@@ -957,8 +1360,10 @@ html[data-ligero] .haz__nube--b {
   max-width: 22ch;
   font-size: clamp(1.7rem, 1.1rem + 2.1vw, 2.7rem);
   line-height: 1.14;
-  letter-spacing: -.028em;
-  font-weight: 660;
+  letter-spacing: -.04em;
+  font-weight: 760;
+  /* Un titular partido no deja una palabra sola en su última línea. */
+  text-wrap: balance;
 }
 .seccion__tit--centro { max-width: none; }
 
@@ -966,7 +1371,7 @@ html[data-ligero] .haz__nube--b {
   max-width: 58ch;
   margin: 0 0 clamp(34px, 5vh, 52px);
   color: var(--p-suave);
-  font-size: clamp(1.02rem, .97rem + .35vw, 1.18rem);
+  font-size: clamp(1.06rem, .99rem + .35vw, 1.2rem);
   line-height: 1.65;
 }
 
@@ -977,35 +1382,40 @@ html[data-ligero] .haz__nube--b {
 }
 /* El ancho y el reparto los pone .bloque--dos. */
 
+/* Números gigantes: la 2 de «Tres pasos» que eligió Munir el 2026-11-17. Los
+   pasos bajan uno debajo de otro, cada uno con su número suelto y enorme, solo
+   el contorno en el azul de la marca, y la foto al lado. Vale para los dos
+   recorridos de la portada (Cómo trabaja y En el móvil). El número cuenta algo
+   (es una secuencia), así que va en la letra de la web: nada de «01» en letra
+   de máquina como adorno. */
 .pasos__lista {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(24px, 3vw, 48px);
+  gap: clamp(22px, 3vh, 30px);
   margin: clamp(34px, 5vh, 52px) 0 0;
   padding: 0;
   list-style: none;
-  counter-reset: paso;
 }
-
-/* Cada paso cuelga de una línea de un píxel arriba: es la que hace que se lean
-   como una secuencia y no como tres párrafos sueltos. */
-.paso { border-top: 1px solid var(--p-linea2); padding-top: 18px; }
-
-/* El número cuenta algo (es una secuencia), así que va suelto y grande, en la
-   letra de la web: nada de «01» en letra de máquina como adorno. */
+.paso {
+  display: grid;
+  grid-template-columns: clamp(64px, 7vw, 112px) minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  column-gap: clamp(14px, 1.6vw, 22px);
+  align-items: start;
+}
 .paso__num {
-  display: block;
-  margin-bottom: 14px;
-  font-size: 28px;
-  font-weight: 650;
-  line-height: 1;
-  color: var(--p-acento);
+  grid-row: 1 / span 2;
+  font-size: clamp(5rem, 3rem + 5vw, 8.2rem);
+  font-weight: 800;
+  line-height: .78;
+  letter-spacing: -.06em;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(77, 159, 255, .85);
 }
 .paso__tit {
-  margin: 0 0 8px;
-  font-size: clamp(1.08rem, 1rem + .4vw, 1.3rem);
-  font-weight: 640;
-  letter-spacing: -.015em;
+  margin: 4px 0 8px;
+  font-size: clamp(1.25rem, 1rem + .9vw, 1.65rem);
+  font-weight: 760;
+  letter-spacing: -.03em;
 }
 .paso p {
   margin: 0;
@@ -1061,26 +1471,24 @@ html[data-ligero] .haz__nube--b {
   background: var(--p-panel);
 }
 
-@media (max-width: 800px) {
-  .pasos__lista { grid-template-columns: 1fr; }
-}
-
 /* A lo ancho, la frase de cierre al lado de su foto y no debajo: con el
    contenido a todo el ancho, debajo dejaba un hueco a la derecha de la foto.
    El tablero no pasa de sus 922 px de origen, que estirado se emborrona, y la
    frase no baja de 300: con la columna a lo que sobrara, a 1180 se quedaba en
    124 px y once líneas (revisión del 2026-11-16). Lo que falte lo cede la foto,
    que encogida no pierde nitidez. */
-@media (min-width: 1180px) {
+@media (min-width: 1000px) {
   .pasos .bloque__cuerpo {
     display: grid;
-    grid-template-columns: minmax(0, 922px) minmax(300px, 1fr);
-    column-gap: clamp(32px, 3.4vw, 56px);
+    grid-template-columns: minmax(0, .9fr) minmax(0, 1.25fr);
+    grid-template-rows: auto auto;
+    column-gap: clamp(40px, 4.4vw, 72px);
     align-items: center;
   }
-  #movil .bloque__cuerpo { grid-template-columns: minmax(0, 640px) minmax(0, 1fr); }
-  .pasos .pasos__lista { grid-column: 1 / -1; }
-  .pasos .pasos__foto + .pasos__cierre { margin: 0; }
+  .pasos .pasos__lista { grid-column: 1; grid-row: 1 / span 2; margin: 0; }
+  .pasos .pasos__foto { grid-column: 2; grid-row: 1; align-self: end; margin: 0; }
+  .pasos .pasos__foto + .pasos__cierre { grid-column: 2; grid-row: 2; align-self: start; margin: 16px 0 0; }
+  #movil .bloque__cuerpo { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
 
 /* --------------------------------- TU CUENTA ----------------------------- */
@@ -1122,23 +1530,30 @@ html[data-ligero] .haz__nube--b {
 .descarga {
   padding: clamp(48px, 7vh, 84px) 0;
 }
-/* El ancho y el reparto los pone .bloque--dos. */
-.descarga__acciones { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
-/* Windows solo arriba y Linux y Mac juntos debajo: con flex, Mac caía sola en
-   una segunda fila coja. Se mide la columna y no la pantalla: los dos botones
-   de abajo piden unos 690 px, y a 1024 la columna no los tiene y se salían por
-   la derecha. Sin sitio, cada uno en su fila. */
-.descarga .bloque__cuerpo { container-type: inline-size; }
-@container (min-width: 700px) {
-  .descarga__acciones { display: grid; grid-template-columns: repeat(2, max-content); }
-  .descarga__acciones > :first-child { grid-column: 1 / -1; justify-self: start; }
+/* Centrada entera, con Adeo encima del título y los tres botones en fila: el
+   cierre «Dos clics y ya está» de winshotx.com (Munir eligió «Escaparate» el
+   2026-11-16; antes iba en dos columnas). */
+.descarga .bloque__rotulo { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.descarga .bloque__rotulo .adeo-presenta { flex-direction: row; margin: 0 0 20px; }
+/* Con `.adeo-presenta` en medio, que pese más que la regla de dos columnas de
+   901 px: con el mismo peso, aquella iba después y el piquito salía de espaldas. */
+.descarga .bloque__rotulo .adeo-presenta .adeo-dice::after { left: -6.5px; right: auto; transform: translateY(-50%) rotate(135deg); }
+.descarga .seccion__tit { max-width: none; font-size: clamp(2.1rem, 1.2rem + 2.8vw, 3.7rem); text-wrap: balance; }
+.descarga .bloque__rotulo .seccion__entrada { margin-inline: auto; }
+.descarga .bloque__cuerpo { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.descarga__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 22px;
 }
-@container (max-width: 699px) {
-  .descarga__acciones { flex-direction: column; align-items: flex-start; }
-  /* En un teléfono de 360, «Descargar para Linux» y su nota no caben en una
-     línea y el botón se salía 25 px por la derecha: la nota baja debajo. */
-  .descarga__acciones > .btn { max-width: 100%; flex-wrap: wrap; row-gap: 2px; }
-}
+/* En un teléfono de 360, «Descargar para Linux» y su nota no caben en una
+   línea y el botón se salía 25 px por la derecha: la nota baja debajo. Lo
+   mismo el principal de arriba, que con la flecha recortaba «gratis, sin
+   cuenta» entre 360 y 390 (revisión aparte, 2026-11-17). */
+.descarga__acciones > .btn,
+.acciones > .btn { max-width: 100%; flex-wrap: wrap; justify-content: center; row-gap: 2px; }
 
 /* La ficha de datos, con puntos entre ellos y en la letra de la página: se lee
    como una frase, no como código. La rellena datos.js con el JSON de verdad. */
@@ -1146,6 +1561,7 @@ html[data-ligero] .haz__nube--b {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 8px 18px;
   margin: 0 0 26px;
   font-size: 14.5px;
@@ -1164,7 +1580,8 @@ html[data-ligero] .haz__nube--b {
 .descarga__datos > :last-child { flex-basis: 100%; }
 
 .descarga__precio {
-  margin: 0 0 20px;
+  margin: 4px 0 10px;
+  text-wrap: balance;
   font-size: clamp(1.05rem, 1rem + .4vw, 1.25rem);
   font-weight: 620;
   color: var(--p-texto);
@@ -1175,27 +1592,11 @@ html[data-ligero] .haz__nube--b {
    alguien cierre el instalador pensando que le hemos colado algo. */
 .descarga__nota {
   max-width: 62ch;
-  margin: 0;
-  padding: 14px 16px;
-  border: 1px solid var(--p-linea);
+  margin: 0 auto;
   color: var(--p-suave);
   font-size: 15px;
   line-height: 1.6;
-}
-
-/* A lo ancho, en dos columnas: los botones y sus datos a la izquierda, y a la
-   derecha lo que quita el miedo (gratis, y el aviso de Windows). Con el título
-   arriba y todo en una columna, la mitad derecha se quedaba vacía. */
-@media (min-width: 1180px) {
-  .descarga .bloque__cuerpo {
-    display: grid;
-    grid-template-columns: minmax(0, 700px) minmax(0, 1fr);
-    column-gap: clamp(40px, 5vw, 80px);
-  }
-  .descarga__acciones { grid-column: 1; grid-row: 1; }
-  .descarga__datos { grid-column: 1; grid-row: 2; align-self: start; margin-bottom: 0; }
-  .descarga__precio { grid-column: 2; grid-row: 1; align-self: end; margin-bottom: 22px; }
-  .descarga__nota { grid-column: 2; grid-row: 2; align-self: start; }
+  text-wrap: pretty;
 }
 
 /* -------------------------------- NOVEDADES ------------------------------ */
@@ -1205,6 +1606,30 @@ html[data-ligero] .haz__nube--b {
 }
 /* El ancho y el reparto los pone .bloque--dos. */
 .novedades .seccion__entrada b { color: var(--p-texto); }
+
+/* La tira de los últimos 90 días: un palito por día, azul el día que salió
+   versión (la de munito.dev, como en las páginas de estado). */
+.tira { margin: 0 0 36px; }
+.tira__tit { margin: 0 0 12px; color: var(--p-suave); font-size: 17px; }
+.tira__tit b { color: var(--p-texto); font-weight: 650; }
+.tira__dias {
+  display: grid;
+  grid-template-columns: repeat(90, minmax(0, 1fr));
+  gap: 3px;
+  height: 44px;
+}
+.tira__dias i { border-radius: 2px; background: rgba(140, 170, 220, .16); }
+.tira__dias i[data-si] { background: var(--p-acento); }
+.tira__pie {
+  display: flex;
+  justify-content: space-between;
+  margin: 8px 0 0;
+  color: var(--p-tenue);
+  font-size: 13.5px;
+}
+@media (max-width: 700px) {
+  .tira__dias { gap: 2px; height: 34px; }
+}
 
 .log { margin: 0 0 30px; padding: 0; list-style: none; border-top: 1px solid var(--p-linea); }
 
@@ -1244,7 +1669,7 @@ html[data-ligero] .haz__nube--b {
    en una columna pegajosa a la izquierda y el contenido a la derecha: bajo el
    título quedaba un hueco alto, y las cinco secciones tenían la misma silueta.
 
-   Las secciones centradas (#que-es, #privacidad, #manifiesto) NO la usan a
+   Las secciones centradas (#que-es, #privacidad, #reparte) NO la usan a
    propósito: alternar una centrada entre dos de estas es lo que le da ritmo a
    la página. Si todas fueran iguales, sería una lista. */
 .bloque--dos {
@@ -1289,17 +1714,22 @@ html[data-ligero] .haz__nube--b {
 
 .faq__caja { max-width: 1320px; margin: 0 auto; padding: 0 clamp(18px, 4vw, 54px); }
 .faq__lista { border-top: 1px solid var(--p-linea); }
-/* A lo ancho, las preguntas en dos columnas: en una sola, la lista medía el
-   doble de alto y dejaba media pantalla vacía a la derecha. */
+.faq__preguntar { align-items: center; margin-top: 24px; }
+/* A lo ancho, el título se queda fijo a la izquierda con su botón y la lista
+   corre a la derecha en una columna: las preguntas de winshotx.com (Munir
+   eligió «Escaparate» el 2026-11-16). Adeo va encima del título, mirándolo. */
 @media (min-width: 901px) {
-  .faq__lista {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 56px;
+  .faq__caja {
+    grid-template-columns: minmax(0, 430px) minmax(0, 1fr);
+    column-gap: clamp(40px, 6vw, 100px);
     align-items: start;
-    border-top: 0;
   }
-  .faq__lista .pregunta:nth-child(-n+2) { border-top: 1px solid var(--p-linea); }
+  .faq .bloque__rotulo { display: block; position: sticky; top: 104px; }
+  .faq .bloque__rotulo .adeo-presenta { flex-direction: row; margin: 0 0 22px; }
+  .faq .bloque__rotulo .adeo-dice::after { left: -6.5px; right: auto; transform: translateY(-50%) rotate(135deg); }
+  /* `pretty` y no `balance`: «Lo que suelen / preguntar» dejaba la última sola. */
+  .faq .seccion__tit { font-size: clamp(2rem, 1.2rem + 2.2vw, 3.2rem); max-width: none; text-wrap: pretty; }
+  .faq .bloque__rotulo .seccion__entrada { margin-top: 14px; }
 }
 
 /* `<details>` nativo y no un acordeon de JavaScript: se abre sin scripts, el
@@ -1328,6 +1758,8 @@ html[data-ligero] .haz__nube--b {
   font-size: clamp(1.02rem, .98rem + .35vw, 1.16rem);
   font-weight: 600;
   color: var(--p-texto);
+  /* En el móvil la pregunta ocupa dos líneas: repartidas, sin dejar la última palabra sola. */
+  text-wrap: balance;
   transition: color .18s ease;
 }
 .pregunta summary::-webkit-details-marker { display: none; }
@@ -1513,7 +1945,7 @@ html[data-ligero] .haz__nube--b {
   transform: translateY(calc(16px * var(--motion-gain)));
   transition: opacity .6s ease, transform .8s cubic-bezier(.16,1,.3,1);
 }
-.adeo-hola .adeo { flex: none; width: 128px; height: 90px; }
+.adeo-hola .adeo { flex: none; width: 110px; height: 77px; }
 .adeo-hola .adeo-dice { max-width: 400px; }
 .haz[data-entrada] .adeo-hola { opacity: 1; transform: none; transition-delay: .55s; }
 @media (scripting: none) { .adeo-hola { opacity: 1; transform: none; } }
@@ -1527,16 +1959,34 @@ html[data-ligero] .haz__nube--b {
 @media (max-width: 1179px) {
   .ventana { margin-top: clamp(96px, 12vh, 132px); }
 }
-@media (max-width: 700px) {
-  .ventana { margin-top: 110px; }
+/* Con la ventana por debajo de unos 940 px (por el ancho de la pantalla o por
+   su alto, que también la encoge) el enlace y las pestañas ya no caben al lado
+   de Adeo: suben a su propia línea, centrada, por encima de él, y el hueco de
+   arriba crece lo que ocupa esa línea. */
+@media (max-width: 1068px), (max-height: 679px) {
+  .ventana { --adeo-hueco: 100px; margin-top: calc(var(--adeo-hueco) + 58px); }
+  .ventana__encima { left: -8px; right: -8px; bottom: calc(100% + var(--adeo-hueco)); justify-content: center; }
 }
-@container ventana (max-width: 1040px) {
-  .ventana__aviso { flex-direction: column; align-items: flex-start; gap: 2px; max-width: calc(100% - 440px); }
+/* En el móvil, solo las pestañas, con letra y huecos que encogen con el ancho:
+   las cinco caben en una fila hasta 320 px, también en inglés. */
+@media (max-width: 700px) {
+  .ventana { --adeo-hueco: 110px; }
+  .ventana__grande { display: none; }
+  .pestanas-demo { gap: 4px clamp(7px, 2.9vw, 17px); }
+  .pestanas-demo button { font-size: clamp(13px, 3.9vw, 16px); }
+}
+/* Con la ventana más estrecha, las pestañas aprietan un poco, y Adeo y su frase
+   encogen para dejarles sitio. */
+@container ventana (min-width: 660px) and (max-width: 1180px) {
+  .ventana__encima { gap: 18px; }
+  .pestanas-demo { column-gap: 18px; }
+  .pestanas-demo button { font-size: 15px; }
+}
+@container ventana (max-width: 1070px) {
   .adeo-hola .adeo { width: 96px; height: 67px; }
   .adeo-hola .adeo-dice { font-size: 14px; max-width: 300px; }
 }
 @container ventana (max-width: 660px) {
-  .ventana__aviso { display: none; }
   .adeo-hola { right: 4px; }
   .adeo-hola .adeo { width: 80px; height: 56px; }
   .adeo-hola .adeo-dice { font-size: 13.5px; max-width: 250px; }

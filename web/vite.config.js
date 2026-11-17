@@ -240,6 +240,26 @@ function bakeReleaseData() {
         }
       }
       if (log?.count) out = out.replace(/(<b data-log-cuenta>)[^<]*(<\/b>)/, `$1${log.count}$2`)
+      // The figure under the hero buttons that the build knows: how many clients
+      // the logo strip shows (scripts/extraer-clientes.mjs writes that strip from
+      // the app's catalogue); it is filled in further down. The installed size
+      // next to it is measured by hand and written in index.html.
+      // One bar per day of the last 90, lit on the days a release shipped. The
+      // same count as `tira` in portada/datos.js, which redraws it in the browser.
+      if (log?.entries?.length) {
+        const days = new Set(log.entries.map((e) => String(e.date || e.publishedAt || '').slice(0, 10)))
+        const now = new Date()
+        const bars = []
+        for (let i = 89; i >= 0; i--) {
+          const day = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i)).toISOString().slice(0, 10)
+          bars.push(days.has(day))
+        }
+        out = out.replace(/(<div class="tira__dias"[^>]*data-tira-dias>)\s*(<\/div>)/, `$1${bars.map((b) => (b ? '<i data-si></i>' : '<i></i>')).join('')}$2`)
+        out = out.replace(/(<span data-tira-cuenta>)[^<]*(<\/span>)/, `$1${bars.filter(Boolean).length}$2`)
+      }
+      const strip = out.match(/<ul class="cinta__grupo">([\s\S]*?)<\/ul>/)
+      const clients = strip ? (strip[1].match(/class="cli"/g) || []).length : 0
+      if (clients) out = out.replace(/(<b data-cifra-clientes>)[^<]*(<\/b>)/, `$1${clients}$2`)
       if (log?.entries?.length) {
         // The same three rows, and the same trimming, as portada/datos.js. In
         // English, a release written before the notes carried English keeps

@@ -129,6 +129,15 @@ export function listProjects(): Promise<Project[]> {
   return invoke("list_projects", { raiz: p.raiz, sinRaiz: p.sinRaiz, extras: p.extras });
 }
 
+/** La lista nueva solo si ha cambiado algo: la barra relee los proyectos en cada latido
+    (una carpeta nueva, como Moods el 2026-11-17, no salía hasta reiniciar o pulsar ↻), y
+    devolver la misma lista hace que nada de lo que cuelga de ella se recalcule. */
+export function soloSiCambian(antes: Project[], nuevos: Project[]): Project[] {
+  const igual = antes.length === nuevos.length &&
+    antes.every((p, i) => p.path === nuevos[i].path && p.name === nuevos[i].name && p.hasGit === nuevos[i].hasGit);
+  return igual ? antes : nuevos;
+}
+
 export interface Skill {
   name: string;
   description: string;

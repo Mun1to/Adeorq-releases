@@ -1125,8 +1125,13 @@ const REGLAS = [
   ['.tema-tarjeta', (b) => {
     const tema = $('[data-tema-prev]', b)?.dataset.temaPrev;
     if (!tema) return false;
-    html.dataset.theme = tema;
-    for (const t of $$('.tema-tarjeta', b.parentElement)) t.dataset.on = String(t === b);
+    ponerTema(tema);
+    // Como en la app: elegir uno a mano apaga «Seguir el claro/oscuro del
+    // sistema», y sus dos desplegables se van con él.
+    const sigue = $('.tema-sistema input');
+    if (sigue) sigue.checked = false;
+    const pares = $('.tema-sistema-pares');
+    if (pares) pares.hidden = true;
     avisar(T.tema($('.tema-nombre', b)?.textContent.trim() || tema));
   }],
   ['.tema-tab', (b) => { unoSolo(b); return false; }],
@@ -1278,8 +1283,40 @@ app.addEventListener('input', (e) => {
   }
 });
 
+/* El tema puesto, con su marca: el borde (`data-on`) y el svg junto al nombre
+   van a la tarjeta de ese tema. Solo con `data-on` la marca se quedaba en la
+   de antes. */
+function ponerTema(tema) {
+  html.dataset.theme = tema;
+  const tarjetas = $$('.tema-tarjeta');
+  const elegida = tarjetas.find((t) => $('[data-tema-prev]', t)?.dataset.temaPrev === tema);
+  if (!elegida) return;
+  const marca = $('.tema-tarjeta[data-on="true"] .tema-nombre svg');
+  for (const t of tarjetas) t.dataset.on = String(t === elegida);
+  if (marca) $('.tema-nombre', elegida)?.appendChild(marca);
+}
+
+/* Con «Seguir el claro/oscuro del sistema» encendido manda el desplegable de
+   la familia en la que esté el sistema de quien mira: el primero es el de
+   oscuro y el segundo el de claro, como en la app. */
+function temaDelSistema() {
+  const [oscuro, claro] = $$('.tema-sistema-pares select');
+  const sel = matchMedia('(prefers-color-scheme: light)').matches ? claro : oscuro;
+  if (sel?.value) ponerTema(sel.value);
+}
+
 app.addEventListener('change', (e) => {
   const el = e.target;
+  if (el.matches('.tema-sistema input')) {
+    const pares = $('.tema-sistema-pares');
+    if (pares) pares.hidden = !el.checked;
+    if (el.checked) temaDelSistema();
+    return;
+  }
+  if (el.matches('.tema-sistema-pares select')) {
+    if ($('.tema-sistema input')?.checked) temaDelSistema();
+    return;
+  }
   if (el.matches('.dec-opcion input[type="radio"]')) return repasarDecision(el.closest('.dec-abierta'));
   if (el.matches('.note-task input')) {
     el.closest('.note-task').dataset.done = String(el.checked);

@@ -293,8 +293,11 @@
 }
 
 /* La muestra lleva los colores DEL TEMA que ofrece, no los del que hay puesto:
-   `data-theme` en el propio botón redefine las variables ahí dentro, así que
-   se elige mirando el color y no leyendo su nombre. */
+   su `data-tema-prev` redefine las variables ahí dentro (`01-base.css`), así
+   que se elige mirando el color y no leyendo su nombre. Hasta el 2026-11-17
+   iba un `data-theme` en el botón, que no casa con ninguna regla (los temas
+   cuelgan de `:root[data-theme]`): las 33 muestras pintaban el color del tema
+   puesto, todas el mismo. */
 .onb-tema-muestra {
   width: 16px;
   height: 16px;

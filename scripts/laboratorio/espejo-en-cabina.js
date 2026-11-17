@@ -30,7 +30,7 @@ async (page) => {
     window.__planCapataz = { resumen: "Un Claude aislado.", acciones: [{ tipo: "claude_nuevo", proyecto: "Adeorq", rol: "Espejo", prompt: "di hola" }] };
     window.__llamadas.length = 0;
   });
-  await page.locator(".foreman-call").first().click();
+  await page.locator(".franja-btn:has(.orbe)").first().click(); // en la Cabina, Adeo está en la franja
   await page.waitForTimeout(400);
   await page.locator(".foreman-input").first().fill("abre un Claude aislado");
   await page.locator(".foreman-row button", { hasText: /^Planear$/ }).first().click();

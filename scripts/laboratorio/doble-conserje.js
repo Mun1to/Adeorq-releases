@@ -104,6 +104,9 @@ async (page) => {
         // pintaba «Error: sin doble: load_ui_state» en rojo en todas las fotos.
         case "load_ui_state": return "{}";
         case "save_ui_state": return null;
+        // Una imagen pegada (`savePastedImage`): el PC la guarda en `pastes` y
+        // devuelve su ruta. Aquí, solo la ruta.
+        case "save_pasted_image": return `C:\\Users\\prueba\\AppData\\Local\\Adeorq\\pastes\\pegado-${Date.now()}.${args.ext}`;
         // Tu uso del Perfil (`historiaDeUso.ts`), vacío: sin él salía «No se pudo
         // leer tu uso» en rojo. Con datos de verdad, `perfil-uso.js`.
         case "uso_historia": return { archivos: 0, cubos: [] };
@@ -115,6 +118,8 @@ async (page) => {
             { name: "Adeorq", path: "C:\\proyectos\\Adeorq", hasGit: true },
             { name: "Vidorq", path: "C:\\proyectos\\Vidorq", hasGit: true },
             { name: "VoCript", path: "C:\\proyectos\\VoCript", hasGit: true },
+            // Los que un banco cree a mitad de prueba (`proyecto-nuevo-en-la-barra.js`).
+            ...(window.__proyectosNuevos ?? []),
           ];
         // El tablero del lienzo, como `save_board`/`read_board`: en
         // `sessionStorage`, que aguanta una recarga de la pestaña (el

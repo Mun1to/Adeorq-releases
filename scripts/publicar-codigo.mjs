@@ -26,19 +26,17 @@ import { contar, recoger } from "./recoger-publicadas.mjs";
 const REPO_PUBLICO = "https://github.com/Mun1to/Adeorq-releases.git";
 
 /** Los que no salen JAMÁS. Si alguien añade otro documento interno, va aquí. */
+// Los cuatro laboratorios de seguridad (`scripts/laboratorio/*-de-verdad.mjs`:
+// seguridad-local, motor-viejo, bots-conectar y abrir-desde-fuera) estuvieron aquí
+// mientras la versión instalada de la mayoría era anterior a la 0.9.239, que cierra
+// lo que cuentan. Salen desde el 2026-11-17, con el sí de Munir: dos semanas y la
+// Store en la 0.9.253. Ahora son la prueba de que siguen cerrados.
 const FUERA = [
-  // La receta paso a paso de dos agujeros locales que siguen abiertos en la versión
-  // instalada (encargo S1, 2026-11-03). Sale cuando estén cerrados los dos, no antes.
-  "scripts/laboratorio/seguridad-local-de-verdad.mjs",
-  // Lo mismo: mide con un programa que dice ser una terminal de un proceso de antes de
-  // la 0.9.239. Sale con el de arriba.
-  "scripts/laboratorio/motor-viejo-de-verdad.mjs",
-  // Lo mismo: cuenta qué alcanzaba un programa de fuera por una flecha o una decisión
-  // en la versión instalada, y cómo se presenta un bot en el puerto.
-  "scripts/laboratorio/bots-conectar-de-verdad.mjs",
-  // Lo mismo: cuenta cómo se saltaba la ventana de abrir desde fuera en la versión
-  // instalada. Sale cuando nadie esté en una anterior a la que lo cierra.
-  "scripts/laboratorio/abrir-desde-fuera-de-verdad.mjs",
+  // La foto de fondo de Munir (él, su gato y su almohada) que lleva la demo de la
+  // portada: dijo sí a enseñarla en adeorq.com (2026-11-16), que se puede quitar
+  // cuando quiera, no a dejarla en un repositorio que no se reescribe.
+  "scripts/laboratorio/capturas/fondo-demo.jpg",
+  "web/demo/fondo.jpg",
   "AGENTS.md",
   // Los capítulos técnicos de AGENTS.md, que salieron de él el 2026-10-07 para
   // que cupiera en lo que leen los agentes: mismo contenido, mismo sitio. Es una

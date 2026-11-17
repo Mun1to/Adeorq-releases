@@ -900,8 +900,10 @@ export default function SettingsView({
                       data-on={theme === th.id}
                       onClick={() => onTheme(th.id)}
                     >
-                      {/* La miniatura: barra lateral, cabecera y tres líneas,
-                          que es la forma que tiene la app de verdad. */}
+                      {/* La miniatura: la app en pequeño con la paleta de ese tema.
+                          Aquí van la barra, la terminal y sus tres líneas; las
+                          pestañas, las filas y la caja de escribir las dibuja
+                          la hoja (`19-temas.css`). */}
                       <span className="tema-prev" data-tema-prev={th.id} aria-hidden="true">
                         <span className="tema-prev-barra" />
                         <span className="tema-prev-cuerpo">

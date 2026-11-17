@@ -267,6 +267,19 @@ whatever you use. It is the same prompt in every public repository here, so you 
 > y te dirá en tu idioma qué hace este programa de verdad: qué envía por internet, qué toca
 > en tu ordenador y qué ejecuta al instalarse.
 
+Las pruebas de seguridad también están aquí. Cuatro laboratorios de `scripts/laboratorio/`
+(`seguridad-local-de-verdad.mjs`, `motor-viejo-de-verdad.mjs`, `abrir-desde-fuera-de-verdad.mjs`
+y `bots-conectar-de-verdad.mjs`) arrancan una Adeorq aislada y la atacan como lo haría un
+programa que ya corre en tu ordenador: coger una clave guardada sin preguntar, hacerse pasar por
+un agente de confianza para tener más permisos, abrir una terminal desde fuera con un encargo ya
+escrito y sin la ventana que lo confirma, o llegar más lejos de lo permitido por un bot conectado.
+Todo eso funcionaba en las versiones de principios de noviembre de 2026 y se cerró entre la
+0.9.239 y la 0.9.241; cada laboratorio lo enseña paso a paso y comprueba que sigue cerrado. Una
+terminal abierta desde fuera sin encargo sigue naciendo sin ventana, a propósito: lo hace en el
+modo de permisos de Ajustes, que de fábrica no es el automático. Queda una línea marcada como
+abierta a propósito, y es de Windows, no de Adeorq: cualquier programa que corre con tu usuario
+puede leer tu propio Gestor de credenciales.
+
 <details>
 <summary><b>Compilarlo tú</b></summary>
 

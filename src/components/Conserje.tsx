@@ -57,6 +57,7 @@ import {
   type Turno,
 } from "../lib/conserje";
 import { enviarAlConserje } from "../lib/conserjeEnvio";
+import { programasEnCache, programasInstalados } from "../lib/mundo";
 import type { PaneStatus } from "../lib/pty";
 import { hace } from "../lib/uso";
 import { A_MANO, cerebroPorDefecto, type ModelAlias } from "../lib/models";
@@ -64,6 +65,7 @@ import { proveedorDe, providerOf, sabe } from "../lib/providers";
 import ProviderMark from "./ProviderMark";
 import Mascota from "./Mascota";
 import { abrirEnlacesFuera } from "../lib/enlacesFuera";
+import { alPegarEnCaja } from "../lib/pegarImagen";
 import { AvisoIA, BotonInformar } from "./Informar";
 import {
   ChevronIcon,
@@ -502,6 +504,12 @@ export function HiloConserje({
   const [eligiendo, setEligiendo] = useState(false);
   const [eligiendoCerebro, setEligiendoCerebro] = useState(false);
   const [eligiendoSesiones, setEligiendoSesiones] = useState(false);
+  // Qué CLIs hay en el equipo, para no ofrecer en «Sesiones» uno que no está.
+  // Se mira al abrir el menú (con caché de cinco minutos, la del router).
+  const [instalados, setInstalados] = useState<ReadonlySet<string> | null>(programasEnCache);
+  useEffect(() => {
+    if (eligiendoSesiones) void programasInstalados().then(setInstalados);
+  }, [eligiendoSesiones]);
   const pensadores = usePensadores();
   const pensador = pensadorDe(conv);
   /** Un menú abierto cierra los otros dos. */
@@ -744,6 +752,8 @@ export function HiloConserje({
                 // En cuanto lo tocas es tuyo: ya no hay nada que deshacer.
                 if (antes !== null) setAntes(null);
               }}
+              // Una captura con Ctrl+V: a disco, y su ruta aquí (`lib/pegarImagen.ts`).
+              onPaste={(e) => alPegarEnCaja(e, (v) => setTexto(v))}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -816,7 +826,7 @@ export function HiloConserje({
                 <ChevronIcon size={11} up={eligiendoSesiones} />
               </button>
               {eligiendoSesiones && (
-                <MenuSesiones programas={programasDeSesion(exec.cuentas())} programa={programaDe(conv) || (router ? "" : "claude")} onElegir={(c) => void elegirPrograma(c)} />
+                <MenuSesiones programas={programasDeSesion(exec.cuentas(), instalados)} programa={programaDe(conv) || (router ? "" : "claude")} onElegir={(c) => void elegirPrograma(c)} />
               )}
             </div>
             {programa && sabe(programa, "modelo") && (

@@ -99,7 +99,7 @@ window.ADEORQ_I18N_EXTRA = {
                         '<a href="#actualizar">Updating without losing your terminals</a>.',
     'guia.instalar.p5': '<b>Requirements:</b> 64-bit Windows 10 or 11, or a 64-bit Linux with glibc 2.35 or ' +
                         'newer (Ubuntu 22.04, Debian 12, Fedora 36 or later). The Windows installer is around ' +
-                        '6 MB, because the app is native and does not ship a whole browser inside. On Mac there ' +
+                        '8 MB, because the app is native and does not ship a whole browser inside. On Mac there ' +
                         'is an installer still being tested: see <a href="#windows-linux-mac">Windows, Linux ' +
                         'and Mac</a>.',
 
@@ -177,7 +177,7 @@ window.ADEORQ_I18N_EXTRA = {
                      '<code>AGENTS.md</code> (your rules for the agents), <code>docs/METAS.md</code> and git ' +
                      'initialised, so the first session starts with context instead of from scratch.',
     'guia.panel.h3b': 'Adeo',
-    'guia.panel.p2': 'The orb in the top bar opens it (<b>Ctrl+Shift+A</b>). You ask it for the board in plain ' +
+    'guia.panel.p2': 'Its orb opens it (in the Cockpit, the first one on the right-hand strip; in the other tabs, the one in the top bar), or <b>Ctrl+Shift+A</b>. You ask it for the board in plain ' +
                      'language ("open the sessions for the Orquio panel", "one agent on the frontend and ' +
                      'another on the backend") and it proposes the plan: which sessions to open, with which ' +
                      'program and with which brief. <b>It runs nothing without your approval.</b>',
@@ -363,7 +363,7 @@ window.ADEORQ_I18N_EXTRA = {
     /* --------------------------------- AJUSTES --------------------------- */
     'guia.ajustes.h': 'Settings',
     'guia.ajustes.p': 'How your workshop looks and how it talks.',
-    'guia.ajustes.l1': '<b>Appearance</b>: language (Spanish or English), 32 themes with a filter and a search ' +
+    'guia.ajustes.l1': '<b>Appearance</b>: language (Spanish or English), 26 themes with a filter and a search ' +
                        'box, the colour of the terminals (you can also bring in a Warp or Ghostty theme), scroll ' +
                        'smoothness, performance mode and the background: you can put an image or a video behind ' +
                        'everything, dial how much of it shows, and make the terminals transparent so the picture ' +

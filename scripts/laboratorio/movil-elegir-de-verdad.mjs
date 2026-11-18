@@ -542,14 +542,24 @@ process.stdin.on("data", (d) => fs.appendFileSync(${JSON.stringify(LOG)}, d.toSt
     const ancho = await page.evaluate(() => document.documentElement.scrollWidth);
     const fuera = quieta ? "" : await page.evaluate(() => [...document.querySelectorAll("body *")].filter((x) => x.getBoundingClientRect().right > innerWidth + 0.5).slice(0, 4).map((x) => `${x.tagName.toLowerCase()}.${x.className}`).join(", "));
     debe(Boolean(quieta), "la decisión no se sale por la derecha", `${ancho} ${fuera}`);
+    // Recién cambiada, una pantalla de la decisión no atiende toques (medio segundo).
+    await dormir(650);
     await page.tap('.pregunta-d[data-q="A"] label.opcion:nth-of-type(2)');
     const marcadaA = await page.evaluate(() => document.querySelector('input[name="q-A"]:checked')?.value ?? null);
     debe(marcadaA === "2", "tocar la opción 2 la marca", marcadaA);
+    // Una pregunta por pantalla (2026-11-18): tocar la opción pasa sola a la B,
+    // y tras escribirla, «Repasar» lleva a donde se envía.
+    await page.waitForSelector('.pregunta-d[data-q="B"]');
+    await dormir(650);
     await page.tap('.libre[data-q="B"]');
     await page.fill('.libre[data-q="B"]', "Empezar ya");
     await fotografiar("decision-rellena");
-    const listo = await page.evaluate(() => !document.getElementById("enviar-dec").disabled);
-    debe(listo, "con las dos contestadas se puede enviar");
+    await page.tap("#paso-sig");
+    await page.waitForSelector("#dec-repaso .dec-fila");
+    await fotografiar("decision-repaso");
+    // «Enviar» se enciende un momento después de salir el repaso.
+    const listo = await hasta(() => page.evaluate(() => (document.getElementById("enviar-dec").disabled ? null : true)), 3000, 150);
+    debe(Boolean(listo), "con las dos contestadas, y visto el repaso, se puede enviar");
     await page.tap("#enviar-dec");
     await dormir(6500);
     await fotografiar("decision-enviada");

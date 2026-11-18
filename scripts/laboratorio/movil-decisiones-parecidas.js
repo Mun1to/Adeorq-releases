@@ -46,12 +46,24 @@ async (page) => {
 
   // 1. La primera, con una opción, unas palabras y las dos cosas.
   await page.goto(`${B}/#decision=d1a1b268e900`);
-  await page.waitForSelector('fieldset[data-q="C"]');
+  // Una pregunta por pantalla (2026-11-18): tocar una opción pasa sola a la
+  // siguiente, lo escrito se pasa con «Siguiente», y tras la última, el repaso.
+  await page.waitForSelector('fieldset[data-q="A"]');
+  // Recién cambiada, una pantalla de la decisión no atiende toques (medio segundo).
+  const asentar = () => page.waitForTimeout(650);
+  await asentar();
   await page.click('fieldset[data-q="A"] label.opcion:nth-of-type(1)');
   await page.fill('.libre[data-q="B"]', "una vez y ya, con mis palabras");
-  await page.click('fieldset[data-q="C"] label.opcion:nth-of-type(2)');
+  await asentar();
+  await page.click("#paso-sig");
   await page.fill('.libre[data-q="C"]', "pero que no pida permisos");
-  debe(await page.isEnabled("#enviar-dec"), "con las tres contestadas se puede enviar");
+  await asentar();
+  await page.click('fieldset[data-q="C"] label.opcion:nth-of-type(2)');
+  await page.waitForSelector("#dec-repaso .dec-fila");
+  // «Enviar» se enciende un momento después de salir el repaso, no al instante.
+  r.enviarAlLlegar = await page.isEnabled("#enviar-dec");
+  debe(!r.enviarAlLlegar, "recién salido el repaso, «Enviar respuesta» aún no se puede pulsar");
+  debe(await page.waitForFunction(() => !document.getElementById("enviar-dec").disabled, null, { timeout: 3000 }).then(() => true, () => false), "con las tres contestadas, y visto el repaso, se puede enviar");
 
   // 2. Doble toque: el segundo no la deshace.
   await page.click("#enviar-dec");
@@ -64,7 +76,7 @@ async (page) => {
   await page.click("#atras");
   await page.waitForSelector('.tarjeta[data-id="d1a1b29391a0"]');
   await page.click('.tarjeta[data-id="d1a1b29391a0"]');
-  await page.waitForSelector('fieldset[data-q="C"]');
+  await page.waitForSelector('fieldset[data-q="A"]');
   await page.waitForTimeout(6500);
   const primera = await leer("d1a1b268e900");
   r.primera = primera.respuesta?.elecciones ?? null;
@@ -73,14 +85,15 @@ async (page) => {
   r.otra = await page.evaluate(() => ({
     titulo: document.getElementById("titulo")?.textContent ?? "",
     estado: document.getElementById("estado-envio")?.textContent ?? "",
-    botonVisible: Boolean(document.querySelector(".pie-dec") && !document.querySelector(".pie-dec").hidden && document.getElementById("enviar-dec")),
+    // Sin contestar, lo que hay abajo son los pasos; «Enviar» espera en el repaso.
+    botonVisible: Boolean(!document.getElementById("pie-dec")?.hidden && document.getElementById("paso-sig")?.offsetParent && document.getElementById("enviar-dec")),
     cerrada: [...document.querySelectorAll("fieldset.pregunta-d")].some((f) => f.disabled),
     marcadas: document.querySelectorAll("fieldset.pregunta-d input:checked").length,
     escrito: [...document.querySelectorAll(".libre")].map((t) => t.value).join(""),
   }));
   debe(r.otra.titulo.includes("reescritas"), `sigues en la otra (${r.otra.titulo})`);
   debe(!/Enviada/.test(r.otra.estado), `la otra no sale «Enviada» (${r.otra.estado})`);
-  debe(r.otra.botonVisible && !r.otra.cerrada, "la otra conserva su botón de enviar y se puede contestar");
+  debe(r.otra.botonVisible && !r.otra.cerrada, "la otra conserva sus botones y se puede contestar");
   debe(r.otra.marcadas === 0 && r.otra.escrito === "", `lo de la primera no entra en la otra (${r.otra.marcadas} marcadas, «${r.otra.escrito}»)`);
   const otraEnDisco = await leer("d1a1b29391a0");
   debe(!otraEnDisco.respuesta, "la otra sigue sin contestar");
@@ -125,11 +138,32 @@ async (page) => {
   await page.request.post(`${B}/api/sembrar-decision`, { headers: AUT, data: { id: "d1a1b30000b1", titulo: "¿Lo subo?", proyecto: "Adeorq", panel: 1 } });
   await page.goto(`${B}/#decision=d1a1b30000b1`);
   await page.waitForSelector('fieldset[data-q="A"]');
+  await asentar();
   await page.click('fieldset[data-q="A"] label.opcion:nth-of-type(1)');
   await page.click("#enviar-dec");
   await page.request.post(`${B}/api/resolver-decision`, { headers: AUT, data: { id: "d1a1b30000b1", como: "Me dijo que sí en la terminal." } });
   await page.waitForTimeout(6500);
   r.aMitad = await page.evaluate(() => ({ estado: document.getElementById("estado-envio")?.textContent ?? "", vig: document.querySelector(".dec-vig")?.textContent ?? "" }));
   debe(r.aMitad.estado.includes("el agente la dio por resuelta") && r.aMitad.vig.includes("Ya está decidida."), `resuelta a mitad, se dice (${JSON.stringify(r.aMitad)})`);
+
+  // 7. La contestas desde otro aparato con esta abierta y a medio escribir: sin
+  //    tocar nada aquí, deja de poder contestarse, se ve cómo quedó y lo escrito
+  //    sigue a la vista (revisión del 2026-11-18: seguía activa hasta «Enviar»).
+  await page.request.post(`${B}/api/sembrar-decision`, { headers: AUT, data: { id: "d1a1b30000c1", titulo: "¿Con qué nombre?", proyecto: "Adeorq", panel: 1 } });
+  await page.goto(`${B}/#decision=d1a1b30000c1`);
+  await page.waitForSelector('fieldset[data-q="A"]');
+  await page.fill('.libre[data-q="A"]', "ni sí ni no: pregúntame mañana");
+  await page.request.post(`${B}/api/decision/responder`, { headers: AUT, data: { id: "d1a1b30000c1", elecciones: { A: { opcion: 2 } } } });
+  r.desdeFuera = await page.waitForSelector(".dec-hecha", { timeout: 9000 }).then(() => page.evaluate(() => ({
+    estado: document.getElementById("estado-envio")?.textContent ?? "",
+    quedo: [...document.querySelectorAll(".dec-dicho")].map((x) => x.textContent).join(" | "),
+    mio: document.querySelector(".dec-mio")?.textContent.replace(/\s+/g, " ").trim() ?? "",
+    seContesta: document.querySelectorAll("#decision input, #decision textarea").length > 0 || Boolean(document.getElementById("enviar-dec")?.offsetParent),
+  })), () => null);
+  debe(Boolean(r.desdeFuera), "contestada desde otro aparato, la pantalla se entera sola en unos segundos");
+  if (r.desdeFuera) {
+    debe(r.desdeFuera.estado === "Ya estaba contestada desde otro sitio." && /^2\. /.test(r.desdeFuera.quedo) && !r.desdeFuera.seContesta, `se ve cómo quedó y ya no se contesta (${JSON.stringify(r.desdeFuera)})`);
+    debe(r.desdeFuera.mio.includes("ni sí ni no: pregúntame mañana"), `y lo que se había escrito aquí sigue a la vista («${r.desdeFuera.mio}»)`);
+  }
   return { fallos, r };
 }

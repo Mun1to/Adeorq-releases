@@ -181,7 +181,10 @@ if (destinos.length && 'IntersectionObserver' in window) {
    6. VOLVER ARRIBA
    ========================================================================== */
 /* Aparece pasada la primera pantalla. Es un `<button>` de verdad, no un div con
-   un click: asi lo alcanza el tabulador y lo anuncia un lector de pantalla. */
+   un click: asi lo alcanza el tabulador y lo anuncia un lector de pantalla.
+   Sin `behavior`: manda el `scroll-behavior` de portada.css, que se apaga con
+   `?motion=off` y con `prefers-reduced-motion`; un `'smooth'` aqui se deslizaba
+   igual con la valvula cerrada. */
 arriba?.addEventListener('click', () => {
-  scrollTo({ top: 0, behavior: 'smooth' })
+  scrollTo({ top: 0 })
 })

@@ -7,6 +7,15 @@
    donde el indice se pliega dentro de un <details> que ocupa una linea.
    ========================================================================= */
 
+/* `?motion=off` takes the `motion` class away, and the system's reduce-motion
+   setting asks for less: either way the index links jump instead of gliding.
+   Without JavaScript the class is never put, so they jump then too. Here and not
+   in base.css, whose account pages never set that class. `:root` and not `html`:
+   the build loads this sheet BEFORE base.css, whose `html { scroll-behavior: smooth }`
+   would win a tie (measured). */
+html:not(.motion) { scroll-behavior: auto; }
+@media (prefers-reduced-motion: reduce) { :root { scroll-behavior: auto; } }
+
 .doc {
   /* Era 1240px: en un monitor ancho eso deja el índice, la prosa Y un tercio
      de la ventana en blanco a la derecha (Munir, 2026-08-20, "no aprovecha

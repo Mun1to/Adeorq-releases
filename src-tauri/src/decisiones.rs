@@ -511,14 +511,30 @@ pub fn como_texto(d: &Decision) -> String {
     s
 }
 
-/// En qué terminal se teclea la respuesta, y qué: solo si la decisión es de
-/// este mismo arranque de Adeorq, que en otro ese número de panel puede ser
-/// ya otra terminal. Lo usan el móvil y la pestaña «Decisiones» de la app.
-pub fn a_teclear(d: &Decision, arranque: u64) -> Option<(u32, String)> {
-    match (d.panel, d.arranque, &d.respuesta) {
-        (Some(panel), Some(a), Some(_)) if a == arranque => Some((panel, como_texto(d))),
+/// El panel de la terminal que preguntó, solo si la decisión es de este mismo
+/// arranque de Adeorq: en otro, ese número puede ser ya otra terminal.
+fn su_panel(d: &Decision, arranque: u64) -> Option<u32> {
+    match (d.panel, d.arranque) {
+        (Some(panel), Some(a)) if a == arranque => Some(panel),
         _ => None,
     }
+}
+
+/// En qué terminal se teclea la respuesta, y qué: solo si la decisión es de
+/// este mismo arranque de Adeorq (`su_panel`). No mira si esa terminal sigue
+/// abierta: si no lo está, escribirle falla y la respuesta se queda guardada.
+/// Lo usan el móvil y la pestaña «Decisiones» de la app.
+pub fn a_teclear(d: &Decision, arranque: u64) -> Option<(u32, String)> {
+    d.respuesta.as_ref()?;
+    su_panel(d, arranque).map(|panel| (panel, como_texto(d)))
+}
+
+/// Si contestarla ahora la teclearía en su terminal: la regla de `a_teclear`
+/// y que esa terminal siga abierta. Se lo dice el PC al móvil antes de enviar,
+/// que lo deducía de la vigencia y a una hablada le decía que no cuando sí:
+/// hablada es que ya no te espera, no que su respuesta no se teclee.
+pub fn se_teclearia(d: &Decision, arranque: u64, abiertos: &[u32]) -> bool {
+    su_panel(d, arranque).is_some_and(|panel| abiertos.contains(&panel))
 }
 
 /// Dónde viven, al lado del resto de datos de Adeorq.
@@ -711,6 +727,15 @@ mod tests {
         let d = dir();
         let nueva = crear(&d, validar(&pedido(), 10, 77).unwrap()).unwrap();
         assert_eq!(a_teclear(&nueva, 77), None, "sin contestar no hay nada que teclear");
+        // Lo que se le dice al móvil antes de enviar: la misma regla, y con su terminal abierta.
+        assert!(se_teclearia(&nueva, 77, &[3]));
+        assert!(!se_teclearia(&nueva, 77, &[4]), "con su terminal cerrada no se teclea");
+        assert!(!se_teclearia(&nueva, 78, &[3]), "en otro arranque el panel 3 es otra terminal");
+        // Hablada deja de esperarte, pero su respuesta se teclea igual.
+        assert_eq!(marcar_habladas(&d, 3, 77, 15), vec![nueva.id.clone()]);
+        let hablada = leer(&d, &nueva.id).unwrap();
+        assert_eq!(vigencia(&hablada, 77, &[3]), Vigencia::Hablada);
+        assert!(se_teclearia(&hablada, 77, &[3]));
         let mut el = BTreeMap::new();
         el.insert("A".to_string(), Eleccion { opcion: Some(1), texto: None });
         el.insert("B".to_string(), Eleccion { opcion: Some(2), texto: None });

@@ -15,9 +15,15 @@
 //   5. Y nadie más puede: un agente sin terminal, o que dice ser esa terminal sin
 //      su contraseña, recibe un no.
 //
+// Con `--consola`, el Claude no nace Claude: se abre una consola (`cli: "shell"`) y se
+// le teclea `claude --model opus --effort max` con `send_command`, como hizo un agente
+// el 2026-11-17 para la terminal de Moods. Hasta ese día Adeorq no la reconocía:
+// `compactarme` contestaba «En tu terminal no corre Claude Code» y Munir tuvo que
+// escribir el /compact a mano (`src-tauri/src/mcp/tecleado.rs`).
+//
 //   cargo build --manifest-path src-tauri/Cargo.toml   (deja C:\ct\debug\adeorq.exe)
 //   pnpm dev                                            (el binario de desarrollo carga de ahí)
-//   node scripts/laboratorio/compactarme-de-verdad.mjs [carpeta para las fotos] [exe]
+//   node scripts/laboratorio/compactarme-de-verdad.mjs [carpeta para las fotos] [exe] [--consola]
 //
 // Sale con 1 si algo falla.
 import http from "node:http";
@@ -26,7 +32,9 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { EXE, abrirAislada, dormir, hasta } from "./aislada.mjs";
 
-const FOTOS = resolve(process.argv[2] || tmpdir());
+const CONSOLA = process.argv.includes("--consola");
+const ARGS = process.argv.slice(2).filter((x) => !x.startsWith("--"));
+const FOTOS = resolve(ARGS[0] || tmpdir());
 const PUERTO_MCP = 3198;
 const DEPURAR = 9398;
 const CLAVE = `sk-ant-api03-${"laboratorio".repeat(4)}-FALSA-${process.pid}`;
@@ -116,7 +124,7 @@ const PUERTO_API = servidor.address().port;
 for (const k of Object.keys(process.env)) {
   if ((/^CLAUDE/i.test(k) && k !== "CLAUDE_CODE_GIT_BASH_PATH") || k === "ADEORQ_PANE_CLAVE" || k === "ADEORQ_PANE_ID" || k === "ADEORQ_TERMINALES_CANAL") delete process.env[k];
 }
-const exe = process.argv[3] ? resolve(process.argv[3]) : EXE;
+const exe = ARGS[1] ? resolve(ARGS[1]) : EXE;
 let CASA = null;
 // La cuenta de la casa aislada: bienvenida pasada, la clave falsa aprobada, el MCP
 // de ESTA Adeorq (su puerto) y compactarme sin preguntar.
@@ -154,12 +162,30 @@ try {
   const pantalla = async (id) => (await agente.llamar("read_pane_screen", { paneId: id })).texto ?? "";
   const teclear = (id, data) => v.js(`window.__TAURI_INTERNALS__.invoke("pty_write", { id: ${id}, data: ${JSON.stringify(data)} }).then(() => "ok")`);
 
-  const abierta = await agente.llamar("open_pane", { cli: "claude", cwd: demo, name: "Se compacta sola", brief: "" });
+  // Sin consola, con el esfuerzo pedido en `open_pane` (desde el 2026-11-17): es lo que
+  // ahorra teclear `claude --effort max` en una consola.
+  const abierta = await agente.llamar("open_pane", CONSOLA ? { cli: "shell", cwd: demo, name: "Se compacta sola" } : { cli: "claude", cwd: demo, name: "Se compacta sola", brief: "", effort: "max" });
   const claude = Number(/Terminal\s+(\d+)/.exec(abierta.texto ?? "")?.[1]);
   if (!claude) throw new Error(`no abrió el Claude: ${abierta.texto ?? abierta.error}`);
+  if (CONSOLA) {
+    const lista = await hasta(async () => (/PS [A-Z]:\\.*>/.test(await pantalla(claude)) ? true : null), 30_000, 500);
+    if (!lista) throw new Error(`la consola no llegó a su PS>:\n${await pantalla(claude)}`);
+    const tecleo = await agente.llamar("send_command", { paneId: claude, command: "claude --model opus --effort max" });
+    debe(/cuenta ya esta consola como un Claude Code, con la conversación [0-9a-f-]{36}/.test(tecleo.texto ?? ""), "send_command dice que la consola ya cuenta como Claude, con su conversación", tecleo.texto ?? tecleo.error);
+  }
   const caja = await hasta(async () => (/for shortcuts|to cycle\)|Try "/i.test(await pantalla(claude)) ? true : null), 90_000, 1000);
   if (!caja) throw new Error(`Claude Code no llegó a su caja:\n${await pantalla(claude)}`);
+  debe(/with max effort/.test(await pantalla(claude)), "nace con el esfuerzo pedido (max)", (await pantalla(claude)).split("\n").find((l) => /effort/.test(l)));
   await dormir(2500);
+  if (CONSOLA) {
+    // Con su Claude ya corriendo, «claude …» es un mensaje para él: no se apunta otra
+    // conversación encima (la revisión aparte lo cazó apuntando una que no existía).
+    const otra = await agente.llamar("send_command", { paneId: claude, command: "claude --model opus --effort max" });
+    // Ni se apunta otra, ni se le dice que no cuenta como Claude (sí cuenta: la primera).
+    debe(!/cuenta ya esta consola|No la cuento/.test(otra.texto ?? "") && /Intro pulsado/.test(otra.texto ?? ""), "un «claude …» mandado al Claude que ya corre le llega como mensaje y no se apunta", otra.texto ?? otra.error);
+    await hasta(async () => (/for shortcuts|to cycle\)/i.test(await pantalla(claude)) && !/esc to interrupt/i.test(await pantalla(claude)) ? true : null), 30_000, 500);
+    await dormir(1500);
+  }
 
   // 5. Nadie más: sin terminal, y diciendo ser esa terminal sin su contraseña.
   const sinPanel = await agente.llamar("compactarme", { mensaje: BLOQUE });

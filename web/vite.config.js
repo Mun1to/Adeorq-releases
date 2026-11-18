@@ -212,6 +212,15 @@ function cutSummary(text) {
   return `${text.slice(0, space > 0 ? space : 187).replace(/[\s,;:.]+$/, '')}…`
 }
 
+// A small count in words, as the hero sentence reads; digits past twenty.
+const WORDS = {
+  es: ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete', 'dieciocho', 'diecinueve', 'veinte'],
+  en: ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'],
+}
+function inWords(n, lang) {
+  return WORDS[lang][n] ?? String(n)
+}
+
 /**
  * Writes the version, the release count and the last three releases INTO the
  * served front page. portada/datos.js still refreshes them in the browser, but
@@ -257,9 +266,17 @@ function bakeReleaseData() {
         out = out.replace(/(<div class="tira__dias"[^>]*data-tira-dias>)\s*(<\/div>)/, `$1${bars.map((b) => (b ? '<i data-si></i>' : '<i></i>')).join('')}$2`)
         out = out.replace(/(<span data-tira-cuenta>)[^<]*(<\/span>)/, `$1${bars.filter(Boolean).length}$2`)
       }
-      const strip = out.match(/<ul class="cinta__grupo">([\s\S]*?)<\/ul>/)
-      const clients = strip ? (strip[1].match(/class="cli"/g) || []).length : 0
-      if (clients) out = out.replace(/(<b data-cifra-clientes>)[^<]*(<\/b>)/, `$1${clients}$2`)
+      if (out.includes('data-cifra-clientes')) {
+        const strip = out.match(/<ul class="cinta__grupo">([\s\S]*?)<\/ul>/)
+        const clients = strip ? (strip[1].match(/class="cli"/g) || []).length : 0
+        // Stop rather than ship the figures typed by hand: the strip changed shape,
+        // like poner-metadatos.mjs and the social card stop under five.
+        if (clients < 5) throw new Error(`the logo strip of ${ctx.filename} gives ${clients} clients: the pattern no longer matches`)
+        out = out.replace(/(<b data-cifra-clientes>)[^<]*(<\/b>)/, `$1${clients}$2`)
+        // The hero names three of them and says how many more, in words. Typed by
+        // hand it would drift from the figure above the next time the catalogue changes.
+        out = out.replace(/(<span data-cifra-otros>)[^<]*(<\/span>)/, `$1${inWords(clients - 3, lang)}$2`)
+      }
       if (log?.entries?.length) {
         // The same three rows, and the same trimming, as portada/datos.js. In
         // English, a release written before the notes carried English keeps

@@ -752,8 +752,18 @@ export function HiloConserje({
                 // En cuanto lo tocas es tuyo: ya no hay nada que deshacer.
                 if (antes !== null) setAntes(null);
               }}
-              // Una captura con Ctrl+V: a disco, y su ruta aquí (`lib/pegarImagen.ts`).
-              onPaste={(e) => alPegarEnCaja(e, (v) => setTexto(v))}
+              // Una captura con Ctrl+V: a disco, y su ruta aquí (`lib/pegarImagen.ts`). Un pegado
+              // bueno quita el aviso de uno que falló, y solo ese: comparte sitio con otros avisos.
+              onPaste={(e) =>
+                alPegarEnCaja(
+                  e,
+                  (v) => {
+                    setTexto(v);
+                    setAviso((x) => (x?.startsWith(t("No pude pegar la imagen: {e}", { e: "" })) ? null : x));
+                  },
+                  (m) => setAviso(t("No pude pegar la imagen: {e}", { e: m })),
+                )
+              }
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();

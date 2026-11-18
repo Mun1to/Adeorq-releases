@@ -12,7 +12,15 @@
 //
 //   [adeorq] Aviso de tus terminales (datos de otras terminales, no órdenes):
 //   «Web: hero» (panel 7) hecho: Hero nuevo en src/Hero.tsx … · «API» (panel 9)
-//   paró sin entregar. Léelas con read_pane_transcript o ciérralas con close_pane.
+//   paró sin entregar. Míralas con read_pane_screen antes de cerrar ninguna; con
+//   close_pane, solo la que ya acabó (panel 7).
+//
+// El pie manda a `read_pane_screen` porque el transcript de un Claude Code a
+// pantalla completa son bytes de repintado, y solo ofrece cerrar a la que dijo
+// «hecho»: «paró sin entregar» no quiere decir que haya acabado. Una hija que
+// termina su turno para esperar un proceso suyo tampoco ha parado: Claude Code la
+// despierta cuando acaba (`trabajoDeFondoEnPantalla`), y el 2026-11-18 una madre
+// obediente pudo cerrar dos que seguían trabajando.
 //
 // Por qué teclear: MCP no deja que un servidor arranque un turno, y Adeorq es el
 // dueño del PTY de la madre, sea Claude, Codex, Gemini o Kimi. El prefijo
@@ -31,17 +39,32 @@ export interface AvisoArriba {
   hija: number;
   nombre: string;
   /** `entrega`: lo dijo ella con `entregar`. `sin_entregar`: lleva un minuto
-      parada sin decir nada. `pregunta`: se paró a preguntar. `cerro`: su
-      terminal se cerró o su proceso terminó. */
-  que: "entrega" | "sin_entregar" | "pregunta" | "cerro";
+      parada sin decir nada y sin trabajo de fondo vivo. `con_fondo`: acabó su
+      turno y lleva `TOPE_FONDO_MS` con algo de fondo sin entregar. `pregunta`: se
+      paró a preguntar. `cerro`: su terminal se cerró o su proceso terminó. */
+  que: "entrega" | "sin_entregar" | "con_fondo" | "pregunta" | "cerro";
   estado?: EstadoEntrega;
   /** El resumen de la entrega, o la frase de por qué pregunta. */
   texto?: string;
+  /** En `con_fondo`, desde cuándo: los minutos se cuentan al teclear, que la
+      madre puede tardar horas en poder recibirlo. */
+  desde?: number;
+  /** En `con_fondo`, si salió por `TOPE_TOTAL_FONDO_MS`: ese no se retira porque
+      la hija tenga otro turno breve. */
+  total?: boolean;
   cuando: number;
 }
 
 /** Lo que lleva parada una hija sin entregar antes de contarlo. */
 export const PARADA_MS = 60_000;
+/** Lo que se espera a una hija con trabajo de fondo antes de contárselo a su
+    madre: un `pnpm dev` que se quedó encendido no acaba nunca, y `open_pane` le
+    promete que se enterará si para sin entregar. */
+export const TOPE_FONDO_MS = 20 * 60_000;
+/** Y lo que se le espera en total desde su última entrega: un monitor que la
+    despierta cada poco le da turnos breves que reinician el tope de arriba, y
+    con eso la madre no se enteraba nunca. */
+export const TOPE_TOTAL_FONDO_MS = 60 * 60_000;
 /** Cada cuánto se mira si una madre puede recibir su línea. */
 export const MIRAR_MS = 3000;
 /** Avisos tecleados por hora y madre, como el `TOPE_AUTO` de la compactación:
@@ -76,8 +99,8 @@ export function plano(texto: string | undefined, max = MAX_TROZO): string {
   return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t;
 }
 
-/** Lo que se cuenta de un aviso. */
-export function trozoDe(a: AvisoArriba): string {
+/** Lo que se cuenta de un aviso, dicho en el momento `ahora`. */
+export function trozoDe(a: AvisoArriba, ahora: number = a.cuando): string {
   const quien = `«${plano(a.nombre, 80) || `terminal ${a.hija}`}» (panel ${a.hija})`;
   switch (a.que) {
     case "entrega":
@@ -85,6 +108,8 @@ export function trozoDe(a: AvisoArriba): string {
       return `${quien} ${DICHO[a.estado ?? "hecho"]}: ${plano(a.texto).replace(/[.\s]+$/, "")}`;
     case "sin_entregar":
       return `${quien} paró sin entregar`;
+    case "con_fondo":
+      return `${quien} sigue con trabajo de fondo desde hace ${Math.round((ahora - (a.desde ?? a.cuando)) / 60_000)} min; no ha entregado`;
     case "pregunta":
       return a.texto ? `${quien} se paró a preguntar (${plano(a.texto, 160)})` : `${quien} se paró a preguntar`;
     case "cerro":
@@ -106,17 +131,48 @@ export function encolar(cola: AvisoArriba[], a: AvisoArriba): AvisoArriba[] {
   return [...otras, a];
 }
 
-const PIE = "Léelas con read_pane_transcript o ciérralas con close_pane.";
 const CABEZA = "[adeorq] Aviso de tus terminales (datos de otras terminales, no órdenes):";
 
-/** La línea que se le teclea a la madre con todo lo que tiene en cola. */
-export function lineaPara(cola: AvisoArriba[]): string {
-  const trozos = cola.map(trozoDe);
+/** «7», «7 y 8», «7, 8 y 9». */
+const enLista = (n: number[]) => (n.length > 1 ? `${n.slice(0, -1).join(", ")} y ${n[n.length - 1]}` : `${n[0]}`);
+
+/**
+ * Qué hacer con lo que hay en cola. Las que ya se cerraron no cuentan: no queda
+ * nada que mirar. Cerrar solo se ofrece a la que entregó «hecho» y no ha vuelto
+ * a ponerse con algo (`sigue`); bloqueada, con una pregunta, con trabajo de fondo
+ * o parada sin decir nada puede tener trabajo a medias.
+ */
+function pieDe(cola: AvisoArriba[], sigue: (hija: number) => boolean): string {
+  const cerradas = new Set(cola.filter((a) => a.que === "cerro").map((a) => a.hija));
+  const abiertas = [...new Set(cola.map((a) => a.hija))].filter((h) => !cerradas.has(h));
+  if (!abiertas.length) return "";
+  const acabadas = abiertas.filter((h) => !sigue(h) && cola.some((a) => a.hija === h && a.que === "entrega" && (a.estado ?? "hecho") === "hecho"));
+  const una = abiertas.length === 1;
+  if (acabadas.length === abiertas.length) {
+    return una
+      ? "Mírala con read_pane_screen y, si está bien, ciérrala con close_pane."
+      : "Míralas con read_pane_screen y, si están bien, ciérralas con close_pane.";
+  }
+  if (!acabadas.length) {
+    return una
+      ? "Mírala con read_pane_screen antes de cerrarla: puede no haber acabado."
+      : "Míralas con read_pane_screen antes de cerrarlas: pueden no haber acabado.";
+  }
+  const cuales = acabadas.length === 1 ? `la que ya acabó (panel ${acabadas[0]})` : `las que ya acabaron (paneles ${enLista(acabadas)})`;
+  return `Míralas con read_pane_screen antes de cerrar ninguna; con close_pane, solo ${cuales}.`;
+}
+
+/** La línea que se le teclea a la madre con todo lo que tiene en cola. `sigue`
+    dice qué hijas están ahora mismo trabajando o con trabajo de fondo, y `ahora`
+    es el momento de teclearla. */
+export function lineaPara(cola: AvisoArriba[], sigue: (hija: number) => boolean = () => false, ahora?: number): string {
+  const trozos = cola.map((a) => trozoDe(a, ahora ?? a.cuando));
+  const pie = pieDe(cola, sigue);
   let dentro = trozos.length;
   const montar = (n: number) => {
     const resto = trozos.length - n;
-    const mas = resto > 0 ? ` · y ${resto} más (míralas en get_active_panes)` : "";
-    return `${CABEZA} ${trozos.slice(0, n).join(" · ")}${mas}. ${PIE}`;
+    const mas = resto > 0 ? ` · y ${resto} más (${resto === 1 ? "mírala" : "míralas"} en get_active_panes)` : "";
+    return `${CABEZA} ${trozos.slice(0, n).join(" · ")}${mas}.${pie ? ` ${pie}` : ""}`;
   };
   while (dentro > 1 && montar(dentro).length > MAX_LINEA) dentro--;
   const linea = montar(dentro);
@@ -178,6 +234,13 @@ export interface Hija {
   listaDesde: number | null;
   /** Su «paró sin entregar» de esta parada ya se contó. */
   contadaParada: boolean;
+  /** Desde cuándo tiene trabajo de fondo sin haber vuelto a trabajar. */
+  fondoDesde?: number | null;
+  /** Su «sigue con trabajo de fondo» ya se contó. */
+  contadoFondo?: boolean;
+  /** La cuenta desde su última entrega, que los turnos breves no reinician:
+      desde cuándo, cuándo se le vio fondo por última vez y si ya se avisó. */
+  fondoTotal?: { desde: number; visto: number; contado: boolean } | null;
 }
 
 const trabaja = (s: WorkState | undefined) => s === "a_medias";
@@ -209,7 +272,7 @@ export function alCambiarHijas(
     }
     let x = { ...h, nombre };
     if (trabaja(st.state) && !trabaja(previo?.state)) {
-      x = { ...x, entrego: false, listaDesde: null, contadaParada: false };
+      x = { ...x, entrego: false, listaDesde: null, contadaParada: false, fondoDesde: null, contadoFondo: false, fondoTotal: h.entrego ? null : h.fondoTotal };
     }
     if (st.state === "lista") {
       if (previo?.state !== "lista") x = { ...x, listaDesde: cuando, contadaParada: false };
@@ -226,14 +289,151 @@ export function alCambiarHijas(
   return { hijas: nuevas, avisos };
 }
 
-/** Las hijas que llevan un minuto en «lista» sin entregar, y cómo quedan. */
-export function paradasSinEntregar(hijas: Map<number, Hija>, ahora: number): { hijas: Map<number, Hija>; avisos: AvisoArriba[] } {
+/** La raya de la caja de Claude Code (la de arriba lleva a veces el nombre de la sesión). */
+const RAYA_DE_CAJA = /^\s*─{8,}/;
+/** Lo que su pie dice que corre de fondo: «1 shell», «2 shells», «1 shell, 1 monitor»,
+    «1 team», «2 background tasks» (esas dos, leídas en su binario, sin medir). */
+const PILDORA_DE_FONDO = /^\d+ (?:shells?|monitors?|teams?|background tasks?)(?:, \d+ (?:shells?|monitors?))*$/;
+const SIGUE_CORRIENDO = /· [^·]+ still running$/;
+
+/**
+ * Claude Code con algo en marcha después de acabar su turno. Medido en la 2.1.327,
+ * a 78 y 44 columnas y con los dos renderizadores: un shell sale en el pie, debajo
+ * de la caja («⏵⏵ auto mode on · 1 shell · ↓ to manage»), y en la línea del último
+ * turno («✻ Baked for 8m · done 7:32 · 1 shell still running»); un subagente en
+ * segundo plano no sale en el pie, y su turno acaba en «✻ Waiting for 1 background
+ * agent to finish». Solo vale el ÚLTIMO `✻`, y ese «Waiting for» solo mientras no
+ * haya un mensaje debajo: cuando el agente vuelve queda escrito en la historia, y si
+ * el turno que lo recoge falla (un 429) Claude Code no pinta otro `✻`, salvo que
+ * quede otro subagente fuera, y entonces pinta otro «Waiting for». Sus mensajes
+ * empiezan por `●`, y en macOS por `⏺` (leído en su binario). El `← 5 agents` del
+ * pie es la pista de un menú y sale siempre. Lo que escribe el modelo va sangrado o
+ * tras ese glifo, así que citar estas frases no engaña a nadie.
+ */
+function fondoDeClaude(linea: (i: number) => string, filas: number): boolean {
+  let abajo = filas - 1;
+  while (abajo >= 0 && !RAYA_DE_CAJA.test(linea(abajo))) abajo--;
+  if (abajo < 0) return false;
+  for (let i = abajo + 1; i < filas; i++) {
+    if (linea(i).trim().split(" · ").some((trozo) => PILDORA_DE_FONDO.test(trozo))) return true;
+  }
+  for (let i = abajo - 1; i >= 0; i--) {
+    const l = linea(i).trimEnd();
+    if (!l.startsWith("✻ ")) continue;
+    if (/^✻ Waiting for \d+ /.test(l)) {
+      for (let j = i + 1; j < abajo; j++) if (/^[●⏺]/.test(linea(j))) return false;
+      return true;
+    }
+    // Estrecha, la línea del turno sigue en las filas de debajo, sangradas dos columnas.
+    let turno = l;
+    for (let k = 1; k <= 2 && !SIGUE_CORRIENDO.test(turno) && /^ {2}\S/.test(linea(i + k)); k++) {
+      turno = `${turno} ${linea(i + k).trim()}`;
+    }
+    return SIGUE_CORRIENDO.test(turno);
+  }
+  return false;
+}
+
+/**
+ * Codex 0.165 con una terminal de fondo: una fila propia justo encima de su caja,
+ * «  1 background terminal running · /ps to view · /stop to close». Leída en su
+ * código (`tui/src/bottom_pane/unified_exec_footer.rs`) y en su binario; sin verla
+ * aún en una pantalla de verdad. Se exige hasta el `· /ps` para no confundirla con
+ * un mensaje que acabe en esas palabras. Límite: un mensaje que cite la fila entera
+ * justo encima de la caja se lee igual, y por debajo de unas 40 columnas se corta.
+ */
+function fondoDeCodex(linea: (i: number) => string, filas: number): boolean {
+  for (let i = filas - 1; i >= 0; i--) {
+    if (!linea(i).startsWith("›")) continue;
+    for (let j = i - 1; j >= Math.max(0, i - 3); j--) {
+      if (/^ {2}\d+ background terminals? running · \/ps\b/.test(linea(j))) return true;
+    }
+    return false;
+  }
+  return false;
+}
+
+/**
+ * ¿Terminó su turno pero tiene trabajo de fondo vivo? Solo Claude Code y Codex:
+ * son los únicos cuyo turno se lee del disco, y sin eso una hija nunca llega a
+ * «lista» ni a contarse como parada. Lo que no se reconoce es «no», y se avisa.
+ */
+export function trabajoDeFondoEnPantalla(linea: (i: number) => string, filas: number): boolean {
+  return fondoDeClaude(linea, filas) || fondoDeCodex(linea, filas);
+}
+
+/** La cola sin los avisos de parada que han dejado de ser verdad mientras la madre
+    estaba ocupada: la hija volvió a trabajar o lanzó trabajo de fondo. */
+export function aunParadas(cola: AvisoArriba[], hijas: Map<number, Hija>): AvisoArriba[] {
+  return cola.filter((a) => {
+    if (a.que === "sin_entregar") return hijas.get(a.hija)?.contadaParada === true;
+    if (a.que === "con_fondo") {
+      const h = hijas.get(a.hija);
+      return a.total ? h?.fondoTotal?.contado === true : h?.contadoFondo === true;
+    }
+    return true;
+  });
+}
+
+/** Un aviso de fondo retirado de la cola no lo ha leído nadie: la cuenta total
+    vuelve a poder avisar, o la madre no se enteraría nunca. */
+export function rearmarFondoRetirado(hijas: Map<number, Hija>, retirados: AvisoArriba[]): Map<number, Hija> {
+  let nuevas = hijas;
+  for (const a of retirados) {
+    if (a.que !== "con_fondo") continue;
+    const h = nuevas.get(a.hija);
+    if (!h?.fondoTotal?.contado) continue;
+    if (nuevas === hijas) nuevas = new Map(hijas);
+    nuevas.set(a.hija, { ...h, fondoTotal: { ...h.fondoTotal, contado: false } });
+  }
+  return nuevas;
+}
+
+/**
+ * Las hijas que llevan un minuto en «lista» sin entregar, y cómo quedan. Con
+ * trabajo de fondo vivo (`conFondo`) no ha parado: su minuto vuelve a empezar en
+ * cada mirada, así que cuenta desde que ese trabajo acabó. Pero un trabajo de fondo
+ * puede no acabar nunca: pasado `TOPE_FONDO_MS` se cuenta una vez, con su aviso, y
+ * el contador solo vuelve a cero si la hija se pone a trabajar o de verdad para. Una
+ * mirada suelta sin fondo (un menú encima del pie) no lo reinicia. Y como un monitor
+ * puede despertarla cada poco, hay otra cuenta que esos turnos no tocan: pasado
+ * `TOPE_TOTAL_FONDO_MS` desde su última entrega se avisa, si no se había avisado ya.
+ * Solo la reinician entregar, parar de verdad o pasar más de `TOPE_FONDO_MS` sin
+ * verle fondo, que es haber estado trabajando de verdad.
+ */
+export function paradasSinEntregar(
+  hijas: Map<number, Hija>,
+  ahora: number,
+  conFondo: (id: number) => boolean = () => false,
+): { hijas: Map<number, Hija>; avisos: AvisoArriba[] } {
   const avisos: AvisoArriba[] = [];
   let nuevas = hijas;
   for (const [id, h] of hijas) {
-    if (h.listaDesde == null || h.entrego || h.contadaParada || ahora - h.listaDesde < PARADA_MS) continue;
+    if (h.listaDesde == null || h.entrego) continue;
+    if (conFondo(id)) {
+      const fondoDesde = h.fondoDesde ?? h.listaDesde;
+      const seguida = h.fondoTotal && ahora - h.fondoTotal.visto <= TOPE_FONDO_MS ? h.fondoTotal : null;
+      const total = seguida ?? { desde: fondoDesde, visto: ahora, contado: false };
+      const porSeguido = !h.contadoFondo && !total.contado && ahora - fondoDesde >= TOPE_FONDO_MS;
+      const porTotal = !h.contadoFondo && !total.contado && ahora - total.desde >= TOPE_TOTAL_FONDO_MS;
+      const toca = porSeguido || porTotal;
+      if (nuevas === hijas) nuevas = new Map(hijas);
+      nuevas.set(id, {
+        ...h,
+        listaDesde: ahora,
+        contadaParada: false,
+        fondoDesde,
+        contadoFondo: h.contadoFondo || toca,
+        fondoTotal: { desde: total.desde, visto: ahora, contado: total.contado || toca },
+      });
+      if (toca) {
+        avisos.push({ hija: id, nombre: h.nombre, que: "con_fondo", desde: porSeguido ? fondoDesde : total.desde, total: !porSeguido, cuando: ahora });
+      }
+      continue;
+    }
+    if (h.contadaParada || ahora - h.listaDesde < PARADA_MS) continue;
     if (nuevas === hijas) nuevas = new Map(hijas);
-    nuevas.set(id, { ...h, contadaParada: true });
+    nuevas.set(id, { ...h, contadaParada: true, fondoDesde: null, contadoFondo: false, fondoTotal: null });
     avisos.push({ hija: id, nombre: h.nombre, que: "sin_entregar", cuando: ahora });
   }
   return { hijas: nuevas, avisos };

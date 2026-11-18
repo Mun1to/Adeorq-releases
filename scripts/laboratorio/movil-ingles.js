@@ -30,7 +30,7 @@ async (page) => {
       const DATOS = [
         ".burbuja", ".pantalla", ".ahora-que", ".ahora-det", ".opciones-menu span:not(.num)", ".tarjeta-cab > b", ".quien > b",
         ".para", ".fila > b", ".fila-t > b", "legend", ".opcion .txt > b", ".opcion .txt > small",
-        ".dec-cab > p:not(.dec-vig):not(.dec-hecha)", ".pregunta-d > p", ".pasos li:not(.antes)", ".pasos summary span", ".herramientas", ".adjunto .que",
+        ".dec-cab > p:not(.dec-vig):not(.dec-hecha)", ".pregunta-d > p", ".dec-fila > span", ".dec-dicho", "#titulo > .tit", ".dec-mio p:not(:first-child)", ".pasos li:not(.antes)", ".pasos summary span", ".herramientas", ".adjunto .que",
       ].join(",");
       // Dentro de una burbuja, pero de la página.
       const UI_EN_DATOS = ".chip-img, .acciones button";
@@ -188,9 +188,16 @@ async (page) => {
     await page.click('#decisiones .tarjeta[data-vigencia="viva"]');
     await page.waitForSelector(".pregunta-d");
     await page.waitForTimeout(300);
+    await mirar("decisión viva");
+    // Una pregunta por pantalla (2026-11-18): lo que falta lo dice el repaso.
+    // Recién cambiada, una pantalla de la decisión no atiende toques (medio segundo).
+    await page.waitForTimeout(650); await page.click("#paso-sig");
+    await page.waitForTimeout(650); await page.click("#paso-sig");
+    await page.waitForSelector("#dec-repaso .dec-fila");
+    await page.waitForTimeout(300);
     const falta = await page.textContent("#estado-envio");
     debe(/still need an answer/.test(falta), `lo que falta, en inglés («${falta}»)`);
-    await mirar("decisión viva");
+    await mirar("el repaso de la decisión");
     for (const v of ["huerfana", "contestada"]) {
       await page.click("#atras");
       await page.waitForSelector("#decisiones .tarjeta");

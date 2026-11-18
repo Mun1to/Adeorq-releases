@@ -102,7 +102,8 @@ async (page) => {
         case "get_fondo": return "C:\\fondo.png";
         // El estado de la barra (`pty.ts`, `loadUiState`), vacío: sin él la barra
         // pintaba «Error: sin doble: load_ui_state» en rojo en todas las fotos.
-        case "load_ui_state": return "{}";
+        // Un banco puede sembrar uno (`window.__estadoBarra`), por ejemplo un orden a mano.
+        case "load_ui_state": return JSON.stringify(window.__estadoBarra ?? {});
         case "save_ui_state": return null;
         // Una imagen pegada (`savePastedImage`): el PC la guarda en `pastes` y
         // devuelve su ruta. Aquí, solo la ruta.

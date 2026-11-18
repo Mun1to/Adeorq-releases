@@ -1,4 +1,4 @@
-// Tocar una opción de una decisión no mueve la pantalla (Munir, 2026-10-16,
+// Tocar una opción de una decisión no descoloca la pantalla (Munir, 2026-10-16,
 // desde el móvil: «le doy click a alguna respuesta y se baja abajo del todo…
 // y solo se ve el fondo»). El círculo de cada opción va escondido con
 // `position: absolute`; sin un ancestro posicionado DENTRO de la lista que se
@@ -32,7 +32,7 @@ async (page) => {
     }),
   });
   await page.goto(`${B}/?v=1#decision=d19a2b3c4f9`);
-  await page.waitForSelector('.pregunta-d[data-q="D"] .opcion');
+  await page.waitForSelector('.pregunta-d[data-q="A"] .opcion');
   await page.waitForTimeout(600);
 
   const medir = () => page.evaluate(() => {
@@ -42,14 +42,17 @@ async (page) => {
       lista: Math.round(c.scrollTop),
       altoPagina: document.scrollingElement.scrollHeight,
       altoVentana: innerHeight,
+      aLaVista: [...document.querySelectorAll(".pregunta-d")].filter((f) => f.offsetParent).map((f) => f.dataset.q).join(""),
+      repaso: Boolean(document.getElementById("dec-repaso")?.offsetParent),
     };
   });
-  // Abajo del todo de la lista, como quien va por la última pregunta.
-  await page.evaluate(() => { const c = document.querySelector(".cuerpo"); c.scrollTop = c.scrollHeight; });
-  await page.waitForTimeout(300);
   pasos.antes = await medir();
+  /* Una pregunta por pantalla (2026-11-18): se toca una opción de abajo de
+     cada una. En el instante en que se ve marcada, nada se ha movido; después
+     llega la pregunta siguiente, desde arriba, y tras la última, el repaso. */
   const toques = [];
-  for (const [q, n] of [["D", 2], ["C", 4], ["A", 1]]) {
+  const orden = [["A", 5, "B"], ["B", 4, "C"], ["C", 2, "D"], ["D", 5, ""]];
+  for (const [q, n, luego] of orden) {
     const op = page.locator(`.pregunta-d[data-q="${q}"] .opcion`).nth(n - 1);
     // A mano y sin que Playwright desplace nada: el toque cae donde se ve.
     await op.evaluate((el) => el.scrollIntoView({ block: "center" }));
@@ -57,15 +60,20 @@ async (page) => {
     const antes = await medir();
     const caja = await op.boundingBox();
     await page.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2);
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(150);
     const despues = await medir();
     const marcada = await op.evaluate((el) => el.querySelector("input").checked);
     const visible = await op.evaluate((el) => { const r = el.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; });
-    toques.push({ q, n, antes, despues, marcada, visible });
+    // Hasta que la pantalla que llega atienda toques: 420 ms de avance y medio segundo quieta.
+    await page.waitForTimeout(1000);
+    const pasada = await medir();
+    toques.push({ q, n, antes, despues, marcada, visible, pasada });
     debe(marcada, `${q}${n} se marca`);
-    debe(despues.pagina === 0, `al tocar ${q}${n} la página no se desplaza (${antes.pagina} → ${despues.pagina})`);
-    debe(Math.abs(despues.lista - antes.lista) <= 2, `al tocar ${q}${n} la lista se queda donde estaba (${antes.lista} → ${despues.lista})`);
-    debe(visible, `${q}${n} sigue a la vista después de tocarla`);
+    debe(despues.pagina === 0 && pasada.pagina === 0, `al tocar ${q}${n} la página no se desplaza (${antes.pagina} → ${despues.pagina} → ${pasada.pagina})`);
+    debe(Math.abs(despues.lista - antes.lista) <= 2, `al tocar ${q}${n} la lista se queda donde estaba mientras se ve marcada (${antes.lista} → ${despues.lista})`);
+    debe(visible, `${q}${n} sigue a la vista recién tocada`);
+    debe(luego ? pasada.aLaVista === luego && !pasada.repaso : pasada.aLaVista === "" && pasada.repaso, `tras ${q}${n} llega ${luego ? `la pregunta ${luego}` : "el repaso"} (${JSON.stringify(pasada)})`);
+    debe(pasada.lista === 0, `y llega desde arriba (${pasada.lista})`);
   }
   pasos.toques = toques;
   pasos.final = await medir();

@@ -368,6 +368,14 @@ const cerrada = (d) => Number(Boolean(d.respuesta || d.descartada || d.resuelta)
 const vigenciaDe = (d) =>
   d.respuesta ? "contestada" : d.descartada ? "descartada" : d.resuelta ? "resuelta" : d.hablada ? "hablada"
     : d.arranque === ARRANQUE && terminales.some((t) => t.panel === d.panel) ? "viva" : "huerfana";
+// Como `se_teclearia` (decisiones.rs): contestarla ahora la teclea en su
+// terminal si es de este arranque y esa terminal sigue abierta. Una hablada
+// también: lo que cambia es que ya no te espera, no dónde cae la respuesta.
+const seTeclea = (d) => d.arranque === ARRANQUE && terminales.some((t) => t.panel === d.panel);
+// Lo que pidió una decisión abierta a `/api/decision` con `si`: «entera» o «igual».
+const pedidasDecision = [];
+// Solo del banco: cómo contesta el próximo «responder» (`/api/sembrar-responder`).
+let alResponder = null;
 // La del panel 1 tiene historia larga y acaba en un cierre con su bloque de
 // compactación, que es lo que Munir no podía leer entero desde el móvil.
 const sesionLarga = [];
@@ -967,9 +975,32 @@ http
               id: d.id, titulo: d.titulo, proyecto: d.proyecto, panel: d.panel, creada: d.creada, preguntas: d.preguntas.length,
               contestada: Boolean(d.respuesta), vigencia: vigenciaDe(d), cerrada: d.respuesta?.cuando ?? d.descartada ?? d.resuelta?.cuando ?? d.hablada ?? null,
             })) });
+        // Con `si`, como en movil.rs: «igual» si la firma es la de ahora, que la
+        // página la vigila cada 6 s mientras la tiene abierta.
         case "/api/decision": {
           const d = decisiones.find((x) => x.id === url.searchParams.get("id"));
-          return d ? json(res, 200, { ...d, vigencia: vigenciaDe(d) }) : json(res, 404, { error: "Esa decisión ya no está." });
+          if (!d) return json(res, 404, { error: "Esa decisión ya no está." });
+          const entera = { ...d, vigencia: vigenciaDe(d), se_teclea: seTeclea(d) };
+          const firma = crypto.createHash("sha1").update(JSON.stringify(entera)).digest("hex").slice(0, 16);
+          if (!url.searchParams.has("si")) return json(res, 200, { ...entera, firma });
+          const igual = url.searchParams.get("si") === firma;
+          pedidasDecision.push(igual ? "igual" : "entera");
+          return json(res, 200, igual ? { firma, igual: true } : { ...entera, firma });
+        }
+        case "/api/pedidas-decision":
+          return json(res, 200, pedidasDecision);
+        // Solo del banco: cómo contesta el próximo «responder». `espera` (ms)
+        // apunta la respuesta y tarda en contestar, como movil.rs esperando a la
+        // ventana para teclearla (`ESPERA_VENTANA`, hasta 20 s); `pierde` la
+        // apunta y corta sin contestar, como una red que se cae a la vuelta.
+        case "/api/sembrar-responder":
+          alResponder = { espera: Number(v.espera) || 0, pierde: v.pierde === true };
+          return json(res, 200, { ok: true });
+        // Solo del banco: se cierra una terminal, y lo que preguntó se queda sin nadie.
+        case "/api/sembrar-cerrar-terminal": {
+          const i = terminales.findIndex((t) => t.panel === Number(v.panel));
+          if (i >= 0) terminales.splice(i, 1);
+          return json(res, 200, { ok: i >= 0 });
         }
         // Solo del banco: una decisión recién pedida por una terminal abierta.
         case "/api/sembrar-decision":
@@ -1009,11 +1040,17 @@ http
             if (e.opcion && (e.opcion < 1 || e.opcion > q.opciones.length)) return json(res, 400, { error: `La pregunta ${q.id} no tiene opción ${e.opcion}.` });
             if (!e.opcion && !e.texto) return json(res, 400, { error: `Falta contestar la pregunta ${q.id}.` });
           }
-          d.respuesta = { cuando: Date.now(), desde: "el banco", entregada: true, elecciones: v.elecciones };
-          const texto = conMarca(`Munir ha contestado a «${d.titulo}» (decisión ${d.id}): ${JSON.stringify(v.elecciones)}`);
-          escrito.set(d.panel, texto);
+          // Como `a_teclear` y la ventana: se teclea en su terminal si es de
+          // este arranque y sigue abierta; si no, se guarda y nada más.
+          const entregada = seTeclea(d);
+          d.respuesta = { cuando: Date.now(), desde: "el banco", entregada, elecciones: v.elecciones };
+          if (entregada) escrito.set(d.panel, conMarca(`Munir ha contestado a «${d.titulo}» (decisión ${d.id}): ${JSON.stringify(v.elecciones)}`));
           console.log(`decisión ${d.id} contestada: ${JSON.stringify(v.elecciones)}`);
-          return json(res, 200, { ok: true, entregada: true, panel: d.panel });
+          const como = alResponder;
+          alResponder = null;
+          if (como?.pierde) return void req.socket.destroy();
+          const fin = () => json(res, 200, { ok: true, entregada, panel: d.panel });
+          return como?.espera ? void setTimeout(fin, como.espera) : fin();
         }
         case "/api/sesion":
           // Codex no escribe en `~/.claude`: su sesión no está en el disco.

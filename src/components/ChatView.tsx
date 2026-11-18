@@ -660,8 +660,18 @@ ${v}` : txt));
                 setTexto(e.currentTarget.value);
                 if (seCayo) setSeCayo(false);
               }}
-              // Una captura con Ctrl+V: a disco, y su ruta aquí (`lib/pegarImagen.ts`).
-              onPaste={(e) => alPegarEnCaja(e, (v) => setTexto(v))}
+              // Una captura con Ctrl+V: a disco, y su ruta aquí (`lib/pegarImagen.ts`). Un pegado
+              // bueno quita el aviso de uno que falló, y solo ese: comparte sitio con otros fallos.
+              onPaste={(e) =>
+                alPegarEnCaja(
+                  e,
+                  (v) => {
+                    setTexto(v);
+                    setError((x) => (x?.startsWith(t("No pude pegar la imagen: {e}", { e: "" })) ? null : x));
+                  },
+                  (m) => setError(t("No pude pegar la imagen: {e}", { e: m })),
+                )
+              }
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();

@@ -106,7 +106,8 @@ pub fn por_que_no(q: &Quien) -> Option<String> {
     if !q.con_clave {
         return Some(
             "Tu terminal nació en una versión anterior de Adeorq, sin contraseña, y no puedo comprobar que entregas tú. \
-             Cuéntalo en tu respuesta: quien te abrió la leerá con read_pane_transcript."
+             Cuéntalo en tu respuesta y deja lo importante en tus últimas líneas: quien te abrió la leerá con \
+             read_pane_screen, que solo da las filas visibles."
                 .into(),
         );
     }
@@ -264,7 +265,9 @@ mod tests {
         assert!(por_que_no(&quien()).is_none());
         assert!(por_que_no(&Quien { panel: None, ..quien() }).unwrap().contains("ADEORQ_PANE_ID"));
         assert!(por_que_no(&Quien { existe: false, ..quien() }).unwrap().contains("ya no está"));
-        assert!(por_que_no(&Quien { con_clave: false, ..quien() }).unwrap().contains("sin contraseña"));
+        let sin_clave = por_que_no(&Quien { con_clave: false, ..quien() }).unwrap();
+        assert!(sin_clave.contains("sin contraseña"));
+        assert!(sin_clave.contains("read_pane_screen") && sin_clave.contains("últimas líneas"), "{sin_clave}");
         assert!(por_que_no(&Quien { delegada: false, ..quien() }).unwrap().contains("Munir"));
     }
 

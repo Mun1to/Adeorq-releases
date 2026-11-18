@@ -40,6 +40,10 @@
 
 html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+/* `?motion=off` takes the `motion` class away: the anchors jump instead of gliding.
+   Without JavaScript the class is never put, so they jump there too, like every
+   other animated state that hangs from `html.motion`. */
+html:not(.motion) { scroll-behavior: auto; }
 
 
 body {

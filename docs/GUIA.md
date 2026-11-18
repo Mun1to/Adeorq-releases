@@ -1349,8 +1349,16 @@ avisos, **Probar aviso** y **Quitar**.
 - **Abrir sesiones del PC**: **Nueva sesión aquí** por proyecto, **Otro proyecto…** y
   seguir una sesión de antes. Solo en carpetas que son proyectos tuyos y con
   programas conocidos.
-- **Decisiones**: contestas con una opción o con palabras, con cinco segundos para
-  deshacer y **Descartar**. Las que ya no esperan pasan a *Anteriores* y a la semana se
+- **Decisiones**: una pregunta por pantalla. Tocas una opción y pasa sola a la
+  siguiente, o escribes con tus palabras y pulsas **Siguiente**; al final repasas lo
+  elegido (tocar una fila vuelve a esa pregunta) y envías, con cinco segundos para
+  deshacer: en ellos, volver a una pregunta o cambiar algo para el envío y te lo dice;
+  salir de la decisión la manda. Antes de enviar te dice dónde cae la respuesta: si se
+  teclea en la terminal que preguntó o solo se guarda. Recién cambiada, una pantalla
+  tarda medio segundo en atender toques, para
+  que un doble toque no caiga en lo que acaba de salir. **Quitar mi elección** borra
+  una opción tocada por error, y **Descartar esta decisión**, debajo de cada pantalla,
+  pide un segundo toque. Las que ya no esperan pasan a *Anteriores* y a la semana se
   borran.
 - **Los Ajustes del propio móvil** (se guardan en ese aparato): el fondo, los colores,
   la letra y cómo se mueve Adeo, qué secciones salen en el inicio y su orden, los

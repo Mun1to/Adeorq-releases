@@ -24,6 +24,7 @@ import { apuntarCopia, copiaDe, copiaPorCarpeta, dondeNace, notaDeCopia, parteDe
 import { pantallaDe } from "./terminales";
 import { conLasPrincipales, fotoRapida, leidaEn, mundoEnCache, parteDelEquipo } from "./mundo";
 import { comandoDe } from "./lanzar";
+import { apuntarTecleado } from "./claudeTecleado";
 import { cuentaDeArranque, cuentaPedida, cuentasDe } from "./frenoCuota";
 import { cuantasPesan, elegirCuenta, modeloParaSuPlan, type CuentaViva } from "./router";
 import { abrirElRelevo, conLasAgotadas, elegirParaRelevo, type ManosDelRelevo } from "./relevoCuota";
@@ -36,6 +37,7 @@ import {
   COLA_DE_ENTREGA,
   carpetaDe,
   cliPedido,
+  esfuerzoPedido,
   nombreDe,
   parteDeApertura,
   tituloDeCabecera,
@@ -302,6 +304,12 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
           responder(await abrirElRelevo(p as Parameters<typeof abrirElRelevo>[0], manosDelRelevo));
           return;
         }
+        // Un `claude` tecleado en una consola (`mcp/tecleado.rs`): desde ahora el
+        // panel lo cuenta como Claude Code y se compacta solo como los demás.
+        if (p.clase === "claude_tecleado") {
+          responder(apuntarTecleado(p.paneId, p.command) ? {} : { error: "pedido sin panel o sin comando" });
+          return;
+        }
         if (p.clase !== "open_pane") {
           responder({ error: `No sé atender «${p.clase}».` });
           return;
@@ -404,7 +412,8 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
         const encargo = !conEncargo
           ? brief
           : brief + (enCopia ? notaDeCopia(enCopia) : "") + (!otraCasa && !conSuModo ? COLA_DE_ENTREGA : "");
-        const command = comandoDe({ cli, encargo, modelo, agyExe: agyExe.current, desatendida: !conSuModo });
+        const { esfuerzo, aviso: sinEsfuerzo } = esfuerzoPedido(cli, p.effort);
+        const command = comandoDe({ cli, encargo, modelo, esfuerzo, agyExe: agyExe.current, desatendida: !conSuModo });
 
         /* Antes de abrirla, que pueda arrancar. Una terminal de Claude en una
            carpeta donde Munir no ha entrado nunca nace parada en «¿confías en
@@ -477,6 +486,7 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
             }),
             deCuenta,
             porTecho,
+            sinEsfuerzo,
             otraCasa,
             deCopia,
           ]

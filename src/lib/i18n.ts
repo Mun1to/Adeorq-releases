@@ -1336,6 +1336,7 @@ const EN: Record<string, string> = {
     "Queued: it goes in as soon as the current one finishes",
   "Añade algo más: se lo paso a continuación…": "Add something else: it goes in next…",
   "No pude enviar tu mensaje a «{s}».": "I could not send your message to {s}.",
+  "No pude pegar la imagen: {e}": "I could not paste the image: {e}",
   "No he podido abrir esa conversación, así que te devuelvo lo escrito.":
     "I could not open that conversation, so here is your text back.",
   "Esta conversación todavía no tiene nada escrito.":

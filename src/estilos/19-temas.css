@@ -35,14 +35,32 @@
   --pane-abre: 1;
 }
 
-/* Y lo que respira deja de respirar. Son las dos animaciones que corren
-   siempre: el halo del panel que te espera (media pantalla) y el ecualizador
-   de la música. El panel que te espera se sigue distinguiendo, con su borde y
-   su aro fijos; lo que se va es el latido. */
-:root[data-rendimiento="1"] .pane[data-done="true"],
-:root[data-rendimiento="1"] .np-eq[data-on="true"] i {
+/* Y lo que respira deja de respirar: el halo del panel que te espera, que ocupa
+   media pantalla. Se sigue distinguiendo, con su borde y su aro fijos; lo que se
+   va es el latido. */
+:root[data-rendimiento="1"] .pane[data-done="true"] {
   animation: none;
   will-change: auto;
+}
+
+/* El ecualizador de la música no se apaga: va a pasos. Este modo se enciende solo
+   con cuatro terminales, así que apagarlo dejaba la barra tiesa con música sonando
+   en un día normal. Pero por fotograma tampoco vale, porque obliga a recomponer la
+   ventana a 144 Hz: 8 pasos por vuelta, y los retrasos son múltiplos de un paso
+   para que las tres barras cambien en el mismo instante.
+   Medido el 2026-11-18 en WebView2, con cinco terminales y foto de fondo (proceso
+   de gráficos y página, en % de un núcleo): quieto, 7-8 y 7-11; por fotograma,
+   70-84 y 21-28; a pasos, 14-20 y 11-18. Banco: `laboratorio/musica-se-mueve.js`. */
+:root[data-rendimiento="1"] .np-eq[data-on="true"] i {
+  animation-timing-function: steps(4, end);
+}
+
+:root[data-rendimiento="1"] .np-eq[data-on="true"] i:nth-child(2) {
+  animation-delay: 0.225s;
+}
+
+:root[data-rendimiento="1"] .np-eq[data-on="true"] i:nth-child(3) {
+  animation-delay: 0.45s;
 }
 
 /* ================================================ el selector de temas

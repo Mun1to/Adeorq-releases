@@ -295,6 +295,9 @@ export const PROVIDERS: Provider[] = [
     modelo: true,
     ajustesEnVivo: true,
     enVivo: { modelo: "/model {m}", esfuerzo: "/effort {e}" },
+    // La pone su rama de `planDeArranque`, no la línea genérica; está aquí para
+    // que quien pregunte si admite el esfuerzo al nacer lo lea de la tabla.
+    banderaEsfuerzo: "--effort",
     modoPlan: true,
     // El `--session-id` que le pone Adeorq al nacer es justo lo que permite
     // volver con `--resume`. De ahí salen revivir un panel y el relevo.

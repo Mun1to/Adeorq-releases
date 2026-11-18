@@ -108,6 +108,117 @@ fn dar_prompt(child: &mut std::process::Child, prompt: String) {
     }
 }
 
+/// Lo que va por la entrada de `claude -p`: el prompt tal cual o, si nombra
+/// capturas pegadas con Ctrl+V en la caja de Adeo (`lib/pegarImagen.ts` deja su
+/// ruta en el texto), el mensaje de stream-json con ellas como imágenes. Este
+/// Claude no puede abrirlas él: la carpeta `pastes` cae fuera de la suya y en
+/// `-p` nadie le da permiso. Lo mismo que el Chat (`conserje::imagenes_pegadas`).
+///
+/// Se buscan en `pedido`, lo que escribió la persona, y no en el prompt entero:
+/// el contexto lleva los títulos de sus sesiones, y el de una que empezó con una
+/// captura pegada nombra esa captura, que iría en cada plan.
+struct Entrada {
+    texto: String,
+    imagenes: bool,
+}
+
+fn entrada(prompt: String, pedido: &str) -> Entrada {
+    let imagenes = crate::dir_datos()
+        .map(|d| crate::conserje::imagenes_pegadas(pedido, &d.join("pastes")))
+        .unwrap_or_default();
+    if imagenes.is_empty() {
+        Entrada { texto: prompt, imagenes: false }
+    } else {
+        let prompt = format!("{prompt}\n\n{COPIA_LA_RUTA}");
+        Entrada { texto: crate::conserje::mensaje_con_imagenes(&prompt, &imagenes), imagenes: true }
+    }
+}
+
+/// Ahora que el modelo VE la captura, podría describirla y soltar su ruta, y el
+/// agente de la terminal que recibe el plan o el encargo solo tiene la ruta.
+const COPIA_LA_RUTA: &str = "Las capturas que pegó te llegan como imágenes. Si escribes un plan o un encargo para una terminal, copia su ruta tal cual, entre comillas como la pegó: el agente de esa terminal solo tendrá la ruta, no la imagen.";
+
+/// La salida: un solo envoltorio en `json`, o `stream-json` si van imágenes,
+/// porque el CLI solo acepta la entrada en stream-json con la salida igual.
+fn formato(imagenes: bool) -> &'static [&'static str] {
+    if imagenes {
+        &["--input-format", "stream-json", "--output-format", "stream-json", "--verbose"]
+    } else {
+        &["--output-format", "json"]
+    }
+}
+
+/// Espera a `child` hasta `limite` leyendo su salida y sus errores MIENTRAS tanto.
+/// Con imágenes la salida es `stream-json --verbose`: una línea por mensaje, con
+/// el resultado entero de cada herramienta, y un `Read` grande pasa de los 64 KiB
+/// de la tubería de Windows. Sin nadie leyendo, el CLI se quedaba bloqueado
+/// escribiendo hasta el tiempo límite (la revisión aparte del 2026-11-17, medido
+/// con el CLI de verdad); `correr` y `foreman_mapa` ya leían en otro hilo.
+/// `None` si venció el plazo.
+fn esperar_vaciando(child: &mut std::process::Child, limite: Duration) -> Result<Option<(String, String)>, String> {
+    use std::sync::{mpsc, Arc, Mutex};
+    type Leido = (Arc<Mutex<Vec<u8>>>, mpsc::Receiver<()>);
+    // Lo leído se va guardando según llega, no al cerrar la tubería: así lo que
+    // escribió antes de salir se tiene aunque otro proceso la deje abierta.
+    fn lector(fuente: Option<impl std::io::Read + Send + 'static>) -> Leido {
+        let buf = Arc::new(Mutex::new(Vec::new()));
+        let (tx, rx) = mpsc::channel();
+        if let Some(mut f) = fuente {
+            let b = buf.clone();
+            std::thread::spawn(move || {
+                let mut trozo = [0u8; 8192];
+                while let Ok(n @ 1..) = f.read(&mut trozo) {
+                    b.lock().unwrap().extend_from_slice(&trozo[..n]);
+                }
+                let _ = tx.send(());
+            });
+        }
+        (buf, rx)
+    }
+    let salida = lector(child.stdout.take());
+    let errores = lector(child.stderr.take());
+    let start = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) if start.elapsed() > limite => {
+                let _ = child.kill();
+                // Esperarlo aunque ya esté muerto: `SinRastro` borra su
+                // transcript al salir de aquí y el CLI sigue escribiéndolo
+                // hasta que el sistema lo da por terminado.
+                let _ = child.wait();
+                return Ok(None);
+            }
+            Ok(None) => std::thread::sleep(Duration::from_millis(200)),
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+    // Un hijo suyo (el servidor MCP de Preguntar) que heredara la tubería la tendría
+    // abierta: se le dan 5 s para cerrarla y luego vale lo leído hasta ahí.
+    let hasta = Instant::now() + Duration::from_secs(5);
+    let leer = |(buf, fin): Leido| {
+        let _ = fin.recv_timeout(hasta.saturating_duration_since(Instant::now()));
+        let b = buf.lock().unwrap();
+        String::from_utf8_lossy(&b).into_owned()
+    };
+    Ok(Some((leer(salida), leer(errores))))
+}
+
+/// El `{"type":"result",…}` de `claude -p`: la salida entera con `json`, o su
+/// última línea de ese tipo con `stream-json`.
+fn envoltorio(stdout: &str) -> Result<serde_json::Value, String> {
+    let t = stdout.trim();
+    match serde_json::from_str::<serde_json::Value>(t) {
+        Ok(v) => Ok(v),
+        Err(e) => t
+            .lines()
+            .rev()
+            .filter_map(|l| serde_json::from_str::<serde_json::Value>(l).ok())
+            .find(|v| v["type"] == "result")
+            .ok_or_else(|| format!("envoltorio ilegible: {e}")),
+    }
+}
+
 /// La orden del mapa de un proyecto (o del taller entero, con `taller`).
 fn orden_mapa(taller: bool, sesion: &str) -> std::process::Command {
     let mut cmd = claude_p(
@@ -136,10 +247,11 @@ fn orden_mapa(taller: bool, sesion: &str) -> std::process::Command {
 }
 
 /// La orden del Capataz con manos: las herramientas de `manos` y ninguna más.
-fn orden_agente(modelo: &str, cfg: &Path, manos: &[String], sesion: &str) -> std::process::Command {
-    let mut cmd = claude_p(&["--model", modelo, "--output-format", "json"]);
-    // Con nombre nuestro para poder borrarle el transcript: ver `SinRastro`.
-    cmd.args(["--session-id", sesion])
+fn orden_agente(modelo: &str, cfg: &Path, manos: &[String], sesion: &str, imagenes: bool) -> std::process::Command {
+    let mut cmd = claude_p(&["--model", modelo]);
+    cmd.args(formato(imagenes))
+        // Con nombre nuestro para poder borrarle el transcript: ver `SinRastro`.
+        .args(["--session-id", sesion])
         // Solo el de Adeorq: los servidores que Munir tenga en su config
         // global no pintan nada aquí y cada uno suma arranque.
         .arg("--strict-mcp-config")
@@ -164,7 +276,7 @@ fn orden_agente(modelo: &str, cfg: &Path, manos: &[String], sesion: &str) -> std
 }
 
 /// La orden de una pregunta suelta, sin herramientas.
-fn orden_plan(modelo: &str, sesion: &str) -> std::process::Command {
+fn orden_plan(modelo: &str, sesion: &str, imagenes: bool) -> std::process::Command {
     // `--strict-mcp-config` sin ningún `--mcp-config` = CERO servidores
     // MCP. Munir tiene el de Adeorq puesto en global, así que cada
     // llamada del Capataz lo levantaba entero para no llamarlo jamás:
@@ -177,19 +289,19 @@ fn orden_plan(modelo: &str, sesion: &str) -> std::process::Command {
     // dice que con él «OAuth y el llavero nunca se leen», y aquí se
     // entra con la suscripción de Munir, sin API key en ninguna parte
     // (regla de la casa). Con `--bare` el Capataz no se autenticaría.
-    claude_p(
+    let mut cmd = claude_p(
         &[
             "--model",
             modelo,
-            "--output-format",
-            "json",
             "--strict-mcp-config",
             // Con nombre nuestro para poder borrarle el transcript después:
             // ver `SinRastro`.
             "--session-id",
             sesion,
         ],
-    )
+    );
+    cmd.args(formato(imagenes));
+    cmd
 }
 
 /// Una sesión de usar y tirar, que se lleva su rastro al morir.
@@ -286,12 +398,12 @@ Responde SOLO con JSON válido, sin markdown, sin nada antes ni después:
 #[tauri::command]
 pub async fn foreman_plan(request: String, context: String, quien: Option<Quien>) -> Result<String, String> {
     let q = quien.unwrap_or_default();
-    preguntar(format!(
+    let prompt = format!(
         "{SYSTEM_PROMPT}\n\n## Estado actual\n{context}{}\n\n## Pedido de {}\n{request}",
         q.al_prompt(),
         q.firma()
-    ))
-    .await
+    );
+    preguntar_viendo(prompt, Some(request), PLAN_MODEL).await
 }
 
 /// El otro oficio del Capataz: convertir lo que Munir suelta de pasada en el
@@ -306,11 +418,11 @@ pub async fn foreman_plan(request: String, context: String, quien: Option<Quien>
 #[tauri::command]
 pub async fn foreman_prompt(request: String, context: String, quien: Option<Quien>) -> Result<String, String> {
     let q = quien.unwrap_or_default();
-    preguntar(format!(
+    let prompt = format!(
         "{PROMPT_SYSTEM}\n\n## Dónde está trabajando\n{context}{}\n\n## Lo que ha dicho\n{request}",
         q.al_prompt()
-    ))
-    .await
+    );
+    preguntar_viendo(prompt, Some(request), PLAN_MODEL).await
 }
 
 /// El lote entero en UNA llamada.
@@ -719,39 +831,26 @@ pub async fn foreman_agente(
 
     tauri::async_runtime::spawn_blocking(move || {
         let sesion = SinRastro::nueva();
-        let mut child = orden_agente(&modelo, &cfg, &manos, sesion.id())
+        let e = entrada(prompt, &request);
+        let mut child = orden_agente(&modelo, &cfg, &manos, sesion.id(), e.imagenes)
             .current_dir(crate::workspace::raiz_por_defecto())
             .sin_ventana()
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
             .spawn()
             .map_err(|e| format!("no pude lanzar claude: {e}"))?;
-        dar_prompt(&mut child, prompt);
+        dar_prompt(&mut child, e.texto);
 
         // Más margen que los otros tres oficios, y no por capricho: este da
         // varias vueltas de mirar y pensar, así que el reloj de una llamada
         // suelta se le queda corto.
-        let start = Instant::now();
-        loop {
-            match child.try_wait() {
-                Ok(Some(_)) => break,
-                Ok(None) if start.elapsed() > AGENTE_TIMEOUT => {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    return Err("Adeo se quedó pensando demasiado (3 min); reintenta".into());
-                }
-                Ok(None) => std::thread::sleep(Duration::from_millis(200)),
-                Err(e) => return Err(e.to_string()),
-            }
-        }
-        let out = child.wait_with_output().map_err(|e| e.to_string())?;
-        let stdout = String::from_utf8_lossy(&out.stdout);
+        let Some((stdout, stderr)) = esperar_vaciando(&mut child, AGENTE_TIMEOUT)? else {
+            return Err("Adeo se quedó pensando demasiado (3 min); reintenta".into());
+        };
         if stdout.trim().is_empty() {
-            let err = String::from_utf8_lossy(&out.stderr);
-            return Err(format!("claude no devolvió nada: {}", err.trim()));
+            return Err(format!("claude no devolvió nada: {}", stderr.trim()));
         }
-        let wrapper: serde_json::Value =
-            serde_json::from_str(stdout.trim()).map_err(|e| format!("envoltorio ilegible: {e}"))?;
+        let wrapper = envoltorio(&stdout)?;
         if wrapper["is_error"].as_bool().unwrap_or(false) {
             return Err(format!(
                 "claude devolvió error: {}",
@@ -792,9 +891,16 @@ async fn preguntar(prompt: String) -> Result<String, String> {
 /// unas carpetas es un recado, y pagar el mismo modelo para los dos es pagar de
 /// más Y esperar de más.
 pub(crate) async fn preguntar_con(prompt: String, modelo: &'static str) -> Result<String, String> {
+    preguntar_viendo(prompt, None, modelo).await
+}
+
+/// El cuerpo de los de arriba, y con `pedido` (lo que escribió la persona) mira
+/// además las capturas que pegó en él: ver `entrada`.
+async fn preguntar_viendo(prompt: String, pedido: Option<String>, modelo: &'static str) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let sesion = SinRastro::nueva();
-        let mut child = orden_plan(modelo, sesion.id())
+        let e = entrada(prompt, pedido.as_deref().unwrap_or_default());
+        let mut child = orden_plan(modelo, sesion.id(), e.imagenes)
             // Desde la carpeta de proyectos del usuario, no desde una fija: en
             // un equipo sin `C:\proyectos` esto no llegaba ni a lanzarse.
             .current_dir(crate::workspace::raiz_por_defecto())
@@ -803,33 +909,16 @@ pub(crate) async fn preguntar_con(prompt: String, modelo: &'static str) -> Resul
             .stderr(std::process::Stdio::piped())
             .spawn()
             .map_err(|e| format!("no pude lanzar claude: {e}"))?;
-        dar_prompt(&mut child, prompt);
+        dar_prompt(&mut child, e.texto);
 
-        let start = Instant::now();
-        loop {
-            match child.try_wait() {
-                Ok(Some(_)) => break,
-                Ok(None) if start.elapsed() > PLAN_TIMEOUT => {
-                    let _ = child.kill();
-                    // Esperarlo aunque ya esté muerto: `SinRastro` borra su
-                    // transcript al salir de aquí y el CLI sigue escribiéndolo
-                    // hasta que el sistema lo da por terminado.
-                    let _ = child.wait();
-                    return Err("Adeo tardó demasiado (120 s); reintenta".into());
-                }
-                Ok(None) => std::thread::sleep(Duration::from_millis(200)),
-                Err(e) => return Err(e.to_string()),
-            }
-        }
-        let out = child.wait_with_output().map_err(|e| e.to_string())?;
-        let stdout = String::from_utf8_lossy(&out.stdout);
+        let Some((stdout, stderr)) = esperar_vaciando(&mut child, PLAN_TIMEOUT)? else {
+            return Err("Adeo tardó demasiado (120 s); reintenta".into());
+        };
         if stdout.trim().is_empty() {
-            let err = String::from_utf8_lossy(&out.stderr);
-            return Err(format!("claude no devolvió nada: {}", err.trim()));
+            return Err(format!("claude no devolvió nada: {}", stderr.trim()));
         }
-        // -p --output-format json wraps the answer: {"type":"result","result":"..."}
-        let wrapper: serde_json::Value =
-            serde_json::from_str(stdout.trim()).map_err(|e| format!("envoltorio ilegible: {e}"))?;
+        // -p wraps the answer: {"type":"result","result":"..."}
+        let wrapper = envoltorio(&stdout)?;
         if wrapper["is_error"].as_bool().unwrap_or(false) {
             return Err(format!(
                 "claude devolvió error: {}",
@@ -865,6 +954,62 @@ pub fn write_mission(project_path: String, content: String) -> Result<String, St
 mod tests {
     use super::*;
 
+    /// Una salida más grande que la tubería (64 KiB en Windows) tiene que llegar
+    /// entera y a tiempo: sin leerla mientras se espera, el proceso no terminaba
+    /// nunca y Preguntar moría por tiempo con una captura pegada.
+    #[test]
+    fn una_salida_mas_grande_que_la_tuberia_no_cuelga_la_espera() {
+        const N: usize = 300_000;
+        #[cfg(windows)]
+        let mut orden = {
+            let mut c = std::process::Command::new("powershell");
+            c.args(["-NoProfile", "-Command", &format!("[Console]::Out.Write('x' * {N}); [Console]::Error.Write('e' * {N})")]);
+            c
+        };
+        #[cfg(not(windows))]
+        let mut orden = {
+            let mut c = std::process::Command::new("sh");
+            c.args(["-c", &format!("head -c {N} /dev/zero | tr '\\0' x; head -c {N} /dev/zero | tr '\\0' e >&2")]);
+            c
+        };
+        let mut child = orden
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        let empezo = Instant::now();
+        let (salida, errores) = esperar_vaciando(&mut child, Duration::from_secs(20)).unwrap().expect("se quedó colgado");
+        assert_eq!((salida.len(), errores.len()), (N, N));
+        assert!(empezo.elapsed() < Duration::from_secs(15), "{:?}", empezo.elapsed());
+    }
+
+    /// Un hijo que hereda la tubería y sigue vivo (el servidor MCP de Preguntar,
+    /// si tardara en irse) no se lleva lo que el CLI escribió antes de salir.
+    #[test]
+    fn un_hijo_que_deja_la_tuberia_abierta_no_se_lleva_la_respuesta() {
+        #[cfg(windows)]
+        let mut orden = {
+            let mut c = std::process::Command::new("cmd");
+            c.args(["/c", "echo la-respuesta& start /b ping -n 20 127.0.0.1"]);
+            c
+        };
+        #[cfg(not(windows))]
+        let mut orden = {
+            let mut c = std::process::Command::new("sh");
+            c.args(["-c", "echo la-respuesta; sleep 20 &"]);
+            c
+        };
+        let mut child = orden
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        let empezo = Instant::now();
+        let (salida, _) = esperar_vaciando(&mut child, Duration::from_secs(15)).unwrap().expect("se quedó colgado");
+        assert!(salida.starts_with("la-respuesta"), "{salida:?}");
+        assert!(empezo.elapsed() < Duration::from_secs(10), "{:?}", empezo.elapsed());
+    }
+
     /// Windows no lanza un proceso cuya línea de órdenes pase de 32.767
     /// caracteres, y el esqueleto de un proyecto grande, la lista del taller o
     /// el contexto de un panel la pasan: el prompt no puede ir detrás de `-p`.
@@ -875,8 +1020,10 @@ mod tests {
         for (nombre, cmd) in [
             ("mapa", orden_mapa(false, "id")),
             ("taller", orden_mapa(true, "id")),
-            ("agente", orden_agente("sonnet", cfg, &manos, "id")),
-            ("plan", orden_plan("sonnet", "id")),
+            ("agente", orden_agente("sonnet", cfg, &manos, "id", false)),
+            ("agente", orden_agente("sonnet", cfg, &manos, "id", true)),
+            ("plan", orden_plan("sonnet", "id", false)),
+            ("plan", orden_plan("sonnet", "id", true)),
         ] {
             let largo: usize = cmd.get_args().map(|a| a.len() + 3).sum::<usize>() + cmd.get_program().len();
             assert!(largo < 4_000, "la orden del {nombre} mide {largo} caracteres");
@@ -885,6 +1032,29 @@ mod tests {
             let lleva = cmd.get_envs().any(|(k, v)| k == crate::mcp::VARIABLE_DE_CASA && v.is_some());
             assert_eq!(lleva, nombre == "agente", "{nombre}: contraseña de casa");
         }
+    }
+
+    /// Con capturas pegadas, Planear y Preguntar hablan con el CLI en stream-json
+    /// (la entrada lo exige también en la salida), y la respuesta se saca igual
+    /// de la última línea `result` que del envoltorio único de `json`.
+    #[test]
+    fn con_capturas_la_respuesta_sale_igual() {
+        let args = |imagenes| {
+            let cmd = orden_plan("sonnet", "id", imagenes);
+            cmd.get_args().map(|a| a.to_string_lossy().into_owned()).collect::<Vec<_>>().join(" ")
+        };
+        assert!(args(false).contains("--output-format json") && !args(false).contains("stream-json"));
+        assert!(args(true).contains("--input-format stream-json --output-format stream-json --verbose"));
+
+        let solo = r#"{"type":"result","is_error":false,"result":"{\"pasos\":[]}"}"#;
+        assert_eq!(envoltorio(solo).unwrap()["result"], "{\"pasos\":[]}");
+        let flujo = concat!(
+            r#"{"type":"system","subtype":"init","tools":[]}"#, "\n",
+            r#"{"type":"assistant","message":{"content":[{"type":"text","text":"veo la captura"}]}}"#, "\n",
+            r#"{"type":"result","is_error":false,"result":"veo la captura"}"#, "\n",
+        );
+        assert_eq!(envoltorio(flujo).unwrap()["result"], "veo la captura");
+        assert!(envoltorio("{\"type\":\"system\"}\nno es json").is_err());
     }
 
     /// Con la app en inglés y alguien que no es Munir, el Capataz escribe el

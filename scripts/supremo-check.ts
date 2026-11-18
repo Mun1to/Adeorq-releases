@@ -12,11 +12,16 @@ import {
   ARRANCAN_CON_ENCARGO,
   carpetaDe,
   cliPedido,
+  esfuerzoPedido,
   nombreDe,
   parteDeApertura,
   tituloDeCabecera,
   type PedidoMcp,
 } from "../src/lib/supremo";
+import { comandoDe } from "../src/lib/lanzar";
+import { apuntarTecleado, lineaQueCuenta } from "../src/lib/claudeTecleado";
+import { kindDeComando } from "../src/components/KindIcon";
+import { sessionIdOf } from "../src/lib/comandos";
 
 let fallos = 0;
 function ok(nombre: string, cond: boolean, detalle = "") {
@@ -164,7 +169,7 @@ ok(
 const limpio = parteDeApertura({ paneId: 4, cli: "claude", donde: "lienzo", conEncargo: true });
 ok(
   "aun saliendo todo bien, se dice que hay que mirar la pantalla",
-  limpio.includes("read_pane_transcript(4)"),
+  limpio.includes("read_pane_screen(4)"),
   "una terminal parada en un dialogo parece una terminal pensando",
 );
 ok(
@@ -175,7 +180,7 @@ ok(
 ok(
   "el numero del aviso es el de SU panel",
   !parteDeApertura({ paneId: 12, cli: "claude", donde: "cabina", conEncargo: true }).includes(
-    "read_pane_transcript(4)",
+    "read_pane_screen(4)",
   ),
   "mandar a leer el panel de otro es peor que no decir nada",
 );
@@ -186,9 +191,31 @@ const sinManos = parteDeApertura({ paneId: 5, cli: "codex", donde: "lienzo", con
 ok("sin poder escribir, no se le manda send_command", !sinManos.includes("send_command"), sinManos);
 ok(
   "y se le dice quien tiene que hacerlo, y que siga mirando",
-  sinManos.includes("no puedes escribir") && sinManos.includes("quien usa Adeorq") && sinManos.includes("read_pane_transcript(5)"),
+  sinManos.includes("no puedes escribir") && sinManos.includes("quien usa Adeorq") && sinManos.includes("read_pane_screen(5)"),
   sinManos,
 );
+
+// --- cuánto piensa (Munir, 2026-11-17: un «Opus max» solo se abría tecleando
+// `claude --effort max` en una consola, que Adeorq no reconoce como Claude) ----
+ok("sin esfuerzo, nace con el suyo", JSON.stringify(esfuerzoPedido("claude", undefined)) === "{}");
+ok("el esfuerzo se limpia", esfuerzoPedido("claude", " MAX ").esfuerzo === "max");
+ok("las cinco palabras valen", ["low", "medium", "high", "xhigh", "max"].every((e) => esfuerzoPedido("claude", e).esfuerzo === e));
+ok("uno que no existe no se pasa", esfuerzoPedido("claude", "ultra").esfuerzo === undefined);
+ok("Codex lo lleva por su bandera", esfuerzoPedido("codex", "high").esfuerzo === "high");
+const sinBandera = esfuerzoPedido("shell", "max");
+ok("en una consola no hay esfuerzo, y se dice", sinBandera.esfuerzo === undefined && /max/.test(sinBandera.aviso ?? ""), JSON.stringify(sinBandera));
+const conPedido = comandoDe({ cli: "claude", modelo: "opus", esfuerzo: esfuerzoPedido("claude", "max").esfuerzo, desatendida: true }) ?? [];
+ok("y llega a la línea de Claude", /--model opus --effort max\b/.test(conPedido.join(" ")), conPedido.join(" "));
+
+// --- un `claude` tecleado en una consola (`mcp/tecleado.rs`) -------------------
+const LINEA = "claude --model opus --effort max --session-id 0006490e-5bba-4a1e-9a77-0c0ffee00001";
+ok("un pedido sin panel no se apunta", !apuntarTecleado(undefined, [LINEA]) && !apuntarTecleado(7, "claude") && !apuntarTecleado(7, []));
+ok("con panel y su línea, sí", apuntarTecleado(7, [LINEA]));
+const enConsola = lineaQueCuenta("", [LINEA]);
+ok("la consola pasa a ser Claude, con su conversación", kindDeComando(enConsola) === "claude" && sessionIdOf(enConsola) === "0006490e-5bba-4a1e-9a77-0c0ffee00001", enConsola);
+const propia = "claude --session-id aaaa";
+ok("una que nació Claude sigue con la suya", lineaQueCuenta(propia, [LINEA]) === propia);
+ok("una consola sin nada tecleado sigue siendo consola", kindDeComando(lineaQueCuenta("", undefined)) === "shell");
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);
 // Sin esto `pnpm bancos` lo daba por bueno con fallos dentro: solo mira cómo sale (2026-10-18).

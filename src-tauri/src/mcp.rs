@@ -15,6 +15,7 @@ mod entregar;
 pub(crate) mod preguntar;
 mod quien_conecta;
 pub(crate) mod relevo_cuota;
+mod tecleado;
 mod tope_contexto;
 use tope_contexto::Carga;
 
@@ -73,6 +74,9 @@ pub struct Puente {
     /// La última raya de contexto que se le avisó a quien abrió cada delegada
     /// (`tope_contexto::toca_avisar`).
     avisadas: Mutex<HashMap<u32, u8>>,
+    /// La línea de Claude Code que se le tecleó por `send_command` a cada panel
+    /// que nació consola (`mcp/tecleado.rs`): la lee `la_ficha` como su comando.
+    tecleados: Mutex<HashMap<u32, Vec<String>>>,
     /// La ventana ya escucha `mcp:pedido` (`mcp_oyente_listo`). El MCP contesta
     /// a los dos segundos de arrancar y la ventana escucha a los seis: lo que se
     /// emitía en ese hueco no lo oía nadie (la prueba del Mac de la 0.9.256).
@@ -181,7 +185,7 @@ fn ahora_ms() -> u64 {
 
 /// La conversación que corre en un panel, según su comando.
 fn sesion_del_panel(app: &tauri::AppHandle, id: u32) -> Option<String> {
-    crate::pty::ficha(app, id)?.command.as_deref().and_then(crate::rastros::sesion_del_comando)
+    la_ficha(app, id)?.command.as_deref().and_then(crate::rastros::sesion_del_comando)
 }
 
 /// Cómo se nombra a quien la abrió cuando no tiene un panel que decir.
@@ -279,7 +283,7 @@ pub fn cerrada_con_la_x(app: &tauri::AppHandle, sesion: &str, rastro: &std::path
 pub fn al_reengancharse(app: &tauri::AppHandle) {
     let Some(ruta) = libro_de_delegadas() else { return };
     let libro = delegadas::leer(&ruta);
-    let paneles: Vec<(u32, Option<String>)> = crate::pty::fichas(app)
+    let paneles: Vec<(u32, Option<String>)> = las_fichas(app)
         .into_iter()
         .map(|f| {
             let sesion = f.command.as_deref().and_then(crate::rastros::sesion_del_comando);
@@ -351,8 +355,44 @@ fn visto(app: &tauri::AppHandle, clave: &str) -> delegadas::Visto {
 /// delegada no salía ni entre las abiertas ni entre las que ya no están, y
 /// `read_pane_screen` decía que seguía abierta en su propio número
 /// (`quien-la-abrio-de-verdad.mjs`, 2026-11-03).
+/// La ficha de un panel con el comando que dice qué corre en él: el suyo o, si
+/// nació consola y se le tecleó un `claude` por `send_command`, esa línea
+/// (`mcp/tecleado.rs`). Todo lo de aquí que mira si un panel es Claude y cuál es
+/// su conversación la lee por estas dos y no por las de `pty`: con las de `pty`,
+/// una consola con Claude dentro ni se compactaba ni se dejaba compactar.
+pub(crate) fn la_ficha(app: &tauri::AppHandle, id: u32) -> Option<crate::pty::Ficha> {
+    crate::pty::ficha(app, id).map(|f| con_lo_tecleado(app, f))
+}
+
+fn las_fichas(app: &tauri::AppHandle) -> Vec<crate::pty::Ficha> {
+    crate::pty::fichas(app).into_iter().map(|f| con_lo_tecleado(app, f)).collect()
+}
+
+fn con_lo_tecleado(app: &tauri::AppHandle, mut f: crate::pty::Ficha) -> crate::pty::Ficha {
+    let puente = app.state::<Puente>();
+    let tecleado = puente.tecleados.lock().unwrap().get(&f.id).cloned();
+    f.command = comando_que_cuenta(f.command.take(), tecleado.as_ref());
+    f
+}
+
+/// Lo tecleado, si lo hay y el panel nació consola pelada; si no, el comando con
+/// el que nació. Un Codex o un Gemini se quedan con el suyo pase lo que pase.
+fn comando_que_cuenta(propio: Option<Vec<String>>, tecleado: Option<&Vec<String>>) -> Option<Vec<String>> {
+    match tecleado {
+        Some(t) if nacio_consola(propio.as_deref()) => Some(t.clone()),
+        _ => propio,
+    }
+}
+
+/// Si el panel nació consola sin ningún CLI dentro: lo único donde un `claude`
+/// tecleado se apunta (`mcp/tecleado.rs`). La misma regla que `lineaQueCuenta`
+/// en la ventana.
+fn nacio_consola(comando: Option<&[String]>) -> bool {
+    comando.is_none_or(|c| !crate::rastros::es_claude(c) && crate::mcp_clientes::programa_del_comando(c).is_none())
+}
+
 fn fichas_abiertas(app: &tauri::AppHandle) -> Vec<crate::pty::Ficha> {
-    crate::pty::fichas(app).into_iter().filter(|f| !crate::pty::cerrada_a_mano(f.id)).collect()
+    las_fichas(app).into_iter().filter(|f| !crate::pty::cerrada_a_mano(f.id)).collect()
 }
 
 /// El panel abierto en que corre ahora esa conversación.
@@ -615,6 +655,24 @@ fn pantalla_de(app: &tauri::AppHandle, pane_id: u32) -> Option<Vec<String>> {
     Some(filas)
 }
 
+/// Lo que contesta `read_pane_screen` si la ventana no da esa pantalla: la
+/// terminal puede estar sacada a su propia ventana, o la ventana colgada, y quien
+/// pregunta necesita otro camino para saber qué hace.
+fn sin_pantalla(pane_id: u32) -> String {
+    format!(
+        "La ventana de Adeorq no ha podido dar la pantalla de la terminal {pane_id} (puede estar sacada a su propia ventana, o la ventana no contesta). read_pane_transcript({pane_id}) lee su salida sin ventana."
+    )
+}
+
+/// Las filas que ve un panel, o que aún no hay ninguna: una respuesta vacía no
+/// distingue una terminal recién abierta de una lectura que ha fallado.
+fn texto_de_pantalla(pane_id: u32, filas: &[String]) -> String {
+    if filas.iter().all(|f| f.trim().is_empty()) {
+        return format!("La terminal {pane_id} no tiene nada en pantalla ahora mismo: vuelve a mirar en unos segundos.");
+    }
+    filas.join("\n")
+}
+
 /// Si Claude Code se quedó con el texto en la caja.
 ///
 /// Medido con las pantallas de verdad del banco `intro_en_claude` (2.1.290):
@@ -779,6 +837,24 @@ fn modelo_para_agente(cli: &str, pedido: &str) -> Result<Option<&'static str>, S
         "haiku" => Ok(Some("haiku")),
         "fable" => Err("Fable no se abre desde un agente: gasta demasiado para un equipo. Pide `opus` (o nada, que es lo mismo).".into()),
         otro => Err(format!("No conozco el modelo «{}»: pide haiku, sonnet u opus.", otro)),
+    }
+}
+
+/// Cuánto piensa la terminal que abre un agente: una de las cinco palabras de la
+/// casa (`ESFUERZOS` en `lib/router.ts`), o nada y nace con el de su
+/// configuración. Hasta el 2026-11-17 no se podía pedir, y un «Opus con esfuerzo
+/// máximo» se abría tecleando `claude --effort max` en una consola: esa terminal
+/// Adeorq no la reconoce como Claude, y no se compactaba sola (Munir, con la de
+/// Moods pidiéndole el /compact a él: «¿por qué no se compacta solo como las demás?»).
+fn esfuerzo_para_agente(pedido: &str) -> Result<Option<&'static str>, String> {
+    match pedido.trim().to_lowercase().as_str() {
+        "" => Ok(None),
+        "low" => Ok(Some("low")),
+        "medium" => Ok(Some("medium")),
+        "high" => Ok(Some("high")),
+        "xhigh" => Ok(Some("xhigh")),
+        "max" => Ok(Some("max")),
+        otro => Err(format!("No conozco el esfuerzo «{otro}»: pide low, medium, high, xhigh o max.")),
     }
 }
 
@@ -1575,7 +1651,7 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                 // pista: sigue como lo de fuera de Adeorq.
                 let id = v["id"].as_u64().and_then(|n| u32::try_from(n).ok());
                 let creido = id.map_or(PanelCreido::No, |n| {
-                    let ficha = crate::pty::ficha(&app, n);
+                    let ficha = la_ficha(&app, n);
                     panel_creible(ficha.as_ref().map(|f| f.clave.as_ref()), v["clave"].as_str())
                 });
                 se_mira_su_proceso = quien_conecta::se_mira_por_su_proceso(creido, v["clave"].is_string());
@@ -1600,7 +1676,7 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                 // el `PATH` de una terminal: se mira qué proceso es (`quien_conecta.rs`).
                 let panel = v["panel"].as_u64().and_then(|n| u32::try_from(n).ok());
                 let presentado = panel.map(|n| {
-                    let ficha = crate::pty::ficha(&app, n);
+                    let ficha = la_ficha(&app, n);
                     (n, panel_creible(ficha.as_ref().map(|f| f.clave.as_ref()), v["clave"].as_str()))
                 });
                 let quien = quien_conecta::quien_pide(presentado, || quien_conecta::terminal_del_que_pide(&app, puntas));
@@ -1644,7 +1720,7 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                 enviar(&escritor, "{\"adeorq\":\"esperando\"}\n")?;
                 let panel = v["panel"].as_u64().and_then(|n| u32::try_from(n).ok());
                 let presentado = panel.map(|n| {
-                    let ficha = crate::pty::ficha(&app, n);
+                    let ficha = la_ficha(&app, n);
                     (n, panel_creible(ficha.as_ref().map(|f| f.clave.as_ref()), v["clave"].as_str()))
                 });
                 let quien = quien_conecta::quien_pide(presentado, || quien_conecta::terminal_del_que_pide(&app, puntas));
@@ -2083,6 +2159,10 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                                             "type": "string",
                                             "description": "haiku, sonnet or opus. A Claude pane opens on opus when you say nothing, whatever the person's own default is. Fable is refused here: a team of agents on the priciest model drains the plan, so only a person opens it."
                                         },
+                                        "effort": {
+                                            "type": "string",
+                                            "description": "How hard it thinks: low, medium, high, xhigh or max. Leave it out and it starts with its own setting. Ask for it here instead of opening a 'shell' and typing the CLI into it. A CLI that cannot take it at start opens without it and the reply says so."
+                                        },
                                         "account": {
                                             "type": "string",
                                             "description": "Leave it out: Adeorq then picks the account of that CLI that would waste the most quota if left idle ((100 - % of the week spent) / days until it renews), skipping one stopped by its 5-hour cap or past 92 % of its week, and the reply says which one and why. Pass a label from get_usage only if you have a reason, or 'principal' for the main one. An account that does not exist is an error, never another one."
@@ -2332,6 +2412,8 @@ fn parte_apagada(herramienta: &str) -> Option<String> {
 fn programa_de_la_conexion(app: &tauri::AppHandle, mi_panel: Option<u32>, creido: Option<PanelCreido>, cliente: Option<&str>) -> String {
     let por_nombre = || crate::mcp_clientes::programa_de_cliente(cliente.unwrap_or("desconocido"));
     match (creido, mi_panel) {
+        // El de NACIMIENTO, no lo tecleado (`la_ficha`): el escalón no puede
+        // depender de lo que alguien escribió en ese panel.
         (Some(PanelCreido::Suyo), Some(p)) => match crate::pty::ficha(app, p) {
             Some(f) => f
                 .command
@@ -2498,7 +2580,7 @@ fn texto_de_cierre(pane_id: u32, rastro: Option<&std::path::Path>, tuyas: usize,
 /// Lo que pesa la conversación de Claude Code de un panel, si se sabe cuál es.
 /// `sabida` es la que aprendió la ventana, para un panel sin id en su comando.
 fn carga_del_panel(app: &tauri::AppHandle, id: u32, sabida: Option<&str>) -> Option<Carga> {
-    let f = crate::pty::ficha(app, id)?;
+    let f = la_ficha(app, id)?;
     tope_contexto::carga_de(&f.cwd, f.command.as_deref(), sabida)
 }
 
@@ -2525,7 +2607,7 @@ fn mis_delegadas(app: &tauri::AppHandle, quien: Option<u32>, conexion: u64) -> V
 fn aviso_de_tus_terminales(app: &tauri::AppHandle, quien: Option<u32>, conexion: u64) -> Option<String> {
     let mut avisos = Vec::new();
     for id in mis_delegadas(app, quien, conexion) {
-        let Some(f) = crate::pty::ficha(app, id) else { continue };
+        let Some(f) = la_ficha(app, id) else { continue };
         let carga = tope_contexto::carga_de(&f.cwd, f.command.as_deref(), None);
         let nivel = carga.as_ref().map(Carga::nivel).unwrap_or(0);
         if !tope_contexto::toca_avisar(&mut app.state::<Puente>().avisadas.lock().unwrap(), id, nivel) {
@@ -2748,9 +2830,32 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             // como siempre; el texto va sin él.
             let texto = cmd.trim_end_matches(['\r', '\n']).to_string();
 
-            let ficha = crate::pty::ficha(app, pane_id)
+            let ficha = la_ficha(app, pane_id)
                 .ok_or_else(|| format!("Pane {} not found.{}", pane_id, por_que_no_esta(app, pane_id)))?;
             let es_claude = ficha.command.as_deref().is_some_and(crate::rastros::es_claude);
+            // Un `claude` tecleado en una consola: se apunta como su comando, con
+            // su `--session-id`, para que se compacte sola como las demás
+            // (`mcp/tecleado.rs`). Solo en una que nació consola pelada y con su
+            // pantalla esperando una orden: a un Codex, o a un Claude que ya corre
+            // (recién arrancado incluido), «claude …» es un mensaje.
+            let consola = enviar && nacio_consola(crate::pty::ficha(app, pane_id).and_then(|f| f.command).as_deref());
+            let candidata = consola.then(|| tecleado::linea_de_claude(&texto, tecleado::id_nuevo)).flatten();
+            let parecia = candidata.is_some();
+            let lanza = candidata.filter(|_| {
+                // PowerShell tarda en pintar su `PS …>` al nacer: se le espera un poco.
+                let hasta = Instant::now() + Duration::from_secs(3);
+                loop {
+                    if pantalla_de(app, pane_id).is_some_and(|p| tecleado::espera_una_orden(&p)) {
+                        return true;
+                    }
+                    if Instant::now() >= hasta {
+                        return false;
+                    }
+                    thread::sleep(Duration::from_millis(250));
+                }
+            });
+            let sin_apuntar = parecia && lanza.is_none();
+            let texto = lanza.clone().unwrap_or(texto);
             // Una terminal cargada relee todo su contexto en cada respuesta: desde
             // el aviso (350k) no se le manda trabajo nuevo sin decirlo en voz alta
             // (Orquio General, 2026-10-22: sus delegadas acabaron por encima de
@@ -2783,6 +2888,18 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                 hecho.push("Intro pulsado aparte");
             }
             let mut parte = format!("Panel {}: {}.", pane_id, hecho.join(", "));
+            if let Some(linea) = lanza {
+                app.state::<Puente>().tecleados.lock().unwrap().insert(pane_id, vec![linea.clone()]);
+                // Y la ventana, que es la que vigila su contexto y la compacta sola.
+                // Una de antes no sabe atenderlo, y entonces se dice.
+                let ventana = pedir_a_la_ventana_con(app, "claude_tecleado", json!({ "paneId": pane_id, "command": [linea] }), Duration::from_secs(2))
+                    .is_ok_and(|r| r.error.is_none());
+                parte.push_str(&tecleado::parte(&linea, ventana));
+            } else if sin_apuntar && !es_claude {
+                // Si ya cuenta como Claude (su `claude` se apuntó antes), esto le ha
+                // llegado como mensaje y no hay nada que avisar.
+                parte.push_str(tecleado::SIN_APUNTAR);
+            }
             // Y que no se haya quedado en la caja. Solo se puede mirar en la
             // pantalla pintada, que la tiene la ventana.
             if enviar && es_claude && !texto.is_empty() {
@@ -2844,9 +2961,8 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             if !crate::pty::existe(app, pane_id) || crate::pty::cerrada_a_mano(pane_id) {
                 return Err(format!("Pane {} not found.{}", pane_id, por_que_no_esta(app, pane_id)));
             }
-            let pantalla = pantalla_de(app, pane_id)
-                .ok_or("La ventana de Adeorq no ha podido dar la pantalla de ese panel (¿está abierta y con el panel pintado?).")?;
-            Ok(json!({ "content": [{ "type": "text", "text": pantalla.join("\n") }] }))
+            let pantalla = pantalla_de(app, pane_id).ok_or_else(|| sin_pantalla(pane_id))?;
+            Ok(json!({ "content": [{ "type": "text", "text": texto_de_pantalla(pane_id, &pantalla) }] }))
         }
         "read_pane_transcript" => {
             let pane_id = panel_pedido(&args, "Missing paneId parameter")?;
@@ -3024,6 +3140,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                 return Err(porque);
             }
             let modelo = modelo_para_agente(&cli, args["model"].as_str().unwrap_or_default())?;
+            let esfuerzo = esfuerzo_para_agente(args["effort"].as_str().unwrap_or_default())?;
             // La cuenta la resuelve la ventana, que es quien las conoce: con
             // `account`, esa o un error; sin él, la que más cuota perdería
             // (`elegirCuenta` en `lib/router.ts`). Hasta el 2026-11-02 esto no
@@ -3077,6 +3194,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                     "account": account,
                     "elegir": account.is_empty(),
                     "model": modelo,
+                    "effort": esfuerzo,
                     "name": args["name"].as_str().unwrap_or_default(),
                     "from": flecha_al_abrir(&args, de_fuera),
                     // Su panel, para que la cabecera de la nueva diga «de: su nombre».
@@ -3140,7 +3258,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             // mismo mejor, el agente recibía la instrucción dos veces.
             let mut parte = r.parte.unwrap_or_else(|| {
                 format!(
-                    "Terminal {} abierta con «{}». Míralo con read_pane_transcript({}) antes de darla por trabajando, y háblale con send_command({}, \"...\").",
+                    "Terminal {} abierta con «{}». Míralo con read_pane_screen({}) antes de darla por trabajando, y háblale con send_command({}, \"...\").",
                     pane_id, cli, pane_id, pane_id
                 )
             });
@@ -3402,7 +3520,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             // en otro arranque (por su conversación).
             let panel_de_la_madre = es_delegada.as_ref().and_then(|m| {
                 let por_sesion = m.sesion.as_deref().and_then(|s| {
-                    crate::pty::fichas(app)
+                    las_fichas(app)
                         .into_iter()
                         .find(|f| f.command.as_deref().and_then(crate::rastros::sesion_del_comando).as_deref() == Some(s))
                         .map(|f| f.id)
@@ -3412,7 +3530,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             let rastro = args["rastro"].as_str().unwrap_or("");
             let guardado = if es_delegada.is_some() || !rastro.trim().is_empty() {
                 let texto = crate::rastros::validar(rastro)?;
-                let ficha = crate::pty::fichas(app).into_iter().find(|f| f.id == pane_id);
+                let ficha = las_fichas(app).into_iter().find(|f| f.id == pane_id);
                 let nombre = pedir_a_la_ventana_con(app, "paneles", json!({}), Duration::from_secs(4))
                     .ok()
                     .and_then(|r| r.datos)
@@ -3472,6 +3590,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             }
             app.state::<Puente>().delegadas.lock().unwrap().remove(&pane_id);
             app.state::<Puente>().avisadas.lock().unwrap().remove(&pane_id);
+            app.state::<Puente>().tecleados.lock().unwrap().remove(&pane_id);
 
             // Cuántas siguen abiertas y cuántas caben todavía. Cerrar una libera su sitio
             // sola (`paneles_vivos`). Lo que NO se devuelve es el tope por hora, que existe
@@ -3495,7 +3614,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
         // turno, y nunca en una terminal de Munir (D8: sin su clic, no).
         "compactar_terminal" => {
             let pane_id = panel_pedido(&args, "Falta `paneId`: el número de la terminal que quieres compactar.")?;
-            let ficha = crate::pty::ficha(app, pane_id).ok_or_else(|| {
+            let ficha = la_ficha(app, pane_id).ok_or_else(|| {
                 format!(
                     "No hay ninguna terminal {pane_id}. Mira get_active_panes: puede que ya esté cerrada.{}",
                     por_que_no_esta(app, pane_id)
@@ -3521,7 +3640,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
         // Adeorq y retomar la sesión»). Solo su terminal, presentada con su
         // contraseña: ver `mcp/compactarme.rs` y `pedirPropia` en `lib/contexto.ts`.
         "compactarme" => {
-            let ficha = quien.and_then(|id| crate::pty::ficha(app, id));
+            let ficha = quien.and_then(|id| la_ficha(app, id));
             let mensaje = compactarme::limpio(args["mensaje"].as_str().unwrap_or_default());
             let q = compactarme::Quien {
                 panel: quien,
@@ -3551,7 +3670,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
         // conversación y la ventana se lo teclea a la madre cuando pare en su
         // caja vacía (`lib/vueltaArriba.ts`). Ver `mcp/entregar.rs`.
         "entregar" => {
-            let ficha = quien.and_then(|id| crate::pty::ficha(app, id));
+            let ficha = quien.and_then(|id| la_ficha(app, id));
             let madre = quien.and_then(|id| app.state::<Puente>().delegadas.lock().unwrap().get(&id).cloned());
             let q = entregar::Quien {
                 panel: quien,
@@ -3582,7 +3701,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             let ahora_en = madre.sesion.as_deref().and_then(|s| panel_de_la_sesion(app, s));
             let destino = match ahora_en.or(madre.panel) {
                 None => entregar::Destino::SinPanel { nombre: madre.nombre.as_deref() },
-                Some(m) if crate::pty::ficha(app, m).is_none() => entregar::Destino::Cerrada { panel: m },
+                Some(m) if la_ficha(app, m).is_none() => entregar::Destino::Cerrada { panel: m },
                 Some(m) => {
                     let pedido = json!({
                         "paneId": pane_id,
@@ -3616,6 +3735,24 @@ mod tests {
     use super::*;
     use std::fs;
     use std::path::PathBuf;
+
+    #[test]
+    fn sin_pantalla_ofrece_leer_su_salida_sin_ventana() {
+        let texto = sin_pantalla(7);
+        assert!(texto.contains("read_pane_transcript(7)"), "{texto}");
+        assert!(texto.contains("sin ventana"), "{texto}");
+    }
+
+    #[test]
+    fn una_terminal_que_aun_no_pinta_lo_dice_en_vez_de_contestar_vacio() {
+        for filas in [vec![], vec![String::new(), "   ".to_string()]] {
+            let texto = texto_de_pantalla(7, &filas);
+            assert!(texto.contains("terminal 7 no tiene nada en pantalla"), "{texto:?}");
+            assert!(texto.contains("unos segundos"), "{texto:?}");
+        }
+        let filas = ["uno".to_string(), String::new(), "dos".to_string()];
+        assert_eq!(texto_de_pantalla(7, &filas), "uno\n\ndos");
+    }
 
     #[test]
     fn un_pedido_espera_a_que_la_ventana_escuche_y_no_mas_del_tope() {
@@ -3653,6 +3790,43 @@ mod tests {
         assert_eq!(modelo_para_agente("codex", ""), Ok(None));
         assert_eq!(modelo_para_agente("codex", "opus"), Ok(Some("opus")));
         assert!(modelo_para_agente("codex", "fable").is_err());
+    }
+
+    /// Una consola con un `claude` tecleado cuenta como Claude, con su conversación;
+    /// un panel que nació Claude sigue con el suyo, y una consola sin nada, igual.
+    #[test]
+    fn una_consola_con_claude_tecleado_cuenta_como_claude() {
+        let linea = vec!["claude --model opus --effort max --session-id 0006490e-5bba-4a1e-9a77-0c0ffee00001".to_string()];
+        let consola = Some(vec!["powershell.exe".to_string(), "-NoLogo".to_string()]);
+        let cuenta = comando_que_cuenta(consola.clone(), Some(&linea));
+        assert!(cuenta.as_deref().is_some_and(crate::rastros::es_claude));
+        assert_eq!(cuenta.as_deref().and_then(crate::rastros::sesion_del_comando).as_deref(), Some("0006490e-5bba-4a1e-9a77-0c0ffee00001"));
+        assert_eq!(comando_que_cuenta(None, Some(&linea)), Some(linea.clone()));
+        assert_eq!(comando_que_cuenta(consola.clone(), None), consola);
+        let nacio = Some(vec!["claude --session-id aaaa-1".to_string()]);
+        assert_eq!(comando_que_cuenta(nacio.clone(), Some(&linea)), nacio);
+        // Un Codex se queda con el suyo: su escalón y su conversación no dependen
+        // de lo que se le escriba (la revisión aparte, 2026-11-17).
+        let codex = Some(vec!["codex --sandbox workspace-write".to_string()]);
+        assert_eq!(comando_que_cuenta(codex.clone(), Some(&linea)), codex);
+        assert!(!nacio_consola(codex.as_deref()) && nacio_consola(consola.as_deref()) && nacio_consola(None));
+    }
+
+    /// Munir, 2026-11-17: un «Opus con esfuerzo máximo» solo se abría tecleando
+    /// `claude --effort max` en una consola, y esa consola nadie la reconocía
+    /// como Claude (ni se compactaba sola ni con `compactarme`).
+    #[test]
+    fn un_agente_pide_el_esfuerzo_con_las_cinco_palabras_de_la_casa() {
+        assert_eq!(esfuerzo_para_agente(""), Ok(None));
+        assert_eq!(esfuerzo_para_agente(" MAX "), Ok(Some("max")));
+        for e in ["low", "medium", "high", "xhigh", "max"] {
+            assert_eq!(esfuerzo_para_agente(e), Ok(Some(e)));
+        }
+        assert!(esfuerzo_para_agente("ultra").unwrap_err().contains("xhigh"));
+        let todas = lista_de_herramientas();
+        let abrir = todas.iter().find(|h| h["name"] == "open_pane").expect("open_pane");
+        let effort = abrir["inputSchema"]["properties"]["effort"]["description"].as_str().expect("open_pane sin `effort`");
+        assert!(effort.contains("xhigh") && effort.contains("max"), "{effort}");
     }
 
     /// Un `.claude.json` de mentira en su propia carpeta, que es justo lo que

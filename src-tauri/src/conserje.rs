@@ -1466,7 +1466,7 @@ const IMAGEN_MAX_BYTES: u64 = 5 * 1024 * 1024;
 /// `save_pasted_image`), leídas: su tipo y su contenido en base64. Solo `pegado-*` de esa
 /// carpeta, con extensión de imagen, que existan y pesen 5 MB o menos; sin repetir, y las
 /// cinco últimas que se nombran (lo último que pegaste es lo que preguntas).
-fn imagenes_pegadas(prompt: &str, pastes: &std::path::Path) -> Vec<(&'static str, String)> {
+pub(crate) fn imagenes_pegadas(prompt: &str, pastes: &std::path::Path) -> Vec<(&'static str, String)> {
     use base64::Engine;
     // Tal cual la escribe `save_pasted_image` (la misma `dir_datos`): sin pasar a
     // minúsculas, que cambia la longitud de algunas letras y descuadraría los cortes.
@@ -1504,8 +1504,15 @@ fn imagenes_pegadas(prompt: &str, pastes: &std::path::Path) -> Vec<(&'static str
         .collect()
 }
 
+/// Lo que se dice en este turno: lo que va detrás del último «## Lo que te dice … ahora»
+/// de `montar_prompt`. Las capturas de turnos anteriores siguen en la conversación como
+/// texto, y buscarlas en el prompt entero las volvía a mandar en cada turno.
+fn lo_de_ahora(prompt: &str) -> &str {
+    prompt.rfind("\n## Lo que te dice ").map_or(prompt, |i| &prompt[i..])
+}
+
 /// El mensaje de `--input-format stream-json`: las imágenes primero y el prompt detrás.
-fn mensaje_con_imagenes(prompt: &str, imagenes: &[(&'static str, String)]) -> String {
+pub(crate) fn mensaje_con_imagenes(prompt: &str, imagenes: &[(&'static str, String)]) -> String {
     let mut bloques: Vec<serde_json::Value> = imagenes
         .iter()
         .map(|(tipo, datos)| serde_json::json!({ "type": "image", "source": { "type": "base64", "media_type": tipo, "data": datos } }))
@@ -1609,7 +1616,7 @@ fn correr(
     // `--disallowedTools`, a propósito). Se le dan como imágenes dentro del mensaje,
     // por la entrada en stream-json: así las ve sin abrirle el disco.
     let imagenes = crate::dir_datos()
-        .map(|d| imagenes_pegadas(prompt, &d.join("pastes")))
+        .map(|d| imagenes_pegadas(lo_de_ahora(prompt), &d.join("pastes")))
         .unwrap_or_default();
     if !imagenes.is_empty() {
         cmd.args(["--input-format", "stream-json"]);
@@ -2086,6 +2093,15 @@ mod tests {
         assert_eq!(bloques.len(), 3);
         assert_eq!(bloques[0]["source"]["media_type"], "image/png");
         assert_eq!(bloques[2], json!({ "type": "text", "text": "¿qué ves?" }));
+
+        // Una captura de un turno anterior se queda en la conversación como texto, y no
+        // vuelve a mandarse: solo cuenta la de lo que se dice ahora.
+        let vieja = format!("\"{p}{s}pegado-1.png\"", s = std::path::MAIN_SEPARATOR);
+        let nueva = format!("\"{p}{s}pegado-2.jpg\"", s = std::path::MAIN_SEPARATOR);
+        let turno = montar_prompt("papel", "c1", &format!("## Lo hablado\nMunir: mira {vieja}"), &Quien::default(), &format!("y ahora {nueva}"));
+        let tipos: Vec<&str> = imagenes_pegadas(lo_de_ahora(&turno), &pastes).iter().map(|(t, _)| *t).collect();
+        assert_eq!(tipos, ["image/jpeg"], "solo la captura de este turno");
+        assert_eq!(lo_de_ahora("sin cabecera"), "sin cabecera");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

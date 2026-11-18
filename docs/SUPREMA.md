@@ -274,6 +274,49 @@ se autocompacte con el skill de fin mensaje de compactación + que se retome aut
   contra una API de mentira: 13 de 13; antes de mirar sin campana, 6 en rojo (el `/compact` no
   llegaba nunca). NO PROBADO con una sesión de Munir y su modelo de verdad.
 
+## Un Claude tecleado en una consola es un Claude, y `open_pane` pide el esfuerzo (2026-11-17)
+
+Munir, con la terminal de Moods pidiéndole a él el /compact: *«¿por qué coño no se compacta solo
+como las demás?»*. Un agente le había abierto una consola (`cli: "shell"`) y le había tecleado
+`claude --model opus --effort max`, porque `open_pane` no pedía el esfuerzo. Adeorq reconoce a
+Claude por el comando con el que NACIÓ el panel, y el de una consola es PowerShell: no se
+compactaba sola, `compactarme` contestaba «En tu terminal no corre Claude Code» y
+`get_active_panes` le inventaba el modelo.
+
+- **`open_pane` acepta `effort`** (low, medium, high, xhigh o max; `esfuerzo_para_agente` en
+  `mcp.rs` y `esfuerzoPedido` en `lib/supremo.ts`). Claude lo lleva siempre; otro CLI, si la tabla
+  le conoce la bandera, y si no nace con el suyo y la respuesta lo dice. Fable sigue vetado a los
+  agentes (regla del 18-oct).
+- **Un `claude` tecleado con `send_command` en una consola se apunta como su comando**
+  (`mcp/tecleado.rs`): la línea, con un `--session-id` que le pone Adeorq justo detrás del
+  programa. Rust lo guarda en `Puente.tecleados` y lo del MCP que mira si un panel es Claude y cuál
+  es su conversación lee los paneles por `la_ficha`/`las_fichas`; la ventana lo recibe
+  (`claude_tecleado`, `lib/claudeTecleado.ts`) y el panel lo usa para saber qué CLI es y cuál es
+  su conversación, así que su contexto se vigila y se compacta solo como en las demás.
+- **Solo en una consola pelada que espera una orden:** el panel tiene que haber nacido sin CLI
+  (`nacio_consola` en `mcp.rs`, `lineaQueCuenta` en la ventana) y su última línea tiene que ser un
+  `PS …>`, `C:\…>`, `…$` o `… %` (`espera_una_orden`; se le esperan 3 s al nacer). Un «Claude,
+  revisa…» mandado a un Codex o a un Claude que ya corre es un mensaje: la primera versión lo
+  apuntaba y con eso un Codex en «plan» pasaba al escalón de Claude, porque
+  `programa_de_la_conexion` leía lo tecleado (lo cazó la revisión aparte; ahora lee el comando de
+  nacimiento). Tampoco cuenta un `claude -p`, un subcomando (`claude mcp …`) ni un
+  `--resume`/`--continue`/`--session-id` propio: esa conversación no la estrenó Adeorq, podría ser
+  de Munir, y apuntarla haría a este panel su dueño (sus delegadas, su papelera).
+- **Lo que no hace:** una consola donde Munir teclea `claude` a mano sigue siendo consola (solo
+  se ve lo que pasa por `send_command`); si ese Claude se cierra, el panel sigue contándose como
+  Claude hasta que se le teclee otro o se cierre con `close_pane` (su escalón no cambia: sale del
+  comando de nacimiento); y el apunte vive en memoria, así que tras reiniciar Adeorq (con las
+  terminales en su proceso aparte siguen vivas) ese Claude vuelve a ser consola. Una consola con un
+  prompt a medida (starship, oh-my-posh, fish: `❯`, `λ`, `> `) no casa con `espera_una_orden` y su
+  `claude` no se apunta nunca: falla por el lado prudente, y la respuesta lo dice.
+- **Medido:** `cargo test --lib tecleado una_consola esfuerzo`, `pnpm bancos supremo` (rojo con
+  la línea de siempre, verde con la tecleada) y `node scripts/laboratorio/compactarme-de-verdad.mjs
+  <fotos> [exe] --consola`, con un Claude Code 2.1.326 de verdad contra una API de mentira: con el
+  binario de main, 8 MAL («En tu terminal no corre Claude Code»); con el arreglo, 16 de 16, incluido
+  que un «claude …» reenviado al Claude que ya corre no se apunta. Sin
+  `--consola`, el mismo laboratorio abre el Claude con `effort: "max"`: main nace en «medium» y
+  el arreglo en «max».
+
 ## La hija dice cómo acabó y la madre se entera sin mirar: `entregar` (2026-11-15)
 
 Era el paso 5 de abajo y el único punto en que los rivales iban por delante
@@ -296,7 +339,8 @@ Era el paso 5 de abajo y el único punto en que los rivales iban por delante
 - **La madre se entera** (`lib/vueltaArriba.ts`, puro, y `vueltaArribaVivo.ts`, montado desde la
   campana): quién es hija de quién lo apunta `puenteMcp.ts` al abrir (`p.quien`). A la cola de la
   madre van la entrega, «paró sin entregar» (un minuto en «lista» sin haber entregado desde que
-  empezó a trabajar), «se paró a preguntar» (un menú, o acabar preguntando sin haber entregado)
+  empezó a trabajar y sin trabajo de fondo vivo: ver abajo), «se paró a preguntar» (un menú, o
+  acabar preguntando sin haber entregado)
   y «se cerró» (la X, o su proceso terminó; si la cierra su madre con `close_pane`, no). Cada 3 s,
   a la madre con cola se le teclea UNA línea (`sendPty`, Intro aparte) si está sin subagentes,
   sin nada en pantalla que diga que trabaja y con su caja vacía, leída por el lector de su CLI
@@ -334,6 +378,43 @@ Era el paso 5 de abajo y el único punto en que los rivales iban por delante
   false`). NO PROBADO: Gemini con `ui.useBackgroundColor` apagado (otro marco: dice que no) y un
   panel tan estrecho que parta su frase de ejemplo. **Otra madre (Kimi, Qwen…)** no recibe la
   línea: 🔓 cuando su caja se mida igual y entre en `cajaEnPantalla`.
+- **Esperar un proceso propio no es parar (2026-11-18).** Dos hijas que acabaron su turno para
+  esperar un `cargo test` de fondo salieron como «paró sin entregar», y el pie invitaba a cerrarlas.
+  Ahora `trabajoDeFondoEnPantalla` (`vueltaArriba.ts`) lee de su pantalla si le queda algo vivo, y
+  con eso o con `agentsLive` el minuto vuelve a empezar en cada mirada: cuenta desde que ese trabajo
+  acabó. Un aviso ya en cola se retira si deja de ser verdad (`aunParadas`). **Claude Code 2.1.327**,
+  medido con casa propia y API de mentira a 78 y 44 columnas: `1 shell` en el pie, `· 1 shell still
+  running` en la línea del último turno y, con un subagente en segundo plano (que `agentsLive` no
+  cuenta, porque su acuse llega al instante), `✻ Waiting for 1 background agent to finish`. Solo vale
+  el último `✻`, y el «Waiting for» solo si no hay ningún mensaje (`●`, y `⏺` en macOS, leído en su
+  binario) entre él y la caja: el agente vuelve, la hija despierta, y si la API falla (429, medido)
+  Claude Code no pinta otro `✻`, salvo que quede otro subagente fuera, que entonces sí pinta `✻ Waiting
+  for 1 background agent to finish` (medido). `1 monitor`, `1 team` y `2 background tasks` están leídos
+  en su binario, sin medir. El `← 5 agents` del pie sale siempre y
+  no es señal. **Codex 0.165**: la fila `  N background terminal(s) running · /ps…` encima de su caja,
+  leída en su código y su binario, NO PROBADO en una pantalla de verdad; un mensaje que cite esa fila
+  entera justo encima de la caja se lee igual. Gemini y los demás no dejan su turno en disco, nunca
+  llegan a «lista» y no se cuentan como paradas. Una terminal sacada a su ventana no tiene xterm que
+  leer (`xtermDe` da `null`): se avisa como si no tuviera fondo.
+- **El trabajo de fondo que no acaba tiene tope (2026-11-18).** Un `pnpm dev` encendido también es
+  `1 shell`, y `open_pane` promete que la madre se entera si la hija para sin entregar. A los 20 min
+  (`TOPE_FONDO_MS`) se le cuenta una sola vez: «sigue con trabajo de fondo desde hace 20 min; no ha
+  entregado», sin ofrecer `close_pane`; los minutos se cuentan al teclear, porque la madre puede
+  tardar horas en poder recibirla. El contador vuelve a cero cuando la hija se pone a trabajar o
+  cuando de verdad para; una mirada suelta sin fondo no lo reinicia. Como un monitor puede despertarla
+  cada poco y esos turnos breves reinician ese contador, hay otra cuenta desde su última entrega: a
+  los 60 min (`TOPE_TOTAL_FONDO_MS`) se avisa una vez si no se había avisado ya. Solo la reinician
+  entregar, parar de verdad o pasar más de 20 min sin verle fondo. Avisada una vez, un turno breve no
+  repite el aviso a los 20 min; y un aviso retirado de la cola antes de que nadie lo leyera se rearma
+  (`rearmarFondoRetirado`). Límites aceptados: un segundo fondo lanzado en un turno breve, tras el
+  aviso del primero, no da otro aviso, porque la madre ya sabe que esa hija sigue sin entregar; y un
+  trabajo largo de verdad, de más de 20 min, seguido de más de 20 min de fondo avisa una vez por ciclo.
+- **El pie de la línea (2026-11-18)** manda a `read_pane_screen` (el transcript de un Claude Code a
+  pantalla completa son bytes de repintado), con singular y plural, y solo ofrece `close_pane` a la
+  que entregó «hecho» y no está ahora con algo (`sigueConAlgo` en `vueltaArribaVivo.ts`: trabajando o
+  con trabajo de fondo): «Mírala con read_pane_screen antes de cerrarla: puede no haber acabado.» Si
+  todas las de la cola ya se cerraron, no lleva pie. El cable se mide en `pnpm bancos vuelta-arriba`
+  (`scripts/vuelta-arriba-vivo-check.ts`, con el módulo de verdad y xterm y Tauri de mentira).
 
 ## La hija de una terminal en copia aparte nace en esa copia, y la dueña no se cierra con trabajo dentro (2026-11-15)
 

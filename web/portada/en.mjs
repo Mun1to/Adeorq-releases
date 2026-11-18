@@ -45,7 +45,7 @@ export default {
   'hero.linea1': 'All your agents,',
   'hero.linea2': 'on one single screen',
   'hero.entrada':
-    'Claude Code, Codex, Gemini and eight other clients <b class="clave">working at once</b>, each in its own ' +
+    'Claude Code, Codex, Gemini and <span data-cifra-otros>eight</span> other clients <b class="clave">working at once</b>, each in its own ' +
     '<b class="clave">real terminal</b>, with your projects one click away. You hand over the job and they get to work.',
   'descarga.windows': 'Download for Windows',
   'descarga.gratis': 'free, no account',

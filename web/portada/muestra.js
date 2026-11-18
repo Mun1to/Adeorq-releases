@@ -152,7 +152,7 @@ function abrirEnLaDemo(vista, intentos = 40) {
    interior y la ventana quedaba 280 px más abajo, cortada por el borde de la
    pantalla. Se mueve solo la página, hasta dejar la ventana centrada en el
    hueco que queda bajo la barra. Sin `behavior`: manda el `scroll-behavior` de
-   portada.css, que ya se apaga con `prefers-reduced-motion`. */
+   portada.css, que ya se apaga con `prefers-reduced-motion` y con `?motion=off`. */
 function subirALaVentana() {
   const ventana = document.getElementById('ventana')
   if (!ventana) return false

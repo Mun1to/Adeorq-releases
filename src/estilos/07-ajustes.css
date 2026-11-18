@@ -753,8 +753,8 @@
 }
 
 /* Lo que respira deja de respirar cuando se pide rendimiento, como el halo del
-   panel que te espera y el ecualizador de la música. El botón sigue encendido
-   con su color: se pierde la onda, no la información. */
+   panel que te espera. El botón sigue encendido con su color: se pierde la onda,
+   no la información. */
 :root[data-rendimiento="1"] .stream-toggle[data-on="true"]::before,
 :root[data-rendimiento="1"] .stream-toggle[data-on="true"]::after {
   animation: none;

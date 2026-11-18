@@ -129,6 +129,13 @@ export function listProjects(): Promise<Project[]> {
   return invoke("list_projects", { raiz: p.raiz, sinRaiz: p.sinRaiz, extras: p.extras });
 }
 
+/** Cada cuánto relee la barra los proyectos, con su propio latido. Leerlos cuesta una carpeta y un
+    `.git` por proyecto, que no es nada al lado de barrer `~/.claude` (eso va a 45 s). Con esos
+    45 s, un proyecto que acababa de crear un agente tardaba casi un minuto en salir, y Munir lo
+    quiere a la vista al momento (2026-11-17: «que al crear un proyecto aparezca
+    instantáneamente a la izquierda»). */
+export const PROYECTOS_CADA_MS = 3_000;
+
 /** La lista nueva solo si ha cambiado algo: la barra relee los proyectos en cada latido
     (una carpeta nueva, como Moods el 2026-11-17, no salía hasta reiniciar o pulsar ↻), y
     devolver la misma lista hace que nada de lo que cuelga de ella se recalcule. */

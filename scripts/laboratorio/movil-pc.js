@@ -58,7 +58,9 @@ async (page) => {
       filaCaja: caja(".caja:not([hidden]) .fila-caja"),
       avisoDec: caja("#aviso-dec"),
       pregunta: caja(".pregunta-d"),
-      enviarDec: caja(".enviar-dec"),
+      // Los botones de abajo de una decisión: «Siguiente» pregunta a pregunta y «Enviar respuesta» en el repaso.
+      siguienteDec: caja("#paso-sig"),
+      enviarDec: caja("#enviar-dec"),
       pantalla: caja("#pantalla"),
       letraPantalla: (() => { const p = document.getElementById("pantalla"); return p ? parseFloat(getComputedStyle(p).fontSize) : null; })(),
       fotoMini: caja(".foto-op .mini"),
@@ -162,7 +164,13 @@ async (page) => {
     const d = (r.decision = await medir(page));
     await foto(`pc-${p}-decision`);
     debe(columna(d, d.pregunta), `${p}: una decisión, en la columna (${JSON.stringify(d.pregunta)})`);
-    debe(!!d.enviarDec && d.enviarDec.w <= 860, `${p}: «Enviar respuesta» no cruza la pantalla (${JSON.stringify(d.enviarDec)})`);
+    debe(!!d.siguienteDec && d.siguienteDec.w <= 860, `${p}: «Siguiente» no cruza la pantalla (${JSON.stringify(d.siguienteDec)})`);
+    // Hasta el repaso, que es donde está «Enviar respuesta»: una opción por
+    // pregunta y su pausa, que recién cambiada la pantalla no atiende toques.
+    for (const q of ["A", "B"]) { await page.click(`.pregunta-d[data-q="${q}"] .opcion`); await espera(1100); }
+    const rep = (r.repaso = await medir(page));
+    debe(!!rep.enviarDec && rep.enviarDec.w <= 860, `${p}: «Enviar respuesta», en el repaso, no cruza la pantalla (${JSON.stringify(rep.enviarDec)})`);
+    debe(!rep.seSale, `${p}: nada se sale de lado en el repaso de una decisión`);
 
     // Con el cajón fijo, directo; si no (la página de antes), se abre primero.
     if (!(await medir(page)).cajonSeVe) {

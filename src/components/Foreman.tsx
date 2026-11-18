@@ -1295,8 +1295,20 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir, enLa
             value={text}
             disabled={phase === "thinking"}
             onChange={(e) => setText(e.currentTarget.value)}
-            // Una captura con Ctrl+V: a disco, y su ruta aquí (`lib/pegarImagen.ts`).
-            onPaste={(e) => alPegarEnCaja(e, (v) => setText(v), (m) => setError(m))}
+            // Una captura con Ctrl+V: a disco, y su ruta aquí (`lib/pegarImagen.ts`). El fallo
+            // se dice debajo sin tocar la fase (con un plan en marcha, volver a «error» le
+            // devolvía los botones), y el siguiente pegado bueno lo quita: solo ese, no el
+            // de un plan que falló.
+            onPaste={(e) =>
+              alPegarEnCaja(
+                e,
+                (v) => {
+                  setText(v);
+                  setError((x) => (x.startsWith(t("No pude pegar la imagen: {e}", { e: "" })) ? "" : x));
+                },
+                (m) => setError(t("No pude pegar la imagen: {e}", { e: m })),
+              )
+            }
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -1489,7 +1501,9 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir, enLa
             </div>
           )}
           {vozError && <p className="np-err">{vozError}</p>}
-          {phase === "error" && <p className="np-err">{error}</p>}
+          {/* Cualquier fallo, no solo el de la fase «error»: Preguntar y Mejorar no la
+              ponen, y su error se guardaba sin que nadie lo viera. */}
+          {error && <p className="np-err">{error}</p>}
 
           {/* Lo que hizo el automático la última vez. Está aquí porque una
               decisión que se toma sola y no se puede leer después no se puede

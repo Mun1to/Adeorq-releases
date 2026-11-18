@@ -17,12 +17,15 @@ import { datosPanel, sendPty } from "./pty";
 import { xtermDe } from "./terminales";
 import {
   alCambiarHijas,
+  aunParadas,
   cabe,
   encolar,
   lineaPara,
   MIRAR_MS,
   paradasSinEntregar,
   puedeTeclear,
+  rearmarFondoRetirado,
+  trabajoDeFondoEnPantalla,
   type AvisoArriba,
   type EstadoEntrega,
   type Hija,
@@ -119,10 +122,22 @@ function trabajaLaMadre(m: number): boolean {
   return enPantalla(term, trabajaEnPantalla) || (!!lector && enPantalla(term, lector.trabaja));
 }
 
+/** Si la hija `id` espera algo suyo: subagentes fuera, o lo que dice su pantalla. */
+function conTrabajoDeFondo(id: number): boolean {
+  if ((useCabina.getState().estados[id]?.agentsLive ?? 0) > 0) return true;
+  return enPantalla(xtermDe(id), trabajoDeFondoEnPantalla);
+}
+
+/** Si la hija `id` está ahora mismo con algo: a una así no se le ofrece cerrarla,
+    aunque su entrega de antes dijera «hecho». */
+function sigueConAlgo(id: number): boolean {
+  return useCabina.getState().estados[id]?.state === "a_medias" || conTrabajoDeFondo(id) || enPantalla(xtermDe(id), trabajaEnPantalla);
+}
+
 /** Cada `MIRAR_MS`: las paradas sin entregar, y teclear a quien ya se pueda. */
 function mirar(): void {
   const ahora = Date.now();
-  const r = paradasSinEntregar(hijas, ahora);
+  const r = paradasSinEntregar(hijas, ahora, conTrabajoDeFondo);
   for (const a of r.avisos) avisar(hijas.get(a.hija)?.madre, a);
   hijas = r.hijas;
   // Verla trabajar es lo que se esperaba tras teclearle. En un CLI sin turno en
@@ -147,8 +162,13 @@ function mirar(): void {
   }
   if (!colas.size) return;
   const estados = useCabina.getState().estados;
-  for (const [m, cola] of colas) {
+  for (const [m, enCola] of colas) {
     const st = estados[m];
+    const cola = aunParadas(enCola, hijas);
+    if (cola.length !== enCola.length) {
+      colas.set(m, cola);
+      hijas = rearmarFondoRetirado(hijas, enCola.filter((a) => !cola.includes(a)));
+    }
     if (!cola.length || !st) {
       colas.delete(m);
       quietas.delete(m);
@@ -180,7 +200,7 @@ function mirar(): void {
     if (!cabe(suyos, ahora)) continue;
     enviados.set(m, [...suyos, ahora]);
     tecleadoEn.set(m, ahora);
-    const linea = lineaPara(cola);
+    const linea = lineaPara(cola, sigueConAlgo, ahora);
     atascadas.set(m, { linea, n: 0 });
     void sendPty(m, linea).catch(() => {});
   }

@@ -382,7 +382,7 @@ fn una_vuelta(app: &tauri::AppHandle) {
         if crate::pty::cerrada_a_mano(id) || es_de_programado(&madre) {
             continue;
         }
-        let Some(f) = crate::pty::ficha(app, id) else { continue };
+        let Some(f) = crate::mcp::la_ficha(app, id) else { continue };
         let Some(cmd) = f.command.clone() else { continue };
         if !crate::rastros::es_claude(&cmd) {
             continue;

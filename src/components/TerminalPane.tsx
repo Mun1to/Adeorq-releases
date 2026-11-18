@@ -6,6 +6,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import { colaDeTamanos, type ColaDeTamanos } from "../lib/tamanoPty";
 import { apuntarDiagnostico, describirPanel } from "../lib/diagnosticoPanel";
 import { repararBufer } from "../lib/xtermReparar";
+import { lineaQueCuenta, useClaudeTecleado } from "../lib/claudeTecleado";
 import { SearchAddon } from "@xterm/addon-search";
 import {
   anotarRastro,
@@ -885,7 +886,9 @@ export default function TerminalPane({
     aplicar();
     if (cambiaFuente) requestAnimationFrame(aplicar);
   };
-  const joined = command?.join(" ") ?? "";
+  // Un `claude` tecleado en una consola cuenta como Claude (`lib/claudeTecleado.ts`).
+  const tecleado = useClaudeTecleado(id);
+  const joined = lineaQueCuenta(command?.join(" ") ?? "", tecleado);
   // The folder's own name, always visible: with nine panes open, "which one is
   // this?" has to be answerable without hovering or reading a path.
   // Windows separa con "\", así que partir solo por "/" no partía nada y el
@@ -935,7 +938,7 @@ export default function TerminalPane({
       id,
       name,
       cwd,
-      agent: !!command,
+      agent: !!command || !!tecleado,
       // El transcript PRIMERO. Ahí está el `model` con el que el CLI mandó cada
       // mensaje, que es lo que el modelo ES; lo de la pantalla es lo que se
       // leyó por ahí. Estaba al revés, así que una lectura equivocada de la
@@ -957,7 +960,7 @@ export default function TerminalPane({
     if (key === statusRef.current) return;
     statusRef.current = key;
     onStatus(next);
-  }, [onStatus, id, name, cwd, command, exited, ask, needsLogin, brain, ctx, agents.live, sidAprendido, kind]);
+  }, [onStatus, id, name, cwd, command, tecleado, exited, ask, needsLogin, brain, ctx, agents.live, sidAprendido, kind]);
 
   const answerAsk = (n: string, enter: boolean) => {
     void writePty(id, enter ? `${n}\r` : n).catch(() => {});

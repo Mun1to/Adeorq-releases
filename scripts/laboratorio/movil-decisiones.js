@@ -10,9 +10,11 @@
 //     te esperan de verdad (1). Munir tenía seis «pendientes» de terminales cerradas.
 //   · La lista va en dos montones: te esperan y anteriores, que se limpian solas
 //     (2026-10-11: ya no hay botón de «Descartar las N»).
-//   · Ninguna opción marcada al entrar y las dos recomendadas con su etiqueta;
-//     «Deshacer» para el envío; el borrador sobrevive a recargar; enviada y
-//     tecleada en el panel 1; una segunda respuesta, 409.
+//   · Una pregunta por pantalla (2026-11-18): ninguna opción marcada al entrar
+//     y las dos recomendadas con su etiqueta; tocar una opción pasa sola a la
+//     siguiente; el repaso dice lo que falta, enseña lo elegido y dónde cae la
+//     respuesta; «Deshacer» para el envío; el borrador sobrevive a recargar;
+//     enviada, celebrada y tecleada en el panel 1; una segunda respuesta, 409.
 //   · Escribirle a una terminal desde el móvil da por hablada lo que preguntó;
 //     descartar una viva se lo dice a su terminal; una descartada no se contesta.
 //   · El enlace de un aviso abre la contestada; y el botón de modo pasa de
@@ -64,19 +66,49 @@ async (page) => {
   await page.click("#atras");
   await page.waitForSelector("#decisiones .tarjeta");
 
-  // 4. La viva: lo dice, ninguna opción marcada, recomendadas con etiqueta.
+  // 4. La viva: una pregunta por pantalla, ninguna opción marcada, recomendadas
+  //    con etiqueta, y lo que falta no se dice hasta el repaso.
+  const aLaVista = () => page.evaluate(() => ({
+    preguntas: [...document.querySelectorAll(".pregunta-d")].filter((f) => f.offsetParent).map((f) => f.dataset.q).join(""),
+    paso: document.getElementById("dec-paso")?.textContent.trim() ?? "",
+    botones: [...document.querySelectorAll("#pie-dec button")].filter((b) => b.offsetParent).map((b) => `${b.textContent.trim()}${b.disabled ? " (apagado)" : ""}`).join(" | "),
+    estado: document.getElementById("estado-envio")?.textContent ?? "",
+  }));
+  // Recién cambiada, una pantalla de la decisión no atiende toques (medio segundo).
+  const asentar = () => page.waitForTimeout(650);
   await page.click("#decisiones .tarjeta >> nth=0");
   await page.waitForSelector(".pregunta-d");
-  r.avisoViva = await page.textContent(".dec-vig");
-  debe(/Te espera\./.test(r.avisoViva) && /El panel 1 sigue abierto/.test(r.avisoViva), `la viva dice quién la espera («${r.avisoViva}»)`);
+  r.alEntrar = await aLaVista();
+  debe(!(await page.$(".dec-vig")), "de la viva no se avisa arriba: se abre porque te espera");
+  debe(r.alEntrar.preguntas === "A" && r.alEntrar.paso === "Pregunta 1 de 2", `se entra por la primera pregunta, sola (${JSON.stringify(r.alEntrar)})`);
+  debe(r.alEntrar.botones === "Atrás (apagado) | Siguiente" && r.alEntrar.estado === "", `abajo, atrás y siguiente, sin decir aún lo que falta (${JSON.stringify(r.alEntrar)})`);
   r.marcadasAlEntrar = await page.$$eval("input[type=radio]:checked", (x) => x.length);
   r.recomendadas = await page.$$eval(".rec", (x) => x.length);
-  r.estadoAlEntrar = await page.textContent("#estado-envio");
   debe(r.marcadasAlEntrar === 0 && r.recomendadas === 2, `ninguna marcada y dos recomendadas (${r.marcadasAlEntrar}, ${r.recomendadas})`);
-  debe(/Faltan las preguntas A y B/.test(r.estadoAlEntrar), `dice lo que falta («${r.estadoAlEntrar}»)`);
+  // Sin contestar nada, el repaso dice lo que falta y no deja enviar.
+  await asentar(); await page.click("#paso-sig"); await asentar(); await page.click("#paso-sig");
+  await page.waitForSelector("#dec-repaso .dec-fila");
+  r.repasoVacio = { ...(await aLaVista()), filas: await page.$$eval("#dec-repaso .dec-fila", (fs) => fs.map((f) => f.innerText.replace(/\s+/g, " "))) };
+  debe(/Faltan las preguntas A y B/.test(r.repasoVacio.estado) && r.repasoVacio.botones === "Atrás | Enviar respuesta (apagado)", `el repaso dice lo que falta (${JSON.stringify(r.repasoVacio)})`);
+  debe(r.repasoVacio.filas.length === 2 && r.repasoVacio.filas.every((f) => /Sin contestar/.test(f)), `y cada pregunta, sin contestar (${r.repasoVacio.filas})`);
 
-  await page.click('.pregunta-d[data-q="A"] .opcion >> nth=1');
+  // Tocar su fila vuelve a la pregunta; tocar una opción pasa sola a la siguiente.
+  await asentar(); await page.click("#dec-repaso .dec-fila >> nth=0");
+  await asentar(); await page.click('.pregunta-d[data-q="A"] .opcion >> nth=1');
+  await page.waitForSelector("#dec-repaso .dec-fila");
+  r.trasLaA = await aLaVista();
+  debe(/Falta la pregunta B/.test(r.trasLaA.estado), `quien vino del repaso vuelve a él al contestar («${r.trasLaA.estado}»)`);
+  await asentar(); await page.click("#dec-repaso .dec-fila >> nth=1");
   await page.fill('.libre[data-q="B"]', "El botón, pero con el idioma dentro de la hoja");
+  r.conLaB = await aLaVista();
+  debe(r.conLaB.preguntas === "B" && r.conLaB.botones === "Atrás | Repasar", `la B, sola y con «Repasar» (${JSON.stringify(r.conLaB)})`);
+  await asentar(); await page.click("#paso-sig");
+  await page.waitForSelector("#dec-repaso .dec-fila");
+  r.repaso = await page.$$eval("#dec-repaso .dec-fila", (fs) => fs.map((f) => f.innerText.replace(/\s+/g, " ")));
+  r.nota = await page.textContent(".dec-nota");
+  debe(/^A .*2\. /.test(r.repaso[0]) && /idioma dentro de la hoja/.test(r.repaso[1]), `el repaso enseña lo elegido y lo escrito (${r.repaso})`);
+  debe(/se teclea en el panel 1/.test(r.nota) && /5 segundos para deshacer/.test(r.nota), `y dice dónde cae la respuesta («${r.nota}»)`);
+  debe((await page.$$eval("#dec-repaso .masc rect", (x) => x.length)) > 100, "con la mascota pintada");
   await page.click("#enviar-dec");
   await page.waitForTimeout(1200);
   await page.click("#enviar-dec");
@@ -87,7 +119,8 @@ async (page) => {
   await page.click("#abrir-cajon"); await page.click('#cajon .fila[data-ir="decisiones"]');
   await page.waitForSelector("#decisiones .tarjeta");
   await page.click("#decisiones .tarjeta >> nth=0");
-  await page.waitForSelector(".pregunta-d");
+  // Con todo contestado en el borrador, se entra por el repaso.
+  await page.waitForSelector("#dec-repaso .dec-fila");
   r.borrador = await page.evaluate(() => ({
     a: document.querySelector('input[name="q-A"]:checked')?.value,
     b: document.querySelector('.libre[data-q="B"]').value,
@@ -97,7 +130,16 @@ async (page) => {
   await page.waitForFunction(() => /Enviada/.test(document.getElementById("estado-envio")?.textContent || ""), null, { timeout: 12000 });
   r.enviada = await page.textContent("#estado-envio");
   debe(r.enviada === "Enviada. Se ha tecleado en el panel 1.", `enviada y tecleada («${r.enviada}»)`);
-  debe(!(await page.isVisible("#enviar-dec")) && !(await page.isVisible("#descartar-dec")), "contestada, ya no hay ni enviar ni descartar");
+  debe(!(await page.isVisible("#enviar-dec")) && !(await page.isVisible("#descartar-aqui")) && !(await page.isVisible("#paso-sig")), "contestada, ya no hay ni enviar ni descartar ni pasos");
+  // Lo enviado se celebra, y queda a la vista lo que se eligió.
+  r.quedo = await page.evaluate(() => ({
+    titulo: document.querySelector(".dec-titulo")?.textContent.trim() ?? "",
+    mascota: document.querySelectorAll('.dec-titulo .masc[data-animo="lista"] rect').length,
+    dicho: [...document.querySelectorAll(".pregunta-d .dec-dicho")].map((x) => x.textContent),
+    radios: document.querySelectorAll("#decision input").length,
+  }));
+  debe(r.quedo.titulo === "Enviada" && r.quedo.mascota > 100, `enviada, con Adeo celebrándolo (${JSON.stringify(r.quedo)})`);
+  debe(r.quedo.dicho.length === 2 && /^2\. /.test(r.quedo.dicho[0]) && /idioma dentro de la hoja/.test(r.quedo.dicho[1]) && r.quedo.radios === 0, `y lo elegido, para leer y sin nada que marcar (${JSON.stringify(r.quedo)})`);
   r.escrito = await escritoEn(1);
   debe(/Munir ha contestado a «Diseño de la web»/.test(r.escrito || ""), `la respuesta llega al panel 1 («${r.escrito}»)`);
   r.otraVez = (await page.request.post(`${B}/api/decision/responder`, { headers: AUT, data: { id: "d19a2b3c4d5", elecciones: { A: { opcion: 1 }, B: { opcion: 1 } } } })).status();
@@ -127,8 +169,15 @@ async (page) => {
   await page.request.post(`${B}/api/sembrar-decision`, { headers: AUT, data: { id: "d19a2b3c4e0", titulo: "¿Publico ya?", proyecto: "Webs", panel: 4 } });
   await page.goto(`${B}/#decision=d19a2b3c4e0`);
   await page.waitForSelector(".pregunta-d");
-  debe(/El panel 4 sigue abierto/.test(await page.textContent(".dec-vig")), "la recién pedida por el panel 4 está viva");
-  await page.click("#descartar-dec");
+  // Viva y de una sola pregunta: sin aviso arriba, sin pasos, y con «Descartar» debajo, a dos toques.
+  debe(!(await page.$(".dec-vig")) && !(await page.$("#dec-paso")) && !(await page.isVisible("#paso-sig")), "la recién pedida por el panel 4 está viva, y con una sola pregunta no hay pasos");
+  // «Descartar» tarda un segundo en atender desde que sale la pantalla, como «Enviar» en el repaso.
+  await page.waitForTimeout(1150);
+  await page.click("#descartar-aqui");
+  r.armado = { rotulo: (await page.textContent("#descartar-aqui")).trim(), vigencia: (await (await page.request.get(`${B}/api/decision?id=d19a2b3c4e0`, { headers: AUT })).json()).vigencia };
+  debe(r.armado.rotulo === "Toca otra vez" && r.armado.vigencia === "viva", `el primer toque solo arma el botón (${JSON.stringify(r.armado)})`);
+  await page.waitForTimeout(900);
+  await page.click("#descartar-aqui");
   await page.waitForFunction(() => /Descartada/.test(document.getElementById("estado-envio")?.textContent || ""), null, { timeout: 8000 });
   r.descartada = await page.textContent("#estado-envio");
   debe(r.descartada === "Descartada. Se le ha dicho al panel 4 que no espere respuesta.", `descartar una viva avisa («${r.descartada}»)`);

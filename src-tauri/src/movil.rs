@@ -1598,6 +1598,7 @@ pub fn atender(
         // terminal que preguntó solo si es del mismo arranque de Adeorq: en
         // otro, ese número de panel puede ser ya otra terminal. Cada una lleva
         // su `vigencia`: si alguien la espera todavía o su terminal ya no está.
+        // La entera dice además si contestarla ahora se teclearía (`se_teclea`).
         ("GET", "/api/decisiones") => match casa.decisiones() {
             Ok(dir) => {
                 let (arranque, abiertos) = (casa.arranque(), casa.paneles_abiertos());
@@ -1619,10 +1620,24 @@ pub fn atender(
         ("GET", "/api/decision") => {
             let id = p.consulta.get("id").map(String::as_str).unwrap_or("");
             match casa.decisiones().ok().and_then(|dir| crate::decisiones::leer(&dir, id)) {
-                Some(d) => Respuesta::json(
-                    200,
-                    json!(crate::decisiones::con_vigencia(d, casa.arranque(), &casa.paneles_abiertos())),
-                ),
+                Some(d) => {
+                    let (arranque, abiertos) = (casa.arranque(), casa.paneles_abiertos());
+                    // Dónde caerá la respuesta lo dice quien la va a teclear: la
+                    // página lo deducía de la vigencia y a una hablada le decía
+                    // que no se teclearía cuando sí.
+                    let se_teclea = crate::decisiones::se_teclearia(&d, arranque, &abiertos);
+                    let mut v = json!(crate::decisiones::con_vigencia(d, arranque, &abiertos));
+                    v["se_teclea"] = json!(se_teclea);
+                    // Con `si`, como `/api/sesion`: abierta en el móvil se vigila
+                    // cada 6 s, y casi siempre está igual.
+                    let firma = firma_de(&v);
+                    if p.consulta.get("si") == Some(&firma) {
+                        Respuesta::json(200, json!({ "firma": firma, "igual": true }))
+                    } else {
+                        v["firma"] = json!(firma);
+                        Respuesta::json(200, v)
+                    }
+                }
                 None => Respuesta::error(404, "Esa decisión ya no está."),
             }
         }
@@ -2933,6 +2948,16 @@ mod tests {
         assert_eq!(vigencias(), ["Me espera=viva", "Su terminal se cerró=huerfana", "De otro arranque=huerfana"]);
         let una = cuerpo_de(&atender(&pedir("GET", &format!("/api/decision?id={}", cerrada.id), c, ""), &g, &casa, &nada, reloj));
         assert_eq!((una["vigencia"].clone(), una["titulo"].clone()), (json!("huerfana"), json!("Su terminal se cerró")));
+        // Si su respuesta se teclearía lo dice el PC: la de una terminal abierta
+        // de este arranque sí; la de una cerrada y la de otro arranque, no.
+        let se_teclea = |id: &str| {
+            cuerpo_de(&atender(&pedir("GET", &format!("/api/decision?id={id}"), c, ""), &g, &casa, &nada, reloj))["se_teclea"].clone()
+        };
+        assert_eq!((se_teclea(&viva.id), se_teclea(&cerrada.id), se_teclea(&de_ayer.id)), (json!(true), json!(false), json!(false)));
+        // Con `si`, solo «igual» mientras no cambie: abierta en el móvil se vigila cada 6 s.
+        let firma = una["firma"].as_str().unwrap().to_owned();
+        let con_firma = || cuerpo_de(&atender(&pedir("GET", &format!("/api/decision?id={}&si={firma}", cerrada.id), c, ""), &g, &casa, &nada, reloj));
+        assert_eq!(con_firma(), json!({ "firma": firma.clone(), "igual": true }));
 
         let descarta = |id: &str| {
             atender(&pedir("POST", "/api/decision/descartar", c, &json!({ "id": id }).to_string()), &g, &casa, &nada, reloj)
@@ -2959,6 +2984,8 @@ mod tests {
         };
         assert_eq!(responde(&viva.id).estado, 400);
         assert_eq!(responde(&cerrada.id).estado, 200);
+        let cambiada = con_firma();
+        assert!(cambiada.get("igual").is_none() && cambiada["respuesta"].is_object() && cambiada["firma"] != json!(firma.clone()), "contestada, ya no es igual: {cambiada}");
         assert_eq!(descarta(&cerrada.id).estado, 409);
         assert_eq!(atender(&pedir("GET", "/api/decision/descartar", c, ""), &g, &casa, &nada, reloj).estado, 405);
 

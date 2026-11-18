@@ -1396,9 +1396,17 @@ notifications, **Test notification** and **Remove**.
 - **Opening sessions on the PC**: **New session here** per project, **Another
   project…** and continuing an earlier session. Only in folders that are projects of
   yours and with known programs.
-- **Decisions**: you answer with an option or with words, with five seconds to undo
-  and **Discard**. The ones that are no longer waiting go to *Earlier* and are deleted
-  after a week.
+- **Decisions**: one question per screen. You tap an option and it moves on to the
+  next one by itself, or you write in your own words and press **Next**; at the end
+  you review what you chose (tapping a row goes back to that question) and send, with
+  five seconds to undo: during them, going back to a question or changing anything
+  stops the send and tells you so; leaving the decision sends it. Before you send, it
+  tells you where the answer lands: typed into the terminal that asked, or only saved.
+  A screen that has just changed takes half a second to accept taps, so a double tap
+  does not land on what has just appeared. **Clear my choice**
+  removes an option tapped by mistake, and **Discard this decision**, below each
+  screen, asks for a second tap. The ones that are no longer waiting go to *Earlier*
+  and are deleted after a week.
 - **The phone's own Settings** (saved on that device): the background, the colours, the
   type and how Adeo moves, which sections show on the home screen and in what order,
   the notifications and **Install Adeorq as an app on this device**.

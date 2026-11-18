@@ -9,7 +9,8 @@
 //
 // El plano entero está en `docs/SUPREMA.md`.
 
-import { IDS, PROVIDERS } from "./providers";
+import { IDS, PROVIDERS, proveedorDe } from "./providers";
+import { ESFUERZOS, type Esfuerzo } from "./router";
 
 /** Lo que llega por el evento `mcp:pedido`. Todo opcional menos lo primero:
  *  viene de un modelo, así que se valida aquí y no se da nada por hecho. */
@@ -29,6 +30,9 @@ export interface PedidoMcp {
    *  predeterminada que mide su freno. */
   elegir?: boolean;
   model?: string;
+  /** Cuánto piensa: una de las cinco palabras de la casa (`ESFUERZOS`). La
+   *  valida Rust (`esfuerzo_para_agente`), y aquí `esfuerzoPedido` otra vez. */
+  effort?: string;
   /** De qué panel colgar el nuevo, cuando el agente quiere el árbol hecho. */
   from?: number | null;
   /** El panel del agente que lo pide, si su puente lo presentó: lo pone Rust,
@@ -50,6 +54,9 @@ export interface PedidoMcp {
    *  (`close_pane`). Rust ya comprobó que existe, pero llega de un modelo
    *  igual que el resto: aquí tampoco se da por bueno sin mirar. */
   paneId?: number;
+  /** `claude_tecleado`: la línea de Claude Code que se le tecleó a esa consola,
+   *  ya con su `--session-id` (`mcp/tecleado.rs`). Lo pone Rust. */
+  command?: unknown;
   /** `close_pane` de un relevo por cuota (`lib/relevoCuota.ts`): su conversación
    *  sigue en la nueva, así que no se olvida que es delegada. Lo pone Rust. */
   relevo?: boolean;
@@ -126,6 +133,19 @@ export function cliPedido(bruto?: string): { cli: string } | { error: string } {
   return {
     error: `No conozco el CLI «${bruto}». Los que hay son: ${[...CLIS_CONOCIDOS].join(", ")}.`,
   };
+}
+
+/**
+ * Con cuánto esfuerzo nace, si lo pidió: solo si la tabla le conoce la bandera
+ * (`banderaEsfuerzo`), y si no nace con el suyo y `aviso` lo dice. Hasta el 2026-11-17 `open_pane` no lo
+ * aceptaba, y un «Opus max» se abría tecleando `claude --effort max` en una
+ * consola, que Adeorq no reconoce como Claude: no se compactaba sola.
+ */
+export function esfuerzoPedido(cli: string, bruto?: string): { esfuerzo?: Esfuerzo; aviso?: string } {
+  const v = (bruto ?? "").trim().toLowerCase();
+  if (!v || !(ESFUERZOS as readonly string[]).includes(v)) return {};
+  if (proveedorDe(cli)?.banderaEsfuerzo) return { esfuerzo: v as Esfuerzo };
+  return { aviso: `Ese CLI no admite el esfuerzo al arrancar, así que «${v}» no se le ha pasado: nace con el suyo.` };
 }
 
 /**
@@ -207,7 +227,7 @@ export function parteDeApertura(a: {
   if (!a.conEncargo) {
     lineas.push(
       escribe
-        ? `«${a.cli}» no admite el encargo al arrancar, así que ha nacido vacía: mándaselo tú con send_command(${a.paneId}, "...") en cuanto veas por read_pane_transcript que ya está lista, y pídele en él que al acabar llame a entregar.`
+        ? `«${a.cli}» no admite el encargo al arrancar, así que ha nacido vacía: mándaselo tú con send_command(${a.paneId}, "...") en cuanto veas por read_pane_screen que ya está lista, y pídele en él que al acabar llame a entregar.`
         : `«${a.cli}» no admite el encargo al arrancar, así que ha nacido vacía, y tú no puedes escribir en ella: tendrá que dárselo quien usa Adeorq.`,
     );
   }
@@ -227,8 +247,8 @@ export function parteDeApertura(a: {
   // mirar la pantalla es parte de abrir.
   lineas.push(
     escribe
-      ? `Míralo con read_pane_transcript(${a.paneId}) antes de darla por trabajando: si se ha parado a preguntarte algo, está esperando, no pensando, y se le contesta con send_command(${a.paneId}, "1").`
-      : `Míralo con read_pane_transcript(${a.paneId}) antes de darla por trabajando: si se ha parado a preguntar algo, está esperando, no pensando, y tiene que contestarle quien usa Adeorq.`,
+      ? `Míralo con read_pane_screen(${a.paneId}) antes de darla por trabajando: si se ha parado a preguntarte algo, está esperando, no pensando, y se le contesta con send_command(${a.paneId}, "1").`
+      : `Míralo con read_pane_screen(${a.paneId}) antes de darla por trabajando: si se ha parado a preguntar algo, está esperando, no pensando, y tiene que contestarle quien usa Adeorq.`,
   );
   return lineas.join(" ");
 }

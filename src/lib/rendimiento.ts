@@ -13,8 +13,8 @@
 //     costar y todavía se distingue de un panel plano;
 //   · las terminales dejan de ser transparentes (siguen con el color de su
 //     tema, pero sólido), que es el gasto de fondo debajo de todo;
-//   · lo que respira deja de respirar: el halo del panel que te espera y el
-//     ecualizador de la música.
+//   · lo que respira deja de respirar: el halo del panel que te espera. El
+//     ecualizador de la música sigue, a pasos (`19-temas.css`).
 //
 // ── Por qué ya NO nace apagado (2026-08-09) ─────────────────────────────────
 //

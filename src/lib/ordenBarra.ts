@@ -47,7 +47,8 @@ export interface Colocable {
  *
  * Que lo nuevo vaya DETRÁS y no al final del todo por orden alfabético es a
  * propósito: un proyecto recién creado tiene que verse, no esconderse debajo de
- * treinta que ya estaban.
+ * treinta que ya estaban. Y si nace con la app abierta y hay orden a mano, ni
+ * eso: `useNuevosArriba` (`barraProyectos.ts`) lo mete DELANTE en tu orden.
  *
  * ⚠ La regla 0 y la 1 se contradicen a propósito, y conviene saberlo antes de
  * tocarlas. El 2026-08-06 Munir pidió lo contrario («los proyectos saltan de

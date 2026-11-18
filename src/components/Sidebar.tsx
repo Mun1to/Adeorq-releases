@@ -1,12 +1,13 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { arribaDelTodo, carpetaDe, useNuevosArriba } from "../lib/barraProyectos";
 import {
   EMPTY_UI_STATE,
   deleteSession,
   findAgy,
   detectClis,
   forgetProjectIcons,
-  listProjects, soloSiCambian,
+  listProjects, soloSiCambian, PROYECTOS_CADA_MS,
   loadUiState,
   openInAntigravity,
   projectDirty,
@@ -237,8 +238,6 @@ const GRUPO_FIJADAS: Group = {
   viejasAbiertas: false,
   suelto: true,
 };
-/** La última carpeta de una ruta, que es como se reconoce de un vistazo. */
-const carpetaDe = (ruta: string) => ruta.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || ruta;
 /** Lo que ocupa la tira. Da para un logo de 44 y sus dos márgenes, que es el
     mínimo en el que una foto de proyecto todavía se reconoce de un vistazo. */
 const TIRA_W = 64;
@@ -424,12 +423,13 @@ export default function Sidebar({
     // que se repite sola, y con la ventana tapada la lista no la mira nadie.
     const parar = latido(() => {
       scanSessions().then(setSessions).catch(() => {});
-      listProjects().then((n) => setProjects((a) => soloSiCambian(a, n))).catch(() => {});
       // Y los rastros: lo que se cierra con la app abierta se archiva aquí, no al reiniciar.
       rastrosCerradas().then(setCerradas).catch(() => {});
     }, SCAN_EVERY_MS);
-    return () => (parar(), window.clearTimeout(reintento));
+    const pararProyectos = latido(() => void listProjects().then((n) => setProjects((a) => soloSiCambian(a, n))).catch(() => {}), PROYECTOS_CADA_MS);
+    return () => (parar(), pararProyectos(), window.clearTimeout(reintento));
   }, [refreshKey]);
+  useNuevosArriba(projects, (nuevos) => mutate((prev) => ({ ...prev, projectOrder: arribaDelTodo(prev.projectOrder, nuevos) })));
 
   // Logos are read from disk once per project and kept in Rust: this fires on
   // every project list change, but a hit costs nothing.

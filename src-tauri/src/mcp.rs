@@ -617,6 +617,8 @@ use crate::pty::{escribir_en_panel, mandar_texto, ESPACIO_ENTRE_TECLAS};
 /// Lo que se le da a Claude Code para pintar la caja tras el Intro antes de
 /// mirar si el texto se quedó en ella.
 const ESPERA_TRAS_INTRO: Duration = Duration::from_millis(700);
+/// Cuántas veces se mira, con esa espera, antes de dar el texto por atascado.
+const MIRADAS_TRAS_INTRO: usize = 4;
 
 /// Lo que manda una terminal por cada tecla con nombre, o nada si no la conoce.
 pub fn tecla(nombre: &str) -> Option<Vec<u8>> {
@@ -682,19 +684,12 @@ fn texto_de_pantalla(pane_id: u32, filas: &[String]) -> String {
 /// again to expand»); enviado, la caja es «❯» a secas. Sin glifo a la vista
 /// quedan los avisos que Claude Code pinta debajo de la caja.
 pub fn se_quedo_en_la_caja(pantalla: &[String]) -> bool {
-    // El glifo es `❯` en el renderizador fullscreen y `> ` en el clásico
-    // (`RC="> "` en su binario); un `>>` o un `>=` no son una caja.
-    fn caja(l: &str) -> Option<&str> {
-        let t = l.trim_start();
-        let resto = t.strip_prefix('❯').or_else(|| t.strip_prefix('>'))?;
-        (resto.is_empty() || resto.starts_with(' ')).then(|| resto.trim())
-    }
     // «2.  Opus 5.5»: lo que va detrás del glifo cuando es el cursor de un menú.
     fn opcion(t: &str) -> bool {
         let digitos = t.chars().take_while(char::is_ascii_digit).count();
         (1..=2).contains(&digitos) && t[digitos..].starts_with(". ")
     }
-    if let Some((fila, dentro)) = pantalla.iter().rev().find_map(|l| caja(l).map(|d| (l, d))) {
+    if let Some((fila, dentro)) = pantalla.iter().rev().find_map(|l| fila_de_caja(l).map(|d| (l, d))) {
         // Un menú abierto (el de `/model`, medido el 2026-10-15) pinta su
         // cursor con el mismo glifo que la caja: «  ❯ 2.  Opus 5.5 ✔». Se
         // distingue en que va SANGRADO (la caja empieza en la columna 0) y en
@@ -705,14 +700,32 @@ pub fn se_quedo_en_la_caja(pantalla: &[String]) -> bool {
         if sangrada && opcion(dentro) && pantalla.iter().filter(|l| opcion(l.trim_start())).count() >= 2 {
             return false;
         }
-        // Vacía, o con la sugerencia atenuada que pinta cuando no hay nada.
-        return !dentro.is_empty() && !dentro.starts_with("Try \"");
+        // Vacía, con la sugerencia atenuada que pinta cuando no hay nada, o con
+        // el letrero de lo que espera en su cola, que ya salió de la caja.
+        return !dentro.is_empty() && !dentro.starts_with("Try \"") && !dentro.starts_with(LETRERO_DE_COLA);
     }
     let abajo: Vec<&str> = pantalla.iter().rev().take(8).map(String::as_str).collect();
     let abajo = abajo.join("\n");
     abajo.contains("press Enter to send")
         || abajo.contains("paste again to expand")
         || abajo.contains("invisible character")
+}
+
+/// Lo que pinta Claude Code en su caja mientras un mensaje espera a que acabe su
+/// turno. En un panel estrecho se parte, por eso va solo el principio.
+const LETRERO_DE_COLA: &str = "Press up to edit";
+
+/// Lo escrito en una fila de la caja. El glifo es `❯` en el renderizador fullscreen
+/// y `> ` en el clásico (`RC="> "` en su binario); un `>>` o un `>=` no son una caja.
+fn fila_de_caja(l: &str) -> Option<&str> {
+    let t = l.trim_start();
+    let resto = t.strip_prefix('❯').or_else(|| t.strip_prefix('>'))?;
+    (resto.is_empty() || resto.starts_with(' ')).then(|| resto.trim())
+}
+
+/// Claude Code está con un turno y lo mandado espera en su cola: lo leerá al acabar.
+fn quedo_en_cola(pantalla: &[String]) -> bool {
+    pantalla.iter().rev().find_map(|l| fila_de_caja(l)).is_some_and(|d| d.starts_with(LETRERO_DE_COLA))
 }
 
 /// ==========================================================================
@@ -1930,14 +1943,24 @@ fn instrucciones(visibles: &[Value]) -> Option<String> {
         "- What the person sends from Adeorq's phone starts with `{}`; without it, they typed it at the PC. Go by their latest message, and keep the prefix when you relay their words.",
         crate::movil::MARCA_DEL_MOVIL.trim_end()
     );
+    // Munir, 2026-11-19, desde el móvil y con una decisión de diseño cuyas fotos
+    // solo estaban en una página del PC: «Tiene que haber una manera la cual se
+    // puedan ver las imagenes de las decisiones».
+    let de_donde = if ve("ask_decision") {
+        format!(
+            "{de_donde}\n- To choose by looking, give each ask_decision option its `image`."
+        )
+    } else {
+        de_donde
+    };
     if !ve("open_pane") {
         return Some(de_donde);
     }
     let mut t = String::from(
         "You are running inside Adeorq, a desktop app of real terminals, and this server lets you open more of them, each with its own agent. Use that to finish big work sooner:\n\
-         - Split to work in parallel, not to hand work away. Look for pieces that touch different files and do not wait on each other (another area, a review). Open one terminal per piece with open_pane and keep one piece for yourself plus what they share: a new terminal spends 100,000 to 200,000 tokens reading the project, so never open one for work you would sit and wait on.\n\
+         - Split to work in parallel, not to hand work away. Look for pieces that touch different files and do not wait on each other. Open one terminal per piece with open_pane and keep one piece for yourself plus what they share: a new terminal spends 100,000 to 200,000 tokens reading the project, so never open one for work you would sit and wait on.\n\
          - Do not split one line of thought (a single bug, one file) or pieces that edit the same files: two agents on one file overwrite each other. A lookup whose answer is for you goes to a subagent of your own CLI, not to a terminal.\n\
-         - Each brief stands on its own: the goal, the files it owns, what it must not touch, how to check its work, and where to leave its result (if the project keeps a BUZON.md or another handoff file, put the whole brief there too). Give each terminal a short name.\n\
+         - Each brief stands on its own: the goal, the files it owns, what it must not touch, how to check its work, and where to leave its result (and the whole brief in its BUZON.md, if any). Give each terminal a short name.\n\
          - Look at what you open with read_pane_screen: a terminal stuck on a question looks the same as one working.",
     );
     if ve("send_command") {
@@ -2328,7 +2351,7 @@ fn herramientas_de_decisiones() -> Vec<Value> {
     let v = json!([
                             {
                                 "name": "ask_decision",
-                                "description": "Asks Munir to decide something, and reaches him wherever he is: it shows up in the Decisions section of his phone (with a notification) and of any browser paired with Adeorq. Use it whenever he has to choose between options (designs, plans, names) instead of only an HTML page on the PC, which he cannot see when he is away. Each question has 2 to 6 numbered options, at most one recommended, and he can always answer in his own words. Pass paneId (your ADEORQ_PANE_ID) and his answer will be typed into your pane when he replies; you can also read it with get_decision. Do not go on with anything that depends on the answer until you have it. If his answer reaches you some other way (pasted by another session, said in your terminal), call close_decision at once, or it keeps waiting for him on his phone. To rewrite a decision, pass replaces with the old id: the old one stops waiting.",
+                                "description": "Asks Munir to decide something, and reaches him wherever he is: it shows up in the Decisions section of his phone (with a notification) and of any browser paired with Adeorq. Use it whenever he has to choose between options (designs, plans, names) instead of only an HTML page on the PC, which he cannot see when he is away. Each question has 2 to 6 numbered options, at most one recommended, and he can always answer in his own words. When the choice is visual (designs, variants, screens, a before and after), give each option its picture with `image`, and a question one too if it helps: he sees them full width on his phone and can open them full screen. The pictures are copied when the decision is created, so a file in your scratchpad is fine. Pass paneId (your ADEORQ_PANE_ID) and his answer will be typed into your pane when he replies; you can also read it with get_decision. Do not go on with anything that depends on the answer until you have it. If his answer reaches you some other way (pasted by another session, said in your terminal), call close_decision at once, or it keeps waiting for him on his phone. To rewrite a decision, pass replaces with the old id: the old one stops waiting.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {
@@ -2345,6 +2368,7 @@ fn herramientas_de_decisiones() -> Vec<Value> {
                                                 "properties": {
                                                     "title": { "type": "string" },
                                                     "context": { "type": "string" },
+                                                    "image": { "type": "string", "description": "Optional. Absolute path of a png, jpg, webp or gif for the whole question (what is being decided, as it looks today). Same folders as compartir_en_el_movil (projects or temp), at most 8 MB and 25 megapixels each, and 40 MB per decision." },
                                                     "options": {
                                                         "type": "array",
                                                         "description": "2 to 6 options, numbered from 1 in this order.",
@@ -2353,7 +2377,8 @@ fn herramientas_de_decisiones() -> Vec<Value> {
                                                             "properties": {
                                                                 "text": { "type": "string" },
                                                                 "detail": { "type": "string", "description": "Optional. What it implies or costs, one sentence." },
-                                                                "recommended": { "type": "boolean", "description": "Mark at most one per question." }
+                                                                "recommended": { "type": "boolean", "description": "Mark at most one per question." },
+                                                                "image": { "type": "string", "description": "Optional. Absolute path of a png, jpg, webp or gif showing this option (a screenshot of the variant, the design as it would look). Same rules as the question's image." }
                                                             },
                                                             "required": ["text"]
                                                         }
@@ -2780,8 +2805,8 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                         cabeza.push_str(&entregar::en_la_lista(e, ahora_ms()));
                     }
                 }
-                let cmd_str = f.command.as_ref()
-                    .map(|v| v.join(" "))
+                let cmd_str = f.command.as_deref()
+                    .map(crate::rastros::comando_corto)
                     .unwrap_or_else(|| "default shell".to_string());
                 // El tamaño que el PROCESO cree tener. Es el dato que faltó el
                 // 2026-09-10 para saber desde fuera si un panel y su proceso
@@ -2903,18 +2928,34 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             // Y que no se haya quedado en la caja. Solo se puede mirar en la
             // pantalla pintada, que la tiene la ventana.
             if enviar && es_claude && !texto.is_empty() {
-                thread::sleep(ESPERA_TRAS_INTRO);
-                if let Some(pantalla) = pantalla_de(app, pane_id) {
+                // Un pegado largo tarda en salir de la caja: se mira varias veces
+                // antes de decir que falló.
+                let mut vista = None;
+                for _ in 0..MIRADAS_TRAS_INTRO {
+                    thread::sleep(ESPERA_TRAS_INTRO);
+                    // Sin pantalla no se insiste, y queda lo que se vio en la mirada anterior.
+                    let Some(p) = pantalla_de(app, pane_id) else { break };
+                    let salio = !se_quedo_en_la_caja(&p);
+                    vista = Some(p);
+                    if salio {
+                        break;
+                    }
+                }
+                if let Some(pantalla) = vista {
                     if se_quedo_en_la_caja(&pantalla) {
                         return Ok(json!({
                             "isError": true,
                             "content": [{ "type": "text", "text": format!(
-                                "Panel {}: el texto se ha quedado en la caja de Claude Code sin enviarse (la pantalla enseña el aviso de pegado). Manda send_keys([\"enter\"]) y vuelve a mirar con read_pane_screen.",
+                                "Panel {}: el texto se ha quedado en la caja de Claude Code sin enviarse. Manda send_keys([\"enter\"]) y vuelve a mirar con read_pane_screen.",
                                 pane_id
                             ) }]
                         }));
                     }
-                    parte.push_str(" La caja quedó vacía.");
+                    parte.push_str(if quedo_en_cola(&pantalla) {
+                        " Está en mitad de un turno: el mensaje quedó en su cola y lo leerá al acabarlo. No lo mandes otra vez."
+                    } else {
+                        " Ya no está en la caja."
+                    });
                 }
             }
             if let Some(c) = &carga {
@@ -3327,14 +3368,16 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                 .map(|q| crate::decisiones::PedidoPregunta {
                     titulo: texto(&q["title"]).unwrap_or_default(),
                     contexto: texto(&q["context"]),
+                    imagen: texto(&q["image"]),
                     opciones: q["options"]
                         .as_array()
                         .map(|os| {
                             os.iter()
-                                .map(|o| crate::decisiones::Opcion {
+                                .map(|o| crate::decisiones::PedidoOpcion {
                                     texto: texto(&o["text"]).unwrap_or_default(),
                                     detalle: texto(&o["detail"]),
                                     recomendada: o["recommended"].as_bool().unwrap_or(false),
+                                    imagen: texto(&o["image"]),
                                 })
                                 .collect()
                         })
@@ -3349,7 +3392,10 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                 preguntas,
             };
             let ahora = ahora_ms();
-            let d = crate::decisiones::validar(&pedido, ahora, crate::conserje::arranque())?;
+            let mut d = crate::decisiones::validar(&pedido, ahora, crate::conserje::arranque())?;
+            // Sus imágenes, comprobadas y leídas ANTES de guardar nada: una ruta
+            // mala es un error, nunca una decisión a medias.
+            let imagenes = crate::decisiones::preparar_imagenes(&pedido, &mut d, &crate::compartidos::raices_de_verdad())?;
             let dir = crate::decisiones::dir_de_verdad()?;
             // La que reescribe se mira ANTES de crear la nueva: si no se puede
             // retirar, no se pregunta dos veces lo mismo.
@@ -3364,7 +3410,8 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                 }
                 None => None,
             };
-            let d = crate::decisiones::crear(&dir, d)?;
+            let con_imagenes = imagenes.cuantas();
+            let d = crate::decisiones::crear_con_imagenes(&dir, d, imagenes)?;
             let retirada = vieja.and_then(|v| crate::decisiones::sustituir(&dir, &v, &d, ahora).ok().map(|_| v));
             crate::decisiones::avisar_cambio(app);
             // El aviso al móvil, si los pidió: tocarlo abre la decisión.
@@ -3384,9 +3431,14 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             let retirada = retirada.map(|v| format!(" La {v} ya no le espera: ahora apunta a esta.")).unwrap_or_default();
             Ok(json!({
                 "content": [{ "type": "text", "text": format!(
-                    "Decisión {} creada: «{}». Le llega a Munir a «Decisiones» en el móvil y en cualquier navegador emparejado{}.{} {} No sigas con lo que dependa de ella hasta tener la respuesta.",
+                    "Decisión {} creada: «{}»{}. Le llega a Munir a «Decisiones» en el móvil y en cualquier navegador emparejado{}.{} {} No sigas con lo que dependa de ella hasta tener la respuesta.",
                     d.id,
                     d.titulo,
+                    match con_imagenes {
+                        0 => String::new(),
+                        1 => ", con su imagen copiada".into(),
+                        n => format!(", con sus {n} imágenes copiadas"),
+                    },
                     if avisados > 0 { ", con aviso" } else { " (no tiene avisos puestos: la verá al abrir la página)" },
                     retirada,
                     vuelta
@@ -4315,6 +4367,8 @@ mod tests {
         // Que reparta sin pensarlo: sin `account` ya va a la cuenta que toca
         // (2026-11-02, todas las delegadas iban a la principal).
         assert!(todo.contains("Leave `account` out of open_pane") && todo.contains("waste the most quota"), "{todo}");
+        // Munir, 2026-11-19: «Tiene que haber una manera la cual se puedan ver las imagenes de las decisiones».
+        assert!(todo.contains("ask_decision option its `image`"), "{todo}");
         assert!(todo.chars().count() <= 2048, "{} caracteres: no cabe en el tope viejo de Claude Code", todo.chars().count());
 
         // Un Codex en «plan» abre y cierra lo que abrió, pero no escribe: se le
@@ -4696,6 +4750,49 @@ mod tests {
             .chain((0..20).map(|i| format!("línea {i}")))
             .collect();
         assert!(!se_quedo_en_la_caja(&vieja));
+    }
+
+    /// La lista de terminales repetía el encargo entero de cada una.
+    #[test]
+    fn la_lista_ensena_el_programa_y_no_el_encargo() {
+        let encargo = "Construye la oferta. ".repeat(200);
+        let con_encargo = vec![format!(
+            "powershell.exe -NoLogo -NoExit -Command $env:ADEORQ_ENCARGO = '{encargo}'; $adeorqExe = 'claude'; $adeorqPre = @(); $adeorqCmd = Get-Command 'claude' -ErrorAction SilentlyContinue | Select-Object -First 1; & $adeorqExe @adeorqPre --permission-mode auto --session-id a0ab312f-c9b1-4528-b7ff-950b7eb12203 --model opus --effort xhigh --% \"%ADEORQ_ENCARGO%\""
+        )];
+        assert_eq!(
+            crate::rastros::comando_corto(&con_encargo),
+            "claude --permission-mode auto --session-id a0ab312f-c9b1-4528-b7ff-950b7eb12203 --model opus --effort xhigh"
+        );
+        let consola = vec!["cmd.exe /k chcp 65001 >nul && claude --resume 572c3eb8 --effort xhigh".to_string()];
+        assert_eq!(crate::rastros::comando_corto(&consola), "claude --resume 572c3eb8 --effort xhigh");
+        let largo = vec!["x".repeat(500)];
+        assert_eq!(crate::rastros::comando_corto(&largo).chars().count(), 241);
+        // Sin opciones no asoma la variable del encargo.
+        let sin_opciones = vec!["powershell.exe -Command $adeorqExe = 'codex'; & $adeorqExe @adeorqPre --% \"%ADEORQ_ENCARGO%\"".to_string()];
+        assert_eq!(crate::rastros::comando_corto(&sin_opciones), "codex");
+        // En una caja de Docker, lo importante va al final del comando.
+        let docker = vec![format!("docker.exe run --rm -it {} adeorq-caja claude --session-id a0ab312f-c9b1-4528-b7ff-950b7eb12203", "-e VARIABLE=valor ".repeat(40))];
+        let visto = crate::rastros::comando_corto(&docker);
+        assert!(visto.contains("(conversación: a0ab312f-c9b1-4528-b7ff-950b7eb12203)"), "{visto}");
+    }
+
+    /// 51 miradas de `read_pane_screen` justo después del error: la mayoría
+    /// enseñaba este letrero, y el mensaje ya estaba en cola.
+    #[test]
+    fn un_mensaje_en_cola_no_se_quedo_en_la_caja() {
+        let filas = |s: &[&str]| s.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let cola = filas(&["────", "❯ Press up to edit queued messages", "────"]);
+        assert!(!se_quedo_en_la_caja(&cola));
+        assert!(quedo_en_cola(&cola));
+        let partido = filas(&["────", "❯ Press up to edit", "  queued messages", "────"]);
+        assert!(!se_quedo_en_la_caja(&partido));
+        assert!(quedo_en_cola(&partido));
+        // Cualquier otro texto en la caja sigue siendo un atasco, también con un borrador delante.
+        for caja in ["❯ arregla el scroll", "❯ mi borrador sigue", "❯ /compact [Pasted text #1 +40 lines]"] {
+            let atascada = filas(&["────", caja, "────"]);
+            assert!(se_quedo_en_la_caja(&atascada), "{caja}");
+            assert!(!quedo_en_cola(&atascada), "{caja}");
+        }
     }
 
     /// `send_command(7, "/model")` decía que el texto se había quedado en la

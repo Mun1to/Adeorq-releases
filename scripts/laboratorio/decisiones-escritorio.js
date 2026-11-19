@@ -173,6 +173,12 @@ async (page) => {
           return suyas.length;
         }
         case "pty_send": return null;
+        // Como `decision_imagen`: por el id y el número, en binario.
+        case "decision_imagen": {
+          const b = window.__fotosDec?.[`${args.id}:${args.n}`];
+          if (!b) throw "Esa imagen ya no está.";
+          return b.slice(0);
+        }
         default:
           throw new Error(`sin doble: ${cmd}`);
       }
@@ -1084,6 +1090,151 @@ async (page) => {
     await page.keyboard.press("Escape");
     await page.setViewportSize({ width: 1440, height: 900 });
   });
+
+  // Las imágenes de una decisión (`image` en ask_decision). Munir, 2026-11-19:
+  // «Tiene que haber una manera la cual se puedan ver las imagenes de las
+  // decisiones». Salen con su sitio guardado, pulsarlas las abre en grande sin
+  // elegir la opción, las teclas de la lista no eligen por debajo y Escape
+  // cierra la imagen sin salir de la decisión.
+  await casaLimpia(async () => {
+    const png = async (ancho, alto, color) => {
+      const lienzo = new OffscreenCanvas(ancho, alto);
+      const x = lienzo.getContext("2d");
+      const g = x.createLinearGradient(0, 0, ancho, alto);
+      g.addColorStop(0, color);
+      g.addColorStop(1, "#d4a");
+      x.fillStyle = g;
+      x.fillRect(0, 0, ancho, alto);
+      return (await lienzo.convertToBlob()).arrayBuffer();
+    };
+    window.__fotosDec = { "d19a2b3c4d09:1": await png(1200, 500, "#36c"), "d19a2b3c4d09:2": await png(1920, 1080, "#3a6"), "d19a2b3c4d09:3": await png(390, 844, "#c63") };
+    const img = (n, ancho, alto) => ({ n, tipo: "image/png", ancho, alto });
+    window.__dec.push({
+      id: "d19a2b3c4d09", titulo: "Portada: los datos de la derecha", proyecto: "Adeorq", panel: 3, arranque: window.__dec[0].arranque, creada: Date.now(),
+      preguntas: [{ id: "A", titulo: "¿Cómo quieres los tres datos?", imagen: img(1, 1200, 500), opciones: [
+        { texto: "En fila", detalle: "Los tres números lado a lado.", recomendada: true, imagen: img(2, 1920, 1080) },
+        { texto: "Como hoy: la ficha", recomendada: false, imagen: img(3, 390, 844) },
+        { texto: "Todo al centro", recomendada: false },
+      ] }],
+    });
+    window.__emitir("decisiones:cambian");
+  });
+  await page.locator(".dec-fila[data-id='dec:d19a2b3c4d09']").click();
+  await page.waitForFunction(() => document.querySelectorAll(".dec-foto img").length === 3 && [...document.querySelectorAll(".dec-foto img")].every((i) => i.complete && i.naturalWidth > 0), null, { timeout: 8000 }).catch(() => {});
+  const fotos = await page.evaluate(() => [...document.querySelectorAll(".dec-foto")].map((b) => {
+    const r = b.getBoundingClientRect();
+    const txt = b.closest(".dec-opcion")?.querySelector(".dec-opcion-txt")?.getBoundingClientRect();
+    return { ancho: Math.round(r.width), alto: Math.round(r.height), suelto: b.parentElement.classList.contains("dec-pregunta"), cargada: (b.querySelector("img")?.naturalWidth ?? 0) > 0, de: Math.round((b.closest(".dec-opcion") ?? b.parentElement).getBoundingClientRect().width), hueco: txt ? Math.round(r.top - txt.bottom) : 0 };
+  }));
+  debe(fotos.length === 3 && fotos.every((f) => f.cargada), `las tres imágenes llegan (${JSON.stringify(fotos)})`);
+  debe(fotos[0]?.suelto && Math.abs(fotos[0].alto - (fotos[0].ancho * 500) / 1200) <= 2, `la de la pregunta, con su forma (${JSON.stringify(fotos[0])})`);
+  debe(fotos.slice(1).every((f) => f.ancho >= f.de - 30), `las de las opciones llenan su opción (${JSON.stringify(fotos)})`);
+  // La fila se estira a la opción más alta: la imagen de la más baja no se va a media tarjeta.
+  debe(fotos.slice(1).every((f) => f.hueco >= 0 && f.hueco <= 16), `las de las opciones empiezan bajo su texto (${JSON.stringify(fotos)})`);
+  await page.screenshot({ path: `${CAPTURAS}/dec-imagenes.png` });
+  await page.locator(".dec-opcion").nth(1).locator(".dec-foto").click();
+  await page.waitForSelector(".dec-foto-grande img");
+  debe((await page.locator(".dec-foto-grande b").textContent()) === "2. Como hoy: la ficha", "en grande dice de qué opción es");
+  const fondo = await page.locator(".dec-foto-grande").evaluate((el) => getComputedStyle(el).backgroundColor);
+  debe(/^rgb\(/.test(fondo), `en grande, el fondo es opaco y no deja ver la página (${fondo})`);
+  await page.screenshot({ path: `${CAPTURAS}/dec-imagen-grande.png` });
+  await page.keyboard.press("1");
+  await page.waitForTimeout(200);
+  debe((await page.locator(".dec-opcion[data-marcada='true']").count()) === 0, "pulsar la imagen o una tecla con ella abierta no elige");
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(200);
+  debe((await page.locator(".dec-foto-grande").count()) === 0, "Escape cierra la imagen");
+  debe((await page.locator(".dec-abierta[data-decision]").count()) === 1, "y la decisión sigue abierta");
+  // En plena cuenta atrás, abrirla no tapa «Deshacer», y se puede deshacer sin
+  // cerrarla (revisión del 2026-11-19: se mandaba con ella encima).
+  await page.locator(".dec-opcion").nth(0).locator(".dec-opcion-txt b").click();
+  await page.locator(".dec-pie-botones button", { hasText: "Enviar respuesta" }).click();
+  await page.waitForSelector(".dec-deshacer");
+  const fotoEnCuenta = page.locator(".dec-opcion").nth(1).locator(".dec-foto");
+  await fotoEnCuenta.scrollIntoViewIfNeeded();
+  const cajaEnCuenta = await fotoEnCuenta.boundingBox();
+  await page.mouse.click(cajaEnCuenta.x + cajaEnCuenta.width / 2, cajaEnCuenta.y + cajaEnCuenta.height / 2);
+  await page.waitForSelector(".dec-foto-grande img", { timeout: 3000 }).catch(() => {});
+  const enCuenta = await page.evaluate(() => {
+    const b = document.querySelector(".dec-deshacer")?.getBoundingClientRect();
+    const encima = b && document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+    return { abierta: Boolean(document.querySelector(".dec-foto-grande")), deshacer: Boolean(encima?.closest(".dec-deshacer")) };
+  });
+  debe(enCuenta.abierta && enCuenta.deshacer, `con la imagen abierta en la cuenta atrás, «Deshacer» sigue a la vista (${JSON.stringify(enCuenta)})`);
+  if (enCuenta.deshacer) await page.locator(".dec-deshacer").click();
+  await page.waitForTimeout(5500);
+  const trasDeshacer = await page.evaluate(() => window.__dec.find((x) => x.id === "d19a2b3c4d09").respuesta ?? null);
+  debe(trasDeshacer === null, `«Deshacer» con la imagen abierta no la manda (${JSON.stringify(trasDeshacer)})`);
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(200);
+
+  // Contestada, la imagen de lo elegido también se abre: va dentro de un fieldset
+  // desactivado, donde un <button> no atiende (revisión del 2026-11-19). Con un
+  // clic de ratón donde está: `click` esperaría a que se activase.
+  await page.evaluate(() => {
+    const d = window.__dec.find((x) => x.id === "d19a2b3c4d09");
+    d.respuesta = { cuando: Date.now(), desde: "el PC", elecciones: { A: { opcion: 2 } }, entregada: false };
+    window.__emitir("decisiones:cambian");
+  });
+  await page.waitForSelector(".dec-pregunta:disabled .dec-opcion[data-marcada='true'] .dec-foto img");
+  const elegidaFoto = page.locator(".dec-opcion[data-marcada='true'] .dec-foto");
+  await elegidaFoto.scrollIntoViewIfNeeded();
+  const cajaElegida = await elegidaFoto.boundingBox();
+  await page.mouse.click(cajaElegida.x + cajaElegida.width / 2, cajaElegida.y + cajaElegida.height / 2);
+  await page.waitForSelector(".dec-foto-grande img", { timeout: 3000 }).catch(() => {});
+  debe((await page.locator(".dec-foto-grande b").textContent({ timeout: 1000 }).catch(() => null)) === "2. Como hoy: la ficha", "contestada, la imagen de lo elegido se abre en grande");
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(200);
+
+  // Una tira muy apaisada (16000 × 60) se puede pulsar: medía 2 px de alto (revisión del 2026-11-19).
+  await casaLimpia(async () => {
+    const lienzo = new OffscreenCanvas(16000, 60);
+    lienzo.getContext("2d").fillRect(0, 0, 16000, 60);
+    window.__fotosDec = { "d19a2b3c4d0a:1": await (await lienzo.convertToBlob()).arrayBuffer() };
+    window.__dec.push({
+      id: "d19a2b3c4d0a", titulo: "Una tira", proyecto: "Adeorq", panel: 3, arranque: window.__dec[0].arranque, creada: Date.now(),
+      preguntas: [{ id: "A", titulo: "¿Y esta?", imagen: { n: 1, tipo: "image/png", ancho: 16000, alto: 60 }, opciones: [{ texto: "Sí" }, { texto: "No" }] }],
+    });
+    window.__emitir("decisiones:cambian");
+  });
+  await page.locator(".dec-fila[data-id='dec:d19a2b3c4d0a']").click();
+  await page.waitForSelector(".dec-pregunta > .dec-foto");
+  const altoTira = await page.evaluate(() => Math.round(document.querySelector(".dec-pregunta > .dec-foto").getBoundingClientRect().height));
+  debe(altoTira >= 44, `una tira muy apaisada se puede pulsar (${altoTira} px de alto)`);
+
+  // La caché de imágenes tiene tope y suelta (`revokeObjectURL`) lo que echa: las
+  // guardaba todas para siempre (revisión del 2026-11-19). Tres decisiones de 30
+  // imágenes, una tras otra, contando los enlaces vivos.
+  await casaLimpia(async () => {
+    const lienzo = new OffscreenCanvas(40, 30);
+    lienzo.getContext("2d").fillRect(0, 0, 40, 30);
+    const bytes = await (await lienzo.convertToBlob()).arrayBuffer();
+    const img = (n) => ({ n, tipo: "image/png", ancho: 40, alto: 30 });
+    window.__fotosDec = {};
+    for (const s of ["b1", "b2", "b3"]) {
+      const id = `d19a2b3c4d${s}`;
+      for (let n = 1; n <= 30; n++) window.__fotosDec[`${id}:${n}`] = bytes;
+      window.__dec.push({
+        id, titulo: `Treinta imágenes ${s}`, proyecto: "Adeorq", panel: 3, arranque: window.__dec[0].arranque, creada: Date.now(),
+        preguntas: Array.from({ length: 5 }, (_, q) => ({
+          id: String.fromCharCode(65 + q), titulo: `Pregunta ${q + 1}`, imagen: img(q * 6 + 1),
+          opciones: Array.from({ length: 5 }, (_, o) => ({ texto: `Opción ${o + 1}`, imagen: img(q * 6 + o + 2) })),
+        })),
+      });
+    }
+    window.__vivas = new Set();
+    const crear = URL.createObjectURL.bind(URL);
+    const soltar = URL.revokeObjectURL.bind(URL);
+    URL.createObjectURL = (x) => { const u = crear(x); window.__vivas.add(u); return u; };
+    URL.revokeObjectURL = (u) => { window.__vivas.delete(u); soltar(u); };
+    window.__emitir("decisiones:cambian");
+  });
+  for (const s of ["b1", "b2", "b3"]) {
+    await page.locator(`.dec-fila[data-id='dec:d19a2b3c4d${s}']`).click();
+    await page.waitForFunction(() => { const i = [...document.querySelectorAll(".dec-foto img")]; return i.length === 30 && i.every((x) => x.complete && x.naturalWidth > 0); }, null, { timeout: 8000 }).catch(() => {});
+  }
+  const cache = await page.evaluate(() => ({ vivas: window.__vivas.size, rotas: [...document.querySelectorAll(".dec-foto img")].filter((i) => !(i.naturalWidth > 0)).length }));
+  debe(cache.vivas <= 60 && cache.rotas === 0, `la caché de imágenes suelta lo que echa y no lo de la abierta (${JSON.stringify(cache)} tras 90 imágenes)`);
 
   // Para los detectores de detrás (`carceles.js`, `mayusculas.js`): una decisión
   // abierta, con el botón «Posponer» en su barra del pie.

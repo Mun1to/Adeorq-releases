@@ -1353,7 +1353,11 @@ avisos, **Probar aviso** y **Quitar**.
   siguiente, o escribes con tus palabras y pulsas **Siguiente**; al final repasas lo
   elegido (tocar una fila vuelve a esa pregunta) y envías, con cinco segundos para
   deshacer: en ellos, volver a una pregunta o cambiar algo para el envío y te lo dice;
-  salir de la decisión la manda. Antes de enviar te dice dónde cae la respuesta: si se
+  salir de la decisión no la para, y un aviso arriba te enseña que está saliendo; cerrar o recargar la página la manda en ese momento; si algo
+  sale mal, el aviso se queda hasta que abras esa decisión. Si la vuelves a abrir antes
+  de tiempo sale al momento, aunque el PC no conteste, y puedes deshacer, pero no
+  cambiarla sin deshacer antes. Si el PC no contesta en 30 segundos, la página mira cómo
+  quedó y te dice si llegó o que no se sabe; reenviarla no la duplica. Antes de enviar te dice dónde cae la respuesta: si se
   teclea en la terminal que preguntó o solo se guarda. Recién cambiada, una pantalla
   tarda medio segundo en atender toques, para
   que un doble toque no caiga en lo que acaba de salir. **Quitar mi elección** borra

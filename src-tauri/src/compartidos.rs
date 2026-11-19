@@ -190,6 +190,19 @@ fn prohibido_en(p: &Path) -> Option<String> {
 /// Comprueba un archivo para compartirlo, o para servirlo otra vez: el que se
 /// resuelve AHORA, no el de cuando se compartió.
 pub fn archivo_valido(ruta: &str, raices: &[PathBuf]) -> Result<(PathBuf, Tipo), String> {
+    let (real, meta) = ruta_valida(ruta, raices)?;
+    let tipo = tipo_por_extension(&real)
+        .ok_or("Solo se comparte una imagen (png, jpg, gif, webp) o una página HTML de un solo archivo.")?;
+    if meta.len() > TOPE_BYTES {
+        return Err(format!("Pesa demasiado: como mucho {} MB.", TOPE_BYTES / 1024 / 1024));
+    }
+    Ok((real, tipo))
+}
+
+/// Lo de la ruta, sin mirar qué archivo es: entera, por ninguna carpeta
+/// protegida, un archivo y dentro de `raices`. Lo usan también las imágenes de
+/// las decisiones, que dicen sus propios tipos y su propio tope.
+pub fn ruta_valida(ruta: &str, raices: &[PathBuf]) -> Result<(PathBuf, std::fs::Metadata), String> {
     let pedida = Path::new(ruta.trim());
     if !pedida.is_absolute() {
         return Err(format!("«{ruta}» no es una ruta entera: pásala desde la unidad (C:\\…)."));
@@ -211,12 +224,7 @@ pub fn archivo_valido(ruta: &str, raices: &[PathBuf]) -> Result<(PathBuf, Tipo),
         let donde = raices.iter().map(|r| r.display().to_string().trim_start_matches(r"\\?\").to_string()).collect::<Vec<_>>().join(" o ");
         return Err(format!("Solo se comparte lo que está en {donde}."));
     }
-    let tipo = tipo_por_extension(&real)
-        .ok_or("Solo se comparte una imagen (png, jpg, gif, webp) o una página HTML de un solo archivo.")?;
-    if meta.len() > TOPE_BYTES {
-        return Err(format!("Pesa demasiado: como mucho {} MB.", TOPE_BYTES / 1024 / 1024));
-    }
-    Ok((real, tipo))
+    Ok((real, meta))
 }
 
 /// La ruta dentro de la web: empieza por `/` y no lleva nada que cambie de

@@ -17,9 +17,9 @@ import { ponerModoLigero } from './ligero.js';
 
 const $ = (s, d = document) => d.querySelector(s);
 
-// Sin tarjeta gráfica, la portada va ligera (ligero.js): se mira una vez, ya
-// pintada la primera pantalla.
-requestAnimationFrame(() => setTimeout(ponerModoLigero, 0));
+// Sin tarjeta gráfica, la portada va ligera (ligero.js): se mira una vez, con
+// la carga terminada y el navegador sin nada que hacer.
+ponerModoLigero();
 
 const GAIN = parseFloat(
   getComputedStyle(document.documentElement).getPropertyValue('--motion-gain')

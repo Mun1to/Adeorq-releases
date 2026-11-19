@@ -40,10 +40,13 @@ export const A_MANO: ModelAlias[] = ["haiku", "sonnet", "opus"];
  * que Claude Code ya lleva al último (medido con la v2.1.302: Opus 5.5). El id
  * entero no, porque `/model` además lo guarda como modelo de fábrica de las
  * sesiones nuevas, y con el id ese quedaría clavado en esta versión cuando
- * salga la siguiente. Cuando salga uno nuevo, se cambia aquí.
+ * salga la siguiente. Cuando salga uno nuevo, se cambia aquí, y
+ * `scripts/modelos-check.mjs` (en `pnpm comprobar`) avisa si este nombre se
+ * queda atrás del modelo al que lleva el alias: el 2026-11-19 el móvil seguía
+ * ofreciendo «Fable 5.1» con `/model fable` llevando ya a Fable 5.2.
  */
 export const ULTIMOS: Record<ModelAlias, string> = {
-  fable: "Fable 5.1",
+  fable: "Fable 5.2",
   opus: "Opus 5.5",
   sonnet: "Sonnet 5.5",
   haiku: "Haiku 5.5",

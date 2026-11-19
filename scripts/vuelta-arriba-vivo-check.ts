@@ -110,6 +110,21 @@ async function main() {
   pasar(PARADA_MS);
   ok("y al volver, sí", lineasA(111).length === 1, lineasA(111).join(" | "));
 
+  // La pantalla de una compactación de verdad (35 de 35 miradas de `read_pane_screen`
+  // la traían con «to interrupt»): su transcript no cambia y sigue en «lista».
+  await pareja(901, 902, ["✽ Compacting conversation… (1m 42s · ↓ 3.2k tokens)", ...CAJA, "  esc to interrupt"]);
+  pasar(5 * MIN);
+  ok("compactándose no ha parado: cinco minutos sin avisar a su madre", lineasA(901).length === 0, lineasA(901).join(" | "));
+  pantalla(902, QUIETA);
+  pasar(PARADA_MS - MIRAR_MS);
+  ok("acabada la compactación, el minuto cuenta desde entonces", lineasA(901).length === 0, lineasA(901).join(" | "));
+  pasar(MIRAR_MS);
+  ok("y si de verdad se queda parada, se avisa", lineasA(901).length === 1 && lineasA(901)[0].includes("paró sin entregar"), lineasA(901).join(" | "));
+
+  await pareja(911, 912, ["● El pie dice esc to interrupt mientras trabaja.", "  ● Compacting conversation… es lo que sale al compactar.", ...QUIETA]);
+  pasar(PARADA_MS + MIRAR_MS);
+  ok("parada citando esas frases en su mensaje, se avisa al minuto", lineasA(911).length === 1 && lineasA(911)[0].includes("paró sin entregar"), lineasA(911).join(" | "));
+
   await pareja(121, 122, QUIETA, true);
   pasar(PARADA_MS + MIRAR_MS);
   pantalla(122, CON_SHELL);

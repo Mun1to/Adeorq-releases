@@ -109,6 +109,35 @@ stylesheet stops scroll chaining at its root, which inside a frame left the
 page stuck under the pointer, and nothing in the demo pulses on its own because
 those repaints were paid by the page's scroll (the numbers are in `demo.css`).
 
+### Scroll jank
+
+Two more checks for scrolling down from the top past the demo, both against the
+BUILT site and both exiting with code 1 when red. They need a Chromium and
+`playwright-core`, which this repository does not install: point `NAVEGADOR` and
+`PLAYWRIGHT` at them (the defaults are Brave and the copy in the Orquio repo).
+
+```powershell
+node scripts/hacer-ingles.mjs; node scripts/hacer-privacidad.mjs; node scripts/hacer-paginas.mjs
+pnpm exec vite build
+$env:BROWSER = 'none'; pnpm exec vite preview --host 127.0.0.1 --port 4173
+node scripts/tirones.mjs http://127.0.0.1:4173/
+node scripts/dedo-demo.mjs http://127.0.0.1:4173/
+```
+
+- `scripts/tirones.mjs` scrolls with the real wheel (a real finger at
+  `ANCHO=390`) and reads the browser trace: draw passes per frame while the demo
+  is on screen, GPU time per frame, frames that reached the screen and the gaps
+  between them. Every blur or blend that has to be redone when the page moves is
+  one more pass, so the count does not depend on how busy the machine is: more
+  than 6 per frame is red (11.3 before the fix of 2026-11-19, 3.5 after).
+  `CPU=4` throttles the processor, `QUITA=".selector{display:none}"` removes a
+  piece to see what it costs.
+- `scripts/dedo-demo.mjs` swipes a finger over a grid of points on the demo, in
+  the Cockpit and in the Canvas: the page has to scroll from every one of them.
+  What the app lets you drag carries `touch-action: none`, which inside a frame
+  left the finger without a page (5 of 60 points in the Cockpit, 39 of 60 in
+  the Canvas).
+
 The page follows `?lang=en`, and `?vista=lienzo` opens it on a given view. When
 the app changes, dump again and run `pnpm demo`; the steps are in the README
 next to `volcar.mjs`.

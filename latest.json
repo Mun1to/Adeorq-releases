@@ -1,11 +1,11 @@
 {
-  "version": "0.9.261",
-  "notes": "Decisiones del movil de una en una con repaso, avisos a la terminal madre sin falsas paradas, capturas en Planear Preguntar y Mejorar, proyectos nuevos arriba y ecualizador con modo rendimiento",
-  "pub_date": "2026-11-18T10:04:32Z",
+  "version": "0.9.262",
+  "notes": "Movil: cada respuesta va a su decision, se puede salir mientras se manda y no afirma lo que no sabe. Imagenes en las decisiones, en el movil y en el PC, con vista en grande. El selector dice Fable 5.2.",
+  "pub_date": "2026-11-19T18:25:46Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzROYmxPb0poT1VqNXp6RjlLdS9WRHRoajN1L0xtRjhPUjQrRkJ1NktYWVBlU1JLem8wdkNsNHpCRnFFMkpYNnZUMWpTSGNMTzhWZHN3dnFya3JyRmdnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0OTk2MjU1CWZpbGU6QWRlb3JxXzAuOS4yNjFfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNjEKb1BsV1RMZ1hQY3dmK2kxVU04R3RKc2NSYnpBQVFFTy9rZWgzK0crSGR3Y3RNNXpyWkJpK0I0WCs3Rnc5UFVQbmlYUFFqeWd0ZWZ5M2RuRWxSVStKRFE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.261/Adeorq_0.9.261_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzEydFc0bDZWLy9XUFhUWjZCTUxsZXJGUTN6YXl6bllVZ1pqQU1JMjVTVUswQzNDOUV4T0dUWW0yM0NsWjBYaDlMVDJLZzUvWEQvRXlzMWxLc2JmVFE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MTEyNzM0CWZpbGU6QWRlb3JxXzAuOS4yNjJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNjIKVGl3Zmt2S21EaVM1cWdKdlFCOE1zamVadG54NWRoelkwM1FPN0hmYThmMWpuaFQvQWZEQW1zcFgwQmhvKysxUy9mV2hOZkpsZzNFVzlUeloycm5DRHc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.262/Adeorq_0.9.262_x64-setup.exe"
     }
   }
 }

@@ -67,8 +67,11 @@ async (page) => {
       nota: texto(".dec-nota"),
     };
   });
+  // `TRAMOS=N1,B3 node scripts/laboratorio/bancos-movil.mjs decision-envio` lanza solo los que empiezan así.
+  const soloTramos = (typeof process === "undefined" ? "" : process.env.TRAMOS ?? "").split(",").filter(Boolean);
   /** Un tramo que revienta es un fallo suyo y no tumba los demás. */
   const tramo = async (nombre, fn) => {
+    if (soloTramos.length && !soloTramos.some((s) => nombre.startsWith(s))) return;
     try { await fn(); } catch (err) { fallos.push(`${nombre}: no se pudo recorrer (${String(err.message || err).split("\n")[0].slice(0, 160)})`); }
   };
   const SONDEO = /\/api\/decision\?/;
@@ -322,6 +325,697 @@ async (page) => {
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => localStorage.removeItem("adeorq-movil-ajustes"));
+
+  // Lo que dejó la revisión de la 0.9.261. Toques de ratón en puntos medidos antes, como el dedo.
+  const punto = async (sel) => {
+    const el = await page.$(sel);
+    const c = el && await el.boundingBox();
+    return c ? { x: Math.round(c.x + c.width / 2), y: Math.round(c.y + c.height / 2) } : null;
+  };
+  const tocar = async (sel) => {
+    const p = await punto(sel);
+    if (!p) throw new Error(`no se ve ${sel}`);
+    await page.mouse.click(p.x, p.y);
+  };
+  const tocarSiSeVe = async (sel) => { const p = await punto(sel); if (p) await page.mouse.click(p.x, p.y); return Boolean(p); };
+  const enviarEncendido = () => page.waitForFunction(() => { const b = document.getElementById("enviar-dec"); return b?.offsetParent && !b.disabled; }, null, { timeout: 4000 });
+  const enRepaso = () => page.waitForFunction(() => document.getElementById("dec-repaso")?.offsetParent, null, { timeout: 4000 });
+  /** A y B con su opción 1, hasta el repaso con «Enviar» ya encendido. */
+  const hastaElRepaso = async () => {
+    await tocar(opcion("A", 1));
+    await page.waitForTimeout(1300);
+    await tocar(opcion("B", 1));
+    await enRepaso();
+    await enviarEncendido();
+  };
+  const tarjetaDe = (id) => `#decisiones .tarjeta[data-id="${id}"]`;
+  /** Con la lista larga la tarjeta puede quedar por debajo de la pantalla: se lleva a la vista y se toca donde quede. */
+  const tocarTarjeta = async (id) => {
+    await page.$eval(tarjetaDe(id), (x) => x.scrollIntoView({ block: "center" }));
+    await page.waitForTimeout(120);
+    await tocar(tarjetaDe(id));
+  };
+  /** La flecha de arriba y, desde la lista, otra vez a la misma decisión. */
+  const salirYVolver = async (id) => {
+    await tocar("#atras");
+    await page.waitForSelector(tarjetaDe(id));
+    await page.waitForTimeout(150);
+    await tocarTarjeta(id);
+    await page.waitForSelector("#pie-dec:not([hidden])");
+    await page.waitForTimeout(650);
+  };
+  const hastaQueDiga = (re, ms = 9000) => page.waitForFunction((f) => new RegExp(f).test(document.getElementById("estado-envio")?.textContent ?? ""), re.source, { timeout: ms }).catch(() => {});
+  const dichos = () => page.evaluate(() => [...document.querySelectorAll(".dec-dicho")].map((x) => x.textContent.trim()));
+  const hastaApuntada = async (id, ms = 9000) => {
+    for (const fin = Date.now() + ms; Date.now() < fin; await page.waitForTimeout(150)) if ((await enServidor(id)).respuesta) return true;
+    return false;
+  };
+  const avisoEnvio = () => page.evaluate(() => document.getElementById("envios-dec")?.textContent.replace(/\s+/g, " ").trim() ?? "");
+
+  // ── N1: salir durante la cuenta, volver y cambiar lo que ya se está mandando ──
+  await tramo("N1 (reabrir)", async () => {
+    const id = await abrir(DOS);
+    await hastaElRepaso();
+    await tocar("#enviar-dec");
+    await page.waitForTimeout(300);
+    await salirYVolver(id);
+    const reabierta = await vista();
+    const aspecto = await page.evaluate(() => ({
+      descartar: getComputedStyle(document.querySelector(".dec-acciones")).visibility,
+      fila: getComputedStyle(document.querySelector(".dec-fila")).borderTopColor,
+    }));
+    debe(aspecto.descartar === "hidden" && aspecto.fila === "rgba(0, 0, 0, 0)", `N1: lo que no se puede tocar mientras se manda deja de parecer pulsable (${JSON.stringify(aspecto)})`);
+    // El dedo de la revisión: la fila de B y, si deja, su opción 2.
+    await tocarSiSeVe('.dec-fila[data-i="1"]');
+    await page.waitForTimeout(650);
+    const trasFila = await vista();
+    await tocarSiSeVe(opcion("B", 2));
+    await page.waitForTimeout(1200);
+    await hastaQueDiga(/Enviada|otro sitio/);
+    const fin = await vista();
+    const quedo = await dichos();
+    const s = await enServidor(id);
+    pasos.n1 = { reabierta, trasFila, fin: fin.estado, quedo, pc: s.respuesta?.elecciones ?? null };
+    debe(reabierta.repaso && /^Deshacer \(\d\)$/.test(reabierta.enviar) && /^Se manda en \d s/.test(reabierta.estado), `N1: al reabrirla durante la cuenta sale el repaso con su «Deshacer» (repaso ${reabierta.repaso}, botón «${reabierta.enviar}», estado «${reabierta.estado}»)`);
+    debe(trasFila.repaso && /^Deshacer/.test(trasFila.enviar), `N1: mientras se manda no se puede ir a cambiar una pregunta (se ve «${trasFila.preguntas}», botón «${trasFila.enviar}»)`);
+    debe(s.respuesta?.elecciones?.B?.opcion === 1, `N1: el PC recibe lo que se pulsó (${JSON.stringify(s.respuesta?.elecciones)})`);
+    debe(quedo.some((x) => x.startsWith("1. Opción 1 de B")), `N1: la pantalla enseña lo mismo que recibió el PC (${JSON.stringify(quedo)})`);
+    debe(/^Enviada\./.test(fin.estado), `N1: y dice «Enviada», no que la contestó otro («${fin.estado}»)`);
+  });
+  await tramo("N1 (Deshacer)", async () => {
+    const id = await abrir(DOS);
+    await hastaElRepaso();
+    await tocar("#enviar-dec");
+    await page.waitForTimeout(300);
+    await salirYVolver(id);
+    await tocar("#enviar-dec");
+    await page.waitForTimeout(300);
+    const deshecha = await vista();
+    await page.waitForTimeout(5500);
+    const s1 = await enServidor(id);
+    debe(/No se ha mandado/.test(deshecha.estado) && deshecha.enviar === "Enviar respuesta", `N1: «Deshacer» de la cuenta retomada la para y lo dice (botón «${deshecha.enviar}», estado «${deshecha.estado}»)`);
+    debe(!s1.respuesta, `N1: deshecha, no le llega nada al PC (${JSON.stringify(s1.respuesta?.elecciones)})`);
+    const suelta = await page.evaluate(() => getComputedStyle(document.querySelector(".dec-acciones")).visibility);
+    debe(suelta === "visible", `N1: deshecha, «Descartar» vuelve a estar a la vista (${suelta})`);
+    // Parada la cuenta, ya se puede cambiar y mandar lo nuevo.
+    await tocar('.dec-fila[data-i="1"]');
+    await page.waitForTimeout(650);
+    await tocar(opcion("B", 2));
+    await enRepaso();
+    await enviarEncendido();
+    await tocar("#enviar-dec");
+    await hastaQueDiga(/^Enviada/);
+    const s2 = await enServidor(id);
+    pasos.n1Deshacer = { deshecha: deshecha.estado, pc: s2.respuesta?.elecciones ?? null };
+    debe(s2.respuesta?.elecciones?.B?.opcion === 2, `N1: tras deshacer, lo cambiado es lo que se manda (${JSON.stringify(s2.respuesta?.elecciones)})`);
+  });
+  await tramo("N1 (una sola pregunta)", async () => {
+    const id = await abrir([pregunta("A", 2)]);
+    await tocar(opcion("A", 1));
+    await page.waitForTimeout(200);
+    await tocar("#enviar-dec");
+    await page.waitForTimeout(300);
+    await salirYVolver(id);
+    const reabierta = await vista();
+    await tocarSiSeVe(opcion("A", 2));
+    await page.waitForTimeout(400);
+    const marcada = await page.evaluate(() => document.querySelector('input[name="q-A"]:checked')?.value ?? "");
+    await hastaQueDiga(/Enviada|otro sitio/);
+    const s = await enServidor(id);
+    pasos.n1Una = { boton: reabierta.enviar, marcada, pc: s.respuesta?.elecciones ?? null };
+    debe(/^Deshacer/.test(reabierta.enviar), `N1: con una sola pregunta también se retoma la cuenta (botón «${reabierta.enviar}»)`);
+    debe(marcada === "1", `N1: con una sola pregunta, lo marcado no cambia mientras se manda (marcada ${marcada})`);
+    debe(s.respuesta?.elecciones?.A?.opcion === 1, `N1: y el PC recibe lo que se pulsó (${JSON.stringify(s.respuesta?.elecciones)})`);
+  });
+  await tramo("N1 (mandando)", async () => {
+    const id = await abrir([pregunta("A", 2)]);
+    await tocar(opcion("A", 2));
+    await page.waitForTimeout(200);
+    await post("/api/sembrar-responder", { espera: 5000 });
+    await tocar("#enviar-dec");
+    await page.waitForTimeout(300);
+    await tocar("#atras");
+    await page.waitForSelector(tarjetaDe(id));
+    debe(await hastaApuntada(id), "N1: la respuesta llega al PC aunque te hayas ido");
+    // Por el aviso del móvil, que abre la decisión sin recargar: la lista se está
+    // reordenando en este momento y la tarjeta puede cambiar de sitio bajo el toque.
+    await page.evaluate((d) => { location.hash = `decision=${d}`; }, id);
+    await page.waitForSelector("#titulo .tit");
+    await page.waitForTimeout(700);
+    const v = await vista();
+    await hastaQueDiga(/^Enviada/);
+    const fin = await vista();
+    pasos.n1Mandando = { v, fin: fin.estado };
+    debe(/Mandando/.test(v.enviar) && !v.hecha && !v.titulo, `N1: reabierta mientras el PC contesta, sigue en «Mandando…» (botón «${v.enviar}», título «${v.titulo}», «${v.hecha}»)`);
+    debe(/^Enviada\./.test(fin.estado), `N1: y acaba en «Enviada» («${fin.estado}»)`);
+  });
+
+  // ── Salir con la flecha durante la cuenta: se ve que se está enviando ──
+  await tramo("B2 (lista)", async () => {
+    const id = await abrir(DOS);
+    await hastaElRepaso();
+    await tocar("#enviar-dec");
+    await page.waitForTimeout(300);
+    await tocar("#atras");
+    await page.waitForSelector(tarjetaDe(id));
+    await page.waitForTimeout(250);
+    const estado = await page.textContent(`${tarjetaDe(id)} .estado`);
+    const aviso = await avisoEnvio();
+    await page.waitForFunction(() => /Enviada/.test(document.getElementById("envios-dec")?.textContent ?? ""), null, { timeout: 9000 }).catch(() => {});
+    const luego = await avisoEnvio();
+    const s = await enServidor(id);
+    pasos.b2Lista = { estado: estado.trim(), aviso, luego, vigencia: s.vigencia };
+    debe(!/te espera/i.test(estado) && /Se manda en \d s/.test(estado), `B2: en la lista ya no dice «te espera», dice que se manda («${estado.trim()}»)`);
+    debe(!aviso, `B2: en la lista lo dice su tarjeta, sin repetirlo en un aviso encima («${aviso}»)`);
+    debe(Boolean(s.respuesta), `B2: la flecha no cancela: la respuesta llega (quedó «${s.vigencia}»)`);
+    debe(/Enviada/.test(luego), `B2: y el aviso dice cómo acabó («${luego}»)`);
+  });
+  await tramo("B2 (portada)", async () => {
+    const id = await sembrar(DOS);
+    const fila = `#reclaman .fila[data-id="${id}"]`;
+    await page.goto(`${B}/?c=${++serie}`);
+    await page.waitForSelector(fila);
+    await page.waitForTimeout(400);
+    await tocar(fila);
+    await page.waitForSelector(".pregunta-d", { state: "attached" });
+    await page.waitForTimeout(900);
+    await hastaElRepaso();
+    await tocar("#enviar-dec");
+    await page.waitForTimeout(300);
+    await tocar("#atras");
+    await page.waitForSelector("#reclaman", { state: "attached" });
+    await page.waitForTimeout(700);
+    const sigue = Boolean(await page.$(fila));
+    const aviso = await avisoEnvio();
+    pasos.b2Portada = { sigue, aviso };
+    debe(!sigue, "B2: en la portada, lo que se está mandando ya no sale entre lo que te espera");
+    debe(/Se manda en \d s|Mandando/.test(aviso), `B2: y la portada también avisa («${aviso}»)`);
+    await hastaApuntada(id);
+  });
+
+  // ── Se pierde la contestación y tampoco se puede preguntar cómo quedó ──
+  await tramo("B3", async () => {
+    const id = await abrir([pregunta("A", 2)]);
+    await page.click(opcion("A", 1));
+    await post("/api/sembrar-responder", { pierde: true });
+    await page.route(SONDEO, (ruta) => ruta.abort());
+    try {
+      await page.click("#enviar-dec");
+      await hastaQueDiga(/llegado|mandado/);
+      const v = await vista();
+      const s = await enServidor(id);
+      pasos.b3 = { estado: v.estado, apuntada: Boolean(s.respuesta) };
+      debe(Boolean(s.respuesta), "B3: la respuesta sí llegó al PC");
+      debe(/No se sabe si ha llegado/.test(v.estado) && !/No se ha mandado/.test(v.estado), `B3: sin poder preguntar, dice que no se sabe si ha llegado («${v.estado}»)`);
+    } finally {
+      await page.unroute(SONDEO);
+    }
+    // Con red otra vez, el sondeo se entera de que era la tuya.
+    await hastaQueDiga(/^Enviada/, 13000);
+    const fin = await vista();
+    pasos.b3.fin = fin.estado;
+    debe(/^Enviada\./.test(fin.estado), `B3: y en cuanto hay red dice «Enviada» («${fin.estado}»)`);
+  });
+
+  // ── El primer intento llegó y se reenvía otro texto ──
+  await tramo("B4", async () => {
+    const id = await abrir([pregunta("A", 2)]);
+    const PRIMERO = "el primer intento";
+    const SEGUNDO = "el segundo intento, distinto";
+    await page.click(opcion("A", 1));
+    await page.fill('.libre[data-q="A"]', PRIMERO);
+    await post("/api/sembrar-responder", { pierde: true });
+    await page.route(SONDEO, (ruta) => ruta.abort());
+    let cortado = true;
+    try {
+      await page.click("#enviar-dec");
+      await hastaQueDiga(/llegado|mandado/);
+      await page.fill('.libre[data-q="A"]', SEGUNDO);
+      await enviarEncendido();
+      await page.click("#enviar-dec");
+      await page.waitForTimeout(400);
+      await page.unroute(SONDEO);
+      cortado = false;
+      await page.waitForSelector(".dec-hecha", { timeout: 9000 });
+    } finally {
+      if (cortado) await page.unroute(SONDEO);
+    }
+    const v = await vista();
+    const s = await enServidor(id);
+    pasos.b4 = { titulo: v.titulo, estado: v.estado, mio: v.mio, pc: s.respuesta?.elecciones ?? null };
+    debe(s.respuesta?.elecciones?.A?.texto === PRIMERO, `B4: al PC le llegó el primer intento (${JSON.stringify(s.respuesta?.elecciones)})`);
+    debe(!/otro sitio/.test(v.estado), `B4: un intento tuyo que llegó no sale como contestado desde otro sitio («${v.estado}»)`);
+    debe(/anterior/.test(v.estado) && /Enviada/.test(v.titulo), `B4: dice que llegó tu envío anterior (título «${v.titulo}», estado «${v.estado}»)`);
+    debe(v.mio.includes(SEGUNDO), `B4: y lo último que escribiste sigue a la vista como no mandado («${v.mio}»)`);
+  });
+
+  // ── «Mandando…» tiene un límite ──
+  const hastaSoltar = async () => {
+    await page.waitForFunction(() => /Mandando/.test(document.getElementById("enviar-dec")?.textContent ?? ""), null, { timeout: 9000 });
+    const t0 = Date.now();
+    return page.waitForFunction(() => !/Mandando/.test(document.getElementById("enviar-dec")?.textContent ?? ""), null, { timeout: 38000 }).then(() => Date.now() - t0, () => null);
+  };
+  await tramo("B5 (apuntada)", async () => {
+    const id = await abrir([pregunta("A", 2)]);
+    await page.click(opcion("A", 1));
+    await post("/api/sembrar-responder", { espera: 60000 });
+    await page.click("#enviar-dec");
+    const tardo = await hastaSoltar();
+    // El botón se suelta justo antes de repintar la pantalla con cómo quedó.
+    await hastaQueDiga(/Enviada|mandado|llegado/, 3000);
+    const v = await vista();
+    pasos.b5Apuntada = { tardo, titulo: v.titulo, estado: v.estado, apuntada: Boolean((await enServidor(id)).respuesta) };
+    debe(tardo !== null && tardo >= 25000 && tardo <= 36000, `B5: «Mandando…» se corta a los 30 s (${tardo === null ? "seguía a los 38 s" : `${tardo} ms`})`);
+    debe(/Enviada/.test(v.titulo), `B5: y al mirar cómo quedó, era la tuya (título «${v.titulo}», estado «${v.estado}»)`);
+  });
+  await tramo("B5 (sin apuntar)", async () => {
+    const id = await abrir([pregunta("A", 2)]);
+    await page.click(opcion("A", 2));
+    await post("/api/sembrar-responder", { cuelga: true });
+    await page.click("#enviar-dec");
+    const tardo = await hastaSoltar();
+    const v = await vista();
+    const s = await enServidor(id);
+    pasos.b5SinApuntar = { tardo, enviar: v.enviar, estado: v.estado, apuntada: Boolean(s.respuesta) };
+    debe(tardo !== null && tardo <= 36000, `B5: sin contestación ni respuesta apuntada, también se corta (${tardo === null ? "seguía a los 38 s" : `${tardo} ms`})`);
+    // A8: el PC contesta a la consulta, pero de este envío no se sabe nada: puede seguir en camino.
+    debe(v.enviar === "Enviar respuesta" && /^No se sabe si ha llegado/.test(v.estado) && !/No se ha mandado|No llego/.test(v.estado), `A8: cortado a los 30 s no afirma que no se mandó, y se puede volver a enviar (botón «${v.enviar}», estado «${v.estado}»)`);
+    await enviarEncendido();
+    await page.click("#enviar-dec");
+    await hastaQueDiga(/^Enviada/);
+    debe((await enServidor(id)).respuesta?.elecciones?.A?.opcion === 2, "B5: el segundo envío llega");
+  });
+
+  // ── La letra de la pregunta, en claro y con un acento elegido ──
+  await tramo("B6", async () => {
+    const id = await sembrar(DOS);
+    const medir = async (ajustes) => {
+      await page.evaluate((a) => localStorage.setItem("adeorq-movil-ajustes", JSON.stringify(a)), ajustes);
+      await ver(id);
+      return page.evaluate(() => {
+        const el = [...document.querySelectorAll(".pregunta-d .letra")].find((x) => x.offsetParent);
+        const prueba = document.createElement("i");
+        prueba.style.color = "var(--acento)";
+        document.body.append(prueba);
+        const acento = getComputedStyle(prueba).color;
+        prueba.remove();
+        const rgba = (t) => { const n = t.match(/-?\d*\.?\d+(?:e-?\d+)?/g).map(Number); const k = t.startsWith("color(") ? 255 : 1; return [n[0] * k, n[1] * k, n[2] * k, n[3] ?? 1]; };
+        const capas = [];
+        for (let x = el; x; x = x.parentElement) {
+          const f = rgba(getComputedStyle(x).backgroundColor);
+          if (f[3] > 0) capas.push(f);
+          if (f[3] >= 1) break;
+        }
+        const claro = document.documentElement.dataset.tema === "claro";
+        let fondo = claro ? [0xe8, 0xee, 0xf8] : [0x06, 0x0a, 0x12];
+        for (const [r, g, b, a] of capas.reverse()) fondo = [r, g, b].map((v, i) => fondo[i] * (1 - a) + v * a);
+        const lum = (c) => { const [r, g, b] = c.slice(0, 3).map((v) => v / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+        const color = getComputedStyle(el).color;
+        const [a, b] = [lum(rgba(color)), lum(fondo)];
+        return { color, acento, contraste: Math.round(((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)) * 100) / 100 };
+      });
+    };
+    // Los de Ajustes menos el azul, que es el de fábrica: con él no hay acento elegido y se mide abajo.
+    const ACENTOS = ["#22d3ee", "#46c99a", "#f5c542", "#ff9a3c", "#ff4b6e", "#ff7ac6", "#a877ff"];
+    pasos.b6 = { claro: {}, otros: {} };
+    for (const acento of ACENTOS) {
+      const m = await medir({ tema: "claro", acento });
+      pasos.b6.claro[acento] = m.contraste;
+      debe(m.contraste >= 4.5, `B6: en claro con el acento ${acento}, la letra de la pregunta se lee (contraste ${m.contraste})`);
+    }
+    for (const [nombre, ajustes] of [["oscuro y amarillo", { tema: "oscuro", acento: "#f5c542" }], ["oscuro de fábrica", { tema: "oscuro" }]]) {
+      const m = await medir(ajustes);
+      pasos.b6.otros[nombre] = m;
+      debe(m.color === m.acento, `B6: en ${nombre} la letra de la pregunta sigue siendo el acento (${m.color} frente a ${m.acento})`);
+    }
+    // A4: cualquier acento en claro, también los más claros, el que viene del PC y el azul de fábrica.
+    pasos.a4 = {};
+    for (const acento of ["#ffffff", "#ffff00", "#ebbcba", "#00ff66", "#a6e22e", "#00f5d4", "#fbbf24", "#d9b06a", "#ff7edb", "#9aa4b8"]) {
+      const m = await medir({ tema: "claro", acento });
+      pasos.a4[acento] = m.contraste;
+      debe(m.contraste >= 4.5, `A4: en claro con el acento ${acento}, la letra de la pregunta da 4,5:1 o más (${m.contraste})`);
+    }
+    const fabrica = await medir({ tema: "claro" });
+    pasos.a4.fabrica = fabrica.contraste;
+    debe(fabrica.contraste >= 4.5, `A4: en el claro de fábrica también (${fabrica.contraste})`);
+    await page.evaluate(() => localStorage.setItem("adeorq-movil-pc", JSON.stringify({ acento: "#ffffff" })));
+    await page.route("**/api/apariencia", (r) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ acento: "#ffffff" }) }));
+    const delPc = await medir({ tema: "claro" });
+    await page.unroute("**/api/apariencia");
+    pasos.a4.delPc = delPc.contraste;
+    debe(delPc.contraste >= 4.5, `A4: con «El de tu PC» y el tema Negro (#ffffff) también (${delPc.contraste})`);
+    await page.evaluate(() => { localStorage.removeItem("adeorq-movil-ajustes"); localStorage.removeItem("adeorq-movil-pc"); });
+  });
+
+  // Lo que dejó la revisión de las tres causas del 2026-11-18. Toques de ratón en puntos medidos, como el dedo.
+  const cargaDe = (id) => (u) => u.pathname === "/api/decision" && u.searchParams.get("id") === id && !u.searchParams.has("si");
+  const pausa = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // ── A1: tocar una, volver antes de que cargue, abrir otra y contestarla ──
+  for (const [nombre, tardaA, tardaB] of [["la primera carga llega con la segunda ya pintada", 1200, 0], ["la primera carga llega con la segunda aún cargando", 1200, 2600]]) await tramo(`A1 (${nombre})`, async () => {
+    const a = await sembrar(DOS, 4);
+    const b = await sembrar(DOS, 2);
+    await ver(await sembrar(DOS));
+    await tocar("#atras");
+    await page.waitForSelector(tarjetaDe(a));
+    await page.waitForTimeout(300);
+    await page.route(cargaDe(a), async (r) => { await pausa(tardaA); await r.continue().catch(() => {}); });
+    if (tardaB) await page.route(cargaDe(b), async (r) => { await pausa(tardaB); await r.continue().catch(() => {}); });
+    try {
+      await tocarTarjeta(a);
+      await page.waitForTimeout(250);
+      await tocar("#atras");
+      await page.waitForSelector(tarjetaDe(b));
+      await page.waitForTimeout(150);
+      await tocarTarjeta(b);
+      await page.waitForTimeout(Math.max(tardaA, tardaB) + 1200);
+      const seVe = await page.textContent("#titulo .tit");
+      await tocar(opcion("A", 2));
+      await page.waitForTimeout(1300);
+      await tocar(opcion("B", 1));
+      await enRepaso();
+      await enviarEncendido();
+      await tocar("#enviar-dec");
+      await page.waitForTimeout(1200);
+      const aviso = await avisoEnvio();
+      await hastaApuntada(b, 9000);
+      await page.waitForTimeout(1500);
+      const [sa, sb] = [await enServidor(a), await enServidor(b)];
+      const leer = async (panel) => (await (await fetch(`${B}/api/escrito?panel=${panel}`, { headers: cab })).json()).texto ?? "";
+      const [en4, en2] = [await leer(4), await leer(2)];
+      pasos[`a1 ${tardaB}`] = { seVe, aviso, a: sa.respuesta?.elecciones ?? null, b: sb.respuesta?.elecciones ?? null };
+      debe(!sa.respuesta, `A1: la decisión que solo se abrió y se dejó no queda contestada (${JSON.stringify(sa.respuesta?.elecciones)})`);
+      debe(sb.respuesta?.elecciones?.A?.opcion === 2 && sb.respuesta?.elecciones?.B?.opcion === 1, `A1: la que se contestó recibe lo que se marcó (${JSON.stringify(sb.respuesta?.elecciones)})`);
+      debe(!aviso, `A1: no sale ningún envío de la otra decisión («${aviso}»)`);
+      debe(!en4.includes(a), `A1: en la terminal de la decisión dejada no se teclea nada («${en4.slice(0, 90)}»)`);
+      debe(en2.includes(b), `A1: en la terminal de la contestada sí («${en2.slice(0, 90)}»)`);
+    } finally {
+      await page.unrouteAll({ behavior: "ignoreErrors" });
+    }
+  });
+
+  // ── A2: lo que se le dijo a la persona no lo borra nadie ──
+  const muestrasDe = async (n = 12) => {
+    const dichos = [];
+    for (let i = 0; i < n; i++) { dichos.push((await vista()).estado); await page.waitForTimeout(200); }
+    return dichos;
+  };
+  await tramo("A2 (no se sabe si llegó)", async () => {
+    const id = await abrir(DOS);
+    await hastaElRepaso();
+    let cortar = true;
+    await page.route("**/api/decision/responder", (r) => r.abort());
+    await page.route(cargaDe(id), (r) => (cortar ? r.abort() : r.continue()));
+    try {
+      await tocar("#enviar-dec");
+      await page.waitForTimeout(300);
+      await tocar("#atras");
+      await page.waitForSelector(tarjetaDe(id));
+      await page.waitForFunction(() => /No se sabe/.test(document.getElementById("envios-dec")?.textContent ?? ""), null, { timeout: 12000 });
+      await page.waitForTimeout(6500);
+      const fuera = await avisoEnvio();
+      cortar = false;
+      await tocar("#envios-dec .aviso-dec");
+      await page.waitForSelector("#pie-dec:not([hidden])");
+      const dichos = await muestrasDe();
+      const tras = await avisoEnvio();
+      pasos.a2 = { fuera, dichos: [...new Set(dichos)], tras };
+      debe(/No se sabe/.test(fuera), `A2: lo que salió mal sigue avisado fuera pasados los 5 s («${fuera}»)`);
+      debe(dichos.every((x) => /No se sabe si ha llegado/.test(x)), `A2: al abrirla se repite y se queda (${JSON.stringify([...new Set(dichos)])})`);
+      debe(!tras, `A2: abierta, deja de avisarse fuera («${tras}»)`);
+    } finally {
+      await page.unrouteAll({ behavior: "ignoreErrors" });
+    }
+  });
+  await tramo("A2 (Deshacer nada más reabrir)", async () => {
+    const id = await abrir(DOS);
+    await hastaElRepaso();
+    await tocar("#enviar-dec");
+    await page.waitForTimeout(300);
+    await salirYVolver(id);
+    await tocar("#enviar-dec");
+    const dichos = await muestrasDe();
+    await page.waitForTimeout(4000);
+    const s = await enServidor(id);
+    pasos.a2Deshacer = [...new Set(dichos)];
+    debe(dichos.every((x) => x === "No se ha mandado."), `A2: «Deshacer» en el primer segundo tras reabrir no pierde su frase (${JSON.stringify([...new Set(dichos)])})`);
+    debe(!s.respuesta, `A2: y no se manda (${JSON.stringify(s.respuesta?.elecciones)})`);
+  });
+
+  // ── A8: cerrada desde otro sitio mientras estabas fuera ──
+  await tramo("A8 (cerrada estando fuera)", async () => {
+    const id = await abrir([pregunta("A", 2)]);
+    await tocar(opcion("A", 1));
+    await page.waitForTimeout(300);
+    await tocar("#enviar-dec");
+    await page.waitForTimeout(300);
+    await tocar("#atras");
+    await page.waitForSelector(tarjetaDe(id));
+    await page.evaluate(() => ir({ vista: "lista" }));
+    await post("/api/resolver-decision", { id, como: "ya me lo dijo en la terminal" });
+    await page.waitForFunction(() => /resuelta/.test(document.getElementById("envios-dec")?.textContent ?? ""), null, { timeout: 12000 });
+    await page.waitForTimeout(6500);
+    const fuera = await avisoEnvio();
+    debe(/resuelta/.test(fuera), `A8: lo que no salió se sigue diciendo fuera pasados los 5 s («${fuera}»)`);
+    if (!fuera) return;
+    await tocar("#envios-dec .aviso-dec");
+    await page.waitForSelector(".dec-vig");
+    await page.waitForTimeout(500);
+    const v = await vista();
+    pasos.a8Cerrada = { fuera, estado: v.estado };
+    debe(/resuelta/.test(v.estado), `A8: y se repite al abrirla («${v.estado}»)`);
+  });
+  await tramo("A8 (lo bueno se va solo)", async () => {
+    const id = await abrir([pregunta("A", 2)]);
+    await tocar(opcion("A", 1));
+    await page.waitForTimeout(300);
+    await tocar("#enviar-dec");
+    await page.waitForTimeout(300);
+    await tocar("#atras");
+    await page.waitForSelector(tarjetaDe(id));
+    await page.evaluate(() => ir({ vista: "lista" }));
+    await page.waitForFunction(() => /Enviada/.test(document.getElementById("envios-dec")?.textContent ?? ""), null, { timeout: 12000 });
+    await page.waitForTimeout(5800);
+    const luego = await avisoEnvio();
+    debe(!luego, `A8: «Enviada» se va sola a los 5 s («${luego}»)`);
+  });
+  await tramo("A8 (cerrada con la cuenta en marcha)", async () => {
+    const id = await abrir(DOS);
+    await hastaElRepaso();
+    let mandados = 0;
+    const contar = (p) => { if (p.method() === "POST" && p.url().endsWith("/api/decision/responder")) mandados += 1; };
+    page.on("request", contar);
+    await tocar("#enviar-dec");
+    await page.waitForTimeout(300);
+    await tocar("#atras");
+    await page.waitForSelector(tarjetaDe(id));
+    await post("/api/resolver-decision", { id, como: "ya está hablado" });
+    await page.waitForTimeout(150);
+    await tocarTarjeta(id);
+    await page.waitForSelector(".dec-vig", { timeout: 6000 });
+    await page.waitForTimeout(6000);
+    page.off("request", contar);
+    const v = await vista();
+    pasos.a8Parada = { mandados, enviar: v.enviar, aviso: v.aviso };
+    debe(mandados === 0, `A8: cerrada desde otro sitio durante la cuenta, al abrirla se para y no se manda (${mandados} envíos)`);
+    debe(!/^Deshacer/.test(v.enviar) && /decidida/.test(v.aviso), `A8: y se enseña cómo quedó (botón «${v.enviar}», aviso «${v.aviso}»)`);
+  });
+
+  // ── A3: reabrir con un envío en marcha sale al momento, sin esperar al PC ──
+  const CARGAS = [
+    ["la carga tarda 6 s", async (r) => { await pausa(6000); await r.continue().catch(() => {}); }],
+    ["la carga falla", (r) => r.abort()],
+  ];
+  for (const [nombre, carga] of CARGAS) await tramo(`A3 (${nombre})`, async () => {
+    const id = await abrir(DOS);
+    await hastaElRepaso();
+    await tocar("#enviar-dec");
+    await page.waitForTimeout(300);
+    await tocar("#atras");
+    await page.waitForSelector(tarjetaDe(id));
+    await page.route(cargaDe(id), carga);
+    try {
+      await page.waitForTimeout(150);
+      await tocarTarjeta(id);
+      await page.waitForTimeout(300);
+      const v = await vista();
+      const filas = await page.$$eval(".dec-fila b", (x) => x.map((y) => y.textContent.trim()));
+      pasos[`a3 ${nombre}`] = { repaso: v.repaso, enviar: v.enviar, estado: v.estado, filas };
+      debe(v.repaso && /^Deshacer \(\d\)$/.test(v.enviar), `A3 (${nombre}): sale el repaso con su «Deshacer» al momento (repaso ${v.repaso}, botón «${v.enviar}»)`);
+      debe(filas.length === 2 && filas.every((x) => x.startsWith("1. Opción 1")), `A3 (${nombre}): con lo que se está mandando (${JSON.stringify(filas)})`);
+      await page.waitForTimeout(500);
+      await tocarSiSeVe("#enviar-dec");
+      await page.waitForTimeout(300);
+      const deshecha = await vista();
+      await page.waitForTimeout(5200);
+      const s = await enServidor(id);
+      debe(/No se ha mandado/.test(deshecha.estado), `A3 (${nombre}): «Deshacer» funciona sin el PC («${deshecha.estado}»)`);
+      debe(!s.respuesta, `A3 (${nombre}): y al PC no le llega nada (${JSON.stringify(s.respuesta?.elecciones)})`);
+    } finally {
+      await page.unrouteAll({ behavior: "ignoreErrors" });
+    }
+  });
+
+  // ── A7: reabrir justo antes de que acabe la cuenta, con una carga lenta que trae lo de antes ──
+  await tramo("A7", async () => {
+    const id = await abrir(DOS);
+    await hastaElRepaso();
+    await tocar("#enviar-dec");
+    const t0 = Date.now();
+    await page.waitForTimeout(300);
+    await tocar("#atras");
+    await page.waitForSelector(tarjetaDe(id));
+    await page.route(cargaDe(id), async (r) => { const res = await r.fetch(); await pausa(2200); await r.fulfill({ response: res }).catch(() => {}); });
+    try {
+      await page.waitForTimeout(Math.max(0, 4200 - (Date.now() - t0)));
+      await tocarTarjeta(id);
+      const malas = [];
+      for (let i = 0; i < 28; i++) {
+        const m = await page.evaluate(() => ({
+          estado: document.getElementById("estado-envio")?.textContent.trim() ?? "",
+          sinContestar: document.querySelectorAll(".dec-fila[data-falta]").length,
+          cargando: /cargando/.test(document.getElementById("titulo")?.textContent ?? ""),
+        }));
+        if (/^Falta/.test(m.estado) || m.sinContestar || m.cargando) malas.push(m);
+        await page.waitForTimeout(250);
+      }
+      await hastaQueDiga(/^Enviada/, 6000);
+      const fin = await vista();
+      const quedo = await dichos();
+      pasos.a7 = { malas: malas.length, fin: fin.estado, quedo };
+      debe(!malas.length, `A7: ni un momento sale sin contestar o cargando (${JSON.stringify(malas.slice(0, 2))})`);
+      debe(/^Enviada\./.test(fin.estado) && /Enviada/.test(fin.titulo), `A7: y acaba en «Enviada» (título «${fin.titulo}», estado «${fin.estado}»)`);
+      debe(quedo.length === 2 && quedo.every((x) => x.startsWith("1. Opción 1")), `A7: con lo que se mandó a la vista (${JSON.stringify(quedo)})`);
+    } finally {
+      await page.unrouteAll({ behavior: "ignoreErrors" });
+    }
+  });
+
+  // ── A5: un aviso que sale o se va no mueve lo que estás tocando ──
+  await tramo("A5 (el aviso se va)", async () => {
+    const a = await sembrar([pregunta("A", 2)]);
+    const b = await sembrar([pregunta("A", 3), pregunta("B", 3)]);
+    await ver(a);
+    await tocar(opcion("A", 1));
+    await page.waitForTimeout(300);
+    await tocar("#enviar-dec");
+    await page.waitForTimeout(300);
+    await tocar("#atras");
+    await page.waitForSelector(tarjetaDe(b));
+    await page.waitForTimeout(150);
+    await tocarTarjeta(b);
+    await page.waitForSelector(".pregunta-d:not([hidden])");
+    await page.waitForFunction(() => /Enviada/.test(document.getElementById("envios-dec")?.textContent ?? ""), null, { timeout: 12000 });
+    await page.waitForTimeout(700);
+    const medida = () => page.$eval(opcion("A", 2), (x) => { const r = x.getBoundingClientRect(); return { top: r.top, bottom: r.bottom }; });
+    const conAviso = await medida();
+    const tapa = await page.evaluate(() => document.querySelector("#envios-dec .aviso-dec").getBoundingClientRect().bottom - document.getElementById("dec-paso").getBoundingClientRect().top);
+    const x = 195;
+    const y = Math.round(conAviso.bottom - 6);
+    const bajoElDedo = () => page.evaluate(([px, py]) => document.elementFromPoint(px, py)?.closest(".opcion")?.querySelector("input")?.value ?? null, [x, y]);
+    const antes = await bajoElDedo();
+    await page.waitForFunction(() => !document.getElementById("envios-dec"), null, { timeout: 9000 });
+    const despues = await bajoElDedo();
+    const sinAviso = await medida();
+    await page.mouse.click(x, y);
+    await page.waitForTimeout(150);
+    const marcada = await page.evaluate(() => document.querySelector('input[name="q-A"]:checked')?.value ?? null);
+    pasos.a5Se = { salto: conAviso.top - sinAviso.top, antes, despues, marcada, tapa };
+    debe(conAviso.top === sinAviso.top, `A5: cuando el aviso se va, la opción no se mueve (${conAviso.top - sinAviso.top} px)`);
+    debe(antes === "2" && despues === "2" && marcada === "2", `A5: el toque cae en la opción que había bajo el dedo (antes ${antes}, después ${despues}, marcada ${marcada})`);
+    debe(tapa <= 0, `A5: el aviso no tapa el principio de la pantalla (${tapa} px)`);
+  });
+  await tramo("A5 (el aviso sale)", async () => {
+    const id = await abrir([pregunta("A", 2)]);
+    await tocar(opcion("A", 1));
+    await page.waitForTimeout(300);
+    await tocar("#enviar-dec");
+    await page.waitForTimeout(300);
+    await tocar("#atras");
+    await page.waitForSelector(tarjetaDe(id));
+    await page.waitForTimeout(300);
+    const arriba = () => page.$eval("#decisiones", (x) => x.getBoundingClientRect().top);
+    const antes = await arriba();
+    await page.waitForFunction(() => document.querySelector("#envios-dec .aviso-dec"), null, { timeout: 12000 });
+    // El dedo iba a lo de debajo y el aviso acaba de salir: ese toque no abre nada.
+    await tocar("#envios-dec .aviso-dec");
+    await page.waitForTimeout(200);
+    const sigue = Boolean(await page.$("#decisiones"));
+    const despues = await arriba().catch(() => null);
+    pasos.a5Sale = { antes, despues, sigue };
+    debe(antes === despues, `A5: cuando el aviso sale, la lista no se mueve (${antes} frente a ${despues})`);
+    debe(sigue, "A5: un aviso recién salido no atiende el toque que iba a otra cosa");
+  });
+
+  // ── A6: el botón que acaba de cambiar de significado no atiende el toque que iba al de antes ──
+  await tramo("A6", async () => {
+    const id = await abrir([pregunta("A", 2)]);
+    await tocar(opcion("A", 1));
+    await page.waitForTimeout(300);
+    await page.route("**/api/decision/responder", (r) => r.abort());
+    await page.route(cargaDe(id), (r) => r.abort());
+    try {
+      const p = await punto("#enviar-dec");
+      await page.mouse.click(p.x, p.y);
+      await page.waitForFunction(() => /Enviar respuesta/.test(document.getElementById("enviar-dec")?.textContent ?? ""), null, { timeout: 9000 });
+      // El dedo iba a «Deshacer (1)» y cae justo cuando el envío acaba de fallar.
+      await page.mouse.click(p.x, p.y);
+      await page.waitForTimeout(150);
+      const trasFallo = await vista();
+      debe(trasFallo.enviar === "Enviar respuesta", `A6: el toque que iba a «Deshacer» no arranca otro envío (botón «${trasFallo.enviar}»)`);
+      debe(/No se sabe/.test(trasFallo.estado), `A6: y se sigue diciendo cómo acabó («${trasFallo.estado}»)`);
+      // Pasado el momento atiende, y deshacer con dos toques seguidos tampoco vuelve a enviar.
+      await enviarEncendido();
+      await page.mouse.click(p.x, p.y);
+      await page.waitForTimeout(900);
+      const contando = await vista();
+      await page.mouse.click(p.x, p.y);
+      await page.waitForTimeout(90);
+      await page.mouse.click(p.x, p.y);
+      await page.waitForTimeout(150);
+      const trasDeshacer = await vista();
+      pasos.a6 = { trasFallo: trasFallo.enviar, contando: contando.enviar, trasDeshacer: trasDeshacer.enviar };
+      debe(/^Deshacer/.test(contando.enviar), `A6: pasado el momento, el botón vuelve a atender (botón «${contando.enviar}»)`);
+      debe(trasDeshacer.enviar === "Enviar respuesta" && /No se ha mandado/.test(trasDeshacer.estado), `A6: dos toques seguidos en «Deshacer» no vuelven a enviar (botón «${trasDeshacer.enviar}», estado «${trasDeshacer.estado}»)`);
+    } finally {
+      await page.unrouteAll({ behavior: "ignoreErrors" });
+    }
+  });
+
+  // ── A8: el segundo intento solo cambia la opción, y llegó el primero ──
+  await tramo("A8 (solo cambia la opción)", async () => {
+    const id = await abrir([pregunta("A", 3)]);
+    await tocar(opcion("A", 1));
+    await page.waitForTimeout(300);
+    await post("/api/sembrar-responder", { pierde: true });
+    let cortar = true;
+    await page.route(SONDEO, (r) => (cortar ? r.abort() : r.continue()));
+    try {
+      await tocar("#enviar-dec");
+      await hastaQueDiga(/No se sabe/, 12000);
+      await page.waitForTimeout(900);
+      await tocar(opcion("A", 3));
+      await page.waitForTimeout(300);
+      await enviarEncendido();
+      await tocar("#enviar-dec");
+      await page.waitForTimeout(400);
+      cortar = false;
+      await page.waitForSelector(".dec-hecha", { timeout: 12000 });
+      await page.waitForTimeout(300);
+      const v = await vista();
+      const b = await borrador(id);
+      const s = await enServidor(id);
+      await ver(id);
+      const luego = await vista();
+      pasos.a8Opcion = { estado: v.estado, mio: v.mio, borrador: b, pc: s.respuesta?.elecciones ?? null, luego: luego.mio };
+      debe(s.respuesta?.elecciones?.A?.opcion === 1, `A8: al PC le llegó el primer intento (${JSON.stringify(s.respuesta?.elecciones)})`);
+      debe(/anterior/.test(v.estado), `A8: y se dice que llegó el anterior («${v.estado}»)`);
+      debe(/Opción 3 de A/.test(v.mio), `A8: la opción que no se mandó sigue a la vista («${v.mio}»)`);
+      debe(/Opción 3 de A/.test(luego.mio), `A8: también al volver a abrirla («${luego.mio}»)`);
+    } finally {
+      await page.unrouteAll({ behavior: "ignoreErrors" });
+    }
+  });
 
   // ── H4: si se teclea lo dice el PC. Va el último: escribirle al panel 1 da por habladas las suyas ──
   await tramo("H4", async () => {

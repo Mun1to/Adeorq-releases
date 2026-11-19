@@ -45,6 +45,10 @@ includes selling it. It is not open source.
 - [Guía](https://adeorq.com/guia): qué hace cada pantalla, la instalación, los estados de una sesión, los atajos y dónde guarda sus cosas.
 - [En el móvil](https://adeorq.com/guia#movil): cómo usar Adeorq desde el móvil o desde otro navegador, paso a paso.
 - [Privacidad](https://adeorq.com/privacidad): qué lee Adeorq de tu ordenador, qué guarda y a dónde sale algo de lo que haces; también [en inglés](https://adeorq.com/en/privacy).
+- [Claude Code en Windows](https://adeorq.com/claude-code-windows): cómo instalarlo sin WSL y tener varias sesiones a la vez en una ventana; también [en inglés](https://adeorq.com/en/claude-code-windows).
+- [Claude Code, Codex y Gemini CLI en el mismo panel](https://adeorq.com/claude-code-codex-gemini): cómo se abren juntos y qué hace Adeorq con cada cliente; también [en inglés](https://adeorq.com/en/claude-code-codex-gemini).
+- [Comparativa](https://adeorq.com/comparativa): Adeorq frente a Warp, Vibe Kanban y Claude Squad, con datos de sus fuentes oficiales; también [en inglés](https://adeorq.com/en/comparison).
+- [Novedades](https://adeorq.com/novedades): qué trae cada versión, con su fecha y su enlace; también [en inglés](https://adeorq.com/en/changelog).
 
 ## Descargas y código
 

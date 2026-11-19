@@ -1641,6 +1641,17 @@ pub fn atender(
                 None => Respuesta::error(404, "Esa decisión ya no está."),
             }
         }
+        // Una imagen de una decisión, por el id de la decisión y su número dentro
+        // de ella: nunca una ruta. Lo que hay en el disco es la copia que se hizo
+        // al crearla (`decisiones::preparar_imagenes`), con el tipo leído de sus bytes.
+        ("GET", "/api/decision/imagen") => {
+            let id = p.consulta.get("id").map(String::as_str).unwrap_or("");
+            let n = p.consulta.get("n").and_then(|n| n.parse::<u32>().ok()).unwrap_or(0);
+            match casa.decisiones().ok().and_then(|dir| crate::decisiones::imagen(&dir, id, n)) {
+                Some((tipo, cuerpo)) => Respuesta { estado: 200, tipo, cuerpo },
+                None => Respuesta::error(404, "Esa imagen ya no está."),
+            }
+        }
         ("POST", "/api/decision/descartar") => {
             let id = cuerpo["id"].as_str().unwrap_or("");
             let dir = match casa.decisiones() {
@@ -1771,7 +1782,7 @@ pub fn atender(
             | "/api/parar" | "/api/sesion" | "/api/push/clave" | "/api/push/suscribir"
             | "/api/push/olvidar" | "/api/terminales" | "/api/terminal" | "/api/terminal/escribir"
             | "/api/terminal/tecla" | "/api/adjuntar" | "/api/decisiones" | "/api/decision"
-            | "/api/decision/responder" | "/api/decision/descartar" | "/api/avisos" | "/api/olvidarme"
+            | "/api/decision/responder" | "/api/decision/descartar" | "/api/decision/imagen" | "/api/avisos" | "/api/olvidarme"
             | "/api/apariencia" | "/api/fondo" | "/api/terminal/modelo" | "/api/terminal/traspaso" | "/api/historia"
             | "/api/logo" | "/api/proyectos" | "/api/abrir" | "/api/sesiones" | "/api/seguir"
             | "/api/emparejar/codigo" | "/api/aparatos" | "/api/aparatos/quitar") => Respuesta::error(405, "Así no."),
@@ -2909,6 +2920,59 @@ mod tests {
         assert_eq!(casa.enviados.borrow().len(), antes);
         assert_eq!(atender(&pedir("GET", "/api/decision/responder", c, ""), &g, &casa, &nada, reloj).estado, 405);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Munir, 2026-11-19: «Tiene que haber una manera la cual se puedan ver las
+    /// imagenes de las decisiones». El móvil las pide con su clave, por el id de
+    /// la decisión y el número de la imagen; nunca una ruta.
+    #[test]
+    fn la_imagen_de_una_decision_solo_se_ve_emparejado_y_por_su_numero() {
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira { sitio: "-imagenes", ..Default::default() };
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 10);
+        let c = Some(clave.as_str());
+        let dir = casa.decisiones().unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+        let raiz = std::env::temp_dir().join(format!("adeorq-movil-imagenes-raiz-{}", std::process::id()));
+        std::fs::create_dir_all(&raiz).unwrap();
+        let mut foto = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR".to_vec();
+        foto.extend(390u32.to_be_bytes());
+        foto.extend(844u32.to_be_bytes());
+        foto.extend([8, 6, 0, 0, 0, 0, 0, 0, 0]);
+        std::fs::write(raiz.join("variante.png"), &foto).unwrap();
+        let pedido: crate::decisiones::Pedido = serde_json::from_value(json!({
+            "titulo": "Diseño", "panel": 4,
+            "preguntas": [{ "titulo": "La barra", "opciones": [
+                { "texto": "Como está" },
+                { "texto": "La de la portada", "imagen": raiz.join("variante.png").display().to_string() }
+            ] }]
+        }))
+        .unwrap();
+        let mut d = crate::decisiones::validar(&pedido, 5000, 77).unwrap();
+        let imagenes = crate::decisiones::preparar_imagenes(&pedido, &mut d, &[raiz.canonicalize().unwrap()]).unwrap();
+        let d = crate::decisiones::crear_con_imagenes(&dir, d, imagenes).unwrap();
+
+        // La decisión dice qué opción la lleva, su número y su tamaño.
+        let una = cuerpo_de(&atender(&pedir("GET", &format!("/api/decision?id={}", d.id), c, ""), &g, &casa, &nada, reloj));
+        assert_eq!(una["preguntas"][0]["opciones"][1]["imagen"], json!({ "n": 1, "tipo": "image/png", "ancho": 390, "alto": 844 }));
+        assert!(una["preguntas"][0]["opciones"][0].get("imagen").is_none());
+
+        let ver = |consulta: &str, c: Option<&str>| atender(&pedir("GET", &format!("/api/decision/imagen?{consulta}"), c, ""), &g, &casa, &nada, reloj);
+        assert_eq!(ver(&format!("id={}&n=1", d.id), None).estado, 401);
+        assert_eq!(ver(&format!("id={}&n=1", d.id), Some("inventada")).estado, 401);
+        let r = ver(&format!("id={}&n=1", d.id), c);
+        assert_eq!((r.estado, r.tipo, r.cuerpo.as_slice()), (200, "image/png", foto.as_slice()));
+        for mala in [format!("id={}&n=2", d.id), format!("id={}&n=x", d.id), format!("id={}", d.id), "id=../movil&n=1".into(), "id=d1&n=1".into()] {
+            assert_eq!(ver(&mala, c).estado, 404, "{mala}");
+        }
+        assert_eq!(cuerpo_de(&ver(&format!("id={}&n=2", d.id), c))["error"], "Esa imagen ya no está.");
+        assert_eq!(atender(&pedir("POST", "/api/decision/imagen", c, "{}"), &g, &casa, &nada, reloj).estado, 405);
+        // El original se puede borrar: el móvil ve la copia.
+        std::fs::remove_file(raiz.join("variante.png")).unwrap();
+        assert_eq!(ver(&format!("id={}&n=1", d.id), c).estado, 200);
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&raiz);
     }
 
     /// Cada decisión dice si alguien la espera todavía: la de una terminal

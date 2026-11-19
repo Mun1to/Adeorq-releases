@@ -362,6 +362,16 @@ export function trabajoDeFondoEnPantalla(linea: (i: number) => string, filas: nu
   return fondoDeClaude(linea, filas) || fondoDeCodex(linea, filas);
 }
 
+/**
+ * Claude Code compactándose: su fila de estado, «✽ Compacting conversation… (42s)».
+ * Compactarse no escribe en el transcript, así que por él la hija sigue en «lista».
+ * Solo esa fila: una hija parada que cite «esc to interrupt» en su mensaje ha parado.
+ */
+export function compactandoEnPantalla(linea: (i: number) => string, filas: number): boolean {
+  for (let i = 0; i < filas; i++) if (/^\s*[·✢✳✶✻✽*]\s+Compacting conversation…/.test(linea(i))) return true;
+  return false;
+}
+
 /** La cola sin los avisos de parada que han dejado de ser verdad mientras la madre
     estaba ocupada: la hija volvió a trabajar o lanzó trabajo de fondo. */
 export function aunParadas(cola: AvisoArriba[], hijas: Map<number, Hija>): AvisoArriba[] {

@@ -21,10 +21,20 @@ import {
   type Reposo,
 } from "./decisionesLista";
 
+/** Una imagen de la decisión (`image` en ask_decision), ya copiada al almacén:
+    se pide por su número, y su tamaño sirve para guardarle el sitio. */
+export interface Imagen {
+  n: number;
+  tipo: string;
+  ancho: number;
+  alto: number;
+}
+
 export interface Opcion {
   texto: string;
   detalle?: string;
   recomendada: boolean;
+  imagen?: Imagen;
 }
 
 export interface Pregunta {
@@ -33,6 +43,7 @@ export interface Pregunta {
   titulo: string;
   contexto?: string;
   opciones: Opcion[];
+  imagen?: Imagen;
 }
 
 export interface Eleccion {
@@ -98,6 +109,35 @@ export const responderDecision = (id: string, elecciones: Elecciones) =>
   invoke<{ decision: Decision; panel: number | null; texto: string | null }>("decision_responder", { id, elecciones });
 
 export const marcarEntregada = (id: string) => invoke<void>("decision_entregada", { id });
+
+/* Las imágenes de las decisiones, por el id y su número (`decision_imagen`),
+   como en el móvil: nunca una ruta. Llegan en binario y se guardan como enlace
+   («id:n» → promesa), que la decisión abierta se repinta a cada tecla. Con tope,
+   como en el móvil: lleno, se suelta (`revokeObjectURL`) lo usado hace más, nunca
+   lo de la decisión de esta imagen, que es la abierta. Antes no se soltaba nada
+   (revisión del 2026-11-19). */
+const TOPE_FOTOS = 60;
+const fotos = new Map<string, Promise<string>>();
+export function fotoDecision(id: string, n: number): Promise<string> {
+  const k = `${id}:${n}`;
+  const ya = fotos.get(k);
+  if (ya) {
+    fotos.delete(k);
+    fotos.set(k, ya);
+    return ya;
+  }
+  const p = invoke<ArrayBuffer>("decision_imagen", { id, n }).then((b) => URL.createObjectURL(new Blob([b])));
+  // Lo que falló se vuelve a pedir la próxima vez.
+  p.catch(() => fotos.delete(k));
+  fotos.set(k, p);
+  for (const [viejo, suya] of fotos) {
+    if (fotos.size <= TOPE_FOTOS) break;
+    if (viejo.startsWith(`${id}:`)) continue;
+    fotos.delete(viejo);
+    suya.then((u) => URL.revokeObjectURL(u), () => {});
+  }
+  return p;
+}
 
 /** La aparta sin contestarla. Si una terminal la esperaba, vuelve su panel y
     lo que hay que teclearle para que el agente no se quede esperando. */

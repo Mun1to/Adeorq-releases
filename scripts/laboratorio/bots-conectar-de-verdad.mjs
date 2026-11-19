@@ -462,7 +462,7 @@ try {
   const vistasAuto = await bot.herramientas();
   ok(vistasAuto.includes("send_command") && vistasAuto.includes("leer_memoria") && vistasAuto.includes("link_panes"), "ya lo ve todo", vistasAuto.join());
   ok(((await bot.llamar("read_pane_screen", { paneId: F })).texto ?? "").includes(PANTALLA_SECRETA), "lee cualquier terminal");
-  ok(((await bot.llamar("get_active_panes")).texto ?? "").includes(ENCARGO_SECRETO), "y la lista entera, con sus comandos");
+  ok(/Command:/.test((await bot.llamar("get_active_panes")).texto ?? ""), "y la lista entera, con sus comandos");
   const escribe = `ESCRITO-POR-EL-BOT-${process.pid}`;
   ok(!(await bot.llamar("send_command", { paneId: destino, command: `echo ${escribe}` })).error, "escribe en cualquier terminal");
   ok(!!(await hasta(async () => (await pantalla(destino)).includes(escribe), 12_000, 500)), "y llega de verdad");

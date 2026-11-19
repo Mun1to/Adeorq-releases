@@ -108,7 +108,7 @@ async (page) => {
   await page.click("#modelo");
   const b1 = await barra();
   // Solo los últimos de cada familia, con su versión (2026-10-17).
-  debe(b1.abierta && JSON.stringify(b1.ops) === JSON.stringify(["Haiku 5.5 Sonnet 5.5 Opus 5.5 Fable 5.1", "Bajo Medio Alto Extra Máx"]) && b1.puesto.join() === "Opus 5.5,Extra" && b1.azul, `la pastilla abre los modelos y los esfuerzos con lo puesto marcado (${JSON.stringify(b1)})`);
+  debe(b1.abierta && JSON.stringify(b1.ops) === JSON.stringify(["Haiku 5.5 Sonnet 5.5 Opus 5.5 Fable 5.2", "Bajo Medio Alto Extra Máx"]) && b1.puesto.join() === "Opus 5.5,Extra" && b1.azul, `la pastilla abre los modelos y los esfuerzos con lo puesto marcado (${JSON.stringify(b1)})`);
   debe(b1.sitio === "texto>mandos" && b1.ancho <= 412 && !b1.cortados.length, `la barra va dentro de la caja, bajo el texto, sin salirse ni cortar un nombre (${JSON.stringify(b1)})`);
   await page.click('#elegir [data-valor="sonnet"]');
   await page.waitForTimeout(1200);

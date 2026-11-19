@@ -234,6 +234,8 @@ for (const lang of ["es", "en"]) {
       const r = spawnSync(process.execPath, [path.join(WEB, "scripts", "hacer-ingles.mjs")], { cwd: WEB, encoding: "utf8" });
       ok("la portada inglesa se genera", r.status === 0, String(r.stderr || r.stdout).slice(-300));
     }
+    const paginas = spawnSync(process.execPath, [path.join(WEB, "scripts", "hacer-paginas.mjs")], { cwd: WEB, encoding: "utf8" });
+    ok("las páginas por búsqueda se generan", paginas.status === 0, String(paginas.stderr || paginas.stdout).slice(-300));
     escribirTodas();
     const salida = fs.mkdtempSync(path.join(os.tmpdir(), "adeorq-privacidad-build-"));
     const env = { ...process.env };

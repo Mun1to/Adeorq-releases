@@ -42,8 +42,10 @@
   }
   .marca svg { width: 30px; height: 30px; display: block; }
   .codigo {
-    font: 600 clamp(3.4rem, 2rem + 5vw, 5.4rem)/1 "JetBrains Mono", ui-monospace, Consolas, monospace;
-    letter-spacing: -.03em;
+    /* En la letra de la página, al peso del titular: la mono es solo para código
+       (DISENO.md, 4), y una cifra no lo es. */
+    font: 800 clamp(3.4rem, 2rem + 5vw, 5.4rem)/1 "Geist", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    letter-spacing: -.05em;
     background: linear-gradient(135deg, #48c2ff, #2f9df3);
     -webkit-background-clip: text;
     background-clip: text;

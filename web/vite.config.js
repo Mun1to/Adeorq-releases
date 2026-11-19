@@ -9,6 +9,7 @@ import { cp, copyFile, readdir, access, readFile, writeFile } from 'node:fs/prom
 import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
 import { entradasDeCuentas, revisarSalida } from './scripts/cuentas-fuera.mjs'
+import { ARCHIVOS_RAIZ, entradasDePaginas } from './paginas/rutas.mjs'
 
 const ROOT = resolve(import.meta.dirname)
 
@@ -38,6 +39,10 @@ const NEVER_COPY = new Set([
   'legal',
   // La portada inglesa, que también es una entrada (la genera hacer-ingles.mjs).
   'en',
+  // Las páginas por búsqueda, que también son entradas (las genera hacer-paginas.mjs),
+  // y los textos de donde salen.
+  'paginas',
+  ...ARCHIVOS_RAIZ,
   // Las cuentas: fuera siempre de esta copia. Con ADEORQ_CUENTAS=1 entran como
   // entradas de Vite, y sin ella no entran por ningún lado (scripts/cuentas-fuera.mjs).
   'cuenta',
@@ -332,6 +337,8 @@ export default defineConfig({
         // Las dos de privacidad: /privacidad y /en/privacy.
         privacidad: resolve(ROOT, 'privacidad.html'),
         privacy: resolve(ROOT, 'en/privacy.html'),
+        // Las páginas por búsqueda, en los dos idiomas (paginas/rutas.mjs).
+        ...entradasDePaginas(ROOT, resolve),
         // La web anterior, hasta que sus secciones (descarga, changelog, FAQ
         // y pie) esten portadas a la portada nueva de `index.html`.
         ...entradasDeCuentas(ROOT),

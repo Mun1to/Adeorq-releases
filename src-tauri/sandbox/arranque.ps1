@@ -1,10 +1,8 @@
-# Dentro de Windows Sandbox, como SYSTEM (`wsb exec -r System`): deja un servidor SSH
-# esperando a la llave de ESTA caja, para que Adeorq abra la terminal con `ssh`.
-# Plano en docs/contexto/cajas.md, «Windows Sandbox». NO PROBADO: en el PC de Munir
-# la característica está apagada.
+# Dentro de Windows Sandbox, como administrador (lo lanza envoltura.ps1): deja un servidor
+# SSH esperando a la llave de ESTA caja, para que Adeorq abra la terminal con `ssh`.
+# Plano en docs/contexto/cajas.md, «Windows Sandbox».
 #
-# `wsb exec` no devuelve la salida, solo el código: cada fallo sale con el suyo y lo
-# demás queda en C:\arranque.log, dentro de la caja.
+# Cada fallo sale con su código y lo demás queda en C:\arranque.log, dentro de la caja.
 #   10 no se pudo bajar OpenSSH · 11 la huella no cuadra · 12 no se instaló el servicio
 #   13 no arrancó sshd · 14 no se pudo dejar la llave
 param([string]$Entrada = 'C:\entrada')
@@ -20,7 +18,7 @@ $zip = Join-Path $env:TEMP 'openssh.zip'
 
 try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
+    Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing -TimeoutSec 240
 } catch { Write-Output $_; exit 10 }
 if ((Get-FileHash $zip -Algorithm SHA256).Hash -ne $huella) { exit 11 }
 

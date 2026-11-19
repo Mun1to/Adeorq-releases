@@ -396,6 +396,12 @@ Era el paso 5 de abajo y el único punto en que los rivales iban por delante
   entera justo encima de la caja se lee igual. Gemini y los demás no dejan su turno en disco, nunca
   llegan a «lista» y no se cuentan como paradas. Una terminal sacada a su ventana no tiene xterm que
   leer (`xtermDe` da `null`): se avisa como si no tuviera fondo.
+- **Compactarse tampoco es parar (2026-11-18).** Una compactación no escribe en el transcript, así que
+  la hija seguía en «lista» y a su madre le llegaba «paró sin entregar» mientras se compactaba para
+  seguir. Ahora cuenta como trabajo su fila de estado, «✽ Compacting conversation…»
+  (`compactandoEnPantalla`), con la forma de 35 pantallas leídas de transcripts reales. Solo esa fila:
+  una hija parada que cite «esc to interrupt» en su mensaje sí ha parado. Si no acaba nunca, a los 20
+  minutos se avisa como cualquier trabajo de fondo.
 - **El trabajo de fondo que no acaba tiene tope (2026-11-18).** Un `pnpm dev` encendido también es
   `1 shell`, y `open_pane` promete que la madre se entera si la hija para sin entregar. A los 20 min
   (`TOPE_FONDO_MS`) se le cuenta una sola vez: «sigue con trabajo de fondo desde hace 20 min; no ha

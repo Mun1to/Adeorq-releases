@@ -74,6 +74,9 @@ for (const nombre of ["sitemap.xml", "robots.txt", "llms.txt", "index.html", "gu
   if (!fs.existsSync(vite) || !fs.existsSync(path.join(WEB, "en", "index.html"))) {
     console.log("     sin web/node_modules o sin web/en: NO PROBADO el build de verdad en esta copia");
   } else {
+    // Son entradas de Vite y no se versionan: las genera `pnpm build` antes de construir.
+    const paginas = spawnSync(process.execPath, [path.join(WEB, "scripts", "hacer-paginas.mjs")], { cwd: WEB, encoding: "utf8" });
+    ok("las páginas por búsqueda se generan", paginas.status === 0, String(paginas.stderr || paginas.stdout).slice(-300));
     const salida = fs.mkdtempSync(path.join(os.tmpdir(), "adeorq-cuentas-build-"));
     const env = { ...process.env };
     for (const v of ["ADEORQ_CUENTAS", "ADEORQ_CUENTAS_BORRADOR", "ADEORQ_SUPABASE_URL", "ADEORQ_SUPABASE_CLAVE"]) delete env[v];

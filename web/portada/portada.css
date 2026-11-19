@@ -254,21 +254,33 @@ body {
 /* -------- el cielo -------- */
 .haz__cielo { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
 
+/* La nube es dos piezas: la caja, que es la que se mueve con el scroll
+   (`data-parallax`, su propia capa), y dentro el dibujo desenfocado. Juntas en
+   un solo elemento, el desenfoque era de una capa que se mueve y la gráfica lo
+   volvía a calcular en CADA fotograma del scroll; dentro, se pinta una vez con
+   la capa y al bajar solo se desplaza. Medido el 2026-11-19 bajando la portada
+   con la demo a la vista (a 240 Hz, pases de dibujo por fotograma): 7,3 con el
+   desenfoque en la capa, 5,5 así. La foto es la misma, píxel a píxel. */
 .haz__nube {
   position: absolute;
-  border-radius: 50%;
-  filter: blur(90px);
   will-change: transform;
 }
-.haz__nube--a {
-  left: -6%; top: -10%; width: 62%; height: 62%;
+.haz__nube::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  filter: blur(90px);
+}
+.haz__nube--a { left: -6%; top: -10%; width: 62%; height: 62%; }
+.haz__nube--a::before {
   /* Medido: la referencia deja el fondo lejos del haz en #090b0d, negro casi
      puro, y estas nubes lo estaban subiendo a #151b24, un azul marino que
      apagaba la luz por comparacion. Bajadas a menos de la mitad. */
   background: radial-gradient(circle, rgba(38, 74, 140, .24), transparent 66%);
 }
-.haz__nube--b {
-  right: -12%; top: 22%; width: 70%; height: 70%;
+.haz__nube--b { right: -12%; top: 22%; width: 70%; height: 70%; }
+.haz__nube--b::before {
   background: radial-gradient(circle, rgba(24, 52, 108, .20), transparent 68%);
 }
 
@@ -284,23 +296,27 @@ html[data-ligero] *::after {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
-html[data-ligero] .haz__nube { filter: none; scale: 1.25; }
-/* Y el grano, con la mezcla normal y menos opacidad: el `overlay` obliga a
-   mezclar con todo lo de detrás en cada fotograma. Sigue rompiendo las bandas. */
-html[data-ligero] .haz__grano { mix-blend-mode: normal; opacity: .05; }
-html[data-ligero] .haz__nube--a {
+html[data-ligero] .haz__nube::before { filter: none; scale: 1.25; }
+html[data-ligero] .haz__nube--a::before {
   background: radial-gradient(closest-side, rgba(38, 74, 140, .24), rgba(38, 74, 140, .10) 55%, transparent);
 }
-html[data-ligero] .haz__nube--b {
+html[data-ligero] .haz__nube--b::before {
   background: radial-gradient(closest-side, rgba(24, 52, 108, .20), rgba(24, 52, 108, .08) 55%, transparent);
 }
+html[data-ligero] .haz__grano { opacity: .05; }
 
 /* El grano. Sin el, un degradado tan grande se ve a bandas en cualquier
-   pantalla de 8 bits, y eso delata una web hecha con prisa. */
+   pantalla de 8 bits, y eso delata una web hecha con prisa.
+
+   Sin `mix-blend-mode`. Llevaba `overlay`, pero el cielo es su propio grupo
+   (`.haz__cielo` tiene z-index) y debajo solo hay nubes casi transparentes: la
+   mezcla salía igual que pintarlo encima sin más (medido: el 99,9 % de los
+   píxeles a dos niveles o menos de 255) y a cambio obligaba a la gráfica a
+   mezclar toda la primera pantalla en cada fotograma del scroll (5,5 pases de
+   dibujo por fotograma con la mezcla, 3,5 sin ella). */
 .haz__grano {
   position: absolute; inset: 0;
   opacity: .22;
-  mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
 }
 
@@ -970,7 +986,9 @@ html[data-ligero] .haz__nube--b {
   align-items: flex-start;
   padding: 6px clamp(24px, 4vw, 64px);
 }
-.codigo__mitad + .codigo__mitad { border-left: 1px solid var(--p-linea2); }
+/* Entre las dos columnas, aire y no una raya (Munir, Orquio, 2026-10-25: «quita
+   mejor la raya de separación, queda muy cutre»; GUSTOS-DE-DISENO, sección 1).
+   En el móvil van una debajo de otra y la raya de arriba sí las separa. */
 .codigo__mitad .codigo__marca { width: 40px; height: 40px; margin-bottom: 18px; color: var(--p-texto); }
 .codigo__tit {
   margin: 0 0 10px;
@@ -1431,7 +1449,9 @@ html[data-ligero] .haz__nube--b {
 .pasos__cierre {
   max-width: 62ch;
   margin: clamp(34px, 5vh, 52px) 0 0;
-  color: var(--p-tenue);
+  /* En el blanco suave del resto de párrafos: se lee, no es letra pequeña
+     (iba en el gris del tema, el único párrafo de cuerpo de la portada). */
+  color: var(--p-suave);
   font-size: clamp(.98rem, .95rem + .28vw, 1.1rem);
   line-height: 1.65;
 }
@@ -1558,6 +1578,14 @@ html[data-ligero] .haz__nube--b {
    cuenta» entre 360 y 390 (revisión aparte, 2026-11-17). */
 .descarga__acciones > .btn,
 .acciones > .btn { max-width: 100%; flex-wrap: wrap; justify-content: center; row-gap: 2px; }
+/* Y en el móvil, los tres iguales: a todo el ancho y con la nota debajo. El de
+   Mac es el único cuyo texto cabe en una línea, y se quedaba más estrecho y de
+   un solo renglón al lado de dos botones anchos de dos (a 390 px). */
+@media (max-width: 560px) {
+  .descarga__acciones { display: grid; width: 100%; grid-template-columns: minmax(0, 1fr); grid-auto-rows: 1fr; }
+  .descarga__acciones > .btn { width: 100%; }
+  .descarga__acciones > .btn em { flex-basis: 100%; text-align: center; }
+}
 
 /* La ficha de datos, con puntos entre ellos y en la letra de la página: se lee
    como una frase, no como código. La rellena datos.js con el JSON de verdad. */
@@ -1609,7 +1637,9 @@ html[data-ligero] .haz__nube--b {
   padding: clamp(48px, 7vh, 84px) 0;
 }
 /* El ancho y el reparto los pone .bloque--dos. */
-.novedades .seccion__entrada b { color: var(--p-texto); }
+/* La cifra, en blanco. La palabra clave no: va en el azul de todas las entradas
+   (`.clave`), y esta regla se lo quitaba. */
+.novedades .seccion__entrada b:not(.clave) { color: var(--p-texto); }
 
 /* La tira de los últimos 90 días: un palito por día, azul el día que salió
    versión (la de munito.dev, como en las páginas de estado). */
@@ -1851,6 +1881,8 @@ html[data-ligero] .haz__nube--b {
   font-weight: 650;
   color: var(--p-texto);
 }
+/* Un segundo grupo dentro de la misma columna: así las tres columnas no cambian de ancho. */
+.pie__cols a + h2 { margin-top: 20px; }
 .pie__cols a {
   display: block;
   padding: 5px 0;

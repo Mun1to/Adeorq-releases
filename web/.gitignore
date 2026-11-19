@@ -16,3 +16,10 @@ dist/
 # Las dos páginas de privacidad: las genera scripts/hacer-privacidad.mjs desde legal/ en cada
 # build. La inglesa (en/privacy.html) ya cae dentro de /en/, más arriba.
 /privacidad.html
+
+# Las páginas por búsqueda: las genera scripts/hacer-paginas.mjs desde paginas/ en cada
+# build. Las inglesas ya caen dentro de /en/, más arriba.
+/claude-code-windows.html
+/claude-code-codex-gemini.html
+/comparativa.html
+/novedades.html

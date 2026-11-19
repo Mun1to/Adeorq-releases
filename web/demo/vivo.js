@@ -29,9 +29,9 @@ import { ponerModoLigero } from '../portada/ligero.js';
 const $ = (s, d = document) => d.querySelector(s);
 const $$ = (s, d = document) => [...d.querySelectorAll(s)];
 
-// Sin tarjeta gráfica, sin cristal (portada/ligero.js y demo.css): se mira una
-// vez, ya pintada la primera pantalla.
-requestAnimationFrame(() => setTimeout(ponerModoLigero, 0));
+// Sin tarjeta gráfica, sin cristal (portada/ligero.js y demo.css). Dentro de la
+// portada lo decide ella y aquí se copia; abierta suelta, lo mira esta página.
+ponerModoLigero();
 
 const consulta = new URLSearchParams(location.search);
 const EN = consulta.get('lang') === 'en';
@@ -269,17 +269,71 @@ app.addEventListener('pointerdown', quitarGlobo, true);
 function marcarRuedas(desde) {
   if (!embebida) return;
   for (const e of [desde, ...$$('*', desde)]) {
-    if (e.classList.contains('demo-rueda')) continue;
     const c = getComputedStyle(e);
-    if (/auto|scroll/.test(c.overflowY + ' ' + c.overflowX)) e.classList.add('demo-rueda');
+    if (!e.classList.contains('demo-rueda') && /auto|scroll/.test(c.overflowY + ' ' + c.overflowX)) e.classList.add('demo-rueda');
+    marcarCristal(e, c);
   }
+}
+
+/* EL CRISTAL QUE NO SE VE. Media app lleva `backdrop-filter` (la barra de
+   arriba, la de proyectos, la cabecera de cada terminal), pero con el tema con
+   el que abre la demostración su propio fondo es opaco, o casi (del 95 % al
+   100 %): el desenfoque de detrás no llega a verse. A la gráfica le cuesta lo
+   mismo que si se viera, y dentro de la portada lo vuelve a calcular en CADA
+   fotograma en que la página baja con la demostración a la vista, porque para
+   ella todo lo de detrás se ha movido. Era la mitad de los tirones al bajar
+   desde arriba (lo medido, en demo.css). Aquí se le quita solo a la pieza cuyo
+   fondo lo tapa; un menú, un aviso o un tema con paneles traslúcidos lo
+   conservan. Va con la misma pasada que las ruedas, que ya lee el estilo de
+   cada pieza. */
+const TAPA = 0.95;
+
+/** La opacidad de un color ya calculado: `rgb()`, `rgba()` o `color(… / a)`. */
+function opacidadDe(color) {
+  const conBarra = /\/\s*([\d.]+)(%?)\s*\)\s*$/.exec(color);
+  if (conBarra) return parseFloat(conBarra[1]) / (conBarra[2] ? 100 : 1);
+  const rgba = /^rgba\((?:[^,]+,){3}\s*([\d.]+)\s*\)$/.exec(color);
+  return rgba ? parseFloat(rgba[1]) : 1;
+}
+
+function marcarCristal(e, c) {
+  if (e.classList.contains('demo-sin-cristal')) return;
+  const cristal = c.backdropFilter ?? c.webkitBackdropFilter;
+  if (!cristal || cristal === 'none') return;
+  if (opacidadDe(c.backgroundColor) >= TAPA) e.classList.add('demo-sin-cristal');
+}
+
+/** Con otro tema los fondos cambian: se devuelve el cristal a todas y se vuelve
+ *  a mirar cuando el cambio de color ha terminado (los fondos van con transición). */
+let relojCristal = 0;
+function repasarCristal() {
+  if (!embebida) return;
+  for (const e of $$('.demo-sin-cristal', app)) e.classList.remove('demo-sin-cristal');
+  clearTimeout(relojCristal);
+  relojCristal = setTimeout(() => {
+    for (const e of [app, ...$$('*', app)]) marcarCristal(e, getComputedStyle(e));
+  }, 700);
 }
 
 if (embebida) {
   marcarRuedas(app);
   html.dataset.quieta = '';
-  document.addEventListener('pointerdown', () => delete html.dataset.quieta, true);
+  /* Con ratón, pulsar dentro la suelta y salir la vuelve a dejar quieta. Con el
+     dedo, tocar ES empezar a deslizar: si el toque la soltara, el gesto con el
+     que alguien baja la portada se quedaría dentro. Así que el dedo la suelta
+     con un toque de verdad (un `click`: tocar y levantar sin moverse), y vuelve
+     a quedarse quieta en cuanto la portada se mueve. Quieta, además, deja pasar
+     el dedo por encima de lo que en la app se arrastra (ver demo.css). */
+  let puntero = 'mouse';
+  document.addEventListener('pointerdown', (e) => {
+    puntero = e.pointerType || 'mouse';
+    if (puntero === 'mouse') delete html.dataset.quieta;
+  }, true);
+  document.addEventListener('click', () => { if (puntero !== 'mouse') delete html.dataset.quieta; }, true);
   html.addEventListener('mouseleave', () => { html.dataset.quieta = ''; });
+  try {
+    window.parent.addEventListener('scroll', () => { if (puntero !== 'mouse') html.dataset.quieta = ''; }, { passive: true });
+  } catch { /* dentro de una página de otro origen: se queda como esté */ }
 }
 
 /* --------------------------------------------------------------------------
@@ -1288,6 +1342,7 @@ app.addEventListener('input', (e) => {
    de antes. */
 function ponerTema(tema) {
   html.dataset.theme = tema;
+  repasarCristal();
   const tarjetas = $$('.tema-tarjeta');
   const elegida = tarjetas.find((t) => $('[data-tema-prev]', t)?.dataset.temaPrev === tema);
   if (!elegida) return;
@@ -1380,9 +1435,18 @@ document.addEventListener('keydown', (e) => {
   const CX = 12, CY = 11.5, R_PLANETA = 5.4, RX = 10, RY = 4.1;
   const GIRO = (-22 * Math.PI) / 180;
   const lento = matchMedia('(prefers-reduced-motion: reduce)').matches ? 2.5 : 1;
+  /* Doce pasos por segundo, los del orbe de la app en reposo (`PASOS_S` en
+     Orbe.tsx): a ese tamaño el satélite avanza menos de un píxel por paso y se
+     ve igual. Iba a un paso por fotograma, y cada paso mueve un círculo del
+     dibujo: el navegador recolocaba y repintaba la demostración 240 veces por
+     segundo en una pantalla de 240 Hz, también mientras la portada bajaba
+     (medido el 2026-11-19 con la CPU a 4x: 255 recolocaciones y 501 pintados en
+     2,5 s con la página quieta). */
+  const PASO_MS = Math.round(1000 / 12);
   let angulo = 0, antes = performance.now(), pedido = 0;
 
-  const paso = (ahora) => {
+  const paso = () => {
+    const ahora = performance.now();
     const dt = Math.min(ahora - antes, 250) / 1000;
     antes = ahora;
     angulo += (2 * Math.PI * dt) / (7 * lento);
@@ -1392,15 +1456,15 @@ document.addEventListener('keydown', (e) => {
     punto.setAttribute('cy', (CY + ex * Math.sin(GIRO) + ey * Math.cos(GIRO)).toFixed(2));
     const detras = s < 0;
     punto.style.opacity = detras && Math.hypot(ex, ey) < R_PLANETA + 0.9 ? '0' : detras ? '0.45' : '1';
-    pedido = requestAnimationFrame(paso);
+    pedido = setTimeout(paso, PASO_MS);
   };
   // Solo gira cuando se ve: ni con la pestaña de fondo, ni con la demostración
   // fuera de la pantalla (ver «Fuera de la vista», más abajo).
   const girar = () => {
-    cancelAnimationFrame(pedido);
+    clearTimeout(pedido);
     if (document.hidden || html.hasAttribute('data-fuera')) return;
     antes = performance.now();
-    pedido = requestAnimationFrame(paso);
+    pedido = setTimeout(paso, PASO_MS);
   };
   girar();
   document.addEventListener('visibilitychange', girar);

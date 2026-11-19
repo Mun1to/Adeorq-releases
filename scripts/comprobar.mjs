@@ -53,6 +53,7 @@ export const COMPROBADORES = [
   "mascota-movil-check.mjs",
   "movil-idioma-check.mjs",
   "capacidades-check.mjs",
+  "modelos-check.mjs",
   "agents-check.mjs",
   "prueba-check-check.mjs",
   "publicar-check.mjs",

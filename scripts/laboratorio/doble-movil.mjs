@@ -148,7 +148,7 @@ function pngDegradado(ancho, alto) {
 
 // Los últimos de cada familia, como `ULTIMOS` en `lib/models.ts`.
 const ULTIMOS = {
-  fable: "Fable 5.1",
+  fable: "Fable 5.2",
   opus: "Opus 5.5",
   sonnet: "Sonnet 5.5",
   haiku: "Haiku 5.5",
@@ -326,6 +326,12 @@ const deOtroArranque = (a) => a == null || a === ""
 // de abajo lo dice como lo pinta Claude Code (nada en el normal).
 const MODOS = ["", "⏵⏵ accept edits on (shift+tab to cycle)", "⏸ plan mode on (shift+tab to cycle)", "⏵⏵ auto mode on (shift+tab to cycle)"];
 const modo = new Map([[1, 3]]);
+
+// Las imágenes de las decisiones sembradas por un banco («id:n» → PNG), lo que
+// la página ha pedido y cuánto tarda en servirlas.
+const imagenesDec = new Map();
+const pedidasImagen = [];
+let tardaImagenes = 0;
 
 // Las decisiones que pide un agente con `ask_decision` (decisiones.rs): una
 // que sigue viva (la pidió el panel 1 de este arranque, que sigue abierto),
@@ -992,9 +998,10 @@ http
         // Solo del banco: cómo contesta el próximo «responder». `espera` (ms)
         // apunta la respuesta y tarda en contestar, como movil.rs esperando a la
         // ventana para teclearla (`ESPERA_VENTANA`, hasta 20 s); `pierde` la
-        // apunta y corta sin contestar, como una red que se cae a la vuelta.
+        // apunta y corta sin contestar, como una red que se cae a la vuelta;
+        // `cuelga` ni la apunta ni contesta, como un PC que se queda a medias.
         case "/api/sembrar-responder":
-          alResponder = { espera: Number(v.espera) || 0, pierde: v.pierde === true };
+          alResponder = { espera: Number(v.espera) || 0, pierde: v.pierde === true, cuelga: v.cuelga === true };
           return json(res, 200, { ok: true });
         // Solo del banco: se cierra una terminal, y lo que preguntó se queda sin nadie.
         case "/api/sembrar-cerrar-terminal": {
@@ -1002,8 +1009,27 @@ http
           if (i >= 0) terminales.splice(i, 1);
           return json(res, 200, { ok: i >= 0 });
         }
+        // Como `/api/decision/imagen` de movil.rs: por el id de la decisión y su número, nunca una ruta.
+        case "/api/decision/imagen": {
+          const k = `${url.searchParams.get("id")}:${url.searchParams.get("n")}`;
+          pedidasImagen.push(k);
+          const foto = imagenesDec.get(k);
+          if (!foto) return json(res, 404, { error: "Esa imagen ya no está." });
+          const servir = () => {
+            res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "no-store" });
+            res.end(foto);
+          };
+          return tardaImagenes ? void setTimeout(servir, tardaImagenes) : servir();
+        }
+        case "/api/pedidas-imagen":
+          return json(res, 200, pedidasImagen);
         // Solo del banco: una decisión recién pedida por una terminal abierta.
+        // Con `imagenes` ([{ n, ancho, alto }]) el doble hace un PNG de ese tamaño
+        // para cada una, y `tardaImagenes` (ms) las sirve con retraso, como un
+        // móvil por datos: la pantalla tiene que guardarles el sitio.
         case "/api/sembrar-decision":
+          for (const f of v.imagenes ?? []) imagenesDec.set(`${v.id}:${f.n}`, pngDegradado(f.ancho, f.alto));
+          if ("tardaImagenes" in v) tardaImagenes = Number(v.tardaImagenes) || 0;
           decisiones.push({
             id: v.id, titulo: v.titulo, proyecto: v.proyecto, panel: v.panel, arranque: ARRANQUE, creada: Date.now(),
             contexto: v.contexto,
@@ -1039,6 +1065,10 @@ http
             const e = v.elecciones?.[q.id] || {};
             if (e.opcion && (e.opcion < 1 || e.opcion > q.opciones.length)) return json(res, 400, { error: `La pregunta ${q.id} no tiene opción ${e.opcion}.` });
             if (!e.opcion && !e.texto) return json(res, 400, { error: `Falta contestar la pregunta ${q.id}.` });
+          }
+          if (alResponder?.cuelga) {
+            alResponder = null;
+            return;
           }
           // Como `a_teclear` y la ventana: se teclea en su terminal si es de
           // este arranque y sigue abierta; si no, se guarda y nada más.

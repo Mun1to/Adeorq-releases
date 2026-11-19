@@ -596,6 +596,7 @@ pub fn run() {
             decisiones::decisiones_listar,
             decisiones::decision_responder,
             decisiones::decision_entregada,
+            decisiones::decision_imagen,
             decisiones::decision_descartar,
             decisiones::decisiones_habladas,
             terminales::terminales_aparte,

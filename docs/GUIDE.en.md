@@ -1400,7 +1400,13 @@ notifications, **Test notification** and **Remove**.
   next one by itself, or you write in your own words and press **Next**; at the end
   you review what you chose (tapping a row goes back to that question) and send, with
   five seconds to undo: during them, going back to a question or changing anything
-  stops the send and tells you so; leaving the decision sends it. Before you send, it
+  stops the send and tells you so; leaving the decision does not stop it, and a notice at the
+  top shows that it is on its way; closing or reloading the page sends it right then; if something goes wrong, the notice stays until you
+  open that decision. If you open it again in time it appears at once, even if your PC
+  does not answer, and you can undo, but you cannot change it without undoing first. If
+  your PC does not answer within 30 seconds, the page checks how it ended and tells you
+  whether it arrived or that there is no way to tell; sending it again does not
+  duplicate it. Before you send, it
   tells you where the answer lands: typed into the terminal that asked, or only saved.
   A screen that has just changed takes half a second to accept taps, so a double tap
   does not land on what has just appeared. **Clear my choice**

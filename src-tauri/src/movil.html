@@ -107,6 +107,8 @@
     --acento-2: #2f9df3;
     --acento-capa: rgba(31, 111, 224, 0.12);
     --sobre-acento: #ffffff;
+    /* El azul de fábrica daba 4,09:1 como letra menuda sobre el fondo claro. */
+    --acento-letra: color-mix(in srgb, var(--acento) 80%, var(--tinta));
     --vivo: #15803d;
     --pregunta: #9a6b12;
     --termino: #c2410c;
@@ -140,6 +142,9 @@
     --acento-2: var(--elegido);
     --acento-capa: color-mix(in srgb, var(--elegido) 12%, transparent);
     --cielo-1: color-mix(in srgb, var(--elegido) 20%, transparent);
+    /* Vale para CUALQUIER acento, también el que llega del PC: el blanco es el peor
+       caso posible (ningún color da más luz en ningún canal) y así da 5,2:1. */
+    --acento-letra: color-mix(in srgb, var(--acento) 45%, var(--tinta));
   }
 
   /* ── 2. Base ── */
@@ -749,6 +754,8 @@
   .aviso-dec span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .aviso-dec b { font-weight: 650; }
   .aviso-dec em { flex: none; font-style: normal; font-weight: 650; color: var(--pregunta); }
+  /* En claro, el color de la pregunta tal cual daba 3,44:1 como letra menuda. */
+  :root[data-tema="claro"] .aviso-dec em { color: color-mix(in srgb, var(--pregunta) 45%, var(--tinta)); }
   /* Una sola cosa hace scroll, el `.cuerpo`, y la letra se ajusta al ancho del
      móvil: con `pre` sin ajustar, una línea de 77 columnas no cabía en 390 px. */
   /* A todo el ancho y sin recuadro (2026-10-16): el marco entero es la terminal. */
@@ -947,6 +954,15 @@
   .dec-paso .tramos i[data-hecha] { background: var(--acento); }
   .dec-paso .tramos i[data-actual]:not([data-hecha]) { background: color-mix(in srgb, var(--acento) 45%, var(--capa-fuerte)); }
   .tarjeta[data-vigencia="viva"] .estado i { animation: late 1.6s ease-in-out infinite; }
+  .tarjeta[data-envio] .estado i { animation: none; }
+  /* Los avisos de una respuesta que sale flotan bajo la cabecera, sin ocupar sitio:
+     en el flujo, al irse movían la pantalla 52 px bajo el dedo y el toque caía en otra
+     opción. El hueco se reserva al pintar la pantalla (`pintarEnvios`) y no cambia
+     mientras la tienes delante. */
+  #envios-dec, #hueco-envios { --alto-aviso: calc(24px * var(--z) + 20px); flex: none; }
+  #envios-dec { position: relative; z-index: 6; height: 0; }
+  #envios-dec .aviso-dec { height: var(--alto-aviso); margin-top: 8px; padding-block: 0; background: color-mix(in srgb, var(--pregunta) 14%, var(--fondo)); }
+  #hueco-envios { height: calc(var(--n, 0) * (var(--alto-aviso) + 8px)); }
   .tarjeta[data-vigencia]:not([data-vigencia="viva"]) { background: none; box-shadow: none; margin: 0 0 6px; padding: 10px 14px; }
   .tarjeta[data-vigencia]:not([data-vigencia="viva"]) b { font-weight: 500; }
   .tarjeta[data-vigencia="huerfana"] { border-style: dashed; }
@@ -960,6 +976,8 @@
   /* Al cambiar de pantalla el foco va a su título, para que un lector lo diga: sin aro, que no se ha llegado con el teclado. */
   .pregunta-d legend:focus, .dec-titulo:focus { outline: none; }
   .letra { color: var(--acento); font-variant-numeric: tabular-nums; }
+  /* En claro, el acento tal cual no se lee como letra: el amarillo daba 2,8:1 y el azul de fábrica, 4,09:1. */
+  :root[data-tema="claro"] .letra { color: var(--acento-letra); }
   .pregunta-d > p { margin: 8px 0 14px; font-size: calc(15px * var(--z)); line-height: 1.5; opacity: 0.86; }
   /* `relative`: su círculo escondido (`position: absolute`, abajo) tiene que
      quedarse DENTRO de la opción. Sin esto colgaba de la página, fuera de la
@@ -984,6 +1002,33 @@
   .opcion small { font-size: calc(14.5px * var(--z)); line-height: 1.45; opacity: 0.86; }
   .opcion:has(input:checked) small { opacity: 1; }
   .rec { justify-self: start; font-style: normal; font-size: calc(13.5px * var(--z)); font-weight: 700; color: var(--acento-letra); }
+  /* La imagen de una opción o de una pregunta (`image` en ask_decision). Munir,
+     2026-11-19: «Tiene que haber una manera la cual se puedan ver las imagenes
+     de las decisiones». A todo el ancho, debajo del número y del texto, y con su
+     sitio guardado desde el principio (`aspect-ratio` con el tamaño que dice el
+     PC): llega después que la pantalla, y nada puede moverse bajo el dedo.
+     Tocarla la abre en grande (`abrirFotoDec`); no elige la opción. */
+  .opcion:has(.dec-foto) { flex-wrap: wrap; }
+  .dec-foto {
+    /* `min-height`: una tira muy apaisada (16000 × 60) medía 2 px y no se podía tocar. */
+    display: block; flex: 1 0 100%; width: 100%; min-height: 44px; max-height: min(62vh, 560px); padding: 0; margin: 2px 0 0;
+    border: 1px solid var(--borde); border-radius: 8px; background: var(--hondo); overflow: hidden; cursor: zoom-in;
+  }
+  .pregunta-d > .dec-foto { margin: 0 0 14px; }
+  .pregunta-d legend + .dec-foto { margin-top: 14px; }
+  .pregunta-d[disabled] > .dec-foto { margin: 10px 0 0; max-height: min(40vh, 320px); }
+  .dec-foto img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .dec-foto[data-falla] { display: grid; place-items: center; padding: 12px; cursor: default; color: var(--tinta); font-size: calc(14px * var(--z)); }
+  .dec-foto:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+  /* En grande: encima de todo, a lo ancho; un toque la pone a su tamaño de
+     verdad (para leer la letra pequeña) y otro la devuelve. Se cierra con su
+     flecha, con Escape o con el Atrás del teléfono (`popstate`). */
+  .foto-grande { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; background: var(--fondo); }
+  .foto-grande .barra { flex: none; }
+  .foto-grande-cuerpo { flex: 1; min-height: 0; display: flex; overflow: auto; overscroll-behavior: contain; }
+  .foto-grande-cuerpo img { display: block; margin: auto; width: 100%; height: auto; cursor: zoom-in; }
+  .foto-grande-cuerpo.entera img { width: auto; max-width: none; cursor: zoom-out; }
+  .foto-grande-cuerpo .nota { margin: auto; padding: 16px; }
   .libre {
     display: block; width: 100%; min-height: 54px; padding: 12px 14px; border-radius: 10px; resize: none;
     border: 2px solid var(--borde-fuerte); background: var(--hondo); color: var(--tinta); font: inherit; font-size: calc(16px * var(--z)); max-height: none;
@@ -999,6 +1044,10 @@
   .dec-acciones button[data-oculto] { visibility: hidden; }
   .dec-acciones .peligro { color: var(--mal); opacity: 1; font-weight: 700; }
   #descartar-aqui { margin-left: auto; text-align: right; }
+  /* Reabierta con su respuesta ya saliendo: se lee lo que se manda, y lo que no
+     se puede tocar deja de parecerlo. Sin mover nada, que «Deshacer» lo devuelve. */
+  #decision[data-bloqueada] .dec-acciones, #decision[data-bloqueada] .libre:placeholder-shown { visibility: hidden; }
+  #decision[data-bloqueada] :is(.dec-fila, .opcion:not(:has(input:checked)), .libre) { background: none; border-color: transparent; cursor: default; }
   /* El repaso: lo elegido en cada pregunta, y tocarla es volver a ella. */
   .dec-titulo { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; font-size: calc(21px * var(--z)); line-height: 1.2; }
   .dec-fila { display: block; width: 100%; margin: 0 0 10px; padding: 12px 14px; border: 2px solid var(--borde-fuerte); border-radius: 10px; background: var(--capa); color: var(--tinta); font: inherit; text-align: left; cursor: pointer; }
@@ -1564,7 +1613,7 @@ const EN = {
   "Leer entero": "Read it all",
   "Descartar esta decisión": "Discard this decision",
   "Quitar mi elección": "Clear my choice",
-  "Lo que escribiste aquí y no se mandó:": "What you wrote here and was not sent:",
+  "Lo que pusiste aquí y no se mandó:": "What you put here and was not sent:",
   "Borrarlo": "Delete it",
   "Repasa y envía": "Review and send",
   "Sin contestar": "Not answered",
@@ -1573,6 +1622,7 @@ const EN = {
   "Al enviar se guarda, pero no se teclea en ningún sitio.": "When you send it, it is saved, but not typed anywhere.",
   "Tienes 5 segundos para deshacer.": "You have 5 seconds to undo.",
   "Enviada": "Sent",
+  "Enviada.": "Sent.",
   "Así quedó": "How it ended",
   "Ya no la espera nadie.": "Nobody is waiting for it any more.",
   "La terminal que preguntó se cerró. Si la contestas se guarda, pero no se teclea en ningún sitio.":
@@ -1604,15 +1654,27 @@ const EN = {
   "No se ha mandado.": "Not sent.",
   "Deshacer ({n})": "Undo ({n})",
   "Se manda en {n} s.": "Sending in {n} s.",
+  "Se manda en {n} s. Para cambiarla, pulsa Deshacer.": "Sending in {n} s. To change it, press Undo.",
+  "Se están mandando": "Being sent",
+  "Abrir": "Open",
   "Mandando…": "Sending…",
   "Enviada. Se ha tecleado en el panel {n}.": "Sent. It was typed into pane {n}.",
   "Enviada. El agente la leerá cuando la pida.": "Sent. The agent will read it when it asks for it.",
-  "Ya estaba contestada desde otro sitio. Lo que escribiste sigue guardado aquí.":
-    "It was already answered from somewhere else. What you wrote is still saved here.",
+  "Llegó tu envío anterior; este último no se ha mandado.": "Your earlier send arrived; this last one was not sent.",
+  "Llegó tu envío anterior": "Your earlier send arrived",
+  "No se sabe si ha llegado: tu PC no contesta. Puedes volver a enviarla: si ya llegó, no se duplica.":
+    "There is no way to tell whether it arrived: your PC is not answering. You can send it again: if it already arrived, it will not be duplicated.",
+  "No se sabe si ha llegado: tu PC no ha contestado a este envío. Puedes volver a enviarla: si ya llegó, no se duplica.":
+    "There is no way to tell whether it arrived: your PC did not answer this send. You can send it again: if it already arrived, it will not be duplicated.",
+  "No se sabe si ha llegado": "No way to tell whether it arrived",
   "No se ha mandado: {e}": "Not sent: {e}",
   // Para ver (compartidos.rs)
   "Para ver": "To look at",
   "lo que te enseñan tus agentes": "what your agents show you",
+  "Ver en grande la imagen de la opción {n}": "See the image of option {n} full size",
+  "Ver en grande la imagen de la pregunta {q}": "See the image of question {q} full size",
+  "Cerrar la imagen": "Close the image",
+  "Toca la imagen para verla a su tamaño": "Tap the image to see it at its real size",
   "imagen": "image",
   "página": "page",
   "web del PC": "web on your PC",
@@ -1760,6 +1822,7 @@ const DEL_PC = {
   "Falta qué sesión.": "The session is missing.",
   "Ese trozo no tiene forma.": "That chunk is malformed.",
   "Esa decisión ya no está.": "That decision is gone.",
+  "Esa imagen ya no está.": "That image is gone.",
   "Las respuestas no tienen forma.": "The answers are malformed.",
   "Esa decisión ya está contestada.": "That decision is already answered.",
   "Esa decisión ya no espera respuesta: el agente la dio por resuelta.": "That decision no longer needs an answer: the agent marked it as resolved.",
@@ -2583,16 +2646,23 @@ function montarAdjuntos(caja, cambio) {
 const CLIP = `<button class="adjuntar" type="button" aria-label="${tr("Adjuntar una foto o un archivo")}">${ICONO.clip}</button><input type="file" multiple hidden>`;
 const conRutas = (texto, rutas) => [texto, ...rutas].filter(Boolean).join(" ");
 
-async function api(metodo, ruta, cuerpo) {
+/** `limite`, en milisegundos: pasado ese tiempo se deja de esperar, como si no hubiera contestado. `alIrse`: la petición sobrevive a que la página se cierre. */
+async function api(metodo, ruta, cuerpo, limite = 0, alIrse = false) {
   const cabeceras = { Authorization: `Bearer ${clave || ""}` };
   if (cuerpo) cabeceras["Content-Type"] = "application/json";
+  const corte = limite ? new AbortController() : null;
+  const plazo = limite ? setTimeout(() => corte.abort(), limite) : 0;
   let r;
+  let v;
   try {
-    r = await fetch(ruta, { method: metodo, headers: cabeceras, body: cuerpo ? JSON.stringify(cuerpo) : undefined, cache: "no-store" });
+    r = await fetch(ruta, { method: metodo, headers: cabeceras, body: cuerpo ? JSON.stringify(cuerpo) : undefined, cache: "no-store", signal: corte?.signal, keepalive: alIrse });
+    v = await r.json().catch(() => ({}));
+    if (corte?.signal.aborted) throw new Error("cortada");
   } catch (_) {
     throw new Error(tr("No llego a tu PC. ¿Está encendido, con Adeorq abierto y Tailscale activo en los dos?"));
+  } finally {
+    clearTimeout(plazo);
   }
-  const v = await r.json().catch(() => ({}));
   if (r.status === 401) {
     olvidarClave();
     throw new Error(delPc(v.error || "Este aparato no está emparejado."));
@@ -2643,6 +2713,10 @@ let reloj = null;
 let pantalla = 0;
 /** Lo que mira la pantalla de ahora en cuanto el móvil se vuelve a encender, si tiene algo que mirar. */
 let alVolver = null;
+/** Cómo va la respuesta de cada decisión, por su id (`salidaDe`). */
+const salidasDec = new Map();
+/** Lo que relee la pantalla de ahora cuando acaba un envío, si enseña decisiones. */
+let alEnvio = null;
 // En el panel y sin clave propia: se le pide la suya, y si no contesta en un
 // momento (no la tiene, o el panel es viejo) se empareja como siempre.
 if (e.vista === "esperando") {
@@ -3245,11 +3319,14 @@ document.addEventListener("click", (ev) => {
 /* `atras` dice por dónde entra la pantalla nueva: hacia delante por la
    derecha, de vuelta por la izquierda. Volver a la portada siempre es volver. */
 function ir(cambio, atras = cambio.vista === "lista") {
+  // Una imagen abierta en grande no se queda encima de otra pantalla (un aviso tocado con ella abierta).
+  cerrarFotoDec();
   sinSondeo();
   cerrarCajon();
   e = { vista: cambio.vista, ...cambio };
   app.dataset.sentido = atras ? "atras" : "adelante";
   pintar();
+  pintarEnvios();
 }
 
 /** Se va a pintar otra pantalla: el sondeo de la de antes ya no vale. */
@@ -3257,6 +3334,7 @@ function sinSondeo() {
   clearTimeout(reloj);
   pantalla += 1;
   alVolver = null;
+  alEnvio = null;
 }
 
 /* Una vuelta solo se rearma si la pantalla sigue siendo la suya. Antes se
@@ -3418,6 +3496,8 @@ async function pintarLista() {
     const reclaman = document.getElementById("reclaman");
     if (!reclaman) return;
     const decisiones = vd?.decisiones || [];
+    // Una lista cortada no dice que las decisiones ya no existan.
+    if (Array.isArray(vd?.decisiones)) alDiaEnvios(decisiones);
     const esperan = vivas(decisiones);
     const terminales = (vt.terminales || []).slice().sort((a, b) => Number(b.agente) - Number(a.agente) || a.panel - b.panel);
     const preguntan = terminales.filter((t) => estadoTerminal(t)[1] === "pregunta");
@@ -3429,6 +3509,7 @@ async function pintarLista() {
     // preguntan las terminales. Las demás no suman ni se dicen: se limpian solas.
     ponerEsperan(esperan.length + preguntan.length);
 
+    alEnvio = () => mirar().catch(() => {});
     const nuevo = animoDeTodo(terminales, esperan.length);
     if (nuevo !== animo) {
       animo = nuevo;
@@ -4692,7 +4773,8 @@ const VIGENCIA = {
   contestada: [tr("contestada"), "cerrada"],
   descartada: [tr("descartada"), "cerrada"],
 };
-const vivas = (lista) => (lista || []).filter((d) => d.vigencia === "viva");
+// La que ya se está mandando no te espera: la pulsaste, y lo dice `pintarEnvios`.
+const vivas = (lista) => (lista || []).filter((d) => d.vigencia === "viva" && !salidasDec.get(d.id)?.envio);
 /** `una` y `varias` llegan ya traducidas; `varias` lleva su `{n}`. */
 const plural = (n, una, varias) => (n === 1 ? una : varias.replace("{n}", n));
 
@@ -4705,11 +4787,12 @@ function quienEspera(d) {
 }
 
 function tarjetaDecision(d) {
-  const [palabra, tono] = VIGENCIA[d.vigencia] || VIGENCIA.huerfana;
+  const envio = salidasDec.get(d.id)?.envio;
+  const [palabra, tono] = envio ? [palabraEnvio(envio), "trabajando"] : VIGENCIA[d.vigencia] || VIGENCIA.huerfana;
   const n = plural(d.preguntas, tr("1 pregunta"), tr("{n} preguntas"));
   const cerrada = d.vigencia !== "viva" && d.vigencia !== "huerfana";
   const cuando = hace((cerrada ? d.cerrada ?? d.creada : d.creada) / 1000);
-  return `<button class="tarjeta" data-estado="${tono}" data-vigencia="${d.vigencia}" data-id="${esc(d.id)}">
+  return `<button class="tarjeta" data-estado="${tono}" data-vigencia="${d.vigencia}"${envio ? " data-envio" : ""} data-id="${esc(d.id)}">
     <span class="tarjeta-cab"><b>${esc(d.titulo)}</b><span class="estado"><i></i>${palabra}</span></span>
     <span class="porque">${esc([d.proyecto, quienEspera(d), cerrada ? "" : n, cuando].filter(Boolean).join(" · "))}</span>
   </button>`;
@@ -4727,7 +4810,7 @@ function tarjetaPregunta({ t, a }) {
 }
 
 async function descartarDecision(id) {
-  const r = await api("POST", "/api/decision/descartar", { id });
+  const r = await api("POST", "/api/decision/descartar", { id }, LIMITE_MANDAR);
   try { localStorage.removeItem(borradorDe(id)); } catch (_) {}
   return r;
 }
@@ -4759,12 +4842,14 @@ async function pintarDecisiones() {
     const aqui = document.getElementById("decisiones");
     if (!aqui) return;
     const lista = v.decisiones || [];
+    if (Array.isArray(v.decisiones)) alDiaEnvios(lista);
     const esperan = vivas(lista);
     ponerEsperan(esperan.length + preguntas.length);
     // Todo lo que ya no te espera va junto y se limpia solo (a la semana se
     // borra): antes las que nadie esperaba tenían montón y botón propios, y
     // había que vaciarlo a mano.
-    const anteriores = lista.filter((d) => d.vigencia !== "viva")
+    const saliendo = lista.filter((d) => salidasDec.get(d.id)?.envio);
+    const anteriores = lista.filter((d) => d.vigencia !== "viva" && !salidasDec.get(d.id)?.envio)
       .sort((a, b) => (b.cerrada ?? b.creada) - (a.cerrada ?? a.creada));
     const total = esperan.length + preguntas.length;
     const sub = document.getElementById("sub-dec");
@@ -4776,6 +4861,7 @@ async function pintarDecisiones() {
     if (!lista.length && !preguntas.length) {
       html = `<p class="vacio">${tr("No hay ninguna decisión. Cuando un agente te pregunte algo, sale aquí.")}</p>`;
     } else {
+      if (saliendo.length) html += `<h2 class="seccion"><span>${tr("Se están mandando")}</span></h2>${saliendo.map(tarjetaDecision).join("")}`;
       html += total
         ? `<h2 class="seccion"><span>${tr("Te esperan")}</span></h2>${preguntas.map(tarjetaPregunta).join("")}${esperan.map(tarjetaDecision).join("")}`
         : `<p class="calma">${mascota("quieta", 26, "decisiones")}${tr("Nada te espera ahora mismo.")}</p>`;
@@ -4786,7 +4872,7 @@ async function pintarDecisiones() {
     }
     // Por lo que dice la lista y no por el HTML, que lleva dentro a la mascota
     // y esa cambia de postura sola.
-    const firma = JSON.stringify([lista, preguntas.map((p) => [p.t.panel, p.t.nombre, p.t.carpeta, p.a])]);
+    const firma = JSON.stringify([lista, preguntas.map((p) => [p.t.panel, p.t.nombre, p.t.carpeta, p.a]), saliendo.map((d) => d.id)]);
     if (firma === pintado) return;
     pintado = firma;
     conservarEscrito(aqui, () => { aqui.innerHTML = html; });
@@ -4814,6 +4900,7 @@ async function pintarDecisiones() {
       tarjeta.insertAdjacentHTML("beforeend", `<p class="nota fallo">${esc(err.message)}</p>`);
     }
   });
+  alEnvio = () => cargar().catch(() => {});
   try { await cargar(); } catch (err) {
     const aqui = document.getElementById("decisiones");
     if (aqui) aqui.innerHTML = `<p class="nota">${esc(err.message)}</p>`;
@@ -4827,6 +4914,8 @@ const borradorDe = (id) => `adeorq-decision-${id}`;
 /** Lo que tarda «Deshacer» en deshacer de verdad, en milisegundos: antes, el
     segundo toque de un doble toque cancelaba lo que el primero mandaba. */
 const DESHACER_TRAS = 800;
+/** Lo que «Enviar respuesta» no atiende cuando acaba de dejar de ser «Deshacer» o «Mandando…»: sin red el envío falla en milisegundos, y el toque que iba a deshacer arrancaba otro. */
+const CAMBIA_TRAS = 800;
 /* Tres esperas de una decisión, por lo mismo: lo que sale al cambiar de
    pantalla cae donde iba el dedo. La revisión del 2026-11-18 lo reprodujo con
    toques en un punto fijo: el segundo de un doble toque, o ir a «Atrás» o a
@@ -4870,8 +4959,429 @@ function conEnlaces(texto) {
    PC, cambia un ajuste) y no puede devolverte a la primera pregunta. */
 const pasoDec = { id: "", paso: 0 };
 
-/** `recien`: acaba de enviarse desde aquí, y se celebra. */
-async function pintarDecision(recien = false) {
+/* El envío de una decisión vive fuera de su pantalla. La cuenta atrás iba dentro
+   de `pintarDecision`, que se rehace entera cada vez que se entra: si te ibas con
+   la flecha y volvías antes de los cinco segundos, la pantalla nueva no sabía
+   nada de ella, dejaba cambiar las respuestas y al PC le llegaba lo de antes
+   (revisión de la 0.9.261). Lo fija `movil-decision-envio.js`, tramos N1.
+
+   Y lo que se le dice a la persona vive aquí, un sitio por decisión: `envio` (la
+   cuenta o el envío en marcha), `fin` (cómo acabó el último), `dicho` (lo que
+   contestó la pantalla a un toque, como «No se ha mandado.») y `visto` (si el fin
+   ya se dijo en su pantalla). La pantalla se pinta con `fraseDec`: cuando cada uno
+   escribía en `#estado-envio`, el siguiente repaso borraba lo que otro acababa de
+   decir (revisión del 2026-11-18, A2). `vista` es la pantalla que la tiene delante,
+   y `d`, la decisión tal como se pintó: con un envío a medias la pantalla sale de
+   ahí, al momento y aunque el PC no conteste (A3 y A7). */
+const salidaDe = (id) => {
+  if (!salidasDec.has(id)) salidasDec.set(id, { id, titulo: "", d: null, envio: null, fin: null, dicho: "", visto: false, vista: null });
+  return salidasDec.get(id);
+};
+const SEGUNDOS_ENVIO = 5;
+/** Lo que se espera a que el PC conteste: él espera hasta 20 s a la ventana para teclearla (`ESPERA_VENTANA` en movil.rs). */
+const LIMITE_MANDAR = 30000;
+/** Lo que se espera para saber cómo quedó, cuando esa contestación no llegó. */
+const LIMITE_MIRAR = 8000;
+/** Todo lo que ha salido de esta página por decisión: el PC se queda con la primera respuesta que le llega, que puede no ser la última que mandaste. */
+const intentosDec = new Map();
+const quitarBorrador = (id) => { try { localStorage.removeItem(borradorDe(id)); } catch (_) {} };
+const mismaRespuesta = (x, el) => x.preguntas.every((q) => mismaEleccion(x.respuesta.elecciones[q.id], el[q.id]));
+/** De cuál de tus envíos es la respuesta apuntada en el PC: «ultimo», «anterior» o ninguno. */
+const intentoDe = (x) => {
+  const intentos = intentosDec.get(x.id) ?? [];
+  if (!x.respuesta || !intentos.length) return "";
+  if (mismaRespuesta(x, intentos.at(-1))) return "ultimo";
+  return intentos.some((el) => mismaRespuesta(x, el)) ? "anterior" : "";
+};
+/** Cerrada desde otro aparato, por el agente o descartada: lo que se dice al enseñarla. */
+const comoQuedoDec = (x) => x.respuesta ? tr("Ya estaba contestada desde otro sitio.")
+  : x.vigencia === "resuelta" ? tr("Ya no espera respuesta: el agente la dio por resuelta.")
+  : x.vigencia === "descartada" ? tr("Descartada.") : "";
+/* Cada fin que cierra la decisión lleva en `d` cómo quedó, para enseñarla sin volver a preguntar al PC. */
+const finEnviada = (entregada, panel, d) => ({ tipo: "enviada", entregada, panel, d });
+/** La respuesta apuntada es tuya: la última que mandaste, o una de antes. */
+const finDeMia = (x) => intentoDe(x) === "ultimo"
+  // Apuntada y sin teclear aún en una terminal abierta: el PC puede estar tecleándola, y no se afirma dónde cayó.
+  ? { ...finEnviada(x.respuesta.entregada, x.panel, x), sinLugar: !x.respuesta.entregada && Boolean(x.se_teclea) }
+  : { tipo: "anterior", d: x };
+/** Cómo queda la decisión cuando el PC acaba de confirmar este envío. */
+const contestadaAqui = (d, el, r) => ({ ...d, vigencia: "contestada", panel: r.panel ?? d.panel,
+  respuesta: { elecciones: el, desde: tr("este aparato"), cuando: Date.now(), entregada: Boolean(r.entregada) } });
+/* Sin contestación no se sabe si llegó, y un 409 puede ser de un primer intento
+   que sí llegó (el navegador repite solo un envío cuya conexión se corta): se
+   mira cómo quedó. Si tampoco se puede mirar, no se afirma nada: decía «No se ha
+   mandado» de una respuesta que el PC ya tenía. */
+function finTrasFallo(fallo, ahora) {
+  if (ahora && intentoDe(ahora)) return finDeMia(ahora);
+  const cerrada = ahora ? comoQuedoDec(ahora) : "";
+  if (cerrada) return { tipo: "cerrada", dicho: cerrada, d: ahora };
+  // Sin contestación a este envío no se puede afirmar que no salió, aunque el PC acabe de contestar a la consulta: puede seguir en camino.
+  if (!fallo.estado) return { tipo: "sinSaber", pcContesta: Boolean(ahora) };
+  // Un 502, 503 o 504 lo dice lo que hay por el camino: el PC puede tenerla, o recibirla enseguida.
+  if (fallo.estado >= 502 && fallo.estado <= 504) return { tipo: "sinSaber", pcContesta: Boolean(ahora) };
+  if (!ahora && (fallo.estado >= 500 || fallo.estado === 409)) return { tipo: "sinSaber" };
+  return { tipo: "fallo", dicho: tr("No se ha mandado: {e}", { e: fallo.message }) };
+}
+const dichoDeFin = (f) => f.tipo === "enviada" ? (f.sinLugar ? tr("Enviada.") : f.entregada ? tr("Enviada. Se ha tecleado en el panel {n}.", { n: f.panel }) : tr("Enviada. El agente la leerá cuando la pida."))
+  : f.tipo === "anterior" ? tr("Llegó tu envío anterior; este último no se ha mandado.")
+  : f.tipo === "sinSaber" ? (f.pcContesta ? tr("No se sabe si ha llegado: tu PC no ha contestado a este envío. Puedes volver a enviarla: si ya llegó, no se duplica.")
+    : tr("No se sabe si ha llegado: tu PC no contesta. Puedes volver a enviarla: si ya llegó, no se duplica."))
+  : f.dicho;
+/** Si ya no queda nada que hacer con ella: lo demás hay que volver a mirarlo. */
+const finCerrado = (f) => f.tipo !== "fallo" && f.tipo !== "sinSaber";
+/** Lo que dice de una respuesta que está saliendo su tarjeta y el aviso de fuera. */
+const palabraEnvio = (envio) => envio.mandando ? tr("Mandando…") : tr("Se manda en {n} s.", { n: envio.quedan });
+/** Lo corto que se dice fuera de la decisión de cómo acabó. */
+const palabraFin = (f) => f.tipo === "enviada" ? tr("Enviada") : f.tipo === "anterior" ? tr("Llegó tu envío anterior")
+  : f.tipo === "cerrada" ? f.dicho : f.tipo === "sinSaber" ? tr("No se sabe si ha llegado") : tr("No se ha mandado.");
+/** Lo que dice el pie de la decisión ahora mismo: el único sitio de donde sale. */
+const fraseDec = (s) => {
+  if (s.envio?.mandando) return "";
+  if (s.envio) return s.envio.retomada ? tr("Se manda en {n} s. Para cambiarla, pulsa Deshacer.", { n: s.envio.quedan }) : tr("Se manda en {n} s.", { n: s.envio.quedan });
+  return s.fin ? dichoDeFin(s.fin) : s.dicho;
+};
+/** «Enviada» se va sola; lo que no llegó a salir se queda hasta que abras esa decisión. */
+const AVISO_FIN = 5000;
+/* Fuera de la decisión también se ve que su respuesta está saliendo: la flecha
+   de arriba no la cancela (pulsaste «Enviar» y te vas), pero te ibas sin ningún
+   aviso y la lista seguía diciendo «te espera». Va debajo de la cabecera y tocarlo
+   abre esa decisión. Que salga o se vaya no mueve nada: flota sobre un hueco que se
+   mide solo al llegar a una pantalla (o con `recolocar`, al cambiar de pregunta,
+   cuando todo cambia igualmente). Uno recién salido no atiende: el toque iba a lo
+   que había debajo. */
+function pintarEnvios(recolocar = false) {
+  const fuera = (id) => !(e.vista === "decision" && e.id === id);
+  const salidas = [...salidasDec.values()];
+  // En la lista de decisiones ya lo dice su tarjeta: un aviso encima lo repetiría.
+  const saliendo = e.vista === "decisiones" ? [] : salidas.filter((s) => s.envio && fuera(s.id));
+  const filas = [...saliendo.map((s) => [s, palabraEnvio(s.envio)]),
+    ...salidas.filter((s) => s.fin && !s.visto && fuera(s.id)).map((s) => [s, palabraFin(s.fin)])];
+  for (const s of salidas) {
+    // Acabado sin saber cómo, la tarjeta deja de decir «Mandando…» aunque la lista no se pueda releer.
+    const dicho = s.envio ? palabraEnvio(s.envio) : s.fin && !finCerrado(s.fin) ? palabraFin(s.fin) : "";
+    if (!dicho) continue;
+    const estado = document.querySelector(`.tarjeta[data-id="${CSS.escape(s.id)}"] .estado`);
+    if (estado?.lastChild) estado.lastChild.textContent = dicho;
+  }
+  const cabecera = document.querySelector(".vista > .barra");
+  if (!cabecera) return;
+  let hueco = cabecera.parentElement.querySelector(":scope > #hueco-envios");
+  if (!hueco) {
+    hueco = document.createElement("div");
+    hueco.id = "hueco-envios";
+    cabecera.after(hueco);
+    recolocar = true;
+  }
+  // También los que aún cuentan en la lista: su fin saldrá aquí.
+  if (recolocar) hueco.style.setProperty("--n", salidas.filter((s) => (s.envio || (s.fin && !s.visto)) && fuera(s.id)).length);
+  let caja = document.getElementById("envios-dec");
+  if (!filas.length) return void caja?.remove();
+  if (!caja) {
+    caja = document.createElement("div");
+    caja.id = "envios-dec";
+    caja.setAttribute("role", "status");
+    caja.addEventListener("click", (ev) => {
+      const b = ev.target.closest("[data-id]");
+      if (b && Date.now() - Number(b.dataset.nace) >= QUIETO_TRAS) ir({ vista: "decision", id: b.dataset.id });
+    });
+  }
+  if (cabecera.nextElementSibling !== caja) cabecera.after(caja);
+  // Fila a fila: rehacerlas cada segundo se comía el toque que caía justo en el cambio.
+  const ids = new Set(filas.map(([s]) => s.id));
+  for (const b of [...caja.children]) if (!ids.has(b.dataset.id)) b.remove();
+  for (const [s, dicho] of filas) {
+    let b = [...caja.children].find((x) => x.dataset.id === s.id);
+    if (!b) {
+      caja.insertAdjacentHTML("beforeend", `<button class="aviso-dec" type="button" data-id="${esc(s.id)}" data-nace="${Date.now()}"><span><b></b> · ${esc(s.titulo)}</span><em>${tr("Abrir")}</em></button>`);
+      b = caja.lastElementChild;
+    }
+    b.querySelector("b").textContent = dicho;
+  }
+}
+/** «Enviada», dicha fuera de su pantalla, se va sola; lo que salió mal se queda. */
+const avisoSeVa = (s, fin) => {
+  if (!s.visto && fin.tipo === "enviada") setTimeout(() => { if (s.fin === fin) { s.visto = true; pintarEnvios(); } }, AVISO_FIN);
+};
+/* Un envío del que no se supo cómo acabó y que la lista ya enseña cerrado: se
+   pregunta una vez cómo quedó, o el aviso seguiría diciendo que no se sabe. */
+function alDiaEnvios(lista) {
+  limpiarSalidas(lista);
+  for (const d of lista) {
+    const s = salidasDec.get(d.id);
+    if (!s?.fin || finCerrado(s.fin) || s.mirando || !["contestada", "descartada", "resuelta"].includes(d.vigencia)) continue;
+    s.mirando = true;
+    api("GET", `/api/decision?id=${encodeURIComponent(d.id)}`, null, LIMITE_MIRAR).then((ahora) => {
+      const fin = finTrasFallo({}, ahora);
+      if (s.envio || !s.fin || finCerrado(s.fin) || !finCerrado(fin)) return;
+      s.fin = fin;
+      if (fin.tipo === "enviada") quitarBorrador(s.id);
+      avisoSeVa(s, fin);
+      pintarEnvios();
+    }, () => {}).finally(() => { s.mirando = false; });
+  }
+}
+/* Lo que salió de esta página y aún no se sabe cómo acabó, guardado en el aparato:
+   si la página se cierra a medias, al volver se dice cómo quedó. */
+const PREFIJO_SALIDA = "adeorq-movil-salida:";
+const claveSalida = (id) => `${PREFIJO_SALIDA}${id}`;
+const apuntarSalida = (id, el) => { try { localStorage.setItem(claveSalida(id), JSON.stringify({ el, cuando: Date.now() })); } catch (_) {} };
+const olvidarSalida = (id) => { try { localStorage.removeItem(claveSalida(id)); } catch (_) {} };
+const marcaSalida = (id) => { try { return JSON.parse(localStorage.getItem(claveSalida(id))); } catch (_) { return null; } };
+const leerSalida = (id) => marcaSalida(id)?.el ?? null;
+/** Lo apuntado de una decisión que ya no está, o que lleva un día cerrada sin abrirse, no se va a decir nunca. */
+function limpiarSalidas(lista) {
+  const porId = new Map(lista.map((d) => [d.id, d]));
+  let claves = [];
+  try { claves = Object.keys(localStorage).filter((k) => k.startsWith(PREFIJO_SALIDA)); } catch (_) {}
+  for (const k of claves) {
+    const id = k.slice(PREFIJO_SALIDA.length);
+    if (salidasDec.get(id)?.envio) continue;
+    const d = porId.get(id);
+    const vieja = Date.now() - (marcaSalida(id)?.cuando ?? 0) > 86400000;
+    if (!d || (vieja && d.vigencia !== "viva")) olvidarSalida(id);
+  }
+}
+async function mandarEnvio(s, alIrse = false) {
+  const { envio } = s;
+  clearInterval(envio.reloj);
+  envio.mandando = true;
+  intentosDec.set(s.id, [...(intentosDec.get(s.id) ?? []), envio.el]);
+  apuntarSalida(s.id, envio.el);
+  s.vista?.pintar();
+  pintarEnvios();
+  let fin;
+  try {
+    const r = await api("POST", "/api/decision/responder", { id: s.id, elecciones: envio.el }, LIMITE_MANDAR, alIrse);
+    // Un 200 con la contestación cortada no dice si se tecleó: se mira cómo quedó.
+    if (typeof r.entregada !== "boolean") throw new Error();
+    fin = finEnviada(r.entregada, r.panel, contestadaAqui(s.d, envio.el, r));
+  } catch (fallo) {
+    const ahora = await api("GET", `/api/decision?id=${encodeURIComponent(s.id)}`, null, LIMITE_MIRAR).catch(() => null);
+    fin = finTrasFallo(fallo, ahora);
+  }
+  olvidarSalida(s.id);
+  s.envio = null;
+  s.fin = fin;
+  if (fin.tipo === "enviada") quitarBorrador(s.id);
+  // Sin su pantalla delante se dice fuera, y al abrirla se repite.
+  s.visto = Boolean(s.vista?.acabar(fin));
+  avisoSeVa(s, fin);
+  pintarEnvios();
+  alEnvio?.();
+}
+/* Cerrar o recargar la página en plena cuenta atrás es irse, como salir de la
+   decisión: la respuesta se pulsó y sale ahora. Antes la cuenta moría con la
+   página, y el agente seguía esperando algo que creías contestado. */
+window.addEventListener("pagehide", () => {
+  for (const s of salidasDec.values()) if (s.envio && !s.envio.mandando) mandarEnvio(s, true);
+});
+function empezarEnvio(s, el) {
+  Object.assign(s, { fin: null, dicho: "", visto: false });
+  const envio = { el, quedan: SEGUNDOS_ENVIO, empezo: Date.now(), mandando: false, retomada: false, reloj: 0 };
+  envio.reloj = setInterval(() => {
+    envio.quedan -= 1;
+    if (envio.quedan > 0) {
+      s.vista?.pintar();
+      pintarEnvios();
+    } else mandarEnvio(s);
+  }, 1000);
+  s.envio = envio;
+}
+function pararEnvio(s) {
+  clearInterval(s.envio.reloj);
+  s.envio = null;
+}
+
+/* Las imágenes de las decisiones (`image` en ask_decision). Se piden con la
+   clave, por el id de la decisión y su número (`/api/decision/imagen`): un
+   `<img>` no sabe llevar la clave, y desde aquí no se puede pedir una ruta.
+   «id:n» → la promesa de su enlace: la pantalla se repinta entera a menudo (cada
+   paso, cada envío) y no se vuelve a bajar. */
+var fotosDec = new Map();
+function fotoDec(id, n) {
+  const k = `${id}:${n}`;
+  const ya = fotosDec.get(k);
+  if (ya) {
+    // La última usada pasa al final: la caché suelta primero lo que hace más que no se ve.
+    fotosDec.delete(k);
+    fotosDec.set(k, ya);
+  } else {
+    const p = (async () => {
+      let r;
+      try {
+        r = await fetch(`/api/decision/imagen?id=${encodeURIComponent(id)}&n=${n}`, { headers: { Authorization: `Bearer ${clave || ""}` }, cache: "no-store" });
+      } catch (_) {
+        throw new Error(tr("No llego a tu PC. ¿Está encendido, con Adeorq abierto y Tailscale activo en los dos?"));
+      }
+      if (!r.ok) {
+        const v = await r.json().catch(() => ({}));
+        if (r.status === 401) olvidarClave();
+        throw new Error(delPc(v.error) || tr("Algo ha fallado ({n}).", { n: r.status }));
+      }
+      return URL.createObjectURL(await r.blob());
+    })();
+    // Lo que falló se vuelve a pedir la próxima vez.
+    p.catch(() => fotosDec.delete(k));
+    fotosDec.set(k, p);
+    /* Llena, se suelta lo más viejo, pero nunca lo de la decisión que se está
+       viendo (la de esta imagen): al volver a una de 56 tras otra, cada imagen que
+       volvía echaba a la siguiente suya y se bajaban todas otra vez (revisión del
+       2026-11-19). Una decisión sola cabe entera aunque pase del tope. */
+    for (const [viejo, suya] of fotosDec) {
+      if (fotosDec.size <= 60) break;
+      if (viejo.startsWith(`${id}:`)) continue;
+      fotosDec.delete(viejo);
+      suya.then((u) => URL.revokeObjectURL(u), () => {});
+    }
+  }
+  return fotosDec.get(k);
+}
+
+/** El hueco de una imagen, con su sitio guardado: `aspect-ratio` sale del tamaño que dice el PC.
+    No es un `<button>`: en una decisión contestada va dentro de un `<fieldset disabled>`, que apaga los
+    botones de dentro, y la imagen de lo elegido no se abría (revisión del 2026-11-19). */
+function fotoDecHtml(img, titulo, etiqueta) {
+  const ancho = Math.max(1, Number(img.ancho) || 1);
+  const alto = Math.max(1, Number(img.alto) || 1);
+  return `<span class="dec-foto" role="button" tabindex="0" data-n="${Number(img.n)}" data-titulo="${esc(titulo)}" aria-label="${esc(etiqueta)}" style="aspect-ratio: ${ancho} / ${alto}"><img alt=""></span>`;
+}
+
+/** Engancha el abrirlas y devuelve `cargar(donde)`, que baja las imágenes de `donde` que aún no se
+    pidieron; lo que no llega lo dice en su mismo hueco. `todas`: las baja ya todas (la contestada solo
+    enseña la de lo elegido). Sin `todas`, la pantalla pide las de la pregunta a la vista y la siguiente:
+    una de 8 × 7 bajaba las 56 al entrar (revisión del 2026-11-19). Su hueco ya está guardado, así que
+    llegar después no mueve nada. */
+function montarFotosDec(raiz, id, todas = true) {
+  const cargar = (donde) => {
+    for (const b of donde?.querySelectorAll(".dec-foto:not([data-pedida])") ?? []) {
+      b.dataset.pedida = "1";
+      const img = b.querySelector("img");
+      fotoDec(id, b.dataset.n).then((u) => { if (img.isConnected) img.src = u; }, (err) => {
+        if (!b.isConnected) return;
+        b.dataset.falla = "1";
+        b.removeAttribute("role");
+        b.removeAttribute("tabindex");
+        b.textContent = err.message;
+      });
+    }
+  };
+  if (todas) cargar(raiz);
+  const abrir = (ev) => {
+    const b = ev.target.closest(".dec-foto");
+    if (!b || b.dataset.falla) return;
+    // Dentro de la opción, que la imagen no la elija también.
+    ev.preventDefault();
+    abrirFotoDec(id, b.dataset.n, b.dataset.titulo, b);
+  };
+  raiz.addEventListener("click", abrir);
+  // Lo que un botón hace solo con el teclado: Intro y Espacio la abren.
+  raiz.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") abrir(ev); });
+  return cargar;
+}
+
+/* En grande, encima de todo. Abrirla mete un paso en el historial para que el
+   Atrás del teléfono la cierre a ella, y no la página. Con `var` y no `let`:
+   `ir` la cierra, y se le llama desde código que corre antes de llegar aquí. */
+var fotoAbierta = null;
+/* Cerrarla con la flecha o Escape quita su paso con `history.back()`, que no
+   vuelve en el acto: su `popstate` llega unos milisegundos después. Abrir otra
+   en ese hueco hacía que ese `popstate` cerrara la nueva (revisión del
+   2026-11-19). Mientras ese «atrás» va en camino, la nueva espera a que llegue
+   para meter su paso. */
+var atrasFotoEnCamino = false;
+function abrirFotoDec(id, n, titulo, desde) {
+  // Abierta encima de otra, se queda con el paso del historial de aquella: si no, se apilaban.
+  const conPaso = Boolean(fotoAbierta && history.state?.fotoDec);
+  cerrarFotoDec(false);
+  const capa = document.createElement("div");
+  capa.className = "foto-grande";
+  capa.setAttribute("role", "dialog");
+  capa.setAttribute("aria-modal", "true");
+  capa.setAttribute("aria-label", titulo);
+  capa.innerHTML = `
+    <header class="barra">
+      <button class="atras" type="button" id="foto-cerrar" aria-label="${tr("Cerrar la imagen")}">${ICONO.atras}</button>
+      <h1 class="entero"><span class="tit">${esc(titulo)}</span><small>${tr("Toca la imagen para verla a su tamaño")}</small></h1>
+    </header>
+    <div class="foto-grande-cuerpo"><p class="vacio">${tr("cargando…")}</p></div>`;
+  document.body.append(capa);
+  fotoAbierta = { capa, desde };
+  ajustarFotoDec();
+  if (!atrasFotoEnCamino && !conPaso) history.pushState({ fotoDec: true }, "");
+  const cerrar = capa.querySelector("#foto-cerrar");
+  cerrar.addEventListener("click", () => cerrarFotoDec());
+  cerrar.focus({ preventScroll: true });
+  const cuerpo = capa.querySelector(".foto-grande-cuerpo");
+  fotoDec(id, n).then((u) => {
+    if (!capa.isConnected) return;
+    const img = document.createElement("img");
+    img.alt = titulo;
+    img.src = u;
+    img.addEventListener("click", () => cuerpo.classList.toggle("entera"));
+    cuerpo.replaceChildren(img);
+  }, (err) => {
+    if (capa.isConnected) cuerpo.innerHTML = `<p class="nota">${esc(err.message)}</p>`;
+  });
+}
+
+/* Con la respuesta en cuenta atrás o saliendo, la imagen en grande se queda por
+   encima del pie: la cuenta se sigue viendo y «Deshacer» se puede tocar. Antes la
+   tapaba, y la respuesta se mandaba con ella encima (revisión del 2026-11-19).
+   La llaman abrirla y cada repintado del pie (`data-cuenta`). */
+function ajustarFotoDec() {
+  if (!fotoAbierta) return;
+  const pie = document.querySelector("#pie-dec[data-cuenta]:not([hidden])");
+  fotoAbierta.capa.style.bottom = pie ? `${Math.max(0, Math.round(innerHeight - pie.getBoundingClientRect().top))}px` : "";
+}
+
+/** `volver`: quita también su paso del historial (cerrada con la flecha o Escape); con el Atrás del teléfono ya se fue. */
+function cerrarFotoDec(volver = true) {
+  if (!fotoAbierta) return;
+  const { capa, desde } = fotoAbierta;
+  fotoAbierta = null;
+  capa.remove();
+  // Una abierta mientras el «atrás» de la anterior iba en camino aún no tiene su paso: no hay nada que quitar.
+  if (volver && history.state?.fotoDec && !atrasFotoEnCamino) {
+    atrasFotoEnCamino = true;
+    history.back();
+  }
+  if (desde?.isConnected) desde.focus({ preventScroll: true });
+}
+window.addEventListener("popstate", () => {
+  if (atrasFotoEnCamino) {
+    atrasFotoEnCamino = false;
+    // La que se abrió en el hueco mete ahora su paso, para que el Atrás del teléfono la cierre a ella.
+    if (fotoAbierta) history.pushState({ fotoDec: true }, "");
+    return;
+  }
+  cerrarFotoDec(false);
+});
+/* Es modal: con teclado, Tab no sale de ella. Solo se va a su flecha y, con la
+   cuenta a la vista, a los botones del pie que queda por debajo. Antes se salía
+   a la página de detrás, se abría otra encima y se apilaban pasos en el
+   historial (revisión del 2026-11-19). */
+document.addEventListener("keydown", (ev) => {
+  if (!fotoAbierta) return;
+  if (ev.key === "Escape") return void cerrarFotoDec();
+  if (ev.key !== "Tab") return;
+  const pie = document.querySelector("#pie-dec[data-cuenta]:not([hidden])");
+  const vale = [fotoAbierta.capa.querySelector("#foto-cerrar"), ...[...(pie?.querySelectorAll("button:not([disabled])") ?? [])].filter((b) => b.getClientRects().length)];
+  const i = vale.indexOf(document.activeElement);
+  ev.preventDefault();
+  vale[i < 0 ? (ev.shiftKey ? vale.length - 1 : 0) : (i + (ev.shiftKey ? -1 : 1) + vale.length) % vale.length].focus();
+});
+
+/** `recien`: acaba de enviarse desde aquí, y se celebra. `sabida`: la misma pantalla se pone al día con cómo quedó, sin preguntar al PC. */
+async function pintarDecision(recien = false, sabida = null) {
+  const id = e.id;
+  const s = salidaDe(id);
+  s.vista = null;
+  // Entrar es enterarse: deja de avisarse fuera. «Enviada» ya dicha no se repite; lo que salió mal, sí.
+  if (!sabida) {
+    s.dicho = "";
+    if (s.visto && s.fin?.tipo === "enviada") s.fin = null;
+    s.visto = true;
+  }
   app.innerHTML = `
     <div class="vista">
       <header class="barra">
@@ -4890,24 +5400,56 @@ async function pintarDecision(recien = false) {
     </div>`;
   // El sondeo de la que hubiera abierta antes: repintar esta pantalla no pasa por `ir`.
   sinSondeo();
-  document.getElementById("atras").addEventListener("click", () => ir(e.volverPanel ? { vista: "terminal", panel: e.volverPanel, arranque: e.volverArranque } : { vista: e.volver === "lista" ? "lista" : "decisiones" }, true));
-  document.getElementById("titulo").addEventListener("click", (ev) => ev.currentTarget.toggleAttribute("data-todo"));
-  let d;
-  try {
-    d = await api("GET", `/api/decision?id=${encodeURIComponent(e.id)}`);
-  } catch (err) {
-    document.getElementById("decision").innerHTML = `<p class="nota">${esc(err.message)}</p>`;
-    return;
+  /* La ficha de este pintado. Tocar una decisión, volver antes de que cargue y
+     abrir otra dejaba dos pintados vivos: el primero seguía al llegar su carga,
+     enganchaba sus manejadores en la pantalla de la segunda y leía sus
+     respuestas, y al enviar quedaban contestadas las dos (revisión del
+     2026-11-18, A1). Tras cada espera se mira la ficha, y todo lo que se lee o se
+     escribe cuelga de `raiz`, la vista de ESTE pintado: las preguntas de todas
+     las decisiones se llaman A, B, C. */
+  const ficha = pantalla;
+  const vigente = () => ficha === pantalla;
+  const raiz = app.querySelector(".vista");
+  const aqui = (sel) => raiz.querySelector(sel);
+  aqui("#atras").addEventListener("click", () => ir(e.volverPanel ? { vista: "terminal", panel: e.volverPanel, arranque: e.volverArranque } : { vista: e.volver === "lista" ? "lista" : "decisiones" }, true));
+  aqui("#titulo").addEventListener("click", (ev) => ev.currentTarget.toggleAttribute("data-todo"));
+  /* Con un envío a medias, o acabado sin confirmar, ya se sabe lo que hay que
+     enseñar: esperar al PC dejaba «cargando…» sin «Deshacer» mientras la respuesta
+     salía, y una carga que llegaba tarde traía la decisión de antes del envío. */
+  const aMedias = s.envio || (s.fin && !finCerrado(s.fin));
+  let d = sabida ?? (aMedias ? s.d : s.fin?.d ?? null);
+  const sinCargar = Boolean(d);
+  if (!d) {
+    try {
+      d = await api("GET", `/api/decision?id=${encodeURIComponent(id)}`);
+    } catch (err) {
+      if (vigente()) aqui("#decision").innerHTML = `<p class="nota">${esc(err.message)}</p>`;
+      return;
+    }
+    if (!vigente()) return;
+  }
+  s.d = d;
+  s.titulo = d.titulo;
+  // La página se cerró con esta respuesta saliendo: se dice cómo quedó, y el sondeo la reconoce si llega después.
+  const salio = sabida || s.envio ? null : leerSalida(id);
+  if (salio) {
+    olvidarSalida(id);
+    intentosDec.set(id, [...(intentosDec.get(id) ?? []), salio]);
+    s.fin = finTrasFallo({}, d);
+    s.visto = true;
+    if (s.fin.tipo === "enviada") quitarBorrador(id);
   }
   const contestada = Boolean(d.respuesta);
   // Descartada, o resuelta por el agente: se enseña como quedó, y ya no se contesta.
   const cerrada = contestada || d.vigencia === "descartada" || d.vigencia === "resuelta";
+  if (s.envio) s.envio.retomada = true;
   const sustituta = d.resuelta?.sustituta;
-  const borrador = cerrada ? {} : leerBorrador(d.id);
+  // Lo que se está mandando manda sobre el borrador: es lo que tiene que verse.
+  const borrador = cerrada ? {} : s.envio?.el ?? leerBorrador(d.id);
   const elegida = (q) => contestada ? d.respuesta.elecciones[q.id]?.opcion : borrador[q.id]?.opcion;
   const escrita = (q) => contestada ? d.respuesta.elecciones[q.id]?.texto : borrador[q.id]?.texto;
   const de = [d.proyecto, d.panel ? tr("panel {n}", { n: d.panel }) : ""].filter(Boolean).join(" · ");
-  document.getElementById("titulo").innerHTML = `<span class="tit">${esc(d.titulo)}</span><small>${esc([de, hace(d.creada / 1000)].filter(Boolean).join(" · "))}</small>`;
+  aqui("#titulo").innerHTML = `<span class="tit">${esc(d.titulo)}</span><small>${esc([de, hace(d.creada / 1000)].filter(Boolean).join(" · "))}</small>`;
 
   /* Lo primero, si ya no la espera nadie. De la viva no se avisa arriba: se
      abre porque te espera, y dónde cae la respuesta lo dice la nota de antes
@@ -4926,9 +5468,9 @@ async function pintarDecision(recien = false) {
           ? `<p class="dec-vig" data-v="descartada"><span><b>${tr("Ya está decidida.")}</b> ${sustituta ? tr("La sustituye otra que pregunta lo mismo.") : `${tr("El agente la dio por resuelta {cuando}:", { cuando: hace(d.resuelta.cuando / 1000) })} ${esc(d.resuelta.como)}`}</span></p>${sustituta ? `<button class="mini" id="ir-sustituta" type="button">${tr("Abrir la nueva")}</button>` : ""}`
           : "";
   const hecha = contestada
-    ? `<p class="dec-hecha">${tr("Contestada desde {desde}, {cuando}.", { desde: esc(delPc(d.respuesta.desde)), cuando: hace(d.respuesta.cuando / 1000) })} ${d.respuesta.entregada ? tr("Se tecleó en el panel {n}.", { n: d.panel }) : tr("El agente la lee cuando la pide.")}</p>`
+    ? `<p class="dec-hecha">${tr("Contestada desde {desde}, {cuando}.", { desde: esc(delPc(d.respuesta.desde)), cuando: hace(d.respuesta.cuando / 1000) })} ${d.respuesta.entregada ? tr("Se tecleó en el panel {n}.", { n: d.panel }) : s.fin?.sinLugar ? "" : tr("El agente la lee cuando la pide.")}</p>`
     : "";
-  const c = document.getElementById("decision");
+  const c = aqui("#decision");
   const N = d.preguntas.length;
   // Una sola pregunta no tiene pasos ni repaso: ella y su botón de enviar.
   const varias = N > 1;
@@ -4957,22 +5499,32 @@ async function pintarDecision(recien = false) {
        botón (antes salía cada vez que se reabría), y sin nada que enseñar el
        borrador de una cerrada sobra. */
     const guardado = leerBorrador(d.id);
-    const mio = d.preguntas.map((q) => [q.id, guardado[q.id]?.texto])
-      .filter(([q, texto]) => texto && comoLoGuardaElPc(texto) !== comoLoGuardaElPc(d.respuesta?.elecciones[q]?.texto));
+    const mio = d.preguntas.map((q) => {
+      const puesto = guardado[q.id] ?? {};
+      const llego = d.respuesta?.elecciones[q.id];
+      const opcion = puesto.opcion && puesto.opcion !== llego?.opcion ? puesto.opcion : undefined;
+      const texto = puesto.texto && comoLoGuardaElPc(puesto.texto) !== comoLoGuardaElPc(llego?.texto) ? puesto.texto : undefined;
+      return [q.id, dichoDe(q, opcion, texto)];
+    }).filter(([, dicho]) => dicho);
     const olvidarBorrador = () => { try { localStorage.removeItem(borradorDe(d.id)); } catch (_) {} };
     if (!mio.length) olvidarBorrador();
     c.innerHTML = `${cab}${cabeza ? `<h2 class="dec-titulo">${cabeza}</h2>` : ""}
       ${d.preguntas.map((q) => {
         const dicho = dichoDe(q, elegida(q), escrita(q));
-        return `<fieldset class="pregunta-d" data-q="${esc(q.id)}" disabled><legend>${titulo(q)}</legend>${dicho ? `<p class="dec-dicho">${esc(dicho)}</p>` : ""}</fieldset>`;
+        // Con la elegida se ve también su imagen: lo que se decidió, como era.
+        const suya = q.opciones[(elegida(q) ?? 0) - 1];
+        return `<fieldset class="pregunta-d" data-q="${esc(q.id)}" disabled><legend>${titulo(q)}</legend>${dicho ? `<p class="dec-dicho">${esc(dicho)}</p>` : ""}${suya?.imagen ? fotoDecHtml(suya.imagen, `${elegida(q)}. ${suya.texto}`, tr("Ver en grande la imagen de la opción {n}", { n: elegida(q) })) : ""}</fieldset>`;
       }).join("")}
-      ${mio.length ? `<div class="dec-mio" id="dec-mio"><p><b>${tr("Lo que escribiste aquí y no se mandó:")}</b></p>${mio.map(([q, texto]) => `<p class="suyo"><span class="letra">${esc(q)}</span> ${esc(texto)}</p>`).join("")}<button class="mini" id="olvidar-mio" type="button">${tr("Borrarlo")}</button></div>` : ""}`;
-    document.getElementById("olvidar-mio")?.addEventListener("click", () => {
+      ${mio.length ? `<div class="dec-mio" id="dec-mio"><p><b>${tr("Lo que pusiste aquí y no se mandó:")}</b></p>${mio.map(([q, dicho]) => `<p class="suyo"><span class="letra">${esc(q)}</span> ${esc(dicho)}</p>`).join("")}<button class="mini" id="olvidar-mio" type="button">${tr("Borrarlo")}</button></div>` : ""}`;
+    aqui("#olvidar-mio")?.addEventListener("click", () => {
       olvidarBorrador();
-      document.getElementById("dec-mio")?.remove();
+      aqui("#dec-mio")?.remove();
     });
-    document.getElementById("ir-sustituta")?.addEventListener("click", () => ir({ vista: "decision", id: sustituta, volver: e.volver, volverPanel: e.volverPanel, volverArranque: e.volverArranque }));
+    aqui("#ir-sustituta")?.addEventListener("click", () => ir({ vista: "decision", id: sustituta, volver: e.volver, volverPanel: e.volverPanel, volverArranque: e.volverArranque }));
+    montarFotosDec(c, d.id);
     medirIntro();
+    aqui("#estado-envio").textContent = fraseDec(s);
+    aqui("#pie-dec").hidden = !fraseDec(s);
     return;
   }
   /* Dónde cae la respuesta, dicho justo antes de enviarla. Si se teclea lo
@@ -4990,11 +5542,13 @@ async function pintarDecision(recien = false) {
       <fieldset class="pregunta-d" data-q="${esc(q.id)}">
         <legend tabindex="-1">${titulo(q)}</legend>
         ${q.contexto ? `<p>${conEnlaces(q.contexto)}</p>` : ""}
+        ${q.imagen ? fotoDecHtml(q.imagen, `${q.id} ${sinSuLetra(q.id, q.titulo)}`, tr("Ver en grande la imagen de la pregunta {q}", { q: q.id })) : ""}
         ${q.opciones.map((o, i) => `
           <label class="opcion">
             <input type="radio" name="q-${esc(q.id)}" value="${i + 1}"${elegida(q) === i + 1 ? " checked" : ""}>
             <span class="num">${i + 1}</span>
             <span class="txt"><b>${esc(o.texto)}</b>${o.recomendada ? `<em class="rec">${tr("Recomendada")}</em>` : ""}${o.detalle ? `<small>${esc(o.detalle)}</small>` : ""}</span>
+            ${o.imagen ? fotoDecHtml(o.imagen, `${i + 1}. ${o.texto}`, tr("Ver en grande la imagen de la opción {n}", { n: i + 1 })) : ""}
           </label>`).join("")}
         <textarea class="libre" data-q="${esc(q.id)}" rows="2" maxlength="${TOPE_LIBRE}" placeholder="${tr("Otra cosa, con tus palabras")}" aria-label="${tr("Otra cosa para la pregunta {q}, con tus palabras", { q: esc(q.id) })}">${esc(escrita(q) || "")}</textarea>
       </fieldset>`).join("")}
@@ -5004,32 +5558,31 @@ async function pintarDecision(recien = false) {
       <button type="button" id="descartar-aqui">${tr("Descartar esta decisión")}</button>
     </div>`;
 
-  const pie = document.getElementById("pie-dec");
-  const boton = document.getElementById("enviar-dec");
-  const estado = document.getElementById("estado-envio");
-  const atrasB = document.getElementById("paso-atras");
-  const sigB = document.getElementById("paso-sig");
-  const quitarB = document.getElementById("quitar-eleccion");
-  const repaso = document.getElementById("dec-repaso");
+  const pie = aqui("#pie-dec");
+  const boton = aqui("#enviar-dec");
+  const estado = aqui("#estado-envio");
+  const atrasB = aqui("#paso-atras");
+  const sigB = aqui("#paso-sig");
+  const quitarB = aqui("#quitar-eleccion");
+  const repaso = aqui("#dec-repaso");
   const preguntas = [...c.querySelectorAll(".pregunta-d")];
   pie.hidden = false;
   // Recién cambiada la pantalla, ni lo de arriba ni el pie atienden un toque (`QUIETO_TRAS`); mientras se manda, tampoco.
   let quieto = 0;
+  const enCuenta = () => Boolean(s.envio && !s.envio.mandando);
   const sordo = (ev) => {
-    if (Date.now() >= quieto && !mandando) return;
+    if (Date.now() >= quieto && !s.envio?.mandando) return;
     ev.preventDefault();
     ev.stopPropagation();
   };
   for (const zona of [c, pie]) for (const tipo of ["mousedown", "click"]) zona.addEventListener(tipo, sordo, true);
-  // Repintar la misma pantalla (al contestar o al descartar) no es llegar a otra.
-  const repintar = async (dicho, enviada = false) => {
+  // Repintar la misma pantalla (al contestar o al descartar) no es llegar a otra. Lo que haya que decir ya está en `s`.
+  const repintar = (quedo, enviada = false) => {
+    // Ya contestada o descartada: se cierra la imagen para ver cómo quedó.
+    cerrarFotoDec();
     app.dataset.sentido = "igual";
-    await pintarDecision(enviada);
-    const est = document.getElementById("estado-envio");
-    const f = document.getElementById("pie-dec");
-    if (!f || !est) return;
-    f.hidden = false;
-    est.textContent = dicho;
+    pintarDecision(enviada, quedo);
+    pintarEnvios();
   };
   /* Descartar: deja de contar entre las que te esperan. A una terminal que
      seguía esperándola se le dice, para que el agente no se quede parado.
@@ -5040,9 +5593,11 @@ async function pintarDecision(recien = false) {
      Y recién salida la pantalla no atiende (`desde`), como «Enviar»: donde cae
      sobre una opción de la pregunta anterior, tres toques en un mismo punto
      elegían, lo armaban y descartaban. */
-  const descartarB = document.getElementById("descartar-aqui");
+  const descartarB = aqui("#descartar-aqui");
   let armado = 0;
   let relojArmado = 0;
+  // Con el descarte en el aire no se contesta: cambiar de opción volvía a encender «Enviar».
+  let descartando = false;
   const desarmar = () => {
     clearTimeout(relojArmado);
     armado = 0;
@@ -5054,9 +5609,9 @@ async function pintarDecision(recien = false) {
     if (!armado) {
       if (Date.now() < desde) return;
       // Con la cuenta en marcha, la para: no se manda una respuesta mientras se decide si descartarla.
-      if (cuenta) {
+      if (enCuenta()) {
         parar();
-        estado.textContent = tr("No se ha mandado.");
+        decir(tr("No se ha mandado."));
       }
       armado = Date.now();
       descartarB.style.minWidth = `${descartarB.offsetWidth}px`;
@@ -5067,25 +5622,32 @@ async function pintarDecision(recien = false) {
     }
     if (Date.now() - armado < DESHACER_TRAS) return;
     clearTimeout(relojArmado);
-    if (cuenta) parar();
+    if (enCuenta()) parar();
     descartarB.disabled = true;
-    boton.disabled = true;
+    descartando = true;
+    pintarPie();
     try {
       const r = await descartarDecision(d.id);
-      await repintar(r.avisada ? tr("Descartada. Se le ha dicho al panel {n} que no espere respuesta.", { n: r.panel }) : tr("Descartada."));
+      if (!vigente()) return;
+      // Lo que dijera un envío anterior ya no vale: quedó descartada.
+      s.fin = null;
+      s.dicho = r.avisada ? tr("Descartada. Se le ha dicho al panel {n} que no espere respuesta.", { n: r.panel }) : tr("Descartada.");
+      repintar({ ...d, vigencia: "descartada", descartada: Date.now() });
     } catch (err) {
+      if (!vigente()) return;
+      descartando = false;
       descartarB.disabled = false;
       desarmar();
-      // Primero lo que falta y después el fallo: al revés, el repaso lo borraba.
-      repasar();
-      estado.textContent = err.estado === 409 ? tr("Ya estaba contestada desde otro sitio.") : tr("No se ha descartado: {e}", { e: err.message });
+      // Lo que dijera el envío de antes taparía que no se pudo descartar. Un 409 puede ser ese mismo envío, que llegó: ahí sigue sin saberse.
+      if (err.estado !== 409) s.fin = null;
+      decir(err.estado === 409 ? tr("Ya estaba contestada desde otro sitio.") : tr("No se ha descartado: {e}", { e: err.message }));
     }
   });
   const leerForm = () => {
     const el = {};
     for (const q of d.preguntas) {
-      const marcada = document.querySelector(`input[name="q-${CSS.escape(q.id)}"]:checked`);
-      const texto = document.querySelector(`.libre[data-q="${CSS.escape(q.id)}"]`)?.value.trim();
+      const marcada = c.querySelector(`input[name="q-${CSS.escape(q.id)}"]:checked`);
+      const texto = c.querySelector(`.libre[data-q="${CSS.escape(q.id)}"]`)?.value.trim();
       el[q.id] = { opcion: marcada ? Number(marcada.value) : undefined, texto: texto || undefined };
     }
     return el;
@@ -5095,7 +5657,7 @@ async function pintarDecision(recien = false) {
   /* El paso: 0…N-1 es esa pregunta y N, el repaso. Se entra por la primera sin
      contestar, o por el repaso si el borrador ya las trae todas. */
   const sinContestar = () => { const el = leerForm(); return d.preguntas.findIndex((q) => !el[q.id].opcion && !el[q.id].texto); };
-  let paso = !varias ? 0 : pasoDec.id === d.id ? Math.min(pasoDec.paso, N) : sinContestar();
+  let paso = !varias ? 0 : s.envio ? N : pasoDec.id === d.id ? Math.min(pasoDec.paso, N) : sinContestar();
   if (paso < 0) paso = N;
   // Quien abre una pregunta desde el repaso vuelve a él al contestarla, sin recorrer las demás.
   let alRepaso = false;
@@ -5103,23 +5665,47 @@ async function pintarDecision(recien = false) {
   // Desde cuándo atienden «Enviar» en el repaso y «Descartar» en cualquier pantalla (`ENVIAR_TRAS`), y el reloj que enciende «Enviar».
   let desde = 0;
   let relojEnviar = 0;
+  /* El pie entero sale de `s`: el botón y la frase. Lo que falta se dice en el
+     repaso, que es donde se envía: pregunta a pregunta sería repetir en cada
+     pantalla lo que aún no toca. */
+  let significa = "enviar";
+  let botonDesde = 0;
+  let relojBoton = 0;
+  const pintarPie = () => {
+    const { envio } = s;
+    const el = leerForm();
+    const f = faltan(el);
+    const ahora = !envio ? "enviar" : envio.mandando ? "mandando" : "deshacer";
+    if (ahora !== significa && ahora === "enviar") {
+      botonDesde = Date.now() + CAMBIA_TRAS;
+      clearTimeout(relojBoton);
+      relojBoton = setTimeout(() => { if (vigente()) pintarPie(); }, CAMBIA_TRAS + 30);
+    }
+    significa = ahora;
+    // Lo que ya está saliendo no se cambia, ni con el dedo ni con el teclado. Se bloquea lo de dentro: el cuerpo inerte tampoco se desplazaba.
+    const bloqueada = Boolean(envio?.mandando || envio?.retomada || descartando);
+    for (const hijo of c.children) hijo.inert = bloqueada;
+    c.toggleAttribute("data-bloqueada", bloqueada);
+    boton.textContent = !envio ? tr("Enviar respuesta") : envio.mandando ? tr("Mandando…") : tr("Deshacer ({n})", { n: envio.quedan });
+    boton.disabled = descartando || Boolean(envio?.mandando) || (!envio && (!completa(el) || Date.now() < botonDesde || (enRepaso() && Date.now() < desde)));
+    estado.textContent = fraseDec(s) || (envio || !enRepaso() || !f.length ? ""
+      : f.length === 1 ? tr("Falta la pregunta {q}.", { q: f[0] })
+      : tr("Faltan las preguntas {lista} y {ultima}.", { lista: f.slice(0, -1).join(", "), ultima: f.at(-1) }));
+    pie.toggleAttribute("data-cuenta", Boolean(envio));
+    ajustarFotoDec();
+  };
+  /** Lo que la pantalla contesta a un toque: se queda hasta el siguiente cambio. */
+  const decir = (dicho) => { s.dicho = dicho; pintarPie(); };
   const repasar = () => {
     const el = leerForm();
     guardarBorrador(d.id, el);
-    boton.disabled = mandando || !completa(el) || (enRepaso() && Date.now() < desde);
+    pintarPie();
     const f = faltan(el);
-    // Lo que falta se dice en el repaso, que es donde se envía: pregunta a
-    // pregunta sería repetir en cada pantalla lo que aún no toca.
-    if (!cuenta) {
-      estado.textContent = !enRepaso() || !f.length ? ""
-        : f.length === 1 ? tr("Falta la pregunta {q}.", { q: f[0] })
-        : tr("Faltan las preguntas {lista} y {ultima}.", { lista: f.slice(0, -1).join(", "), ultima: f.at(-1) });
-    }
     const q = d.preguntas[paso];
     sigB.toggleAttribute("data-lista", Boolean(q && (el[q.id].opcion || el[q.id].texto)));
     quitarB.toggleAttribute("data-oculto", !(q && el[q.id].opcion));
     if (!varias) return;
-    document.getElementById("dec-paso").innerHTML = `<span class="tramos">${d.preguntas.map((p, i) => `<i${el[p.id].opcion || el[p.id].texto ? " data-hecha" : ""}${i === paso ? " data-actual" : ""}></i>`).join("")}</span>`
+    aqui("#dec-paso").innerHTML = `<span class="tramos">${d.preguntas.map((p, i) => `<i${el[p.id].opcion || el[p.id].texto ? " data-hecha" : ""}${i === paso ? " data-actual" : ""}></i>`).join("")}</span>`
       + `<span>${enRepaso() ? tr("{n} de {total} contestadas", { n: N - f.length, total: N }) : tr("Pregunta {n} de {total}", { n: paso + 1, total: N })}</span>`;
   };
   /** `llega`: se ha cambiado de pantalla desde dentro, y el foco va a su título. */
@@ -5132,8 +5718,11 @@ async function pintarDecision(recien = false) {
     clearTimeout(relojEnviar);
     if (armado) desarmar();
     preguntas.forEach((f, i) => { f.hidden = varias && i !== paso; });
+    // Las imágenes de la pregunta a la vista, y las de la siguiente para cuando se pase.
+    cargarFotos(preguntas[paso]);
+    cargarFotos(preguntas[paso + 1]);
     // Lo que cuenta el agente, al entrar; después estorba.
-    document.getElementById("dec-cab").hidden = varias && paso !== 0;
+    aqui("#dec-cab").hidden = varias && paso !== 0;
     if (varias) {
       repaso.hidden = !enRepaso();
       if (enRepaso()) {
@@ -5146,17 +5735,18 @@ async function pintarDecision(recien = false) {
             return `<button type="button" class="dec-fila" data-i="${i}"${dicho ? "" : " data-falta"}><span>${esc(q.id)} ${esc(sinSuLetra(q.id, q.titulo))}</span><b>${esc(dicho || tr("Sin contestar"))}</b></button>`;
           }).join("")
           + notaDe();
-        relojEnviar = setTimeout(() => { if (sigoAqui() && enRepaso() && !cuenta && !mandando) repasar(); }, ENVIAR_TRAS + 30);
+        relojEnviar = setTimeout(() => { if (vigente()) pintarPie(); }, ENVIAR_TRAS + 30);
       }
       // «Atrás» no cambia de sitio en ninguna pantalla: desde el repaso vuelve a la última pregunta.
       atrasB.hidden = false;
-      atrasB.disabled = paso === 0;
+      atrasB.disabled = paso === 0 || Boolean(s.envio?.retomada);
       sigB.hidden = enRepaso();
       sigB.textContent = alRepaso || paso === N - 1 ? tr("Repasar") : tr("Siguiente");
       quitarB.hidden = enRepaso();
     }
     boton.hidden = varias && !enRepaso();
     repasar();
+    pintarEnvios(true);
     medirIntro();
     c.scrollTop = 0;
     // Se quedaba en la página, y un lector de pantalla no decía la pregunta nueva.
@@ -5166,13 +5756,13 @@ async function pintarDecision(recien = false) {
      antes el pie se quedaba mudo y no se sabía si se había mandado. Irse de la
      decisión es otra cosa (se pulsó «Enviar», y se manda): eso no pasa por aquí. */
   const irA = (cual, sentido) => {
-    if (mandando) return;
-    const contaba = Boolean(cuenta);
-    if (cuenta) parar();
+    if (s.envio?.mandando) return;
+    const contaba = enCuenta();
+    if (contaba) parar();
     clearTimeout(avance);
+    s.dicho = contaba ? tr("No se ha mandado.") : "";
     paso = cual;
     mostrar(sentido, true);
-    if (contaba) estado.textContent = tr("No se ha mandado.");
   };
   const siguiente = () => {
     const alFinal = alRepaso || paso >= N - 1;
@@ -5191,21 +5781,24 @@ async function pintarDecision(recien = false) {
      para verla marcada. Solo el toque: con el teclado las flechas cambian de
      opción, y cada una contaría como elegir (su clic nace en el propio círculo). */
   let avance = 0;
+  const cargarFotos = montarFotosDec(c, d.id, false);
   c.addEventListener("click", (ev) => {
     const op = ev.target.closest(".opcion");
-    if (!op || !varias || ev.target.tagName === "INPUT") return;
+    // Tocar la imagen la abre en grande, no elige: con la opción ya marcada, el avance pasaba de pregunta por debajo.
+    if (!op || !varias || ev.target.tagName === "INPUT" || ev.target.closest(".dec-foto")) return;
     clearTimeout(avance);
     const en = paso;
-    avance = setTimeout(() => { if (sigoAqui() && paso === en && op.querySelector("input").checked) siguiente(); }, AVANZA_TRAS);
+    avance = setTimeout(() => { if (vigente() && paso === en && op.querySelector("input").checked) siguiente(); }, AVANZA_TRAS);
   });
   // Quien pasa de una opción al cuadro de «Otra cosa» va a escribir: el avance se llevaba el cuadro a media frase.
   c.addEventListener("focusin", (ev) => { if (ev.target.classList.contains("libre")) clearTimeout(avance); });
   /* Con la cuenta atrás en marcha se manda lo que había al pulsar: si algo
      cambia, la cuenta se para, que no salga una respuesta distinta de la que se ve. */
   const alCambiar = () => {
-    if (!cuenta) return repasar();
-    parar();
-    estado.textContent = tr("No se ha mandado.");
+    const contaba = enCuenta();
+    if (contaba) parar();
+    s.dicho = contaba ? tr("No se ha mandado.") : "";
+    repasar();
   };
   // Una vez por cambio: un círculo da `input` y `change` a la vez, y el segundo borraba el aviso del primero.
   c.addEventListener("input", (ev) => { if (ev.target.matches(".libre")) alCambiar(); });
@@ -5222,90 +5815,50 @@ async function pintarDecision(recien = false) {
      sale en el MISMO botón, así que el segundo toque de un doble toque (o de
      dos seguidos porque no se vio cambiar) lo deshacía y no se mandaba nada:
      hasta pasado un momento, ese botón no deshace. */
-  let cuenta = null;
-  let empezo = 0;
+  const soltar = () => { atrasB.disabled = paso === 0; };
+  const parar = () => { pararEnvio(s); soltar(); repasar(); };
+  /* Cómo acabó, con esta pantalla delante. Contestada desde otro aparato, resuelta
+     o descartada, se enseña cómo quedó, con lo escrito aquí debajo para copiarlo.
+     Si te has ido a otra pantalla durante la cuenta, la respuesta se manda igual
+     (la pulsaste), pero no se pinta encima de lo que estés viendo: con dos
+     decisiones parecidas, la otra salía «Enviada» y sin su botón. */
+  const acabar = (fin) => {
+    if (!vigente()) return false;
+    soltar();
+    if (finCerrado(fin)) repintar(fin.d, fin.tipo !== "cerrada");
+    else {
+      repasar();
+      // Lo que no salió se dice en el pie, y la imagen abierta lo tapaba: se cierra como cuando sale bien (revisión del 2026-11-19).
+      cerrarFotoDec();
+    }
+    return true;
+  };
   /* Mientras se manda no se toca nada y el sondeo no mira. El PC apunta la
      respuesta y luego espera a la ventana para teclearla, hasta 20 s
      (`ESPERA_VENTANA` en movil.rs): el sondeo caía en ese hueco, veía la
      respuesta ya apuntada y la pintaba como «contestada desde otro sitio», con
-     lo que sí se mandó debajo de «no se mandó». `mandado` es lo que salió de
-     aquí: si la contestación del PC se pierde por el camino, la respuesta que
-     luego aparece con eso mismo es la tuya. */
-  let mandando = false;
-  let mandado = null;
-  const esLaMia = (x) => Boolean(mandado && x.respuesta && d.preguntas.every((q) => mismaEleccion(x.respuesta.elecciones[q.id], mandado[q.id])));
-  const llego = async (entregada, panel) => {
-    try { localStorage.removeItem(borradorDe(d.id)); } catch (_) {}
-    if (sigoAqui()) await repintar(entregada ? tr("Enviada. Se ha tecleado en el panel {n}.", { n: panel }) : tr("Enviada. El agente la leerá cuando la pida."), true);
-  };
-  const parar = () => { clearInterval(cuenta); cuenta = null; boton.textContent = tr("Enviar respuesta"); repasar(); };
-  // Si te has ido a otra pantalla durante la cuenta, la respuesta se manda
-  // igual (la pulsaste), pero no se pinta encima de lo que estés viendo: con
-  // dos decisiones parecidas, la otra salía «Enviada» y sin su botón.
-  const sigoAqui = () => e.vista === "decision" && e.id === d.id && document.getElementById("enviar-dec") === boton;
+     lo que sí se mandó debajo de «no se mandó». */
+  s.vista = { pintar: () => { if (vigente()) pintarPie(); }, acabar };
   boton.addEventListener("click", () => {
-    if (mandando) return;
-    if (cuenta) {
-      if (Date.now() - empezo < DESHACER_TRAS) return;
+    if (s.envio?.mandando) return;
+    if (s.envio) {
+      if (Date.now() - s.envio.empezo < DESHACER_TRAS) return;
       parar();
-      estado.textContent = tr("No se ha mandado.");
+      decir(tr("No se ha mandado."));
       return;
     }
     const el = leerForm();
     if (!completa(el)) return;
-    empezo = Date.now();
-    let quedan = 5;
-    boton.textContent = tr("Deshacer ({n})", { n: quedan });
-    estado.textContent = tr("Se manda en {n} s.", { n: quedan });
-    cuenta = setInterval(async () => {
-      quedan -= 1;
-      if (quedan > 0) { boton.textContent = tr("Deshacer ({n})", { n: quedan }); estado.textContent = tr("Se manda en {n} s.", { n: quedan }); return; }
-      clearInterval(cuenta);
-      cuenta = null;
-      mandando = true;
-      mandado = el;
-      boton.disabled = true;
-      boton.textContent = tr("Mandando…");
-      estado.textContent = "";
-      let fallo = null;
-      let ahora = null;
-      try {
-        const r = await api("POST", "/api/decision/responder", { id: d.id, elecciones: el });
-        mandando = false;
-        await llego(r.entregada, r.panel);
-        return;
-      } catch (err) {
-        fallo = err;
-        /* Sin contestación no se sabe si llegó (la red se cae a la vuelta), y
-           un 409 puede ser de un primer intento que sí llegó: se mira cómo
-           quedó. Fuera de esta pantalla no se mira ni se dice nada: el
-           borrador sigue guardado y la lista dice cómo está. */
-        if (sigoAqui()) ahora = await api("GET", `/api/decision?id=${encodeURIComponent(d.id)}`).catch(() => null);
-      }
-      mandando = false;
-      if (ahora && esLaMia(ahora)) return llego(ahora.respuesta.entregada, ahora.panel);
-      if (!sigoAqui()) return;
-      boton.textContent = tr("Enviar respuesta");
-      repasar();
-      // Contestada desde otro aparato, resuelta por el agente o descartada: se
-      // enseña cómo quedó, con lo que escribiste aquí debajo, para copiarlo.
-      if (ahora && comoQuedo(ahora)) return repintar(comoQuedo(ahora));
-      estado.textContent = fallo.estado === 409 ? tr("Ya estaba contestada desde otro sitio. Lo que escribiste sigue guardado aquí.") : tr("No se ha mandado: {e}", { e: fallo.message });
-    }, 1000);
+    empezarEnvio(s, el);
+    pintarPie();
   });
-  /* Si se cierra desde otro sitio (otro aparato, el PC, el agente) con esto
-     abierto, se enseña cómo quedó: antes se podía seguir contestando al aire
-     hasta que «Enviar» decía que no. */
-  const comoQuedo = (x) => x.respuesta ? tr("Ya estaba contestada desde otro sitio.")
-    : x.vigencia === "resuelta" ? tr("Ya no espera respuesta: el agente la dio por resuelta.")
-    : x.vigencia === "descartada" ? tr("Descartada.") : "";
   /* Sigue abierta, pero ha cambiado quién la espera (se cerró su terminal, le
      escribiste desde el PC): el aviso y dónde cae la respuesta se ponen al día
      sin repintar la pantalla, que puede haber un cuadro a medio escribir. */
   const alDia = (ahora) => {
     if (ahora.vigencia === d.vigencia && ahora.se_teclea === d.se_teclea) return;
     Object.assign(d, { vigencia: ahora.vigencia, se_teclea: ahora.se_teclea, panel: ahora.panel });
-    for (const zona of [document.getElementById("dec-cab"), enRepaso() ? repaso : null]) {
+    for (const zona of [aqui("#dec-cab"), enRepaso() ? repaso : null]) {
       if (!zona) continue;
       zona.querySelectorAll(".dec-vig").forEach((x) => x.remove());
       zona.insertAdjacentHTML("afterbegin", vigDe());
@@ -5313,20 +5866,44 @@ async function pintarDecision(recien = false) {
     c.querySelectorAll(".dec-nota").forEach((x) => { x.outerHTML = notaDe(); });
   };
   /* El sondeo, con la firma de lo que ya se tiene: mientras nada cambia el PC
-     contesta solo «igual». Ni durante la cuenta ni mientras se manda. */
+     contesta solo «igual». Ni durante la cuenta ni mientras se manda. Si se
+     cierra desde otro sitio con esto abierto, se enseña cómo quedó: antes se
+     podía seguir contestando al aire hasta que «Enviar» decía que no. */
   let firma = d.firma || "";
-  const mirar = async () => {
-    if (!sigoAqui() || cuenta || mandando) return;
-    const ahora = await api("GET", `/api/decision?id=${encodeURIComponent(d.id)}&si=${encodeURIComponent(firma)}`);
-    if (ahora.igual || !sigoAqui() || cuenta || mandando) return;
-    firma = ahora.firma || "";
-    if (esLaMia(ahora)) return llego(ahora.respuesta.entregada, ahora.panel);
-    if (comoQuedo(ahora)) return repintar(comoQuedo(ahora));
+  /** Lo que dice el PC de esta decisión, con ella abierta. Cerrada desde otro sitio con la cuenta en marcha, ya no hay nada que mandar. */
+  const atender = (ahora) => {
+    const { envio } = s;
+    if (envio && !comoQuedoDec(ahora)) return alDia(ahora);
+    if (envio) {
+      pararEnvio(s);
+      // Lo apuntado puede ser un envío tuyo de antes: este último cuenta como intento para saber si es el mismo.
+      if (intentoDe(ahora)) intentosDec.get(s.id).push(envio.el);
+    }
+    if (intentoDe(ahora)) {
+      s.fin = finDeMia(ahora);
+      s.visto = true;
+      return acabar(s.fin);
+    }
+    if (comoQuedoDec(ahora)) {
+      s.fin = null;
+      s.dicho = comoQuedoDec(ahora);
+      return repintar(ahora);
+    }
     alDia(ahora);
+  };
+  const mirar = async () => {
+    if (!vigente() || s.envio) return;
+    const ahora = await api("GET", `/api/decision?id=${encodeURIComponent(d.id)}&si=${encodeURIComponent(firma)}`);
+    if (ahora.igual || !vigente() || s.envio) return;
+    firma = ahora.firma || "";
+    atender(ahora);
   };
   sondear(6000, mirar);
   alVolver = mirar;
   mostrar();
+  // Lo pintado sale de lo que ya se sabía: el PC lo confirma detrás, si contesta.
+  if (sinCargar) api("GET", `/api/decision?id=${encodeURIComponent(d.id)}`, null, LIMITE_MIRAR)
+    .then((ahora) => { if (vigente() && !s.envio?.mandando) atender(ahora); }, () => {});
 }
 
 // ─── Para ver: lo que te enseñan los agentes ────────────────────────────────

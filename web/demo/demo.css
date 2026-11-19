@@ -68,6 +68,17 @@ html, body {
 
 html[data-quieta] .demo-rueda { overflow: hidden !important; }
 
+/* NI CON EL DEDO. Lo que en la app se arrastra (la cabecera de una terminal,
+   una sesión de la barra, el tablero entero del Lienzo) lleva `touch-action:
+   none` en su hoja, y dentro de un <iframe> eso deja al dedo sin página: quien
+   baja la portada en el móvil y apoya el dedo ahí no se mueve. Medido el
+   2026-11-19 a 390 px, con un gesto táctil en 60 puntos de la demostración: la
+   página no bajaba en 5 de la Cabina y en 39 del Lienzo. Quieta, el dedo baja
+   la página desde cualquier punto (y el pellizco sigue ampliando); al tocar
+   dentro, `vivo.js` la suelta y vuelve a arrastrarse como en la app. */
+html[data-quieta] #root,
+html[data-quieta] #root * { touch-action: pan-y pinch-zoom !important; }
+
 /* Y LA DEVUELVE. La app es una ventana, no una página: su hoja le pone
    `overscroll-behavior: none` a <html>, <body> y #root para que nada rebote, y
    dentro de un <iframe> eso corta el paso de la rueda a la página de fuera. Con
@@ -87,6 +98,35 @@ html[data-ligero] *::before,
 html[data-ligero] *::after {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+
+/* -------------------------- EL CRISTAL QUE NO SE VE -------------------------
+   La barra de arriba, la de proyectos, la franja de la derecha y la cabecera de
+   cada terminal llevan `backdrop-filter` en la hoja de la app, pero con el tema
+   con el que abre la demostración su fondo es opaco o casi (del 95 al 100 %):
+   lo que desenfocan no se ve. Y cuesta: mientras la portada baja con la
+   demostración a la vista, la gráfica vuelve a desenfocar los ocho en cada
+   fotograma. Medido el 2026-11-19 en un Brave sin cabeza a 240 Hz, bajando con
+   la rueda desde arriba hasta pasar la demostración (pases de dibujo por
+   fotograma y ms de gráfica por fotograma, con ella a la vista):
+
+     como estaba                              11,3 pases   2,4 ms
+     sin el cristal de las cuatro cabeceras    9,2 pases   1,7 ms
+     sin el de esas y las tres barras          7,3 pases   1,2 ms
+     sin ningún cristal                        7,3 pases   1,1 ms
+
+   `vivo.js` marca la pieza cuyo fondo tapa su cristal (`marcarCristal`); las
+   que sí lo enseñan (un menú, un aviso, otro tema) lo conservan. El
+   `translate` vacío le deja lo que el cristal le daba sin querer: su propio
+   contexto de apilamiento y ser la referencia de lo que lleva dentro colocado
+   en absoluto (sin él, los tiradores de una nota del Lienzo se iban medio
+   píxel). Lo único que cambia en la foto son los bordes de la letra de esas
+   piezas, que pasan a pintarse como sobre cualquier fondo opaco (0,36 % de
+   los píxeles). */
+.demo-sin-cristal {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  translate: 0 0;
 }
 
 /* ------------------------------ NADA LATE SOLO -----------------------------

@@ -12,12 +12,14 @@
 // llevas elegido y el botón de mandarlo están en una barra al pie, y se contesta
 // con el teclado (1 a 9, Tab, O y Ctrl+Intro) por el `mando` que lee la lista.
 
-import { useEffect, useRef, useState, type MutableRefObject, type ReactNode } from "react";
+import { useEffect, useRef, useState, type MutableRefObject, type ReactNode, type SyntheticEvent } from "react";
+import { createPortal } from "react-dom";
 import { useT } from "../lib/i18n";
 import { sendPty } from "../lib/pty";
 import { hace } from "../lib/uso";
 import {
   descartarDecision,
+  fotoDecision,
   faltan,
   guardarBorrador,
   leerBorrador,
@@ -27,6 +29,7 @@ import {
   responderDecision,
   type Decision,
   type Elecciones,
+  type Imagen,
   type Pregunta,
 } from "../lib/decisiones";
 
@@ -70,6 +73,125 @@ export function useHace() {
   };
 }
 
+/** Lo que se abre en grande: de qué decisión, qué imagen y cómo se llama. */
+interface Grande {
+  id: string;
+  imagen: Imagen;
+  titulo: string;
+}
+
+/**
+ * La imagen de una pregunta o de una opción (`image` en ask_decision), a todo
+ * el ancho y con su sitio guardado desde el principio (`aspect-ratio` con el
+ * tamaño que dice Rust): llega después y nada se mueve. Pulsarla la abre en
+ * grande y no elige la opción. Munir, 2026-11-19: «Tiene que haber una manera
+ * la cual se puedan ver las imagenes de las decisiones».
+ * No es un `<button>`: contestada (y en la cuenta atrás) la pregunta es un
+ * `<fieldset disabled>`, que apaga los botones de dentro, y la imagen de lo
+ * elegido no se abría (revisión del 2026-11-19).
+ */
+function FotoDecision({ g, etiqueta, onAbrir }: { g: Grande; etiqueta: string; onAbrir: (g: Grande) => void }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [falla, setFalla] = useState("");
+  useEffect(() => {
+    let viva = true;
+    fotoDecision(g.id, g.imagen.n).then(
+      (u) => viva && setUrl(u),
+      (e) => viva && setFalla(String(e)),
+    );
+    return () => {
+      viva = false;
+    };
+  }, [g.id, g.imagen.n]);
+  const abrir = (e: SyntheticEvent) => {
+    // Dentro de la opción, que la imagen no la elija también.
+    e.preventDefault();
+    if (!falla) onAbrir(g);
+  };
+  return (
+    <span
+      role={falla ? undefined : "button"}
+      tabIndex={falla ? undefined : 0}
+      className="dec-foto"
+      aria-label={etiqueta}
+      data-falla={falla ? "true" : undefined}
+      style={{ aspectRatio: `${Math.max(1, g.imagen.ancho)} / ${Math.max(1, g.imagen.alto)}` }}
+      onClick={(e) => abrir(e)}
+      onKeyDown={(e) => {
+        // Lo que un botón hace solo con el teclado.
+        if (e.key === "Enter" || e.key === " ") abrir(e);
+      }}
+    >
+      {falla ? <span>{falla}</span> : url && <img src={url} alt="" />}
+    </span>
+  );
+}
+
+/** En grande, encima de todo: pulsarla la pone a su tamaño de verdad, y Escape o el fondo la cierran.
+    `pie`: la barra de la respuesta mientras cuenta atrás o se manda. La imagen se queda por encima de
+    ella, así que la cuenta se sigue viendo y «Deshacer» se puede pulsar; antes la tapaba y la
+    respuesta se mandaba con la imagen encima (revisión del 2026-11-19). */
+function FotoGrande({ g, onCerrar, pie }: { g: Grande; onCerrar: () => void; pie: HTMLElement | null }) {
+  const { t } = useT();
+  const [url, setUrl] = useState<string | null>(null);
+  const [entera, setEntera] = useState(false);
+  const cerrar = useRef<HTMLButtonElement>(null);
+  const hueco = pie ? Math.max(0, Math.round(window.innerHeight - pie.getBoundingClientRect().top)) : 0;
+  useEffect(() => {
+    let viva = true;
+    void fotoDecision(g.id, g.imagen.n).then((u) => viva && setUrl(u), () => {});
+    cerrar.current?.focus();
+    // Mientras está abierta, las teclas de la lista (1 a 9 eligen) no llegan a la
+    // decisión de debajo; Ctrl+Intro sí, que es «Enviar» o «Deshacer».
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key === "Enter" && e.ctrlKey) return;
+      e.stopPropagation();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onCerrar();
+      }
+    };
+    window.addEventListener("keydown", tecla, true);
+    return () => {
+      viva = false;
+      window.removeEventListener("keydown", tecla, true);
+    };
+  }, [g.id, g.imagen.n, onCerrar]);
+  // Al `body`: dentro de la hoja, un cristal (`backdrop-filter`) de arriba le
+  // quitaría el `position: fixed` y quedaría pegada a la hoja, no a la ventana.
+  return createPortal(
+    <div
+      className="dec-foto-grande"
+      role="dialog"
+      aria-modal="true"
+      aria-label={g.titulo}
+      style={hueco ? { bottom: hueco } : undefined}
+      onClick={() => onCerrar()}
+    >
+      <header>
+        <b>{g.titulo}</b>
+        <span>{t("Pulsa la imagen para verla a su tamaño")}</span>
+        <button ref={cerrar} type="button" className="mini dec-foto-cerrar" onClick={() => onCerrar()}>
+          {t("Cerrar")}
+        </button>
+      </header>
+      <div className="dec-foto-grande-cuerpo" data-entera={entera}>
+        {url && (
+          <img
+            src={url}
+            alt={g.titulo}
+            onClick={(e) => {
+              e.stopPropagation();
+              setEntera((x) => !x);
+            }}
+          />
+        )}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 /** Lo elegido en una pregunta, en una línea: la opción, tus palabras, o que falta. */
 function Elegido({ q, opcion, texto, cerrada }: { q: Pregunta; opcion?: number; texto: string; cerrada: boolean }) {
   const { t } = useT();
@@ -110,9 +232,12 @@ export default function DecisionAbierta({
   const [estado, setEstado] = useState("");
   /** La pregunta que tienes delante: la del foco, o a la que te llevó Tab. */
   const [delante, setDelante] = useState(0);
+  const [grande, setGrande] = useState<Grande | null>(null);
+  const cerrarGrande = useRef(() => setGrande(null)).current;
   const reloj = useRef<number | null>(null);
   const montada = useRef(true);
   const enviarRef = useRef<HTMLButtonElement>(null);
+  const barraRef = useRef<HTMLElement>(null);
   // Lo último marcado, para mandarlo aunque cambies de pestaña en la cuenta atrás.
   const ultima = useRef(el);
   ultima.current = el;
@@ -296,6 +421,13 @@ export default function DecisionAbierta({
               {q.titulo}
             </legend>
             {q.contexto && <p className="dec-contexto">{q.contexto}</p>}
+            {q.imagen && (
+              <FotoDecision
+                g={{ id: d.id, imagen: q.imagen, titulo: `${q.id} ${q.titulo}` }}
+                etiqueta={t("Ver en grande la imagen de la pregunta {q}", { q: q.id })}
+                onAbrir={setGrande}
+              />
+            )}
             <div className="dec-opciones">
               {q.opciones.map((o, j) => (
                 <label key={j} className="dec-opcion" data-marcada={elegida(q.id) === j + 1}>
@@ -313,6 +445,13 @@ export default function DecisionAbierta({
                     </span>
                     {o.detalle && <small>{o.detalle}</small>}
                   </span>
+                  {o.imagen && (
+                    <FotoDecision
+                      g={{ id: d.id, imagen: o.imagen, titulo: `${j + 1}. ${o.texto}` }}
+                      etiqueta={t("Ver en grande la imagen de la opción {n}", { n: String(j + 1) })}
+                      onAbrir={setGrande}
+                    />
+                  )}
                 </label>
               ))}
             </div>
@@ -338,7 +477,7 @@ export default function DecisionAbierta({
           siempre a la vista. Era una columna a la derecha («Tu respuesta») y
           pasó aquí con la lista única (A1, 2026-11-15). */}
       {(!cerrada || estado) && (
-        <footer className="dec-barra" aria-label={t("Tu respuesta")}>
+        <footer ref={barraRef} className="dec-barra" aria-label={t("Tu respuesta")}>
           {!cerrada && (
             <ol className="dec-resumen">
               {d.preguntas.map((q, i) => (
@@ -380,6 +519,7 @@ export default function DecisionAbierta({
           )}
         </footer>
       )}
+      {grande && <FotoGrande g={grande} onCerrar={cerrarGrande} pie={quedan != null || mandando ? barraRef.current : null} />}
     </article>
   );
 }

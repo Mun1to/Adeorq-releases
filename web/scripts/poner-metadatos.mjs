@@ -18,6 +18,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
+import { IDIOMAS, RUTAS } from '../paginas/rutas.mjs'
 
 const AQUI = dirname(fileURLToPath(import.meta.url))
 const WEB = resolve(AQUI, '..')
@@ -150,7 +151,30 @@ const PAGINAS = [
     prioridad: '0.4',
     frecuencia: 'yearly',
   },
+  // Las páginas por búsqueda (paginas/rutas.mjs). Su título y su descripción se leen del
+  // HTML que genera scripts/hacer-paginas.mjs: así no hay una segunda copia que se separe.
+  ...RUTAS.flatMap((r) =>
+    IDIOMAS.map((idioma) => ({
+      archivo: r[idioma].archivo,
+      url: r[idioma].url,
+      tipo: 'article',
+      idioma,
+      locale: idioma === 'en' ? 'en_US' : 'es_ES',
+      alternos: [
+        { idioma: 'es', url: r.es.url },
+        { idioma: 'en', url: r.en.url },
+        { idioma: 'x-default', url: r.en.url },
+      ],
+      busqueda: r.id === 'novedades' ? 'CollectionPage' : 'TechArticle',
+      titulo: '',
+      descripcion: '',
+      prioridad: r.prioridad[idioma],
+      frecuencia: r.frecuencia,
+    })),
+  ),
 ]
+
+const hoy = process.env.FECHA_SITEMAP || new Date().toISOString().slice(0, 10)
 
 /** Quita las etiquetas y deja el texto plano, para el JSON-LD. */
 const soloTexto = (html) =>
@@ -310,6 +334,64 @@ function jsonLdGuia() {
   return ['', '<script type="application/ld+json">', JSON.stringify(doc, null, 2), '</script>']
 }
 
+/**
+ * Los datos estructurados de una página por búsqueda: el artículo, sus migas y sus
+ * preguntas. Las migas y las preguntas se leen del HTML, igual que en la portada: nada
+ * que no se vea en la página.
+ */
+function jsonLdBusqueda(html, pagina, preguntas) {
+  const ingles = pagina.idioma === 'en'
+  const abs = SITIO + pagina.url
+  const idioma = ingles ? 'en' : 'es-ES'
+  const h1 = soloTexto(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1] || pagina.titulo)
+  const miga = soloTexto(html.match(/data-miga>([\s\S]*?)<\//)?.[1] || h1)
+  const grafo = [
+    {
+      '@type': pagina.busqueda,
+      '@id': `${abs}#pagina`,
+      headline: h1,
+      description: soloTexto(pagina.descripcion),
+      url: abs,
+      inLanguage: idioma,
+      dateModified: hoy,
+      ...(IMAGEN ? { image: IMAGEN } : {}),
+      author: { '@type': 'Person', name: 'Munir Torres', url: `${SITIO}/` },
+      about: {
+        '@type': 'SoftwareApplication',
+        name: 'Adeorq',
+        applicationCategory: 'DeveloperApplication',
+        operatingSystem: 'Windows, Linux, macOS',
+        url: `${SITIO}/`,
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${abs}#migas`,
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Adeorq', item: `${SITIO}${ingles ? '/en/' : '/'}` },
+        { '@type': 'ListItem', position: 2, name: miga, item: abs },
+      ],
+    },
+  ]
+  if (preguntas.length) {
+    grafo.push({
+      '@type': 'FAQPage',
+      '@id': `${abs}#preguntas`,
+      inLanguage: idioma,
+      mainEntity: preguntas.map((p) => ({
+        '@type': 'Question',
+        name: p.pregunta,
+        acceptedAnswer: { '@type': 'Answer', text: p.respuesta },
+      })),
+    })
+  }
+  const doc = { '@context': 'https://schema.org', '@graph': grafo }
+  return ['', '<script type="application/ld+json">', JSON.stringify(doc, null, 2).replace(/</g, '\\u003c'), '</script>']
+}
+
+/** La descripción que ya trae la página generada. */
+const descripcionDe = (html) => html.match(/<meta name="description" content="([^"]*)"/)?.[1] || ''
+
 /** El <title> que ya trae la pagina. Es la fuente del og:title. */
 function tituloDe(html, porDefecto) {
   const m = html.match(/<title[^>]*>([^<]*)<\/title>/)
@@ -342,13 +424,20 @@ function escribir(pagina, bloque) {
 
 for (const pagina of PAGINAS) {
   if (!existsSync(resolve(WEB, pagina.archivo))) {
-    throw new Error(`${pagina.archivo} no existe: la portada inglesa sale de \`node scripts/hacer-ingles.mjs\`, que va antes`)
+    throw new Error(`${pagina.archivo} no existe: la portada inglesa sale de \`node scripts/hacer-ingles.mjs\` y las páginas por búsqueda de \`node scripts/hacer-paginas.mjs\`, que van antes`)
   }
   const html = readFileSync(resolve(WEB, pagina.archivo), 'utf8')
   // Las preguntas de cada portada salen de SU HTML, en su idioma.
   const preguntas = pagina.alternos && !pagina.sinDatosEstructurados ? preguntasDe(html) : []
-  const extras = pagina.sinDatosEstructurados ? [] : pagina.alternos ? jsonLdPortada(preguntas, pagina) : jsonLdGuia()
   pagina.titulo = tituloDe(html, pagina.titulo)
+  if (pagina.busqueda) pagina.descripcion = descripcionDe(html)
+  const extras = pagina.sinDatosEstructurados
+    ? []
+    : pagina.busqueda
+      ? jsonLdBusqueda(html, pagina, preguntas)
+      : pagina.alternos
+        ? jsonLdPortada(preguntas, pagina)
+        : jsonLdGuia()
   escribir(pagina, metadatos(pagina, extras))
   console.log(`${pagina.archivo.padEnd(14)} -> ${SITIO}${pagina.url}${pagina.alternos && !pagina.sinDatosEstructurados ? `  (${preguntas.length} preguntas)` : ''}`)
 }
@@ -356,7 +445,6 @@ for (const pagina of PAGINAS) {
 // --- sitemap ---------------------------------------------------------------
 // Solo las paginas indexables. Nada que lleve noindex ni nada que redirija:
 // meter una URL redirigida en el sitemap es mandarle dos senales contrarias.
-const hoy = process.env.FECHA_SITEMAP || new Date().toISOString().slice(0, 10)
 const sitemap = [
   '<?xml version="1.0" encoding="UTF-8"?>',
   '<urlset xmlns="http://www.sitemap.org/schemas/sitemap/0.9">'.replace('www.sitemap.org', 'www.sitemaps.org'),

@@ -151,6 +151,18 @@ public static extern bool CredDeleteW(string target, int type, int flags);
 [DllImport("advapi32.dll")] public static extern void CredFree(IntPtr cred);
 '@`;
 /** Lo que guarda Adeorq con ese nombre, leído directamente, como lo leería cualquier programa tuyo. */
+/** La fila de `get_active_panes` de la terminal cuyo comando lleva esa marca: la lista ya no
+    repite el encargo, así que se pregunta a la ventana por el comando entero. */
+async function filaConEncargo(v, vigia, marca) {
+  for (const fila of ((await vigia.llamar("get_active_panes", {})).texto ?? "").split("\n")) {
+    const id = fila.match(/^ID: (\d+),/)?.[1];
+    if (!id) continue;
+    const comando = await v.js(`window.__TAURI_INTERNALS__.invoke("datos_panel", { id: ${id} }).then((d) => (d.command ?? []).join(" "))`);
+    if (String(comando).includes(marca)) return fila;
+  }
+  return null;
+}
+
 function leerSinAdeorq(nombreClave) {
   const r = spawnSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", `${CRED}
 $p = [IntPtr]::Zero
@@ -450,7 +462,7 @@ try {
     ok(!!(await hasta(async () => ((await leePantalla(vigia)).texto ?? "").includes(MARCA_PANTALLA), 20_000, 500)), "la terminal de otro tiene algo en pantalla");
     const conEncargo = numero(await vigia.llamar("open_pane", { cli: "claude", cwd: demo, name: "Con encargo", brief: MARCA_ENCARGO }));
     const verLista = (c) => c.llamar("get_active_panes", {});
-    ok(conEncargo > 0 && !!(await hasta(async () => ((await verLista(vigia)).texto ?? "").includes(MARCA_ENCARGO), 15_000, 300)), "una terminal de Adeorq con su contraseña ve los comandos, con su encargo");
+    ok(conEncargo > 0 && !!(await hasta(async () => /Command:/.test((await filaConEncargo(v, vigia, MARCA_ENCARGO)) ?? ""), 15_000, 300)) && !((await verLista(vigia)).texto ?? "").includes(MARCA_ENCARGO), "una terminal de Adeorq con su contraseña ve los comandos, sin repetir el encargo");
     ok((await vigia.herramientas()).length >= 17, "y sigue viendo todas las herramientas", (await vigia.herramientas()).join());
     ok((await leeMemoria(vigia)).texto?.includes(MARCA_MEMORIA) ?? false, "y la memoria", corto(await leeMemoria(vigia)));
     ok((await leeAgenda(vigia)).texto?.includes(MARCA_AGENDA) ?? false, "y la agenda", corto(await leeAgenda(vigia)));
@@ -704,7 +716,7 @@ try {
   const idAbrir = numero(conAbrir);
   const filaAbrir = idAbrir > 0 ? await filaDe(idAbrir) : null;
   ok(idAbrir > 0 && !!filaAbrir && !enAuto(filaAbrir) && /--permission-mode\s+acceptEdits/.test(filaAbrir), "con «Abrir» nace en el modo de Ajustes", filaAbrir ?? corto(conAbrir));
-  ok(!!filaAbrir && filaAbrir.includes("ENCARGO-DE-PRUEBA-C1"), "con «Abrir» nace con su encargo", filaAbrir ?? "");
+  ok(!!filaAbrir && !!(await filaConEncargo(v, vigia, "ENCARGO-DE-PRUEBA-C1"))?.startsWith(`ID: ${idAbrir},`), "con «Abrir» nace con su encargo", filaAbrir ?? "");
   ok(!deConfianzaAhora(cualquiera), "con «Abrir» la carpeta tampoco queda de confianza");
 
   // Un CLI que no acepta el encargo al arrancar no tiene texto que enseñar: abre sin ventana.
@@ -869,12 +881,12 @@ try {
   // C1: una terminal de Adeorq con su contraseña sigue abriendo con encargo sin preguntar, y en auto.
   const delegada = numero(await enClaude.llamar("open_pane", { cli: "claude", cwd: demo, name: "Delegada", brief: "ENCARGO-DESDE-DENTRO" }));
   const filaDelegada = delegada > 0 ? await hasta(async () => ((await vigia.llamar("get_active_panes", {})).texto ?? "").split("\n").find((l) => l.startsWith(`ID: ${delegada},`)) ?? null, 15_000, 500) : null;
-  ok(/--permission-mode\s+auto/.test(filaDelegada ?? "") && /ENCARGO-DESDE-DENTRO/.test(filaDelegada ?? "") && !(await v.js(`!!document.querySelector(".abrir-modal")`)), "desde una terminal de Adeorq, abrir con encargo no pregunta y nace en auto", filaDelegada ?? "no nació");
+  ok(/--permission-mode\s+auto/.test(filaDelegada ?? "") && !!filaDelegada && !!(await filaConEncargo(v, vigia, "ENCARGO-DESDE-DENTRO"))?.startsWith(`ID: ${delegada},`) && !(await v.js(`!!document.querySelector(".abrir-modal")`)), "desde una terminal de Adeorq, abrir con encargo no pregunta y nace en auto", filaDelegada ?? "no nació");
   // Y un encargo programado, que nadie abre a mano, tampoco: se lanza con su botón de probar.
   const programado = { nombre: "Programado C1", encargo: "ENCARGO-PROGRAMADO", cwd: demo, cli: "claude", cuando: { tipo: "cada", horas: 24 } };
   const idProgramado = await v.js(`window.__TAURI_INTERNALS__.invoke("programado_guardar", { pedido: ${JSON.stringify(programado)} }).then((e) => e.encargos.find((x) => x.nombre === "Programado C1").id)`);
   await v.js(`window.__TAURI_INTERNALS__.invoke("programado_probar", { id: ${JSON.stringify(idProgramado)} }).then(() => "ok")`);
-  const filaProgramado = await hasta(async () => ((await vigia.llamar("get_active_panes", {})).texto ?? "").split("\n").find((l) => l.includes("ENCARGO-PROGRAMADO")) ?? null, 15_000, 500);
+  const filaProgramado = await hasta(() => filaConEncargo(v, vigia, "ENCARGO-PROGRAMADO"), 15_000, 500);
   ok(/--permission-mode\s+auto/.test(filaProgramado ?? "") && !(await v.js(`!!document.querySelector(".abrir-modal")`)), "un encargo programado no pregunta y nace en auto", filaProgramado ?? "no nació");
   await v.js(`window.__TAURI_INTERNALS__.invoke("programado_borrar", { id: ${JSON.stringify(idProgramado)} }).then(() => "ok")`);
   // Un Codex que dice ser Claude, desde SU terminal: manda el programa de la terminal.

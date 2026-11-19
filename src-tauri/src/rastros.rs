@@ -86,6 +86,34 @@ pub fn sin_encargo(comando: &[String]) -> String {
     format!("{}{}", &junto[..desde], &junto[fin..])
 }
 
+/// El comando de un panel para enseñarlo en una lista: el programa y sus opciones,
+/// sin el encargo ni el envoltorio con que se lanza. Con ellos `get_active_panes`
+/// llegó a 24.619 caracteres, y un agente lo pide muchas veces en una tarea.
+pub fn comando_corto(comando: &[String]) -> String {
+    const MAX: usize = 240;
+    const LANZA: &str = "& $adeorqExe @adeorqPre ";
+    const CONSOLA: &str = "cmd.exe /k chcp 65001 >nul && ";
+    let junto = sin_encargo(comando);
+    let corto = match junto.find(LANZA) {
+        Some(i) => {
+            let opciones = junto[i + LANZA.len()..].split("--%").next().unwrap_or_default().trim();
+            let programa = crate::mcp_clientes::programa_del_comando(comando).unwrap_or("agente");
+            format!("{programa} {opciones}").trim_end().to_string()
+        }
+        None => junto.strip_prefix(CONSOLA).unwrap_or(&junto).to_string(),
+    };
+    if corto.chars().count() <= MAX {
+        return corto;
+    }
+    // Lo que se corta no puede llevarse la conversación que retoma: una terminal en
+    // una caja de Docker la lleva al final de un `docker run` largo.
+    let mut visto = format!("{}…", corto.chars().take(MAX).collect::<String>().trim_end());
+    if let Some(s) = sesion_del_comando(comando).filter(|s| !visto.contains(s.as_str())) {
+        visto.push_str(&format!(" (conversación: {s})"));
+    }
+    visto
+}
+
 /// Si en el panel corre Claude Code, mirando su comando sin el encargo.
 pub fn es_claude(comando: &[String]) -> bool {
     sin_encargo(comando).contains("claude")

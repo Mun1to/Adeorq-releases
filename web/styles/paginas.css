@@ -1,0 +1,117 @@
+/* ============================================================================
+   Adeorq · web/styles/paginas.css
+   Lo poco que las páginas por búsqueda (web/paginas/) añaden a styles/guia.css:
+   las migas, los botones de la entrada, la tabla que en el móvil se lee en fichas
+   y la lista de versiones. Ningún color ni tamaño propio: todo sale de base.css.
+   ========================================================================= */
+
+/* El titular es la búsqueda dicha con palabras de persona, más largo que el de la guía. */
+.doc--busqueda .doc-portada h1 {
+  max-width: 26ch;
+  text-wrap: balance;
+}
+
+.doc-migas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e2);
+  margin-bottom: var(--e4);
+  font-size: var(--t-pie);
+  color: var(--tinta-media);
+}
+.doc-migas a { color: var(--tinta-media); }
+.doc-migas a:hover { color: var(--acento); }
+
+.doc-portada__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e3);
+  margin-top: var(--e5);
+}
+
+/* ------------------------- LA TABLA EN FICHAS --------------------------- */
+
+.doc-tabla--fichas tbody th {
+  font-weight: 650;
+  color: var(--tinta);
+  white-space: normal;
+  vertical-align: top;
+  min-width: 11ch;
+}
+.doc-tabla--fichas tbody tr:last-child th { border-bottom: 0; }
+.doc-tabla--fichas thead th { white-space: normal; }
+
+@media (max-width: 860px) {
+  .doc-tabla--fichas { overflow: visible; }
+  .doc-tabla--fichas table,
+  .doc-tabla--fichas tbody,
+  .doc-tabla--fichas tr,
+  .doc-tabla--fichas th,
+  .doc-tabla--fichas td { display: block; min-width: 0; }
+  .doc-tabla--fichas thead {
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .doc-tabla--fichas tbody tr {
+    padding: var(--e4);
+    border-bottom: 1px solid var(--borde);
+  }
+  .doc-tabla--fichas tbody tr:last-child { border-bottom: 0; }
+  .doc-tabla--fichas tbody th {
+    padding: 0 0 var(--e2);
+    border-bottom: 0;
+    font-size: var(--t-base);
+  }
+  .doc-tabla--fichas tbody td,
+  .doc-tabla--fichas tbody td:first-child {
+    display: grid;
+    grid-template-columns: minmax(0, 15ch) minmax(0, 1fr);
+    gap: var(--e3);
+    padding: var(--e2) 0 0;
+    border-bottom: 0;
+    white-space: normal;
+  }
+  .doc-tabla--fichas tbody td::before {
+    content: attr(data-etiqueta);
+    font-weight: 650;
+    color: var(--tinta);
+  }
+}
+
+/* ------------------------------ LAS FUENTES ----------------------------- */
+
+.doc-fuentes {
+  font-size: var(--t-pie);
+  overflow-wrap: anywhere;
+}
+
+/* ----------------------------- LAS VERSIONES ---------------------------- */
+
+.versiones-ritmo { max-width: 76ch; }
+
+.doc--novedades .doc-cuerpo .version + .version,
+.doc--novedades .doc-cuerpo .versiones-ritmo + .version { margin-top: var(--e7); }
+
+.doc--novedades .doc-cuerpo .version h2 {
+  font-size: var(--t-h3);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--e1);
+}
+
+.version__fecha {
+  margin-bottom: var(--e3);
+  font-size: var(--t-pie);
+}
+
+.versiones-mes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: var(--e2) var(--e5);
+  font-size: var(--t-pie);
+}
+.versiones-mes time { display: block; }

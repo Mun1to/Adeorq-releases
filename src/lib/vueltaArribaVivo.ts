@@ -19,6 +19,7 @@ import {
   alCambiarHijas,
   aunParadas,
   cabe,
+  compactandoEnPantalla,
   encolar,
   lineaPara,
   MIRAR_MS,
@@ -122,10 +123,13 @@ function trabajaLaMadre(m: number): boolean {
   return enPantalla(term, trabajaEnPantalla) || (!!lector && enPantalla(term, lector.trabaja));
 }
 
-/** Si la hija `id` espera algo suyo: subagentes fuera, o lo que dice su pantalla. */
+/** Si la hija `id` sigue con algo aunque su transcript diga «lista»: subagentes
+    fuera, trabajo de fondo o compactándose. El 2026-11-18 una madre oyó «paró sin
+    entregar» de una hija que solo se estaba compactando para seguir. */
 function conTrabajoDeFondo(id: number): boolean {
   if ((useCabina.getState().estados[id]?.agentsLive ?? 0) > 0) return true;
-  return enPantalla(xtermDe(id), trabajoDeFondoEnPantalla);
+  const term = xtermDe(id);
+  return enPantalla(term, trabajoDeFondoEnPantalla) || enPantalla(term, compactandoEnPantalla);
 }
 
 /** Si la hija `id` está ahora mismo con algo: a una así no se le ofrece cerrarla,

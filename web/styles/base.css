@@ -32,7 +32,9 @@
   /* Color · texto */
   --tinta:             #0B1220;
   --tinta-media:       #3A4A66;
-  --tinta-suave:       #5F7191;
+  /* #556682 y no #5F7191, como manda DISENO.md (3.4): el otro daba 4,27:1 sobre
+     --fondo-hondo, que es donde vive (el pie de la guía en claro); este, 5,04. */
+  --tinta-suave:       #556682;
 
   /* Color · marca. Un solo acento (azul); el cian, el violeta y el indigo son
      senales puntuales, no decoracion. */

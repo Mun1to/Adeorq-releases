@@ -20,9 +20,10 @@
 // sitio y no en el otro, y esta prueba dio verde sobre código que ya no era el
 // que se ejecutaba. Lo que sigue escrito abajo es solo el envoltorio.
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { faltanEnElInstalador, faltanNovedades, huellaDeEntrada, leerSello, sellarAlCompilar } from "./novedades-publicar.mjs";
 import { contar, recoger } from "./recoger-publicadas.mjs";
 import { queTrae as tituloDe } from "./titulo-publico.mjs";
 
@@ -187,4 +188,64 @@ ok("«Merge the…» de producto si titula", mergeDeProducto.endsWith("Merge the
   }
 }
 
+// ── Lo nuevo de la versión: sin su entrada no sale (`novedades-publicar.mjs`) ──
+{
+  const con = JSON.stringify({ "0.9.264": [{ es: {}, en: {} }], "0.9.265": [] });
+  ok("con su entrada, sale", faltanNovedades("0.9.264", con) === null);
+  ok("con la lista vacía a propósito, también", faltanNovedades("0.9.265", con) === null);
+  const sin = faltanNovedades("0.9.266", con);
+  ok("sin su entrada, no sale, y dice cuál y cómo", Boolean(sin) && sin.includes("0.9.266") && sin.includes('"0.9.266": []'), String(sin));
+  ok("una entrada que no es lista, no sale", Boolean(faltanNovedades("0.9.264", JSON.stringify({ "0.9.264": {} }))));
+  ok("un fichero roto, no sale", Boolean(faltanNovedades("0.9.264", "{ no es json")));
+  ok("y el de verdad se lee", !String(faltanNovedades("0.0.0", readFileSync("src/novedades.json", "utf8"))).includes("no se puede leer"));
+  ok("con la marca de orden de PowerShell delante, también se lee", faltanNovedades("0.9.264", String.fromCharCode(0xfeff) + con) === null);
+  // Y que el instalador la lleve: va dentro del bundle, y la compilación deja un
+  // sello con su huella junto al instalador.
+  const sello = { version: "0.9.264", huella: huellaDeEntrada(con, "0.9.264") };
+  const listo = { exeMs: 2000, sello, selloMs: 1000 };
+  ok("la huella no depende de la marca de orden ni de los saltos de Windows",
+    huellaDeEntrada(String.fromCharCode(0xfeff) + JSON.stringify(JSON.parse(con), null, 2).replace(/\n/g, "\r\n"), "0.9.264") === sello.huella);
+  ok("ni de lo que traigan las otras versiones",
+    huellaDeEntrada(JSON.stringify({ ...JSON.parse(con), "0.9.265": [{ es: { titulo: "otra" } }] }), "0.9.264") === sello.huella);
+  ok("compilado con su entrada, sale", faltanEnElInstalador("0.9.264", con, listo) === null);
+  const otraSesion = JSON.stringify({ ...JSON.parse(con), "0.9.265": [{ es: { titulo: "de otra sesión" } }] });
+  ok("otra sesión escribe la versión siguiente después de compilar: sale igual", faltanEnElInstalador("0.9.264", otraSesion, listo) === null);
+  const cambiada = JSON.stringify({ "0.9.264": [{ es: { titulo: "otra cosa" }, en: {} }] });
+  const tarde = faltanEnElInstalador("0.9.264", cambiada, listo);
+  ok("tu entrada cambió después de compilar: no sale, y dice que recompiles", Boolean(tarde) && tarde.includes("vuelve a compilar"), String(tarde));
+  ok("sin instalador todavía, solo cuenta la entrada", faltanEnElInstalador("0.9.264", con, { exeMs: null, sello: null, selloMs: 0 }) === null);
+  const sinNada = faltanEnElInstalador("0.9.266", con, listo);
+  ok("sin entrada, tampoco, y avisa de recompilar tras escribirla", Boolean(sinNada) && sinNada.includes("vuelve a compilar"));
+  const sinSello = faltanEnElInstalador("0.9.264", con, { exeMs: 2000, sello: null, selloMs: 0 });
+  ok("un instalador sin sello no sale", Boolean(sinSello) && sinSello.includes("sello"), String(sinSello));
+  ok("ni con el sello de otra versión", Boolean(faltanEnElInstalador("0.9.264", con, { ...listo, sello: { ...sello, version: "0.9.263" } })));
+  const aMedias = faltanEnElInstalador("0.9.264", con, { ...listo, selloMs: 3000 });
+  ok("una compilación que no llegó a hacer el instalador no sale", Boolean(aMedias) && aMedias.includes("no llegó"), String(aMedias));
+  // Al publicar se compara con el último commit, que es lo que sale como código.
+  ok("con la entrada del commit, sale", faltanEnElInstalador("0.9.264", con, { ...listo, enCommit: con }) === null);
+  ok("aunque en el disco alguien la esté cambiando: el instalador lleva la del commit",
+    faltanEnElInstalador("0.9.264", cambiada, { ...listo, enCommit: con }) === null);
+  const sinCommit = faltanEnElInstalador("0.9.264", con, { ...listo, enCommit: JSON.stringify({}) });
+  ok("compilada sin commitear: no sale, y dice que entre en el commit", Boolean(sinCommit) && sinCommit.includes("commit") && !sinCommit.includes("vuelve a compilar"), String(sinCommit));
+  const niUnaNiOtra = faltanEnElInstalador("0.9.264", cambiada, { ...listo, enCommit: JSON.stringify({}) });
+  ok("y si ni el disco ni el commit son lo compilado, recompilar y commitear", Boolean(niUnaNiOtra) && niUnaNiOtra.includes("vuelve a compilar") && niUnaNiOtra.includes("commit"));
+  // El sello lo escribe `vite.config.ts` solo al compilar el instalador de Windows.
+  const casaSello = mkdtempSync(join(tmpdir(), "adeorq-sello-"));
+  try {
+    writeFileSync(join(casaSello, "package.json"), JSON.stringify({ version: "0.9.264" }));
+    const env = { TAURI_ENV_PLATFORM: "windows", TAURI_ENV_DEBUG: "false", CARGO_TARGET_DIR: join(casaSello, "ct") };
+    const bundle = join(casaSello, "ct", "release", "bundle", "nsis");
+    sellarAlCompilar(con, { ...env, TAURI_ENV_DEBUG: "true" }, casaSello);
+    sellarAlCompilar(con, { CARGO_TARGET_DIR: env.CARGO_TARGET_DIR }, casaSello);
+    ok("un build de depuración o un `pnpm build` suelto no sellan", leerSello(bundle, "0.9.264").sello === null);
+    sellarAlCompilar(con, env, casaSello);
+    const leido = leerSello(bundle, "0.9.264");
+    ok("el de `pnpm tauri build` sí, con la huella de lo que entró", leido.sello?.huella === sello.huella && leido.selloMs > 0, JSON.stringify(leido));
+  } finally {
+    rmSync(casaSello, { recursive: true, force: true });
+  }
+}
+
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);
+// Sin esto salía con 0 aunque contara fallos, y `comprobar` lo daba por bueno.
+process.exit(fallos ? 1 : 0);

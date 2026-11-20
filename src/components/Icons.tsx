@@ -1156,3 +1156,12 @@ export function BajarIcon({ size = 17 }: Props) {
     </svg>
   );
 }
+
+/** Oír un sonido: el triángulo de reproducir, de trazo. */
+export function PlayIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M8 5.5v13l10.5-6.5z" />
+    </svg>
+  );
+}

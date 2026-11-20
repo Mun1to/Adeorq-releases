@@ -1096,6 +1096,14 @@ names appear below so you can jump to one.
 - **Notifications**: a system notice when an agent finishes or waits for your OK, with
   the icon blinking in the taskbar. *Only in the background* (default), *Always* or
   *Never*. It never warns about the panel you are looking at.
+- **Sounds**: each moment has its own sound, and they all play equally loud: an agent
+  finishes or asks you something (the usual two notes, which follow what you choose in
+  **Notifications**), the shield asks for your PIN, a new decision, Adeo replies (only if you
+  are not looking at the chat), something fails, a new version is ready, an account switch, a
+  timer ends, and pinning (quieter, because you are the one doing it). **Sound volume** turns
+  them all up or down at once. Each row has ▶ to hear it, a switch to turn it off and **Use
+  your own**: a wav, mp3 or ogg file up to 3 MB, levelled on its own to the loudness of the
+  others and cut at five seconds. **Back to Adeorq's** removes it.
 - **Your default brain**: *Let Adeorq decide*, or fix haiku, sonnet or opus for
   everything. Quota decides, and a task that needs judgement is never made cheaper.
 - **When the brain does not fit**: Adeo warns you if the model of the terminal

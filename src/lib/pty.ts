@@ -1,10 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { emit, listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { ordenGuardado } from "./ordenBarra";
 import { leerPerfil, quienSoy, raiz } from "./perfil";
 import { aliasDeLaLinea, enFila, esfuerzoSoloEnLaSesion, modeloSoloEnLaSesion, nivelDeLaLinea, sePuedeLeer, type EntradaSelector } from "./selectorDeModelo";
 import { pantallaDe } from "./terminales";
 import type { PedidoMcp, RespuestaMcp } from "./supremo";
+import { apuntarCierre, apuntarEscrito } from "./sonidos";
 
 export interface PtyData {
   id: number;
@@ -74,6 +75,9 @@ export function spawnPty(
 }
 
 export function writePty(id: number, data: string): Promise<void> {
+  // Un Intro, un Ctrl+C o un Ctrl+D pueden hacer salir al programa: si sale con
+  // error justo después, lo pediste tú (`esCaida`).
+  apuntarEscrito(id, data);
   return invoke("pty_write", { id, data });
 }
 
@@ -117,7 +121,12 @@ export function resizePty(id: number, cols: number, rows: number): Promise<void>
   return invoke("pty_resize", { id, cols, rows });
 }
 
-export function killPty(id: number): Promise<void> {
+export async function killPty(id: number): Promise<void> {
+  // Matarla desde aquí es cerrarla a propósito: su salida no suena como una
+  // caída, ni aquí ni en la ventana suelta donde viva. Se avisa ANTES de matar,
+  // para que el aviso llegue por delante de la salida.
+  apuntarCierre(id);
+  await emit(A_POSTA, id).catch(() => {});
   return invoke("pty_kill", { id });
 }
 
@@ -1205,7 +1214,23 @@ export function onPtyData(cb: (p: PtyData) => void): Promise<UnlistenFn> {
 }
 
 export function onPtyExit(cb: (p: PtyExit) => void): Promise<UnlistenFn> {
+  oirCierresAPosta();
   return listen<PtyExit>("pty-exit", (e) => cb(e.payload));
+}
+
+/** Lo que `killPty` cuenta a todas las ventanas antes de matar. */
+const A_POSTA = "adeorq-pty-a-posta";
+let oyendoCierres = false;
+
+/** Una vez por ventana, la primera que espera salidas: así una terminal en su
+    ventana suelta sabe que la cerró la principal (un `close_pane`, un relevo) y
+    no suena «algo falla» por el código 1 de taskkill. */
+function oirCierresAPosta(): void {
+  if (oyendoCierres) return;
+  oyendoCierres = true;
+  void listen<number>(A_POSTA, (e) => apuntarCierre(e.payload)).catch(() => {
+    oyendoCierres = false;
+  });
 }
 
 /**

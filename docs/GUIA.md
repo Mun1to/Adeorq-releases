@@ -1060,6 +1060,14 @@ salen sus nombres para saltar a una.
 - **Avisos**: aviso del sistema cuando un agente termina o espera tu OK, con el icono
   parpadeando en la barra de tareas. *Solo en segundo plano* (de fábrica), *Siempre* o
   *Nunca*. Nunca avisa del panel que estás mirando.
+- **Sonidos**: cada momento tiene su sonido, y todos suenan igual de fuertes: un agente
+  termina o te pregunta (las dos notas de siempre, que siguen lo que digas en **Avisos**),
+  el escudo te pide el PIN, una decisión nueva, Adeo te contesta (solo si no miras el chat),
+  algo falla, hay una versión nueva, cambio de cuenta, acaba un temporizador y fijar o clavar
+  (más bajo, porque lo haces tú). **Volumen de los sonidos** los sube o baja todos a la vez.
+  Cada fila trae ▶ para oírlo, un interruptor para apagarlo y **Poner uno tuyo**: un wav, mp3
+  u ogg de hasta 3 MB, que se iguala solo a la fuerza de los demás y suena como mucho cinco
+  segundos. **Volver al de Adeorq** lo quita.
 - **Tu cerebro por defecto**: *Que decida Adeorq*, o fijar haiku, sonnet u opus para todo.
   La cuota manda, y una tarea de juicio no se abarata nunca.
 - **Cuando el cerebro no cuadra**: Adeo avisa si el modelo de la terminal que

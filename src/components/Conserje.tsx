@@ -669,7 +669,7 @@ export function HiloConserje({
         </span>
       </header>
 
-      <div className="chat-turnos">
+      <div className="chat-turnos" data-adeo={id}>
         {!conv?.turnos.length && !pendiente && (
           <div className="chat-elige cj-bienvenida">
             <Mascota animo="quieta" alto={64} />

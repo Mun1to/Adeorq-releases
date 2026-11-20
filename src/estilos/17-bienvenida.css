@@ -369,23 +369,55 @@
 }
 
 /* ── El recorrido ──────────────────────────────────────────────────────────
-   Oscurece la ventana entera menos el trozo del que está hablando. El foco es
-   una sombra gigante hacia fuera, así que el elemento de debajo se ve nítido
-   y sin recortar nada. */
+   Oscurece la ventana entera menos lo que está encendido: el trozo del que
+   habla y, si el recorrido te ha llevado a otra pestaña, la pestaña y el grupo
+   de Ajustes donde estás. El velo es un dibujo con un agujero por cada uno, así
+   que lo de debajo se ve nítido y sin recortar nada. */
 .tour {
   position: fixed;
   inset: 0;
   z-index: 200;
 }
 
-.tour-foco {
-  position: fixed;
-  border-radius: var(--r-btn);
-  box-shadow:
-    0 0 0 9999px color-mix(in srgb, #000 66%, transparent),
-    0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent);
+/* Lo encendido se puede tocar: el velo deja pasar los clics y solo los recogen
+   el globo y las cuatro tapas de alrededor del agujero. */
+.tour[data-probar] {
   pointer-events: none;
-  transition: all var(--t-media) ease;
+}
+.tour[data-probar] .tour-globo,
+.tour-tapa {
+  pointer-events: auto;
+}
+
+.tour-tapa {
+  position: fixed;
+}
+
+.tour-velo {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tour-velo rect {
+  transition:
+    x var(--t-media) ease,
+    y var(--t-media) ease,
+    width var(--t-media) ease,
+    height var(--t-media) ease;
+}
+
+.tour-sombra {
+  fill: color-mix(in srgb, #000 66%, transparent);
+}
+
+.tour-borde {
+  fill: none;
+  stroke: color-mix(in srgb, var(--accent) 40%, transparent);
+  stroke-width: 2;
+}
+.tour-borde[data-principal] {
+  stroke: color-mix(in srgb, var(--accent) 70%, transparent);
 }
 
 .tour-globo {
@@ -400,6 +432,9 @@
 }
 
 .tour-cuenta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 13px;
   color: var(--muted);
   letter-spacing: 0.6px;
@@ -425,6 +460,54 @@
 }
 
 .tour-nav {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Lo nuevo de la versión ────────────────────────────────────────────────
+   Adeo lo ofrece con un bocadillo que le sale de la barra de arriba, con su
+   piquito apuntándole: no tapa nada ni para el trabajo, y se contesta o se
+   deja. */
+.novedades-aviso {
+  position: fixed;
+  z-index: 96;
+  width: min(340px, calc(100vw - 24px));
+  padding: 14px 16px 12px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-caja);
+  box-shadow: var(--glass-edge), var(--sombra-3);
+  color: var(--text);
+}
+.novedades-aviso::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 18px;
+  width: 12px;
+  height: 12px;
+  background: var(--popover);
+  border-left: 1px solid var(--border-strong);
+  border-top: 1px solid var(--border-strong);
+  transform: rotate(45deg);
+}
+.novedades-aviso h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+.novedades-aviso p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.novedades-aviso small {
+  display: block;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.novedades-aviso-pie {
   display: flex;
   gap: 8px;
 }

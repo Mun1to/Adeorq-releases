@@ -11,6 +11,7 @@ import { useDecisiones, useReposo } from "../lib/decisiones";
 import { avisoDormido, juntar } from "../lib/decisionesLista";
 import { haceCuanto } from "../lib/estados";
 import { useT, type Translate } from "../lib/i18n";
+import { ARRANQUE_MS, hayNuevas, sonar } from "../lib/sonidos";
 import { useSuena } from "../lib/suena";
 import { conectarVueltaArriba } from "../lib/vueltaArribaVivo";
 import { useProgramados } from "./AgendaProgramados";
@@ -94,6 +95,26 @@ export default function Campana({
   const despiertos = useMemo(() => lista.filter((a) => !duerme(a)), [duerme, lista]);
   const decisiones = filas.filter((c) => c.clase === "decide" && c.parte === "toca").length;
   const parados = filas.filter((c) => c.clase === "parado" && c.parte === "toca").length;
+  // Los sonidos de «una decisión nueva» y de «algo falla» cuando el freno para
+  // un encargo programado. Lo que ya había al abrir no suena: los primeros
+  // segundos solo se apunta, porque las listas llegan vacías y luego llenas.
+  const montada = useRef(Date.now());
+  const vistas = useRef<Set<string> | null>(null);
+  const cortesVistos = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const vivas = todasLasDecisiones.filter((d) => d.vigencia === "viva").map((d) => d.id);
+    if (Date.now() - montada.current >= ARRANQUE_MS && hayNuevas(vistas.current, vivas)) sonar("decision");
+    vistas.current = new Set(vivas);
+  }, [todasLasDecisiones]);
+  // Cada corte por su encargo y su hora, no la cuenta de los que tocan: uno que
+  // pospusiste y vuelve no es un fallo nuevo, y uno que se para mientras otro se
+  // arregla sí lo es. Hasta que llega la lista no hay foto: lo que ya había, calla.
+  useEffect(() => {
+    if (!programados) return;
+    const cortes = programados.encargos.flatMap((p) => (p.cortado ? [`${p.id}:${p.cortado.cuando}`] : []));
+    if (Date.now() - montada.current >= ARRANQUE_MS && hayNuevas(cortesVistos.current, cortes)) sonar("falla");
+    cortesVistos.current = new Set(cortes);
+  }, [programados]);
   const suena = useSuena((s) => s.suena);
   const cuantos = sinLeer(despiertos);
   const animo = animoDe(despiertos, estados, { decisiones, cortados: parados, suena });

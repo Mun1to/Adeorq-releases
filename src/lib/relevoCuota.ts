@@ -26,6 +26,7 @@ import { sabe } from "./providers";
 import { apuntarDelegada, delegadaDe } from "./delegadas";
 import { espejoDe } from "./reenganche";
 import { apuntarCopia, carpetaDeVerdad, copiaDe, copiaYaCerrada, type Copia } from "./copiaAparte";
+import { sonar } from "./sonidos";
 
 const MODOS: PermissionMode[] = ["acceptEdits", "auto", "bypassPermissions", "manual", "dontAsk", "plan"];
 
@@ -231,6 +232,7 @@ export async function abrirElRelevo(
   if (!abierto) return { error: "no pude abrir la terminal" };
   if (vieja && !cerrada && vieja.duena !== p.paneId) apuntarCopia(abierto.id, vieja);
   m.marcar(abierto.id);
+  sonar("relevo");
   return {
     pane_id: abierto.id,
     donde: abierto.donde,

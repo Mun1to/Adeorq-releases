@@ -137,6 +137,7 @@ import ChatNode, { MODELO_DEFECTO, type ChatData } from "./CanvasChat";
 import { chatOlvidar } from "../lib/chat";
 import { useMenu, type MenuItem } from "./Overlays";
 import type { NotifyMode } from "../lib/notify";
+import { sonar } from "../lib/sonidos";
 import type { Hit } from "../lib/redact";
 
 // META 5: the cockpit as a board. The grid stays untouched (it works and is
@@ -1882,6 +1883,7 @@ ${ruta}` : ruta;
   const bloquear = useCallback(() => {
     if (!trazosCogidos.length) return;
     const clavar = trazosCogidos.some((s) => !s.bloq);
+    if (clavar) sonar("fijar");
     retocarSel({ bloq: clavar || undefined });
   }, [trazosCogidos, retocarSel]);
 

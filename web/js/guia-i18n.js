@@ -378,6 +378,8 @@ window.ADEORQ_I18N_EXTRA = {
                        'the cards for the MCP and for the agents’ keys (both in ' +
                        '<a href="#programa-de-fuera">What an outside program can do</a>).',
     'guia.ajustes.l3': '<b>Notifications</b>: how it tells you when an agent finishes or asks you something, ' +
+                       'the sound of each moment (its volume, turning off the ones you do not want or using ' +
+                       'your own, levelled on its own to the loudness of the others), ' +
                        'which model it uses by default (or let Adeorq decide), and two helpers that only leave ' +
                        'suggestions in the Agenda tray and never change anything by themselves: the crew ' +
                        'lookout and the session copilot.',

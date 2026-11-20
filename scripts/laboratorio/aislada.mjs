@@ -341,7 +341,8 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
     await v.enviar("Page.enable");
     await v.enviar("Page.addScriptToEvaluateOnNewDocument", { source: guarda ? `${base_guarda};\n${guarda}` : base_guarda });
     // Sin la bienvenida: la app entera montada, que es donde vive el oyente del MCP.
-    await v.js(`localStorage.setItem("adeorq-lang", "es"); localStorage.setItem("adeorq-perfil", ${JSON.stringify(
+    // Ni el bocadillo de lo nuevo, que saldría a los 1,8 s junto a la campana.
+    await v.js(`localStorage.setItem("adeorq-lang", "es"); localStorage.setItem("adeorq-novedades-vista", "99.0.0"); localStorage.setItem("adeorq-perfil", ${JSON.stringify(
       JSON.stringify({ nombre: "Prueba", raiz: proyectos, sinRaiz: false, extras: [], leerSesiones: false, clis: [], hecho: true, tour: true }),
     )}); "ok"`);
     await v.enviar("Page.reload");

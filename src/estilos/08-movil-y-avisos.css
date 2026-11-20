@@ -785,3 +785,11 @@
   background: var(--row);
 }
 
+/* ── Ajustes > Avisos > Sonidos (`AjustesSonidos.tsx`) ────────────────────
+   La misma lista que «Partes de Adeorq»: nombre, qué es, y a la derecha oírlo,
+   poner uno tuyo y el interruptor. Lo único suyo es decir, en el color del
+   acento, que ese momento suena con un archivo tuyo y no con el de la casa. */
+.sonido-fila .cab-nombre .sonido-propio {
+  color: var(--accent);
+}
+

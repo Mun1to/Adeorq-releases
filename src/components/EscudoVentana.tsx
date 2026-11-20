@@ -17,6 +17,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useT } from "../lib/i18n";
 import { redact } from "../lib/redact";
+import { sonar } from "../lib/sonidos";
 import type { Pane } from "../lib/tablero";
 
 interface Pedido {
@@ -61,6 +62,8 @@ export default function EscudoVentana({ panes, stream = false }: { panes: Pane[]
 
   useEffect(() => {
     const llega = listen<Pedido>("escudo-pedido", (e) => {
+      // Un agente se queda parado hasta que firmes: tres notas que suben.
+      if (abierto.current !== e.payload.id) sonar("pin");
       abierto.current = e.payload.id;
       setPedido(e.payload);
       setPaso("inicio");

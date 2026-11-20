@@ -13,9 +13,10 @@
 // rompe el build, ver la memoria del BOM de PowerShell) y la fecha del
 // instalador, para notar si es de un build anterior.
 
-import { readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { faltanEnElInstalador, leerSello } from "./novedades-publicar.mjs";
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BUNDLE = "C:/ct/release/bundle/nsis";
@@ -24,6 +25,15 @@ const exe = `${BUNDLE}/Adeorq_${version}_x64-setup.exe`;
 const notas = process.argv[2];
 if (!notas || notas.includes('"') || notas.includes("\n")) {
   console.error("Las notas van en una línea y sin comillas dobles.");
+  process.exit(1);
+}
+// Lo nuevo de la versión va dentro del instalador: aquí, recompilar aún es barato.
+const falta = faltanEnElInstalador(version, readFileSync(path.join(RAIZ, "src", "novedades.json"), "utf8"), {
+  exeMs: existsSync(exe) ? statSync(exe).mtimeMs : null,
+  ...leerSello(BUNDLE, version),
+});
+if (falta) {
+  console.error(`\n${falta}\n`);
   process.exit(1);
 }
 const sig = readFileSync(`${exe}.sig`, "utf8").trim();

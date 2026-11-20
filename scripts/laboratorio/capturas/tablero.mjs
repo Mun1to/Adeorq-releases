@@ -62,6 +62,8 @@ export async function montar(p, idioma, layout, lateral = "") {
       accounts: [{ id: "c0ffee00-0000-4000-8000-000000000001", label: es ? "Trabajo" : "Work", dir: "P:\\data\\Adeorq\\accounts\\claude-work", provider: "claude" }],
       defaultAccount: "main:claude",
     },
+    // Lo nuevo de la versión ya está visto: el bocadillo de Adeo no sale en las fotos.
+    "adeorq-novedades-vista": "99.0.0",
     "adeorq-cuentas-abiertos": ["claude", "codex"],
     "adeorq-cuentas-seccion": null,
     "adeorq-objetivos-abierto": null,

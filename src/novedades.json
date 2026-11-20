@@ -1,0 +1,30 @@
+{
+  "0.9.264": [
+    {
+      "vista": "ajustes",
+      "ajustes": "avisos",
+      "bloque": "Sonidos",
+      "es": {
+        "titulo": "Los sonidos, a tu gusto",
+        "texto": "Cada aviso tiene ya su propio sonido. Aquí eliges cuáles suenan y a qué volumen, y puedes poner uno tuyo. Pruébalo ahora: pulsa oír en cualquiera."
+      },
+      "en": {
+        "titulo": "Sounds your way",
+        "texto": "Each alert now has its own sound. Here you choose which ones play and how loud, and you can use one of your own. Try it now: press play on any of them."
+      }
+    },
+    {
+      "vista": "ajustes",
+      "ajustes": "ayuda",
+      "donde": ["[data-novedades]"],
+      "es": {
+        "titulo": "Lo nuevo, en cada versión",
+        "texto": "Cada vez que Adeorq se actualice, Adeo te enseñará lo que trae. Si cierras el recorrido, lo vuelves a ver desde aquí."
+      },
+      "en": {
+        "titulo": "What is new, every version",
+        "texto": "Every time Adeorq updates, Adeo shows you what it brings. If you close the tour, you can see it again from here."
+      }
+    }
+  ]
+}

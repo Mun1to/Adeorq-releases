@@ -495,6 +495,7 @@ export async function atenderPedido(p: PedidoMovil, exec: ConserjeExec): Promise
         // (desde el PC o desde el móvil), y si no el de por defecto.
         fijo: fijoDe(conv) ?? cerebroPorDefecto() ?? "sonnet",
         alCambio: () => avisarCambio(id),
+        sonar: false,
       });
       enCurso.set(id, { ...estado, pensando: false, paso: "", aviso: r.aviso, error: r.error });
       avisarCambio(id);

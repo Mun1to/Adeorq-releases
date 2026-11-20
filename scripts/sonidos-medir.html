@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Medir los sonidos</title>
+<!--
+  Mide la fuerza de cada sonido de src/lib/sonidos.ts sin altavoces: lo pinta en un
+  OfflineAudioContext con su nivel de NIVEL, le pone la curva K (BS.1770) y saca la
+  sonoridad momentánea más alta y el pico. Todos deberían salir en -31,8 LUFS (el aviso
+  de siempre, ±0,3 por dónde caen las ventanas de 100 ms), el clic de fijar en -34,8 y
+  el temporizador en -29,3. Y otra vez por la cadena entera de la app, que tiene que
+  dar lo mismo (el 2026-11-20 daba 3,4 dB más: el limitador sumaba su compensación).
+
+  Cómo se lanza (Vite sirve el TypeScript):
+    node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 1431 --strictPort
+  y se abre http://127.0.0.1:1431/scripts/sonidos-medir.html. El resultado sale en la
+  página y en window.medida. Apagar Vite al terminar.
+-->
+</head>
+<body>
+<pre id="salida">Midiendo…</pre>
+<script type="module">
+  import { motor, montarSalida, nivelDe, OCASIONES, lufsMomentaneo, tocarDeCasa, VOLUMEN_DE_FABRICA } from "/src/lib/sonidos.ts";
+
+  // `cadena`: false mide el sonido suelto con su nivel (lo de antes de haber
+  // volumen y limitador); true, el camino de la app entera a volumen de fábrica
+  // (volumen, limitador, lo que deshace su compensación y la sala compartida).
+  // Las dos columnas tienen que salir iguales: el limitador no cambia lo que no
+  // llega a su umbral. El sonido empieza a los 0,6 s porque un limitador recién
+  // creado arranca comprimiendo y tarda unos cientos de ms en soltar: pegado al
+  // principio, el clic de fijar salía 1,8 dB más bajo. En la app eso solo le pasa
+  // al primer sonido tras abrir, y hacia abajo.
+  const T0 = 0.6;
+  async function mide(o, cadena) {
+    const sr = 48000;
+    const off = new OfflineAudioContext(2, Math.ceil(sr * (T0 + 3)), sr);
+    const mezcla = off.createChannelMerger(2);
+    const medido = off.createGain();
+    const hs = off.createBiquadFilter(); hs.type = "highshelf"; hs.frequency.value = 1681.97; hs.gain.value = 4;
+    const hp = off.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 38.13; hp.Q.value = 0.5003;
+    medido.connect(mezcla, 0, 0);
+    medido.connect(hs); hs.connect(hp); hp.connect(mezcla, 0, 1);
+    mezcla.connect(off.destination);
+    if (cadena) tocarDeCasa(off, montarSalida(off, VOLUMEN_DE_FABRICA, medido), o, T0);
+    else {
+      medido.gain.value = nivelDe(o);
+      motor(off, medido)[o](T0);
+    }
+    const buf = await off.startRendering();
+    const a = buf.getChannelData(0);
+    let pico = 0;
+    for (const x of a) pico = Math.max(pico, Math.abs(x));
+    return { lufs: +lufsMomentaneo(buf.getChannelData(1), sr).toFixed(2), pico: +(20 * Math.log10(pico)).toFixed(2) };
+  }
+
+  const medida = {};
+  for (const o of OCASIONES) medida[o] = { suelto: await mide(o, false), cadena: await mide(o, true) };
+  window.medida = medida;
+  document.getElementById("salida").textContent = Object.entries(medida)
+    .map(([o, m]) => `${o.padEnd(14)} ${String(m.suelto.lufs).padStart(7)} LUFS suelto   ${String(m.cadena.lufs).padStart(7)} LUFS en la app   pico ${m.cadena.pico} dBFS`).join("\n");
+</script>
+</body>
+</html>

@@ -20,6 +20,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { faltanEnElInstalador, leerSello } from "./novedades-publicar.mjs";
 import { revisar } from "./prueba-check.mjs";
 import { todoEnVerde } from "./comprobar.mjs";
 
@@ -44,6 +45,29 @@ if (!r.ok) {
   process.exit(1);
 }
 console.log(`Prueba declarada — ${r.escalon}: ${r.detalle}\n`);
+
+// 1-bis. Y lo nuevo de la versión, para el recorrido de Adeo al actualizar
+// (`novedades-publicar.mjs`): sin su entrada en `src/novedades.json` no sale, ni
+// si la que lleva el instalador (su sello) no es la del último commit.
+{
+  const v = JSON.parse(fs.readFileSync(path.join(RAIZ, "package.json"), "utf8")).version;
+  const exeV = `${BUNDLE}/Adeorq_${v}_x64-setup.exe`;
+  let enCommit = "";
+  try {
+    enCommit = execFileSync("git", ["show", "HEAD:src/novedades.json"], { cwd: RAIZ, encoding: "utf8" });
+  } catch {
+    /* sin el fichero en el commit, la huella sale nula y el candado lo dice */
+  }
+  const falta = faltanEnElInstalador(v, fs.readFileSync(path.join(RAIZ, "src", "novedades.json"), "utf8"), {
+    exeMs: fs.existsSync(exeV) ? fs.statSync(exeV).mtimeMs : null,
+    ...leerSello(BUNDLE, v),
+    enCommit,
+  });
+  if (falta) {
+    console.error(`\nESTA VERSIÓN NO SALE.\n\n  ${falta}\n`);
+    process.exit(1);
+  }
+}
 
 // Y los comprobadores de la casa, todos (`comprobar.mjs`). Cada uno nació de un fallo
 // ya pagado, y hasta el 2026-10-06 se lanzaban a mano y de uno en uno: dos

@@ -61,7 +61,7 @@ import AgentesDePanel from "./AgentesDePanel";
 import KindIcon, { kindDeComando } from "./KindIcon";
 import { hueOf } from "../lib/colors";
 import { proyectoDeLaCarpeta, tituloDeCabecera } from "../lib/supremo";
-import { avisar, forgetPane, type NotifyMode } from "../lib/notify";
+import { avisar, forgetPane, sonarSiSeCayo, type NotifyMode } from "../lib/notify";
 import { callaAlVolcar, escribirVolcado, seMuda, tomarVolcado } from "../lib/mudanza";
 import { apuntaTecla } from "../lib/tecleando";
 import { apuntarMovimiento } from "../lib/actualizar";
@@ -1997,6 +1997,7 @@ export default function TerminalPane({
     void onPtyExit((p) => {
       if (p.id !== id) return;
       setExited(true);
+      sonarSiSeCayo(id, p.code); // ni un `exit` normal, ni un cierre a propósito, ni tras tu Intro o Ctrl+C.
       // Sin proceso no hay a quién contarle el tamaño: la cola se retira, o el
       // vigilante seguiría reenviando cada tres segundos a un PTY que Rust ya
       // borró (contesta «no such pty», nunca confirma) y apuntándolo en el

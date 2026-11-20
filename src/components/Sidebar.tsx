@@ -27,6 +27,8 @@ import {
   type UiState,
 } from "../lib/pty";
 import { anadirProyecto, raiz, sinRaiz } from "../lib/perfil";
+import { sonar } from "../lib/sonidos";
+import { esperaTuMirada, reclama, stateDotClass, waitKind } from "../lib/sesionEnLaBarra";
 import { registrarBarra } from "../lib/barraEstado";
 import { shrinkToDataUri } from "../lib/reducirLogo";
 import {
@@ -257,35 +259,7 @@ const MAX_ACCOUNT_BUTTONS = 4;
 // Claude has its own ✦ button and agy its own AG; the rest share one lookup.
 const OTHER_CLIS = PROVIDERS.filter((p) => p.id !== "claude" && p.id !== "agy");
 
-/** Cuánto te reclama una sesión, de más a menos: para ordenar por eso. */
-function reclama(s: SessionInfo): number {
-  if (s.state === "pregunta") return 0;
-  if (s.state === "ofrece") return 1;
-  if (s.state === "lista") return 2;
-  if (s.live) return 3;
-  return 4;
-}
-
-/** Los estados en los que tiene sentido saber si ya miraste lo último. */
-function esperaTuMirada(s: SessionInfo): boolean {
-  return !s.live && (s.state === "pregunta" || s.state === "ofrece" || s.state === "lista");
-}
-
 const ORDEN_RECLAMA_KEY = "adeorq-orden-reclama";
-
-function stateDotClass(s: SessionInfo): string {
-  if (s.live) return "dot-live";
-  if (s.state === "pregunta" || s.state === "ofrece") return "dot-ask";
-  if (s.state === "a_medias") return "dot-half";
-  return "dot-idle";
-}
-
-/** Sessions holding a question get the amber/red treatment of the desktop app. */
-function waitKind(s: SessionInfo): "ask" | "offer" | null {
-  if (s.state === "pregunta") return "ask";
-  if (s.state === "ofrece") return "offer";
-  return null;
-}
 
 export default function Sidebar({
   width,
@@ -1743,6 +1717,7 @@ export default function Sidebar({
       // ES la forma de quitarla, igual que arrastrar una sesión fuera de un
       // grupo la saca de él.
       if (ui.pinned.includes(hasta)) {
+        if (!ui.pinned.includes(a.id)) sonar("fijar");
         mutate((prev) => ({
           ...prev,
           pinned: colocarSuelta(prev.pinned, a.id, hasta, lado),
@@ -1869,6 +1844,7 @@ export default function Sidebar({
   /** Clavar una sesión arriba de su lista, o soltarla. La regla de dónde cae
       vive en `alternarFijada` (`lib/ordenBarra.ts`), con sus casos probados. */
   const fijar = (id: string) => {
+    if (!ui.pinned.includes(id)) sonar("fijar");
     mutate((prev) => ({ ...prev, pinned: alternarFijada(prev.pinned, id) }));
   };
 

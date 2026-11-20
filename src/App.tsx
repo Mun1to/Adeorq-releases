@@ -28,7 +28,7 @@ import type { CanvasPane } from "./components/CanvasView";
 import NewSession, { type Launch } from "./components/NewSession";
 import Onboarding from "./components/Onboarding";
 import Orbe from "./components/Orbe";
-import Tour from "./components/Tour";
+import Recorridos from "./components/Recorridos";
 import { Overlays } from "./components/Overlays";
 import LayoutPicker from "./components/LayoutPicker";
 import CrewBoard from "./components/CrewBoard";
@@ -111,7 +111,7 @@ import {
   type RailMode,
   type WorkState,
 } from "./lib/pty";
-import { leerPerfil, raiz, tocarPerfil } from "./lib/perfil";
+import { leerPerfil, raiz } from "./lib/perfil";
 import { coloresDeProyectos, proyectoDeCarpeta } from "./lib/colorLienzo";
 import { acabaDeReclamar, PINTA } from "./lib/estados";
 import { finReciente } from "./lib/finDeTurno";
@@ -3630,14 +3630,8 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
         />
       )}
 
-      {tour && (
-        <Tour
-          onClose={() => {
-            setTour(false);
-            tocarPerfil({ tour: true });
-          }}
-        />
-      )}
+      {/* El de la bienvenida y el de lo nuevo de cada versión. */}
+      <Recorridos bienvenida={tour} onBienvenidaCerrada={() => setTour(false)} ir={setView} />
 
       {wizard && (
         <NewSession

@@ -5,6 +5,8 @@ import { getVersion } from "@tauri-apps/api/app";
 import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { buscarActualizacion, enLaTienda } from "../lib/empaquetada";
+import { AJUSTES_IR, SECCION_AJUSTES, ultimaConNovedades, VER_NOVEDADES } from "../lib/novedades";
+import { NOVEDADES } from "../lib/novedadesDatos";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { FAMILIAS_TEMA, THEMES, useT, type Lang, type ThemeId } from "../lib/i18n";
 import Espera, { Ocupado } from "./Espera";
@@ -75,6 +77,7 @@ import AjustesValla from "./AjustesValla";
 import AjustesEscudo, { type EstadoEscudo } from "./AjustesEscudo";
 import AjustesMods from "./AjustesMods";
 import AjustesPartes from "./AjustesPartes";
+import AjustesSonidos from "./AjustesSonidos";
 import { pestanasEncendidas, type Parte, type TerminalesPorVista } from "../lib/partes";
 import GuideView from "./GuideView";
 import TerminalesAparte from "./TerminalesAparte";
@@ -212,7 +215,7 @@ type SeccionId = (typeof SECCIONES)[number]["id"];
 const CUANTOS: Record<string, number> = {
   aspecto: 5,
   terminales: 2,
-  avisos: 4,
+  avisos: 5,
   atajos: 1,
   modelo: 1,
   discord: 1,
@@ -226,7 +229,7 @@ const CUANTOS: Record<string, number> = {
 
 /** La última que miraste. Ajustes se abre muchas veces seguidas cuando estás
     afinando algo, y volver siempre a la primera obliga a rebuscar cada vez. */
-const RECUERDO = "adeorq-ajustes-seccion";
+const RECUERDO = SECCION_AJUSTES;
 
 /** Los seis modos que admite `claude --permission-mode`, comprobados contra su
     propio `--help` y su documentación el 2026-08-01. acceptEdits va primero
@@ -419,6 +422,8 @@ export default function SettingsView({
 }: Props) {
   const { t } = useT();
   const [version, setVersion] = useState("");
+  /** La última versión que trajo algo que enseñar, para volver a verlo. */
+  const conNovedades = version ? ultimaConNovedades(NOVEDADES, version) : null;
   const [nombre, setNombre] = useState(() => leerPerfil().nombre);
   const [carpeta, setCarpeta] = useState(() => leerPerfil().raiz);
   const [sinCarpeta, setSinCarpeta] = useState(() => leerPerfil().sinRaiz);
@@ -518,6 +523,18 @@ export default function SettingsView({
     setSeccion(id);
     localStorage.setItem(RECUERDO, id);
   };
+
+  // El recorrido de lo nuevo trae aquí a quien lo sigue (`Recorridos.tsx`).
+  useEffect(() => {
+    const ir = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      if (!SECCIONES.some((s) => s.id === id)) return;
+      setPlegado(false);
+      setSeccion(id as SeccionId);
+    };
+    window.addEventListener(AJUSTES_IR, ir);
+    return () => window.removeEventListener(AJUSTES_IR, ir);
+  }, []);
 
   /**
    * Los bloques de la sección abierta, para poder saltar a uno sin bajar a mano.
@@ -1408,6 +1425,7 @@ export default function SettingsView({
                   ))}
                 </div>
               </section>
+              <AjustesSonidos />
 
               {/* El cerebro de partida. Va JUSTO ANTES del aviso de «cuando el
                   cerebro no cuadra» porque son la misma conversación: uno
@@ -1723,6 +1741,11 @@ export default function SettingsView({
                   <button className="mini" onClick={onVerBienvenida}>
                     {t("Repetir la bienvenida")}
                   </button>
+                  {conNovedades && (
+                    <button className="mini" data-novedades onClick={() => window.dispatchEvent(new Event(VER_NOVEDADES))}>
+                      {t("Lo nuevo de la {v}", { v: conNovedades })}
+                    </button>
+                  )}
                 </div>
               </section>
 

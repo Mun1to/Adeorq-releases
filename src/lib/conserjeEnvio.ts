@@ -24,6 +24,7 @@ import type { Account } from "./pty";
 import { reglasDeLaMemoria } from "./mundo";
 import { fotoRapida } from "./mundo";
 import { cerebroPorDefecto, type ModelAlias } from "./models";
+import { sonar } from "./sonidos";
 
 export interface Envio {
   /** Lo que la reja tiró o no se pudo abrir, en una frase. */
@@ -52,6 +53,9 @@ export async function enviarAlConserje(
     fijo: ModelAlias;
     /** Algo cambió en el disco: quien pinta, que relea. */
     alCambio: () => void;
+    /** Si suena al contestar. Lo que escribiste en el móvil se contesta en el
+        móvil: que pite el PC, que está solo, no le dice nada a nadie. */
+    sonar?: boolean;
   },
 ): Promise<Envio> {
   const { exec, conv, fijo, alCambio } = opciones;
@@ -59,6 +63,12 @@ export async function enviarAlConserje(
   try {
     const r = await conserjeEnviar(id, texto, estadosParaElConserje(conv?.trabajos ?? [], exec.panes()));
     marcarPensando(id, false);
+    // Adeo ya contestó. Suena solo si no lo estás leyendo: la app sin el foco, o
+    // el hilo de ESTA conversación sin pintar (otra pestaña, otra conversación, o
+    // el Chat abierto en una sesión, que pinta su hilo con la misma clase).
+    const hilo = document.querySelector(`.chat-turnos[data-adeo="${CSS.escape(id)}"]`);
+    const mirando = document.hasFocus() && !!hilo?.getClientRects().length;
+    if (opciones.sonar !== false && !mirando) sonar("adeo");
     alCambio();
     if (!r.acciones.length) {
       return { aviso: r.descartes.length ? r.descartes.join(" · ") : null, error: null };

@@ -11,6 +11,7 @@ import { useT } from "../lib/i18n";
 import { anotarRastro, terminalesPorActualizar } from "../lib/pty";
 import { useCabina } from "../lib/cabina";
 import { cambiarDeVersion, quienFrena, trabajando } from "../lib/actualizar";
+import { despertarSonido, sonarUnaVez } from "../lib/sonidos";
 import { AdeorqMark, CloseIcon, DownloadIcon } from "./Icons";
 
 // Auto-update like VoCript: check once on start (and every few hours for the
@@ -21,6 +22,42 @@ const CHECK_EVERY_MS = 6 * 60 * 60 * 1000;
     la ventana, sin este suelo un rato de alt-tabs serían veinte peticiones. */
 const MIN_ENTRE_MS = 5 * 60 * 1000;
 const NOTIFIED_KEY = "adeorq-update-notified";
+/** La última versión que ya sonó (`lib/sonidos.ts`). */
+const SONADA_KEY = "adeorq-update-sonada";
+
+/** Con tus clics y teclas, hasta que `f` diga que ya está (o diez veces). No vale
+    el primero sin más: Escape no da permiso de sonar, y con el dedo el permiso
+    llega al levantarlo, no al apoyarlo. Un intento a la vez, para no sonar dos;
+    el gesto que llega mientras uno espera despierta el audio, que es lo que ese
+    intento está esperando. Solo vive uno: el de la última versión anunciada
+    sustituye al de la anterior, o el primer clic sonaría dos veces. */
+let reintentoVivo: (() => void) | null = null;
+function conTusGestos(f: () => Promise<boolean>): void {
+  reintentoVivo?.();
+  const tipos = ["pointerdown", "pointerup", "click", "keydown"] as const;
+  let quedan = 10;
+  let enCurso = false;
+  const quitar = () => {
+    tipos.forEach((tipo) => window.removeEventListener(tipo, cada, true));
+    if (reintentoVivo === quitar) reintentoVivo = null;
+  };
+  const cada = () => {
+    if (enCurso) {
+      despertarSonido();
+      return;
+    }
+    enCurso = true;
+    quedan -= 1;
+    f()
+      .catch(() => false)
+      .then((ya) => {
+        enCurso = false;
+        if (ya || quedan <= 0) quitar();
+      });
+  };
+  tipos.forEach((tipo) => window.addEventListener(tipo, cada, true));
+  reintentoVivo = quitar;
+}
 
 type Phase = "idle" | "found" | "downloading" | "done" | "error";
 /** Lo que Munir pidió y está esperando a que los agentes terminen. */
@@ -63,6 +100,33 @@ export default function UpdateBar() {
   const announce = async (version: string) => {
     if (sessionStorage.getItem(NOTIFIED_KEY) === version) return;
     sessionStorage.setItem(NOTIFIED_KEY, version);
+    // El sonido, una vez por versión y no por sesión: reiniciar no lo repite. Se
+    // apunta solo si llegó a sonar: donde el sistema no deja sonar nada antes de
+    // un clic, se habría apuntado sin oírse nunca. Entonces se intenta otra vez
+    // con tus clics y teclas, que es lo que ese sistema espera.
+    try {
+      if (localStorage.getItem(SONADA_KEY) !== version) {
+        const intentar = () =>
+          sonarUnaVez("actualizacion").then((sono) => {
+            try {
+              if (sono) localStorage.setItem(SONADA_KEY, version);
+            } catch {
+              // Sonó: sin apuntarlo, el próximo arranque lo repite, pero esta
+              // sesión no (un rechazo aquí dejaba el reintento sonando en cada clic).
+            }
+            return sono;
+          });
+        void intentar()
+          .then((sono) => {
+            // Si ya sonó, el reintento de una versión anterior sobra.
+            if (sono) reintentoVivo?.();
+            else conTusGestos(intentar);
+          })
+          .catch(() => {});
+      }
+    } catch {
+      // Sin almacenamiento, mejor callar que sonar en cada arranque.
+    }
     try {
       let granted = await isPermissionGranted();
       if (!granted) granted = (await requestPermission()) === "granted";

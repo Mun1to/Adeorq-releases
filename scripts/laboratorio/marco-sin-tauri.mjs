@@ -186,7 +186,7 @@ try {
   let v = await ventana();
   await v.enviar("Page.enable");
   await v.enviar("Page.addScriptToEvaluateOnNewDocument", { source: GUARDA });
-  await v.js(`localStorage.setItem("adeorq-perfil", ${JSON.stringify(
+  await v.js(`localStorage.setItem("adeorq-novedades-vista", "99.0.0"); localStorage.setItem("adeorq-perfil", ${JSON.stringify(
     JSON.stringify({ nombre: "Prueba", raiz: join(BASE, "proyectos"), sinRaiz: false, extras: [], leerSesiones: false, clis: [], hecho: true, tour: true }),
   )})`);
   await v.enviar("Page.reload");

@@ -8,7 +8,7 @@
 
 import "./xterm-en-node";
 import { Terminal } from "@xterm/xterm";
-import { historiaConColor, registrarTerminal } from "../src/lib/terminales";
+import { historiaConColor, pantallaDe, registrarTerminal } from "../src/lib/terminales";
 
 let fallos = 0;
 const rojos: string[] = [];
@@ -60,6 +60,29 @@ async function probar() {
   await escribir(term, `\x1b[2J\x1b[H${"─".repeat(30)}❯ \x1b[3;1H${"─".repeat(30)}  ›› auto mode on`);
   const caja = historiaConColor(1, 400);
   es("en la alterna, la raya de todo el ancho no se pega a la fila de debajo", caja?.trozos.map((l) => l.map((x) => x[0]).join("")), ["─".repeat(30), "❯", "─".repeat(30), "  ›› auto mode on"]);
+
+  // `pantallaDe` es lo que leen `read_pane_screen`, la comprobación de
+  // `send_command` y el selector de modelo. La sugerencia gris de Claude Code no
+  // la escribió nadie: con ella dentro, la caja parecía tener texto. El
+  // 2026-11-19 la coordinadora de winshotx vio «/compact» en la caja del panel
+  // 57, le dio un Intro y no pasó nada. Lo escrito de verdad sí se queda.
+  await escribir(term, `\x1b[2J\x1b[H${"─".repeat(30)}\x1b[2;1H❯ \x1b[2m/compact\x1b[0m\x1b[3;1H${"─".repeat(30)}\x1b[4;1H  ›› auto mode on`);
+  es("la sugerencia gris no sale como escrita", pantallaDe(1), ["─".repeat(30), "❯", "─".repeat(30), "  ›› auto mode on"]);
+  await escribir(term, `\x1b[2;1H\x1b[2K❯ /compact`);
+  es("lo tecleado de verdad, sí", pantallaDe(1)?.[1], "❯ /compact");
+  await escribir(term, `\x1b[2;1H\x1b[2K❯ hola\x1b[2m que tal\x1b[0m`);
+  es("de una fila con las dos, solo lo escrito", pantallaDe(1)?.[1], "❯ hola");
+  await escribir(term, `\x1b[2;1H\x1b[2K  \x1b[2m❯ 2. Sonnet\x1b[0m`);
+  es("lo tenue fuera de la caja (un menú sangrado) se queda", pantallaDe(1)?.[1], "  ❯ 2. Sonnet");
+  // Con un turno en marcha, lo que se manda queda en su cola y Claude Code lo
+  // dice en la caja, atenuado como la sugerencia. Es el letrero que busca
+  // `quedo_en_cola` (src-tauri/src/mcp.rs) para que `send_command` conteste
+  // «quedó en su cola, no lo mandes otra vez» (revisión de 34845a23, con la
+  // pantalla de un Claude Code 2.1.328 de verdad).
+  // Tras el glifo de la caja va un espacio duro (U+00A0), como en la pantalla real.
+  term.resize(60, 12);
+  await escribir(term, `\x1b[2;1H\x1b[2K❯ \x1b[2mPress up to edit queued messages\x1b[0m`);
+  es("el letrero de la cola, aunque vaya tenue, se queda", pantallaDe(1)?.[1], "❯ Press up to edit queued messages");
 }
 
 void probar().then(() => {

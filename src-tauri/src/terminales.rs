@@ -141,10 +141,14 @@ pub struct Señas {
     pub version: u32,
 }
 
+/// La variable con que la ventana le dice el canal a su proceso de terminales.
+/// No pasa a lo que nace en una terminal (`pty::abrir`).
+pub const VARIABLE_DE_CANAL: &str = "ADEORQ_TERMINALES_CANAL";
+
 /// El canal separa procesos que no deben verse: la app instalada y la de
 /// desarrollo, o cada prueba de laboratorio (`ADEORQ_TERMINALES_CANAL`).
 pub fn canal() -> String {
-    std::env::var("ADEORQ_TERMINALES_CANAL")
+    std::env::var(VARIABLE_DE_CANAL)
         .ok()
         .filter(|c| !c.is_empty() && c.chars().all(|x| x.is_ascii_alphanumeric() || x == '-'))
         .unwrap_or_else(|| if cfg!(debug_assertions) { "desarrollo".into() } else { "estable".into() })

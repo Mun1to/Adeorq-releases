@@ -1110,6 +1110,8 @@ export interface TerminalViva {
   id: number;
   cwd: string;
   command: string[] | null;
+  /** El `claude` que se le tecleó si nació consola (`lib/claudeTecleado.ts`). */
+  tecleado?: string[] | null;
 }
 
 /** Las que aguantaron en el proceso de terminales mientras la app se caía

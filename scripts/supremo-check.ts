@@ -19,7 +19,7 @@ import {
   type PedidoMcp,
 } from "../src/lib/supremo";
 import { comandoDe } from "../src/lib/lanzar";
-import { apuntarTecleado, lineaQueCuenta } from "../src/lib/claudeTecleado";
+import { apuntarTecleado, lineaQueCuenta, recogerTecleados, tecleadoDe } from "../src/lib/claudeTecleado";
 import { kindDeComando } from "../src/components/KindIcon";
 import { sessionIdOf } from "../src/lib/comandos";
 
@@ -216,6 +216,19 @@ ok("la consola pasa a ser Claude, con su conversación", kindDeComando(enConsola
 const propia = "claude --session-id aaaa";
 ok("una que nació Claude sigue con la suya", lineaQueCuenta(propia, [LINEA]) === propia);
 ok("una consola sin nada tecleado sigue siendo consola", kindDeComando(lineaQueCuenta("", undefined)) === "shell");
+// Tras reiniciar la ventana con las terminales vivas, lo apuntado llega con `pty_vivas`
+// (la S45 de winshotx, 2026-11-19: el panel 57 volvió a ser consola tras actualizar).
+const LINEA_57 = "claude --session-id 0006490e-5bba-4a1e-9a77-0c0ffee00057 --model fable";
+const recogidas = recogerTecleados([
+  { id: 57, tecleado: [LINEA_57] },
+  { id: 58, tecleado: null },
+  { id: 59 },
+  { id: "60", tecleado: [LINEA_57] },
+  { id: 61, tecleado: "claude" },
+]);
+const el57 = lineaQueCuenta("", tecleadoDe(57));
+ok("al reiniciar, la consola 57 vuelve a ser Claude con su conversación", kindDeComando(el57) === "claude" && sessionIdOf(el57) === "0006490e-5bba-4a1e-9a77-0c0ffee00057", el57);
+ok("y lo que no es una línea de un panel no se apunta", recogidas === 1 && [58, 59, 61].every((p) => tecleadoDe(p) === undefined), String(recogidas));
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);
 // Sin esto `pnpm bancos` lo daba por bueno con fallos dentro: solo mira cómo sale (2026-10-18).

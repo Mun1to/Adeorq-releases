@@ -21,18 +21,27 @@
 // `compactarme` contestaba «En tu terminal no corre Claude Code» y Munir tuvo que
 // escribir el /compact a mano (`src-tauri/src/mcp/tecleado.rs`).
 //
+// Con `--reiniciar` (lleva `--consola`), las terminales van en su proceso aparte y, con el
+// Claude ya tecleado, Adeorq se reinicia como al actualizar: la consola sigue viva y la app
+// nueva la tiene que seguir contando como Claude. Hasta el 2026-11-19 lo tecleado solo vivía
+// en memoria y `compactarme` contestaba «En tu terminal no corre Claude Code» (la S45 de
+// winshotx, en el panel 57, tras instalar la 0.9.262). Con `--sin-disco` se borra
+// `tecleados.json` antes de reabrir, que es como estaba antes: tiene que salir MAL.
+//
 //   cargo build --manifest-path src-tauri/Cargo.toml   (deja C:\ct\debug\adeorq.exe)
 //   pnpm dev                                            (el binario de desarrollo carga de ahí)
-//   node scripts/laboratorio/compactarme-de-verdad.mjs [carpeta para las fotos] [exe] [--consola]
+//   node scripts/laboratorio/compactarme-de-verdad.mjs [carpeta para las fotos] [exe] [--consola | --reiniciar [--sin-disco]]
 //
 // Sale con 1 si algo falla.
 import http from "node:http";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { EXE, abrirAislada, dormir, hasta } from "./aislada.mjs";
 
-const CONSOLA = process.argv.includes("--consola");
+const REINICIAR = process.argv.includes("--reiniciar");
+const SIN_DISCO = process.argv.includes("--sin-disco");
+const CONSOLA = REINICIAR || process.argv.includes("--consola");
 const ARGS = process.argv.slice(2).filter((x) => !x.startsWith("--"));
 const FOTOS = resolve(ARGS[0] || tmpdir());
 const PUERTO_MCP = 3198;
@@ -149,6 +158,7 @@ const a = await abrirAislada({
   fotos: FOTOS,
   exe,
   sembrar: sembrarClaude,
+  aparte: REINICIAR || undefined,
   entorno: {
     ANTHROPIC_API_KEY: CLAVE, ANTHROPIC_BASE_URL: `http://127.0.0.1:${PUERTO_API}`, SSH_CONNECTION: "laboratorio", DISABLE_AUTOUPDATER: "1", CLAUDE_CODE_NO_FLICKER: "1",
     // Las herramientas del MCP en la lista de la petición, no detrás de su buscador.
@@ -156,11 +166,24 @@ const a = await abrirAislada({
   },
 });
 try {
-  const { v, demo } = a;
-  const agente = a.puente(null);
-  await agente.pedir("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "laboratorio", version: "1" } });
+  const { demo } = a;
+  // Un agente sin panel. Al reiniciar se cierran los puentes y hace falta otro.
+  const conectar = async () => {
+    const p = a.puente(null);
+    await p.pedir("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "laboratorio", version: "1" } });
+    return p;
+  };
+  let agente = await conectar();
   const pantalla = async (id) => (await agente.llamar("read_pane_screen", { paneId: id })).texto ?? "";
-  const teclear = (id, data) => v.js(`window.__TAURI_INTERNALS__.invoke("pty_write", { id: ${id}, data: ${JSON.stringify(data)} }).then(() => "ok")`);
+  // `a.v`, no la de ahora: tras reiniciar la ventana es otra.
+  const teclear = (id, data) => a.v.js(`window.__TAURI_INTERNALS__.invoke("pty_write", { id: ${id}, data: ${JSON.stringify(data)} }).then(() => "ok")`);
+  let conversacion = "";
+  // Donde Adeorq guarda lo tecleado (`mcp/tecleado.rs`), se llame como se llame.
+  const guardadoDe = () => {
+    const d = join(a.base, "datos", "Adeorq");
+    const f = existsSync(d) ? readdirSync(d).find((n) => /^tecleados.*\.json$/.test(n)) : null;
+    return join(d, f ?? "tecleados.json");
+  };
 
   // Sin consola, con el esfuerzo pedido en `open_pane` (desde el 2026-11-17): es lo que
   // ahorra teclear `claude --effort max` en una consola.
@@ -171,7 +194,8 @@ try {
     const lista = await hasta(async () => (/PS [A-Z]:\\.*>/.test(await pantalla(claude)) ? true : null), 30_000, 500);
     if (!lista) throw new Error(`la consola no llegó a su PS>:\n${await pantalla(claude)}`);
     const tecleo = await agente.llamar("send_command", { paneId: claude, command: "claude --model opus --effort max" });
-    debe(/cuenta ya esta consola como un Claude Code, con la conversación [0-9a-f-]{36}/.test(tecleo.texto ?? ""), "send_command dice que la consola ya cuenta como Claude, con su conversación", tecleo.texto ?? tecleo.error);
+    conversacion = /con la conversación ([0-9a-f-]{36})/.exec(tecleo.texto ?? "")?.[1] ?? "";
+    debe(Boolean(conversacion) && /cuenta ya esta consola como un Claude Code/.test(tecleo.texto ?? ""), "send_command dice que la consola ya cuenta como Claude, con su conversación", tecleo.texto ?? tecleo.error);
   }
   const caja = await hasta(async () => (/for shortcuts|to cycle\)|Try "/i.test(await pantalla(claude)) ? true : null), 90_000, 1000);
   if (!caja) throw new Error(`Claude Code no llegó a su caja:\n${await pantalla(claude)}`);
@@ -184,6 +208,28 @@ try {
     // Ni se apunta otra, ni se le dice que no cuenta como Claude (sí cuenta: la primera).
     debe(!/cuenta ya esta consola|No la cuento/.test(otra.texto ?? "") && /Intro pulsado/.test(otra.texto ?? ""), "un «claude …» mandado al Claude que ya corre le llega como mensaje y no se apunta", otra.texto ?? otra.error);
     await hasta(async () => (/for shortcuts|to cycle\)/i.test(await pantalla(claude)) && !/esc to interrupt/i.test(await pantalla(claude)) ? true : null), 30_000, 500);
+    await dormir(1500);
+  }
+
+  if (REINICIAR) {
+    // Como la tarjeta de actualizar: la app se va sin despedirse y la nueva recoge la consola.
+    const guardado = guardadoDe();
+    debe(existsSync(guardado) && readFileSync(guardado, "utf8").includes(conversacion), "lo tecleado queda guardado en disco, con su conversación", existsSync(guardado) ? readFileSync(guardado, "utf8") : "sin tecleados.json");
+    const antes = a.motor();
+    if (SIN_DISCO) rmSync(guardado, { force: true });
+    await a.reiniciar({ actualizando: true });
+    agente = await conectar();
+    const despues = a.motor();
+    debe(antes.pid > 0 && despues.pid === antes.pid && despues.terminales >= 1, "tras reiniciar, la consola sigue viva en el mismo proceso de terminales", `${antes.pid} → ${despues.pid}, ${despues.terminales} consolas`);
+    const fila = new RegExp(`^ID: ${claude},[^\\n]*Command: ([^\\n]*)`, "m");
+    const lista = await hasta(async () => fila.exec((await agente.llamar("get_active_panes", {})).texto ?? "")?.[1] ?? null, 30_000, 500);
+    debe(/claude/.test(lista ?? "") && lista.includes(conversacion), "y la app nueva la sigue contando como Claude, con su conversación (get_active_panes)", lista ?? "sin la fila del panel");
+    // La abrió un agente: sigue siendo delegada (la revisión aparte del 2026-11-19, BAJA 1).
+    const todas = (await agente.llamar("get_active_panes", {})).texto ?? "";
+    const suFila = new RegExp(`^ID: ${claude},[^\\n]*`, "m").exec(todas)?.[0] ?? "";
+    debe(/Abierta por/.test(suFila) && !/ya no están[\s\S]*Se compacta sola/.test(todas), "y sigue siendo delegada: con su «Abierta por» y fuera de «ya no están»", todas.slice(0, 600));
+    const caja2 = await hasta(async () => (/for shortcuts|to cycle\)/i.test(await pantalla(claude)) ? true : null), 30_000, 1000);
+    debe(Boolean(caja2), "la ventana nueva vuelve a pintar su Claude", await pantalla(claude));
     await dormir(1500);
   }
 
@@ -230,6 +276,19 @@ try {
   const marcas = jsonl.reduce((n, f) => n + (readFileSync(f, "utf8").match(/"subtype":"compact_boundary"/g) ?? []).length, 0);
   debe(marcas === 1, "una sola compactación en el transcript", `${marcas} en ${jsonl.length} conversaciones`);
   await a.foto(null, "compactarme-3-ventana.png");
+
+  if (REINICIAR) {
+    // Otro agente la puede compactar: es delegada, no de Munir (BAJA 1). Va al final
+    // porque arranca su /fin en cuanto acaba el turno.
+    const compacta = await agente.llamar("compactar_terminal", { paneId: claude });
+    debe(!compacta.error && !/no la abrió un agente|no corre Claude Code/.test(compacta.texto ?? ""), "tras reiniciar, compactar_terminal de otro agente se acepta", compacta.texto ?? compacta.error);
+    // Y al cerrarla se olvida también lo guardado, aunque venga del disco (lo recuperó la app nueva).
+    const guardado = guardadoDe();
+    const cierre = await agente.llamar("close_pane", { paneId: claude, rastro: "Laboratorio de compactarme tras reiniciar: la consola siguió siendo Claude. Nada pendiente." });
+    const leido = () => (existsSync(guardado) ? readFileSync(guardado, "utf8") : "sin tecleados.json");
+    const olvidado = await hasta(() => (existsSync(guardado) && !leido().includes(conversacion) ? true : null), 10_000, 300);
+    debe(Boolean(olvidado), "al cerrarla con close_pane se olvida también lo guardado", `${cierre.texto ?? cierre.error} · ${leido()}`);
+  }
 } catch (e) {
   fallos.push(String(e?.message ?? e));
   console.log(`MAL   ${e?.stack ?? e}`);

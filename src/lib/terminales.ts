@@ -8,8 +8,13 @@
 // atravesar un árbol de componentes para llegar a una terminal.
 
 import type { Terminal } from "@xterm/xterm";
+import { sinSugerencia } from "./cajaClaude";
 
 const vivas = new Map<number, Terminal>();
+
+/** La caja de Claude Code con mensajes en cola: el mismo letrero que busca
+ *  `LETRERO_DE_COLA` en `src-tauri/src/mcp.rs`. */
+const LETRERO_DE_COLA = /^[❯>]\s*Press up to edit/;
 
 export function registrarTerminal(id: number, term: Terminal): void {
   vivas.set(id, term);
@@ -28,7 +33,14 @@ export function xtermDe(id: number): Terminal | null {
 }
 
 /** Las filas de la pantalla tal como se ven, de arriba abajo, sin el espacio
- *  sobrante a la derecha ni las filas vacías del final. */
+ *  sobrante a la derecha ni las filas vacías del final. En la caja de entrada,
+ *  sin la sugerencia gris (`sinSugerencia`): la leen `read_pane_screen`, la
+ *  comprobación de `send_command` y el selector de modelo, y con ella dentro la
+ *  caja parecía tener texto escrito (2026-11-19: «/compact» en gris en el panel
+ *  57 de winshotx, tomado por algo tecleado; un Intro no lo manda). El letrero
+ *  de la cola («❯ Press up to edit queued messages») va igual de atenuado y sí
+ *  se deja: es lo que mira `quedo_en_cola` (`mcp.rs`) para que `send_command`
+ *  diga que el texto quedó en su cola y no se mande otra vez. */
 export function pantallaDe(id: number): string[] | null {
   const term = vivas.get(id);
   if (!term) return null;
@@ -36,7 +48,8 @@ export function pantallaDe(id: number): string[] | null {
   const filas: string[] = [];
   for (let y = 0; y < term.rows; y++) {
     const linea = buf.getLine(buf.baseY + y);
-    filas.push(linea ? linea.translateToString(true).trimEnd() : "");
+    const cruda = linea?.translateToString(true) ?? "";
+    filas.push((LETRERO_DE_COLA.test(cruda) ? cruda : sinSugerencia(linea)).trimEnd());
   }
   while (filas.length && !filas[filas.length - 1]) filas.pop();
   return filas;

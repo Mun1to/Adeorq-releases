@@ -14,7 +14,11 @@
 // NO empuja. Prepara el commit y para, para que se pueda mirar el diff antes
 // de que salga a un repo público. Lo irreversible lo pulsa una persona.
 //
-//   node scripts/publicar-codigo.mjs
+//   node scripts/publicar-codigo.mjs [--titulo "<una frase en inglés>"]
+//
+// `--titulo` pone la frase de después de «Adeorq <versión> —» en vez de sacarla
+// de los commits: lo que trae una versión lo sabe quien la publica, y los
+// asuntos de commit cuentan cada retoque, no la versión.
 
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, readdirSync, statSync, readFileSync, cpSync } from "node:fs";
@@ -24,6 +28,32 @@ import { queTrae as titulo } from "./titulo-publico.mjs";
 import { contar, recoger } from "./recoger-publicadas.mjs";
 
 const REPO_PUBLICO = "https://github.com/Mun1to/Adeorq-releases.git";
+
+/** `--titulo "<frase>"` o `--titulo=<frase>`. Cualquier otra cosa para aquí,
+    antes de clonar: un `--title` mal escrito que se ignorase sacaría el título
+    automático sin avisar, y lo publicado ya no se reescribe. */
+function leerTitulo(args) {
+  const vistos = [];
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a === "--titulo") vistos.push(args[++i] ?? "");
+    else if (a.startsWith("--titulo=")) vistos.push(a.slice("--titulo=".length));
+    else return { error: `no conozco «${a}»; la única opción es --titulo "<frase>"` };
+  }
+  if (vistos.length > 1) return { error: "`--titulo` va una sola vez" };
+  if (!vistos.length) return { titulo: "" };
+  const t = vistos[0].trim();
+  if (!t || t.startsWith("--")) return { error: "`--titulo` necesita la frase detrás, entre comillas" };
+  if (/[\r\n]/.test(t)) return { error: "el título va en una sola línea" };
+  if (t.length > 120) return { error: `el título tiene ${t.length} caracteres: déjalo en 120 o menos (GitHub corta la lista hacia los 70)` };
+  return { titulo: t };
+}
+const leido = leerTitulo(process.argv.slice(2));
+if (leido.error) {
+  console.error(leido.error);
+  process.exit(1);
+}
+const tituloAMano = leido.titulo;
 
 /** Los que no salen JAMÁS. Si alguien añade otro documento interno, va aquí. */
 // Los cuatro laboratorios de seguridad (`scripts/laboratorio/*-de-verdad.mjs`:
@@ -272,7 +302,8 @@ try {
   }
 
   const trae = queTrae(desde);
-  let mensaje = trae.titulo ? `Adeorq ${version} — ${trae.titulo}` : `Adeorq ${version}`;
+  const frase = tituloAMano || trae.titulo;
+  let mensaje = frase ? `Adeorq ${version} — ${frase}` : `Adeorq ${version}`;
 
   /* El cinturón, por si el tramo sale vacío igualmente: un título repetido es
      peor que uno feo, porque en la lista de GitHub los dos commits se leen como

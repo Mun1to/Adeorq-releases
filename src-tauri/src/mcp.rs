@@ -15,7 +15,7 @@ mod entregar;
 pub(crate) mod preguntar;
 mod quien_conecta;
 pub(crate) mod relevo_cuota;
-mod tecleado;
+pub(crate) mod tecleado;
 mod tope_contexto;
 use tope_contexto::Carga;
 
@@ -76,6 +76,7 @@ pub struct Puente {
     avisadas: Mutex<HashMap<u32, u8>>,
     /// La línea de Claude Code que se le tecleó por `send_command` a cada panel
     /// que nació consola (`mcp/tecleado.rs`): la lee `la_ficha` como su comando.
+    /// Va también a disco (`tecleado::guardar`) y vuelve al reengancharse.
     tecleados: Mutex<HashMap<u32, Vec<String>>>,
     /// La ventana ya escucha `mcp:pedido` (`mcp_oyente_listo`). El MCP contesta
     /// a los dos segundos de arrancar y la ventana escucha a los seis: lo que se
@@ -281,21 +282,33 @@ pub fn cerrada_con_la_x(app: &tauri::AppHandle, sesion: &str, rastro: &std::path
 /// de antes: sin esto, una consola abierta por un agente salía en «ya no están»
 /// estando abierta, y su `close_pane` no dejaba constancia de cómo acabó.
 pub fn al_reengancharse(app: &tauri::AppHandle) {
-    let Some(ruta) = libro_de_delegadas() else { return };
-    let libro = delegadas::leer(&ruta);
-    let paneles: Vec<(u32, Option<String>)> = las_fichas(app)
-        .into_iter()
-        .map(|f| {
-            let sesion = f.command.as_deref().and_then(crate::rastros::sesion_del_comando);
-            (f.id, sesion)
-        })
-        .collect();
+    let libro = libro_de_delegadas().map(|r| delegadas::leer(&r)).unwrap_or_default();
+    let (tecleados, siguen) = lo_que_sigue(&crate::pty::fichas(app), &tecleado::guardado(), &libro, crate::conserje::arranque());
+    // El `claude` tecleado en una consola sigue contando como Claude (`mcp/tecleado.rs`).
+    tecleado::recuperar(app, tecleados);
     let puente = app.state::<Puente>();
-    for (id, clave) in delegadas::las_que_siguen(&libro, &paneles, crate::conserje::arranque()) {
+    for (id, clave) in siguen {
         let Some(d) = libro.get(&clave) else { continue };
         puente.delegadas.lock().unwrap().insert(id, madre_de_lo_guardado(d));
         puente.claves.lock().unwrap().insert(id, clave);
     }
+}
+
+/// Lo que se recupera al volver a engancharse (`al_reengancharse`): lo tecleado en
+/// las consolas que siguen vivas, y las delegadas que nadie cerró con su clave.
+/// `nacidas` son las fichas del proceso de terminales, con el comando con que nació
+/// cada panel.
+///
+/// Las delegadas, por ese comando y NO por lo tecleado: `apuntar_delegada` les puso
+/// la clave con el de nacimiento, y una consola nace sin conversación
+/// (`panel-<arranque>-<panel>`). Buscándola por la conversación tecleada, una
+/// consola delegada con su `claude` dejaba de serlo tras cada actualización (la
+/// revisión aparte del 2026-11-19).
+fn lo_que_sigue(nacidas: &[crate::pty::Ficha], guardado: &tecleado::Libro, libro: &delegadas::Libro, arranque: u64) -> (Vec<(u32, Vec<String>)>, Vec<(u32, String)>) {
+    let vivos: Vec<u32> = nacidas.iter().map(|f| f.id).collect();
+    let paneles: Vec<(u32, Option<String>)> =
+        nacidas.iter().map(|f| (f.id, f.command.as_deref().and_then(crate::rastros::sesion_del_comando))).collect();
+    (tecleado::los_de_ahora(guardado, arranque, &vivos), delegadas::las_que_siguen(libro, &paneles, arranque))
 }
 
 /// Un panel acaba de arrancar con este comando (`pty_spawn`). Si retoma la
@@ -689,6 +702,15 @@ pub fn se_quedo_en_la_caja(pantalla: &[String]) -> bool {
         let digitos = t.chars().take_while(char::is_ascii_digit).count();
         (1..=2).contains(&digitos) && t[digitos..].starts_with(". ")
     }
+    // Un selector abierto (`/model`, `/resume`) tapa la caja: lo mandado entró y
+    // lo abrió. Lo delata su pie, que en un panel estrecho se parte en filas. El
+    // de `/resume` lleva el cursor sin número, o ninguno si no hay sesiones, y el
+    // último glifo a la vista era el eco de la historia (2.1.328, 2026-11-20).
+    let pie: Vec<&str> = pantalla.iter().rev().take(4).map(|l| l.trim()).collect();
+    let pie = pie.into_iter().rev().collect::<Vec<_>>().join(" ");
+    if pie.contains("Esc to close") || pie.contains("Esc to cancel") {
+        return false;
+    }
     if let Some((fila, dentro)) = pantalla.iter().rev().find_map(|l| fila_de_caja(l).map(|d| (l, d))) {
         // Un menú abierto (el de `/model`, medido el 2026-10-15) pinta su
         // cursor con el mismo glifo que la caja: «  ❯ 2.  Opus 5.5 ✔». Se
@@ -717,10 +739,12 @@ const LETRERO_DE_COLA: &str = "Press up to edit";
 
 /// Lo escrito en una fila de la caja. El glifo es `❯` en el renderizador fullscreen
 /// y `> ` en el clásico (`RC="> "` en su binario); un `>>` o un `>=` no son una caja.
+/// Detrás del glifo de la caja va un espacio duro (U+00A0, medido en la 2.1.328),
+/// y en el eco de la historia uno normal: valen los dos.
 fn fila_de_caja(l: &str) -> Option<&str> {
     let t = l.trim_start();
     let resto = t.strip_prefix('❯').or_else(|| t.strip_prefix('>'))?;
-    (resto.is_empty() || resto.starts_with(' ')).then(|| resto.trim())
+    (resto.is_empty() || resto.starts_with(char::is_whitespace)).then(|| resto.trim())
 }
 
 /// Claude Code está con un turno y lo mandado espera en su cola: lo leerá al acabar.
@@ -2914,7 +2938,8 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             }
             let mut parte = format!("Panel {}: {}.", pane_id, hecho.join(", "));
             if let Some(linea) = lanza {
-                app.state::<Puente>().tecleados.lock().unwrap().insert(pane_id, vec![linea.clone()]);
+                // En memoria y en disco: la consola sobrevive a reiniciar la ventana.
+                tecleado::guardar(app, pane_id, &linea);
                 // Y la ventana, que es la que vigila su contexto y la compacta sola.
                 // Una de antes no sabe atenderlo, y entonces se dice.
                 let ventana = pedir_a_la_ventana_con(app, "claude_tecleado", json!({ "paneId": pane_id, "command": [linea] }), Duration::from_secs(2))
@@ -3642,7 +3667,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             }
             app.state::<Puente>().delegadas.lock().unwrap().remove(&pane_id);
             app.state::<Puente>().avisadas.lock().unwrap().remove(&pane_id);
-            app.state::<Puente>().tecleados.lock().unwrap().remove(&pane_id);
+            tecleado::olvidar_panel(app, pane_id);
 
             // Cuántas siguen abiertas y cuántas caben todavía. Cerrar una libera su sitio
             // sola (`paneles_vivos`). Lo que NO se devuelve es el tope por hora, que existe
@@ -3862,6 +3887,102 @@ mod tests {
         let codex = Some(vec!["codex --sandbox workspace-write".to_string()]);
         assert_eq!(comando_que_cuenta(codex.clone(), Some(&linea)), codex);
         assert!(!nacio_consola(codex.as_deref()) && nacio_consola(consola.as_deref()) && nacio_consola(None));
+    }
+
+    /// La S45 de winshotx, 2026-11-19: tras instalar la 0.9.262, el panel 57 (una
+    /// consola con un `claude` tecleado, viva en el proceso de terminales) volvió a
+    /// ser consola, porque lo tecleado solo vivía en la memoria de la app de antes.
+    /// La app nueva empieza con el mapa vacío y lo recupera del disco.
+    #[test]
+    fn un_claude_tecleado_sigue_contando_tras_reiniciar_la_ventana() {
+        let dir = std::env::temp_dir().join(format!("adeorq-tecleados-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let ruta = dir.join("tecleados.json");
+        let sid = "0006490e-5bba-4a1e-9a77-0c0ffee00057";
+        let linea = vec![format!("claude --session-id {sid} --model fable --effort max")];
+        let consola = Some(vec!["powershell.exe".to_string(), "-NoLogo".to_string()]);
+        let (vida, hoy) = (1_795_400_000_000u64, 1_795_500_000_000u64);
+        // La app de antes lo apunta al teclearlo.
+        let apunte = |panel: u32, arranque: u64, ms: u64| tecleado::Apunte { arranque, panel, comando: linea.clone(), ms };
+        let sin_enganchar = tecleado::Vida { arranque: vida, enganchada: false };
+        tecleado::cambiar(&ruta, sin_enganchar, hoy, |l| tecleado::apuntar(l, apunte(57, vida, hoy))).unwrap();
+        tecleado::cambiar(&ruta, sin_enganchar, hoy, |l| tecleado::apuntar(l, apunte(58, vida, hoy))).unwrap();
+
+        // La app nueva, enganchada al mismo proceso: el mapa empieza vacío.
+        let mut mapa: HashMap<u32, Vec<String>> = HashMap::new();
+        assert!(!comando_que_cuenta(consola.clone(), mapa.get(&57)).as_deref().is_some_and(crate::rastros::es_claude));
+        mapa.extend(tecleado::los_de_ahora(&tecleado::leer(&ruta), vida, &[57, 60]));
+        let cuenta = comando_que_cuenta(consola.clone(), mapa.get(&57));
+        assert!(cuenta.as_deref().is_some_and(crate::rastros::es_claude), "el 57 volvió a ser consola: {cuenta:?}");
+        assert_eq!(cuenta.as_deref().and_then(crate::rastros::sesion_del_comando).as_deref(), Some(sid));
+        // El 58 ya no está vivo: no se recupera.
+        assert!(!mapa.contains_key(&58));
+        // Con otra vida de los números (el proceso de terminales murió), ese 57 es otra terminal.
+        assert!(tecleado::los_de_ahora(&tecleado::leer(&ruta), vida + 1, &[57]).is_empty());
+
+        // Al cerrar el panel se olvida también lo guardado.
+        tecleado::cambiar(&ruta, sin_enganchar, hoy, |l| tecleado::olvidar(l, vida, 57)).unwrap();
+        assert!(tecleado::los_de_ahora(&tecleado::leer(&ruta), vida, &[57]).is_empty());
+
+        // Lo de otra vida se olvida al mes; lo de esta, no, aunque sea viejo.
+        let dia = 24 * 3600 * 1000;
+        tecleado::cambiar(&ruta, sin_enganchar, hoy, |l| {
+            tecleado::apuntar(l, apunte(3, vida - 1, hoy - 31 * dia));
+            tecleado::apuntar(l, apunte(4, vida - 1, hoy - 29 * dia));
+            tecleado::apuntar(l, apunte(5, vida, hoy - 90 * dia));
+        })
+        .unwrap();
+        let mut quedan: Vec<(u64, u32)> = tecleado::leer(&ruta).iter().map(|a| (a.arranque, a.panel)).collect();
+        quedan.sort();
+        assert_eq!(quedan, vec![(vida - 1, 4), (vida, 5), (vida, 58)]);
+
+        // Un archivo roto no tumba nada: vuelve a estar vacío.
+        std::fs::write(&ruta, "{ roto").unwrap();
+        assert!(tecleado::leer(&ruta).is_empty());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// La revisión aparte del 2026-11-19 (BAJA 1): una consola que abrió un agente,
+    /// con su `claude` tecleado, dejaba de ser delegada tras reiniciar. Se apuntó
+    /// por su número (`panel-<arranque>-<panel>`: nació sin conversación) y al
+    /// reengancharse se buscaba por la conversación tecleada. Desde entonces su
+    /// `entregar` se rechazaba, su madre no se enteraba de que acabó, salía en «ya
+    /// no están» y `compactar_terminal` decía que era de Munir.
+    #[test]
+    fn una_consola_delegada_con_claude_tecleado_sigue_siendo_delegada_tras_reiniciar() {
+        let vida = 1_795_400_000_000u64;
+        let (sid, sid_60) = ("0006490e-5bba-4a1e-9a77-0c0ffee00057", "0006490e-5bba-4a1e-9a77-0c0ffee00060");
+        let linea = vec![format!("claude --session-id {sid} --model fable")];
+        let ficha = |id: u32, command: Option<Vec<String>>| crate::pty::Ficha {
+            id,
+            cwd: r"C:\proyectos\demo".into(),
+            command,
+            pid: None,
+            tamano: None,
+            alternativa: false,
+            pegado: false,
+            clave: None,
+        };
+        // La 57, consola delegada con su `claude` tecleado; la 60, delegada que nació Claude.
+        let nacidas = vec![
+            ficha(57, Some(vec!["powershell.exe".into(), "-NoLogo".into()])),
+            ficha(60, Some(vec![format!("claude --session-id {sid_60}")])),
+            ficha(61, None),
+        ];
+        let guardado = vec![tecleado::Apunte { arranque: vida, panel: 57, comando: linea.clone(), ms: vida }];
+        let delegada = |panel: u32| delegadas::Delegada { nombre: format!("hija {panel}"), panel, arranque: vida, abierta_ms: vida, ..Default::default() };
+        let mut libro = delegadas::Libro::new();
+        libro.insert(delegadas::clave(None, vida, 57), delegada(57));
+        libro.insert(sid_60.to_string(), delegada(60));
+
+        let (tecleados, mut siguen) = lo_que_sigue(&nacidas, &guardado, &libro, vida);
+        assert_eq!(tecleados, vec![(57, linea)], "la 57 sigue contando como Claude");
+        siguen.sort();
+        assert_eq!(
+            siguen,
+            vec![(57, delegadas::clave(None, vida, 57)), (60, sid_60.to_string())],
+            "la 57 dejó de ser delegada tras reiniciar"
+        );
     }
 
     /// Munir, 2026-11-17: un «Opus con esfuerzo máximo» solo se abría tecleando
@@ -4795,6 +4916,30 @@ mod tests {
         }
     }
 
+    /// En la caja, Claude Code pone tras el glifo un espacio duro (U+00A0), y en
+    /// el eco de la historia uno normal: medido en once pantallas de la 2.1.328
+    /// (revisión de 09087d0a). Sin reconocerlo, la caja no contaba y se leía el
+    /// eco del mensaje en cola como texto atascado: el error falso del 2026-11-18.
+    #[test]
+    fn la_caja_con_su_espacio_duro_es_la_caja() {
+        let filas = |s: &[&str]| s.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let cola = filas(&[
+            "❯ otro mensaje mientras trabaja",
+            "  ⎿  Queued · ctrl+x ctrl+s to send now",
+            "────",
+            "❯\u{a0}Press up to edit queued messages",
+            "────",
+            "  ⏵⏵ auto mode on (shift+tab to cycle) · esc to interrupt",
+        ]);
+        assert!(!se_quedo_en_la_caja(&cola));
+        assert!(quedo_en_cola(&cola));
+        let atascada = filas(&["❯ lab-hola que tal", "────", "❯\u{a0}hola mundo escrito", "────"]);
+        assert!(se_quedo_en_la_caja(&atascada));
+        assert!(!quedo_en_cola(&atascada));
+        let vacia = filas(&["❯ lab-hola que tal", "────", "❯\u{a0}", "────"]);
+        assert!(!se_quedo_en_la_caja(&vacia));
+    }
+
     /// `send_command(7, "/model")` decía que el texto se había quedado en la
     /// caja y el menú estaba abierto: el cursor del menú lleva el mismo glifo.
     /// Pantalla de verdad (Claude Code 2.1.300, read_pane_screen, 2026-10-15).
@@ -4827,5 +4972,49 @@ mod tests {
             "❯ 3. arregla también el menú",
             "────",
         ])));
+    }
+
+    /// El selector de `/resume` pinta su cursor sangrado y SIN número, y no deja
+    /// la caja a la vista: se leía el título de la sesión elegida como texto que
+    /// se quedó en la caja. Pantalla de verdad (Claude Code 2.1.328, revisión de
+    /// 34845a23, 2026-11-20).
+    #[test]
+    fn el_selector_de_resume_no_es_texto_en_la_caja() {
+        let filas = |s: &[&str]| s.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let resume = filas(&[
+            "❯ otro mensaje mientras trabaja",
+            "● Recibido.",
+            "✻ Brewed for 0s · done 23:37",
+            "  Resume session",
+            "  │ ⌕ Search…  │",
+            "    demo",
+            "",
+            "  ❯ otro mensaje mientras trabaja",
+            "    3 minutes ago · HEAD · 317.6KB",
+            "",
+            "    lab-hola que tal",
+            "    8 minutes ago · HEAD · 308.8KB",
+            "",
+            "  Ctrl+A to show all projects · Ctrl+B to only show current branch · Space to preview · Ctrl+R to rename · Type to",
+            "  search · Enter to resume · Esc to close",
+        ]);
+        assert!(!se_quedo_en_la_caja(&resume));
+        // A 40 columnas y sin sesiones: no hay cursor, el pie se parte y el
+        // último glifo es el eco de la historia.
+        let estrecho = filas(&[
+            "❯ otro mensaje mientras trabaja",
+            "● Recibido.",
+            "  Resume session",
+            "    demo",
+            "",
+            "  No sessions in this project yet",
+            "",
+            "  Ctrl+A to show all projects · Ctrl+B",
+            "  to only show current branch · Esc",
+            "  to close",
+        ]);
+        assert!(!se_quedo_en_la_caja(&estrecho));
+        // Sin esa pista al pie, lo sangrado con texto sigue contando como antes.
+        assert!(se_quedo_en_la_caja(&filas(&["────", "  ❯ mi borrador", "────"])));
     }
 }

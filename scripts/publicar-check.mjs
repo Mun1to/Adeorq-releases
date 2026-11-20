@@ -109,6 +109,31 @@ ok("un tramo con solo el release no se titula con el numero", soloRelease === "A
 const soloDocs = titular(["docs: el mapa del ecosistema al dia"], "otro", "ffffffffffff");
 ok("un tramo de solo docs dice de que va", soloDocs.includes("mapa del ecosistema"), soloDocs);
 
+// La 0.9.262, tal cual: commits sin prefijo, y encima una fusion y un docs.
+const comoLa262 = [
+  "release: 0.9.133",
+  "Merge branch 'movil/decision-imagenes'",
+  "docs: the phone chapter tells the accepted history gaps",
+  'Revert "The hero headline is centered"',
+  "A cut-off decision list keeps the phone's send marks",
+  "release: 0.9.132",
+];
+const t262 = titular(comoLa262, "otro", "gggggggggggg");
+ok("sin prefijos, ni la fusion ni el docs ni el revert dan el titulo", t262.endsWith("keeps the phone's send marks"), t262);
+// Y si solo hay relleno, sigue diciendo algo antes que quedarse en el numero.
+const soloFusion = titular(["Merge branch 'x'"], "otro", "hhhhhhhhhhhh");
+ok("un tramo de solo una fusion no se queda mudo", soloFusion.includes("Merge branch"), soloFusion);
+// Pero nunca con algo de la version anterior: el respaldo no pasa del release de otra.
+const rellenoYAntes = titular(
+  ["release: 0.9.133", "Merge branch 'x'", "docs: y", "release: 0.9.132", "A real feature shipped in 0.9.132"],
+  "otro",
+  "iiiiiiiiiiii",
+);
+ok("el respaldo no coge un commit de la version anterior", !rellenoYAntes.includes("0.9.132"), rellenoYAntes);
+// Un cambio de producto que empieza por «Merge» no es una fusion de git.
+const mergeDeProducto = titular(["Merge branch 'x'", "Merge the two decision lists into one"], "otro", "jjjjjjjjjjjj");
+ok("«Merge the…» de producto si titula", mergeDeProducto.endsWith("Merge the two decision lists into one"), mergeDeProducto);
+
 // --- las carpetas que deja cada publicación ---------------------------------------
 // `recoger-publicadas.mjs`, con carpetas y repos de verdad en una temporal
 // propia: lo empujado se va, lo que tiene un commit sin empujar se queda.

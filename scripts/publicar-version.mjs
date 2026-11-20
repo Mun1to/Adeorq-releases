@@ -121,7 +121,7 @@ try {
         `  ${suVersion} y su latest.json pisará al tuyo: nadie recibirá la\n` +
         `  actualización. Pasó con la 0.9.154 y con la 0.9.155.\n\n` +
         `  Publica el código PRIMERO y vuelve:\n` +
-        `      node scripts/publicar-codigo.mjs\n` +
+        `      node scripts/publicar-codigo.mjs --titulo "<lo que trae, en inglés>"\n` +
         `      cd <la carpeta que te diga> && git push origin main\n`,
     );
     process.exit(1);

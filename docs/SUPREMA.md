@@ -304,11 +304,44 @@ compactaba sola, `compactarme` contestaba «En tu terminal no corre Claude Code�
   de Munir, y apuntarla haría a este panel su dueño (sus delegadas, su papelera).
 - **Lo que no hace:** una consola donde Munir teclea `claude` a mano sigue siendo consola (solo
   se ve lo que pasa por `send_command`); si ese Claude se cierra, el panel sigue contándose como
-  Claude hasta que se le teclee otro o se cierre con `close_pane` (su escalón no cambia: sale del
-  comando de nacimiento); y el apunte vive en memoria, así que tras reiniciar Adeorq (con las
-  terminales en su proceso aparte siguen vivas) ese Claude vuelve a ser consola. Una consola con un
-  prompt a medida (starship, oh-my-posh, fish: `❯`, `λ`, `> `) no casa con `espera_una_orden` y su
-  `claude` no se apunta nunca: falla por el lado prudente, y la respuesta lo dice.
+  Claude hasta que se le teclee otro o se cierre (su escalón no cambia: sale del comando de
+  nacimiento), y desde que se guarda en disco eso dura también tras actualizar. Una consola con un prompt a medida (starship, oh-my-posh, fish: `❯`, `λ`, `> `) no
+  casa con `espera_una_orden` y su `claude` no se apunta nunca: falla por el lado prudente, y la
+  respuesta lo dice.
+- **Sobrevive a reiniciar Adeorq (2026-11-19).** La S45 de winshotx: tras instalar la 0.9.262, el
+  panel 57 (consola con su `claude` tecleado, viva en el proceso de terminales) volvió a ser
+  consola, porque el apunte solo vivía en memoria; `compactarme` la rechazó y `get_active_panes`
+  decía «default shell». Ahora `tecleado::guardar` lo apunta también en
+  `%LOCALAPPDATA%\Adeorq\tecleados-<canal>.json` (`estable` la instalada, `desarrollo` la de
+  desarrollo: un archivo por canal; una terminal no hereda el canal, `ADEORQ_TERMINALES_CANAL`,
+  así que una Adeorq de desarrollo lanzada desde una de ellas va por el suyo), por la vida de los números (`conserje::arranque`, la del
+  proceso de terminales) y el número del panel, que sobreviven juntos al reinicio y no se repiten
+  nunca; nada secreto (ni la contraseña del panel). Al reengancharse, `al_reengancharse` lo
+  recupera para los paneles vivos (`tecleado::recuperar`), y la ventana nueva lo recibe con
+  `pty_vivas` (`tecleado`) y lo apunta (`recogerTecleados` en `lib/claudeTecleado.ts`, desde
+  `lib/tablero.ts`). Se olvida al cerrar el panel desde Adeorq (`pty_kill`, que es la X y lo que
+  hace `close_pane`), y NO al fin de su PTY: al cortar la conexión para actualizar, la app da por
+  terminadas todas las terminales (`terminales.rs`) y siguen vivas. Lo de la vida de ahora no se
+  poda nunca; lo de otra vida del mismo canal, en el acto si la app está enganchada a su proceso de
+  terminales (en un canal vive uno solo) y, si no, al mes. La ventana de desarrollo comparte la
+  carpeta con la instalada, pero no su archivo: ni le poda nada ni se pisan el temporal (uno por
+  proceso). Un archivo que está pero no se puede leer no se reescribe (`leer_para_reescribir`):
+  dejaba solo lo nuevo y se perdían las demás consolas. Y una consola DELEGADA con su `claude`
+  sigue siéndolo: al reengancharse, las delegadas se buscan por el comando con que nació el panel
+  (`lo_que_sigue` en `mcp.rs`), porque se apuntaron con él (`panel-<arranque>-<panel>`); buscadas
+  por la conversación tecleada, su `entregar` se rechazaba, su madre no se enteraba, salía en «ya
+  no están» y `compactar_terminal` decía que era de Munir (las tres bajas de la revisión aparte del
+  2026-11-19). **Para las notas de la versión:** la primera actualización desde una versión sin
+  esto no recupera nada, porque lo tecleado con ella no se guardó en disco. Medido: `cargo test --lib un_claude_tecleado_sigue_contando` (rojo con el
+  guardado de mentira: «el 57 volvió a ser consola») y `pnpm bancos supremo` (dos fallos sin
+  `recogerTecleados`). Y de verdad, con un Claude Code 2.1.328 contra una API de mentira y las
+  terminales aparte: `node scripts/laboratorio/compactarme-de-verdad.mjs <fotos> [exe] --reiniciar`
+  teclea el `claude` en una consola, reinicia la app como al actualizar y la compacta con
+  `compactarme`. Con `--sin-disco` (borra lo guardado antes de reabrir, que es como estaba
+  antes) salen 8 MAL, los de la S45: «default shell» y «En tu terminal no corre Claude Code». Sin
+  él, todo en verde, incluido que `close_pane` tras el reinicio borra lo guardado, que sigue siendo
+  delegada y que `compactar_terminal` de otro agente se acepta (con el binario de antes de la
+  BAJA 1, esas dos salían MAL).
 - **Medido:** `cargo test --lib tecleado una_consola esfuerzo`, `pnpm bancos supremo` (rojo con
   la línea de siempre, verde con la tecleada) y `node scripts/laboratorio/compactarme-de-verdad.mjs
   <fotos> [exe] --consola`, con un Claude Code 2.1.326 de verdad contra una API de mentira: con el

@@ -426,34 +426,38 @@ html[data-ligero] .haz__grano { opacity: .05; }
     align-items: center;
     max-width: 1360px;
     text-align: left;
+    /* El tamaño del titular, una vez: el número grande de las cifras se mide con él. */
+    --titular: clamp(2.3rem, 1rem + 3vw, 4rem);
   }
-  .titular { grid-column: 1; grid-row: 1; font-size: clamp(2.3rem, 1rem + 3vw, 4rem); }
+  .titular { grid-column: 1; grid-row: 1; font-size: var(--titular); }
   .entrada { grid-column: 1; grid-row: 2; margin-inline: 0; }
   .acciones { grid-column: 1; grid-row: 3; justify-content: flex-start; margin-bottom: 0; }
-  /* Las cifras, en ficha (Munir, 2026-11-17: «lo de los datos de la derecha,
-     estructúramelo mejor»): una fila por dato, los números en su columna,
-     alineados a la derecha, y las etiquetas empezando todas en la misma
-     vertical, sobre la línea base del número; una raya fina entre filas. Antes
-     eran tres bloques sueltos, cada número encima de su frase. */
+  /* Las cifras, «una manda» (Munir la eligió el 2026-11-19 entre tres, tras
+     «organiza y rediseña mejor lo de los datos de la derecha»): los clientes,
+     enormes y en el azul de la marca, con su etiqueta al lado, y los otros dos
+     datos debajo, en dos columnas, cada número encima de lo que quiere decir.
+     Antes, una ficha de tres filas iguales con una raya fina entre ellas.
+     Abajo y no centradas: acaban a la altura de los botones. Desde unos 1500 px
+     eso deja el número grande junto a la frase; más estrecho, la etiqueta de los
+     sistemas va en cuatro líneas, el bloque crece hacia arriba y el número queda
+     a la altura de la segunda línea del titular (medido en la revisión aparte). */
   .cifras {
     grid-column: 2; grid-row: 1 / span 3;
+    align-self: end;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
-    gap: 0 20px;
+    gap: 22px 40px;
+    align-items: start;
     margin: 0;
   }
-  .cifras li {
-    display: grid;
-    grid-template-columns: subgrid;
-    grid-column: 1 / -1;
-    align-items: baseline;
-    gap: 0 20px;
-    padding: 15px 0;
-    border-top: 1px solid var(--p-linea);
-  }
-  .cifras li:first-child { border-top: 0; }
-  .cifras b { justify-self: end; font-size: 2rem; }
-  .cifras span { max-width: none; text-align: left; font-size: 16.5px; line-height: 1.4; text-wrap: pretty; }
+  .cifras li { align-items: flex-start; gap: 6px; }
+  .cifras li:first-child { grid-column: 1 / -1; flex-direction: row; align-items: baseline; gap: 18px; }
+  /* 1,8 veces el titular: los 115 px con que la eligió a 1920, y en una pantalla
+     más estrecha baja con el titular en vez de ganarle (a 1180 iba a 2,2 veces). */
+  .cifras li:first-child b { color: var(--p-acento); font-size: calc(var(--titular) * 1.8); font-weight: 800; letter-spacing: -.06em; line-height: .82; }
+  .cifras li:first-child span { max-width: 6em; color: var(--p-texto); font-size: 1.7rem; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
+  .cifras b { font-size: 2rem; }
+  .cifras span { text-align: left; font-size: 16px; line-height: 1.35; }
   /* Lo de Apple, en su propia línea debajo de los tres sistemas. */
   .cifras em { display: block; font-size: 15px; }
 }
@@ -530,6 +534,13 @@ html[data-ligero] .haz__grano { opacity: .05; }
   /* Adeo y el aviso de encima se miden por el ancho de la ventana, no de la
      pantalla (ver ADEO, abajo). */
   container: ventana / inline-size;
+}
+/* A lo ancho, más abajo: el globo de Adeo quedaba a 7 px de los botones y las
+   pestañas a 45, pegadas al mensaje (Munir, 2026-11-19: «haz que toda esta
+   parte esté más para abajo»). Solo en las dos columnas: en el móvil la
+   primera pantalla se queda como está. */
+@media (min-width: 1180px) {
+  .ventana { margin-top: clamp(132px, 15.5vh, 150px); }
 }
 
 /* El filo de luz del borde de arriba: es lo que ata la ventana al haz. Sin

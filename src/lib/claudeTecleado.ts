@@ -27,14 +27,25 @@ export function apuntarTecleado(panel: unknown, comando: unknown): boolean {
   return true;
 }
 
+/** Al abrir la ventana con las terminales vivas (`pty_vivas`): lo que Rust tenía
+ *  apuntado de cada una, que sobrevive a reiniciar Adeorq (`mcp/tecleado.rs`). Sin
+ *  esto, tras actualizar, la consola con su Claude volvía a ser una consola: ni se
+ *  compactaba sola ni se le leía el contexto. Dice cuántas apuntó. */
+export function recogerTecleados(vivas: readonly { id: unknown; tecleado?: unknown }[]): number {
+  return vivas.filter((v) => v.tecleado != null && apuntarTecleado(v.id, v.tecleado)).length;
+}
+
 const suscribir = (f: () => void) => {
   oyentes.add(f);
   return () => oyentes.delete(f);
 };
 
+/** Lo tecleado en ese panel, sin repintar. */
+export const tecleadoDe = (panel: number): string[] | undefined => tecleados.get(panel);
+
 /** Lo tecleado en ese panel, y se repinta cuando cambia. */
 export function useClaudeTecleado(panel: number): string[] | undefined {
-  return useSyncExternalStore(suscribir, () => tecleados.get(panel));
+  return useSyncExternalStore(suscribir, () => tecleadoDe(panel));
 }
 
 /** La línea que dice qué corre en el panel: la suya si ya es un agente, o la que

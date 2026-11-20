@@ -1042,6 +1042,9 @@ pub fn abrir(mapa: &Mapa, alta: Alta, salida: std::sync::Arc<dyn Salida>) -> Res
         None => cmd.env_remove(VARIABLE_CLAVE_DE_PANEL),
     }
     cmd.env_remove(crate::mcp::VARIABLE_DE_CASA);
+    // El canal es del proceso de terminales, no de lo que nace en ellas: una
+    // Adeorq de desarrollo lanzada desde aquí se metía en el de la instalada.
+    cmd.env_remove(crate::terminales::VARIABLE_DE_CANAL);
 
     let mut child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
     drop(pair.slave);
@@ -1379,6 +1382,10 @@ pub struct Viva {
     pub id: u32,
     pub cwd: String,
     pub command: Option<Vec<String>>,
+    /// El `claude` que se le tecleó si nació consola (`mcp/tecleado.rs`): la
+    /// ventana nueva no lo sabe, y sin él esa consola dejaba de ser Claude.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tecleado: Option<Vec<String>>,
 }
 
 /// Las terminales vivas, para que el tablero que se restaura se reenganche a
@@ -1386,7 +1393,10 @@ pub struct Viva {
 /// no hay ninguna.
 #[tauri::command(async)]
 pub fn pty_vivas(app: AppHandle) -> Vec<Viva> {
-    fichas(&app).into_iter().map(|f| Viva { id: f.id, cwd: f.cwd, command: f.command }).collect()
+    fichas(&app)
+        .into_iter()
+        .map(|f| Viva { tecleado: crate::mcp::tecleado::de(&app, f.id), id: f.id, cwd: f.cwd, command: f.command })
+        .collect()
 }
 
 /// El primer número de terminal que se puede repartir sin repetir ninguno de
@@ -1850,6 +1860,8 @@ pub async fn pty_kill(app: AppHandle, state: State<'_, PtyState>, id: u32) -> Re
     if existe(&app, id) {
         apuntar_cerrada(id);
     }
+    // Un `claude` tecleado en ella deja de estar guardado (`mcp/tecleado.rs`).
+    crate::mcp::tecleado::olvidar_panel(&app, id);
     // caja: su contenedor no muere con el cliente de Docker (`caja.rs`).
     crate::caja::al_cerrar(id);
     if let Some(r) = crate::terminales::remoto(&app) {
@@ -3938,6 +3950,34 @@ mod motor {
         escribir(&mapa, 7, b"exit\r".to_vec()).unwrap();
         assert!(hasta(|| apuntes.fin.lock().unwrap().is_some(), 8000), "no avisó del fin");
         assert!(fichas_de(&mapa).is_empty(), "un panel acabado sigue en el mapa");
+    }
+
+    /// El canal del proceso de terminales no pasa a lo que nace en una: con él
+    /// heredado, una Adeorq de desarrollo lanzada desde una terminal de la
+    /// instalada se metía en su canal (`terminales::canal`), y con él en su
+    /// `tecleados-<canal>.json`, que podaba en el acto (revisión de cad82e07).
+    /// Llega por el entorno del panel, que va el último, y aun así se quita.
+    #[test]
+    fn el_canal_de_las_terminales_no_se_hereda() {
+        let mapa: Mapa = Default::default();
+        let apuntes = Arc::new(Apuntes::default());
+        let alta = Alta {
+            id: 3,
+            cwd: std::env::temp_dir().to_string_lossy().into_owned(),
+            cols: 100,
+            rows: 30,
+            command: Some(vec!["cmd.exe".into(), "/q".into(), "/k".into(), "echo canal=[%ADEORQ_TERMINALES_CANAL%]".into()]),
+            env: Some(HashMap::from([(crate::terminales::VARIABLE_DE_CANAL.to_string(), "estable".to_string())])),
+            clave: None,
+        };
+        abrir(&mapa, alta, Arc::new(Libreta(apuntes.clone()))).unwrap();
+        if hasta(|| apuntes.datos.lock().unwrap().contains("\x1b[6n"), 8000) {
+            escribir(&mapa, 3, b"\x1b[1;1R".to_vec()).unwrap();
+        }
+        assert!(hasta(|| apuntes.datos.lock().unwrap().contains("canal=["), 8000), "la salida no llegó");
+        let visto = apuntes.datos.lock().unwrap().clone();
+        assert!(matar(&mapa, 3));
+        assert!(visto.contains("canal=[%ADEORQ_TERMINALES_CANAL%]"), "la terminal heredó el canal: {visto:?}");
     }
 
     #[test]

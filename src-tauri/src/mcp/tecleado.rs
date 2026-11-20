@@ -109,6 +109,171 @@ pub fn parte(linea: &str, ventana: bool) -> String {
 pub const SIN_APUNTAR: &str = " No la cuento como Claude Code: la consola no estaba esperando una orden (¿ya corría algo?), \
      así que no se compactará sola. Si es un Claude nuevo, ábrelo con open_pane(cli: \"claude\").";
 
+// ─── LO APUNTADO SOBREVIVE A REINICIAR LA VENTANA ──────────────────────────
+//
+// Con las terminales en su proceso aparte (`terminales.rs`), reiniciar Adeorq (al
+// actualizar, casi a diario) deja viva la consola y su Claude, pero lo apuntado en
+// `Puente.tecleados` y en la ventana empezaba vacío: la terminal volvía a ser una
+// consola, `compactarme` la rechazaba y no se compactaba sola (la S45 de winshotx,
+// 2026-11-19, en el panel 57 tras instalar la 0.9.262). Por eso se guarda también en
+// disco, por la vida de los números (`conserje::arranque`, la del proceso de
+// terminales) y el número del panel: los dos sobreviven al reinicio, y juntos no se
+// repiten nunca (`pty_primer_libre`). Nada secreto: ni la contraseña del panel ni
+// nada que no se pudiera leer ya en su línea de comandos.
+
+/// Lo de la vida de ahora no se poda nunca: su consola puede llevar días abierta. Lo
+/// de otra vida de su canal, en el acto si la app está enganchada a su proceso de
+/// terminales (en un canal vive uno solo: el de las otras murió), y si no lo está,
+/// al mes, por si queda vivo uno al que no se pudo enganchar. Cada canal tiene su
+/// archivo (`ruta_en`): la ventana de desarrollo comparte esta carpeta con la
+/// instalada y no toca lo suyo (la revisión aparte del 2026-11-19).
+const OLVIDO_MS: u64 = 30 * 24 * 3600 * 1000;
+
+/// La vida de quien escribe: la de los números (`conserje::arranque`) y si la app
+/// está enganchada al proceso de terminales de su canal.
+#[derive(Clone, Copy, Debug)]
+pub struct Vida {
+    pub arranque: u64,
+    pub enganchada: bool,
+}
+
+/// El archivo de un canal (`terminales::canal`, «estable» la instalada y
+/// «desarrollo» la de desarrollo).
+pub fn ruta_en(dir: &std::path::Path, canal: &str) -> std::path::PathBuf {
+    dir.join(format!("tecleados-{canal}.json"))
+}
+
+/// Lo que se le tecleó a un panel, guardado.
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct Apunte {
+    /// La vida de los números en que se tecleó (`conserje::arranque`).
+    pub arranque: u64,
+    pub panel: u32,
+    /// La línea con su `--session-id`, como la lee `la_ficha`.
+    pub comando: Vec<String>,
+    /// Cuándo, para olvidar lo de otras vidas.
+    pub ms: u64,
+}
+
+pub type Libro = Vec<Apunte>;
+
+/// Lo guardado, o nada si no hay o no se entiende: perderlo es volver a como
+/// estaba antes (la consola vuelve a ser consola), no un error que pare nada.
+pub fn leer(ruta: &std::path::Path) -> Libro {
+    std::fs::read_to_string(ruta).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default()
+}
+
+/// Lo escriben `send_command` y el cierre del panel a la vez: un cambio entero de
+/// cada vez. Entre la instalada y la de desarrollo no hace falta: cada canal tiene
+/// su archivo (`ruta_en`).
+static CANDADO: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Lee, cambia con `f`, olvida lo viejo de otras vidas y lo deja en disco.
+///
+/// Si el archivo está pero no se puede leer (cogido por otro programa, o con bytes
+/// que no son UTF-8), no se toca: contarlo como vacío dejaba en él solo lo nuevo y
+/// se perdían las demás consolas (la revisión aparte del 2026-11-19). Uno que se lee
+/// pero no se entiende sí se rehace: de él no hay nada que salvar.
+pub fn cambiar(ruta: &std::path::Path, vida: Vida, ahora_ms: u64, f: impl FnOnce(&mut Libro)) -> Result<(), String> {
+    let _uno = CANDADO.lock().unwrap_or_else(|e| e.into_inner());
+    let mut libro: Libro = serde_json::from_str(&crate::leer_para_reescribir(ruta)?).unwrap_or_default();
+    f(&mut libro);
+    libro.retain(|a| a.arranque == vida.arranque || (!vida.enganchada && ahora_ms.saturating_sub(a.ms) < OLVIDO_MS));
+    if let Some(dir) = ruta.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| format!("no pude crear {}: {e}", dir.display()))?;
+    }
+    let texto = serde_json::to_string_pretty(&libro).map_err(|e| e.to_string())?;
+    // Uno por proceso: `CANDADO` solo pone en fila a los hilos de este.
+    let tmp = ruta.with_extension(format!("json.{}.tmp", std::process::id()));
+    std::fs::write(&tmp, texto).map_err(|e| format!("no pude escribir {}: {e}", tmp.display()))?;
+    std::fs::rename(&tmp, ruta).map_err(|e| {
+        let _ = std::fs::remove_file(&tmp);
+        format!("no pude guardar {}: {e}", ruta.display())
+    })
+}
+
+/// Lo de este panel en esta vida, en vez de lo que hubiera.
+pub fn apuntar(libro: &mut Libro, a: Apunte) {
+    olvidar(libro, a.arranque, a.panel);
+    libro.push(a);
+}
+
+pub fn olvidar(libro: &mut Libro, arranque: u64, panel: u32) {
+    libro.retain(|a| (a.arranque, a.panel) != (arranque, panel));
+}
+
+/// Lo de esta vida de los paneles que siguen vivos: lo que hay que recuperar al
+/// volver a engancharse al proceso de terminales.
+pub fn los_de_ahora(libro: &Libro, arranque: u64, vivos: &[u32]) -> Vec<(u32, Vec<String>)> {
+    libro
+        .iter()
+        .filter(|a| a.arranque == arranque && vivos.contains(&a.panel) && !a.comando.is_empty())
+        .map(|a| (a.panel, a.comando.clone()))
+        .collect()
+}
+
+/// `%LOCALAPPDATA%\Adeorq\tecleados-<canal>.json`.
+fn ruta() -> Option<std::path::PathBuf> {
+    crate::dir_datos().ok().map(|d| ruta_en(&d, &crate::terminales::canal()))
+}
+
+fn vida_de_ahora(app: &tauri::AppHandle) -> Vida {
+    Vida { arranque: crate::conserje::arranque(), enganchada: crate::terminales::remoto(app).is_some() }
+}
+
+/// Lo apunta en este arranque (`Puente.tecleados`, lo que lee `la_ficha`) y en disco.
+pub(super) fn guardar(app: &tauri::AppHandle, panel: u32, linea: &str) {
+    use tauri::Manager;
+    let comando = vec![linea.to_string()];
+    app.state::<super::Puente>().tecleados.lock().unwrap().insert(panel, comando.clone());
+    let Some(ruta) = ruta() else { return };
+    let (vida, ms) = (vida_de_ahora(app), super::ahora_ms());
+    if let Err(e) = cambiar(&ruta, vida, ms, |l| apuntar(l, Apunte { arranque: vida.arranque, panel, comando, ms })) {
+        crate::anotar(&format!("tecleados: no pude guardar el del panel {panel}: {e}"));
+    }
+}
+
+/// El panel se cerró desde Adeorq (la X, `close_pane`): se olvida aquí y en disco.
+/// Solo va al disco si había algo, porque tras reengancharse lo guardado de cada
+/// panel vivo ya está en memoria (`recuperar`). No se llama desde el fin de un
+/// PTY: al cortarse la conexión con el proceso de terminales para actualizar,
+/// la app da por terminadas todas (`terminales.rs`) y estarían vivas.
+pub(crate) fn olvidar_panel(app: &tauri::AppHandle, panel: u32) {
+    use tauri::Manager;
+    let Some(puente) = app.try_state::<super::Puente>() else { return };
+    if puente.tecleados.lock().unwrap().remove(&panel).is_none() {
+        return;
+    }
+    let Some(ruta) = ruta() else { return };
+    let vida = vida_de_ahora(app);
+    if let Err(e) = cambiar(&ruta, vida, super::ahora_ms(), |l| olvidar(l, vida.arranque, panel)) {
+        crate::anotar(&format!("tecleados: no pude olvidar el del panel {panel}: {e}"));
+    }
+}
+
+/// Lo guardado, para volver a engancharse (`al_reengancharse`).
+pub(super) fn guardado() -> Libro {
+    ruta().map(|r| leer(&r)).unwrap_or_default()
+}
+
+/// La app acaba de engancharse a un proceso de terminales que ya corría: lo
+/// tecleado en sus paneles vivos (`los_de_ahora`) vuelve a contar.
+pub(super) fn recuperar(app: &tauri::AppHandle, de_ahora: Vec<(u32, Vec<String>)>) {
+    use tauri::Manager;
+    let puente = app.state::<super::Puente>();
+    let mut mapa = puente.tecleados.lock().unwrap();
+    for (panel, comando) in de_ahora {
+        mapa.entry(panel).or_insert(comando);
+    }
+}
+
+/// Lo tecleado en ese panel, para la ventana que se vuelve a enganchar a él
+/// (`pty_vivas`, `recogerTecleados` en `lib/claudeTecleado.ts`).
+pub(crate) fn de(app: &tauri::AppHandle, panel: u32) -> Option<Vec<String>> {
+    use tauri::Manager;
+    app.try_state::<super::Puente>()?.tecleados.lock().unwrap().get(&panel).cloned()
+}
+
 /// Un id de conversación nuevo (UUID v4), como el que pone `lanzar.ts` a cada
 /// Claude que abre la ventana. `None` si el sistema no da aleatoriedad: un id a
 /// ceros lo compartirían todas.
@@ -201,6 +366,93 @@ mod tests {
         ] {
             assert_eq!(con(l), None, "{l}");
         }
+    }
+
+    /// La revisión aparte del 2026-11-19 (BAJA 2): un archivo que no se podía leer
+    /// (cogido por otro programa, o con un byte que no es UTF-8) contaba como vacío,
+    /// y la escritura siguiente dejaba en él solo lo nuevo: se perdía lo de las
+    /// demás consolas vivas.
+    #[test]
+    fn un_archivo_que_no_se_puede_leer_no_se_pisa() {
+        let dir = std::env::temp_dir().join(format!("adeorq-tecleados-ilegible-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let ruta = dir.join("tecleados.json");
+        // Otra consola viva, y un 0xE9 suelto (una «é» guardada en ANSI) que no es UTF-8.
+        let mut bytes = br#"[{"arranque":7,"panel":3,"comando":["claude --session-id x # caf"#.to_vec();
+        bytes.push(0xE9);
+        bytes.extend_from_slice(br#""],"ms":7}]"#);
+        std::fs::write(&ruta, &bytes).unwrap();
+        let nuevo = Apunte { arranque: 7, panel: 4, comando: vec!["claude --session-id y".into()], ms: 8 };
+        assert!(cambiar(&ruta, Vida { arranque: 7, enganchada: false }, 8, |l| apuntar(l, nuevo)).is_err(), "lo reescribió sin haberlo podido leer");
+        assert_eq!(std::fs::read(&ruta).unwrap(), bytes, "se perdió lo de la otra consola");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    fn carpeta(nombre: &str) -> std::path::PathBuf {
+        let d = std::env::temp_dir().join(format!("adeorq-tecleados-{nombre}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        d
+    }
+    fn apunte(arranque: u64, panel: u32, ms: u64) -> Apunte {
+        Apunte { arranque, panel, comando: vec![format!("claude --session-id {arranque}-{panel}")], ms }
+    }
+    const HOY: u64 = 1_795_500_000_000;
+    const DIA: u64 = 24 * 3600 * 1000;
+
+    /// La revisión aparte del 2026-11-19 (BAJA 3): la ventana de desarrollo usa la
+    /// misma carpeta que la instalada, y al guardar lo suyo podaba lo de la
+    /// instalada con más de un mes aunque su consola siguiera viva.
+    #[test]
+    fn la_ventana_de_desarrollo_no_toca_lo_de_la_instalada() {
+        let dir = carpeta("canales");
+        let (instalada, desarrollo) = (ruta_en(&dir, "estable"), ruta_en(&dir, "desarrollo"));
+        // Una consola de la instalada tecleada hace 40 días, viva en su proceso.
+        cambiar(&instalada, Vida { arranque: 100, enganchada: true }, HOY - 40 * DIA, |l| apuntar(l, apunte(100, 3, HOY - 40 * DIA))).unwrap();
+        // La de desarrollo guarda las suyas, enganchada a su proceso y sin enganchar.
+        cambiar(&desarrollo, Vida { arranque: 200, enganchada: true }, HOY, |l| apuntar(l, apunte(200, 1, HOY))).unwrap();
+        cambiar(&desarrollo, Vida { arranque: 300, enganchada: false }, HOY, |l| apuntar(l, apunte(300, 1, HOY))).unwrap();
+        assert_eq!(los_de_ahora(&leer(&instalada), 100, &[3]).len(), 1, "la de desarrollo podó una consola viva de la instalada");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// En su canal, lo de la vida de ahora no se poda nunca; lo de otras, en el acto
+    /// si está enganchada a su proceso (el de las otras murió), y si no, al mes.
+    #[test]
+    fn en_su_canal_lo_de_otras_vidas_se_poda_segun_este_enganchada() {
+        let dir = carpeta("poda");
+        let ruta = ruta_en(&dir, "estable");
+        let vidas = || {
+            let mut v: Vec<(u64, u32)> = leer(&ruta).iter().map(|a| (a.arranque, a.panel)).collect();
+            v.sort();
+            v
+        };
+        cambiar(&ruta, Vida { arranque: 9, enganchada: false }, HOY, |l| {
+            apuntar(l, apunte(7, 1, HOY - 31 * DIA));
+            apuntar(l, apunte(8, 2, HOY - 29 * DIA));
+            apuntar(l, apunte(9, 3, HOY - 90 * DIA));
+        })
+        .unwrap();
+        assert_eq!(vidas(), vec![(8, 2), (9, 3)]);
+        cambiar(&ruta, Vida { arranque: 9, enganchada: true }, HOY, |_| {}).unwrap();
+        assert_eq!(vidas(), vec![(9, 3)]);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// La revisión aparte del 2026-11-19 (BAJA 3): el temporal se llamaba siempre
+    /// `….json.tmp`, el mismo para la instalada y para la de desarrollo, y una podía
+    /// renombrar como suyo el que la otra estaba escribiendo.
+    #[test]
+    fn el_temporal_que_compartian_no_se_toca() {
+        let dir = carpeta("temporal");
+        let ruta = ruta_en(&dir, "estable");
+        let ajeno = ruta.with_extension("json.tmp");
+        std::fs::write(&ajeno, "[a medio escribir").unwrap();
+        cambiar(&ruta, Vida { arranque: 1, enganchada: true }, HOY, |l| apuntar(l, apunte(1, 1, HOY))).unwrap();
+        assert_eq!(std::fs::read_to_string(&ajeno).ok().as_deref(), Some("[a medio escribir"), "se usó el temporal de otro proceso");
+        assert_eq!(los_de_ahora(&leer(&ruta), 1, &[1]).len(), 1);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

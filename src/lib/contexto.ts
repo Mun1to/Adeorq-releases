@@ -253,38 +253,8 @@ export function enPantalla(
   return !!term && !!buf && mirar((i) => sinSugerencia(buf.getLine(buf.baseY + i)), term.rows);
 }
 
-/** Lo que hace falta de una fila de xterm (`IBufferLine`); las celdas, si las da. */
-export interface FilaXterm {
-  translateToString(trim?: boolean): string;
-  length?: number;
-  getCell?(x: number): { getChars(): string; getWidth(): number; isDim(): number } | undefined;
-}
-
-/**
- * La fila como texto, y en la caja de Claude Code (la que empieza por `❯`) sin
- * lo atenuado: su sugerencia gris («sigue con el laboratorio») no la escribió
- * nadie. Leída como texto, la caja parecía tener un borrador, y nada se
- * tecleaba solo: el 2026-11-14 dos terminales pasaron los 450.000 tokens con el
- * turno acabado y no se compactaron, y Munir: «¿por qué las sesiones tuyas no
- * las compactas tú?». Solo tras `❯`: las rayas y el pie pueden ir atenuados y
- * son los que dicen dónde está la caja. Y tras el `›` de Codex, que pinta igual
- * de atenuado su ejemplo («Ask Codex to do anything»; medido en la 0.165.0).
- */
-export function sinSugerencia(fila: FilaXterm | undefined): string {
-  if (!fila) return "";
-  const texto = fila.translateToString(true);
-  if (!/^[❯>›]/.test(texto) || !fila.getCell || fila.length == null) return texto;
-  let s = "";
-  for (let x = 0; x < fila.length; x++) {
-    const c = fila.getCell(x);
-    if (!c || c.getWidth() === 0) continue;
-    const ch = c.getChars() || " ";
-    s += x > 0 && c.isDim() ? " ".repeat(ch.length) : ch;
-  }
-  return s.trimEnd();
-}
-
-export { esperaEnSuCaja } from "./cajaClaude";
+import { sinSugerencia, type FilaXterm } from "./cajaClaude";
+export { esperaEnSuCaja, sinSugerencia, type FilaXterm } from "./cajaClaude";
 
 /**
  * Claude Code dice en pantalla que no conoce `/fin`. Pasó el 2026-11-09 con

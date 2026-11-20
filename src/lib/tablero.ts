@@ -14,6 +14,7 @@ import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { addPane as layoutAdd, type Col } from "./layout";
 import { loadEffort, resumeCommandFor } from "./lanzar";
 import { cargarDelegadas, delegacionDe } from "./delegadas";
+import { recogerTecleados } from "./claudeTecleado";
 import { useCabina } from "./cabina";
 import { primerNumeroLibre, ptyHistorial, readBoard, terminalesVivas, type TerminalViva } from "./pty";
 import { dejarVolcado } from "./mudanza";
@@ -271,6 +272,8 @@ export function useTableroGuardado({
       // ninguna y todo va como siempre. Va aunque no se devuelva el tablero: lo
       // que sigue vivo se enseña, nunca se mata en silencio.
       const [vivas, libre]: [TerminalViva[], number] = await Promise.all([terminalesVivas(), primerNumeroLibre()]);
+      // Una consola con un `claude` tecleado sigue siendo Claude tras reiniciar.
+      recogerTecleados(vivas);
       // Las del lienzo entran en el MISMO reparto (`repartir`): emparejando
       // cada vista por su cuenta, una viva del lienzo salía aquí como suelta y
       // el lienzo le abría otra encima. Solo si el lienzo va a devolver sus

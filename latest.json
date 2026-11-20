@@ -1,11 +1,11 @@
 {
-  "version": "0.9.262",
-  "notes": "Movil: cada respuesta va a su decision, se puede salir mientras se manda y no afirma lo que no sabe. Imagenes en las decisiones, en el movil y en el PC, con vista en grande. El selector dice Fable 5.2.",
-  "pub_date": "2026-11-19T18:25:46Z",
+  "version": "0.9.263",
+  "notes": "Una consola con claude tecleado sigue contando como Claude Code tras reiniciar o actualizar Adeorq, y la que abrio un agente sigue siendo suya. Los agentes ya no leen la sugerencia gris de Claude Code como texto escrito, send_command vuelve a avisar cuando un mensaje queda en cola y ya no da por atascado el selector de /resume. Una Adeorq de desarrollo abierta desde una terminal ya no se mete en el canal de la instalada.",
+  "pub_date": "2026-11-20T13:30:02Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzEydFc0bDZWLy9XUFhUWjZCTUxsZXJGUTN6YXl6bllVZ1pqQU1JMjVTVUswQzNDOUV4T0dUWW0yM0NsWjBYaDlMVDJLZzUvWEQvRXlzMWxLc2JmVFE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MTEyNzM0CWZpbGU6QWRlb3JxXzAuOS4yNjJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNjIKVGl3Zmt2S21EaVM1cWdKdlFCOE1zamVadG54NWRoelkwM1FPN0hmYThmMWpuaFQvQWZEQW1zcFgwQmhvKysxUy9mV2hOZkpsZzNFVzlUeloycm5DRHc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.262/Adeorq_0.9.262_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3k3Q21yZXRmOWZGM2NxSld3NGQ3dTlmalJzTExmTXllUm1Hb2pXL200UWU0QmJqYitmcndZYkdEWXlNMWJtNW9zR0RnVUtPZE0wSTVyTkF1TC9GblFvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MTgxMzgxCWZpbGU6QWRlb3JxXzAuOS4yNjNfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNjMKUzJOMExtS0VQckhlODlkSWxHMktDZXRkbXJwMjVmSzlMallCL1RsQ2NPeEhyNkY4V1pJc2tjcEtvYTRXc1lkek5jTStLakhxbWpFSjhYeXcvaDBCQ0E9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.263/Adeorq_0.9.263_x64-setup.exe"
     }
   }
 }

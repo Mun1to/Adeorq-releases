@@ -18,6 +18,8 @@
  */
 export function queTrae(lineas, version) {
   const mios = [];
+  /** Los asuntos de ESTA versión, sin sus `release:`: de aquí sale también el respaldo. */
+  const tramo = [];
   for (const linea of lineas) {
     const s = linea.trim();
     const rel = s.match(/^release:\s*([\d]+\.[\d]+\.[\d]+)/i);
@@ -25,6 +27,8 @@ export function queTrae(lineas, version) {
       if (rel[1] === version) continue;
       break;
     }
+    if (!s || /^release:/i.test(s)) continue;
+    tramo.push(s);
     const m = s.match(/^(feat|fix|perf)(\([^)]*\))?:\s*(.+)$/i);
     if (m) mios.push({ tipo: m[1].toLowerCase(), texto: m[3].trim() });
   }
@@ -36,11 +40,19 @@ export function queTrae(lineas, version) {
      es justo el commit repetido que esto viene a evitar. */
   if (!mios.length) {
     /* Los `release:` se saltan aquí también, o el título saldría siendo el
-       número de versión que ya está delante: «Adeorq 0.9.134 — 0.9.134». */
-    const primero = lineas
-      .map((x) => x.trim())
-      .filter(Boolean)
-      .find((x) => !/^release:/i.test(x));
+       número de versión que ya está delante: «Adeorq 0.9.134 — 0.9.134».
+       Y antes que cualquier otro, uno que cuente algo del producto: ni una
+       fusión, ni un revert, ni un `docs`/`chore`. Desde que los commits de este
+       repo dejaron de llevar `feat:` o `fix:`, todo tramo cae aquí, y el de la
+       0.9.262 se tituló «Merge branch 'movil/decision-imagenes'» (y la 0.9.256,
+       la 0.9.259 y la 0.9.260 con un `docs`, reescritos a mano con `--amend`).
+       Solo dentro del tramo: pasar del `release:` anterior titularía la versión
+       con algo de la que ya salió. Un commit de documentación SIN prefijo («The
+       phone chapter tells…») no se distingue de uno de producto; para eso está
+       `publicar-codigo.mjs --titulo`, y esto es solo la red. */
+    const deRelleno = (x) =>
+      /^(Merge (branch|remote-tracking branch|pull request|tag|commit) |Revert\b|(docs|chore|test|ci|style|build|refactor)(\([^)]*\))?:)/i.test(x);
+    const primero = tramo.find((x) => !deRelleno(x)) ?? tramo[0];
     const m = (primero || "").match(/^[a-z]+(\([^)]*\))?:\s*(.+)$/i);
     const suelto = (m ? m[2] : primero || "").trim();
     if (!suelto) return { titulo: "", cuerpo: "" };

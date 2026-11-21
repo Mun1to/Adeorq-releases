@@ -1918,9 +1918,9 @@ html[data-ligero] .haz__grano { opacity: .05; }
   font-size: 14px;
 }
 .pie__linea p { margin: 0; max-width: 68ch; }
-/* Esta frase es la que evita el malentendido caro: código publicado NO es open
-   source, y Adeorq lleva EULA propietario. Va en el color del texto, no en gris
-   de aviso legal, porque no es letra pequeña. */
+/* Esta frase es la que evita el malentendido caro: qué licencia lleva Adeorq
+   (AGPL-3.0 desde el 2026-11-21, open source). Va en el color del texto, no en
+   gris de aviso legal, porque no es letra pequeña. */
 .pie__linea b { color: var(--p-suave); font-weight: 620; }
 
 @media (max-width: 900px) {

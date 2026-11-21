@@ -40,7 +40,7 @@ export const IDIOMAS = {
         ['/', 'Inicio'],
         ['/guia', 'La guía'],
         ['https://github.com/Mun1to/Adeorq-releases/releases', 'Todas las versiones'],
-        ['https://github.com/Mun1to/Adeorq-releases/blob/main/LICENSE', 'Licencia de uso'],
+        ['https://github.com/Mun1to/Adeorq-releases/blob/main/LICENSE', 'Licencia'],
       ],
       actual: 'Privacidad',
       copyright: '© 2026 Adeorq · Esta web no usa cookies ni te sigue.',

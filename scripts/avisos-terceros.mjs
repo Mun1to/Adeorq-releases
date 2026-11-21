@@ -53,7 +53,12 @@ const AMARILLO = "\x1b[33m";
 const VERDE = "\x1b[32m";
 const FIN = "\x1b[0m";
 
-// Copyleft que arrastraría el código de Adeorq entero si entrara en el binario.
+// Copyleft que se queda fuera del binario. Desde el 2026-11-21 Adeorq es
+// AGPL-3.0, así que GPL-3.0, LGPL o AGPL ya serían compatibles con ella; se
+// siguen parando porque una pieza ajena con esas licencias le quitaría a Munir,
+// que es el único titular del código, la opción de licenciarlo también con
+// otros términos (una edición de pago cerrada, por ejemplo). GPL-2.0-only y
+// SSPL, además, son incompatibles con la AGPL-3.0 sin discusión.
 const PROHIBIDAS = /^(AGPL|GPL|LGPL|SSPL|EUPL|CC-BY-NC)\b/i;
 const AVISADAS = /^MPL-2\.0\b/i;
 

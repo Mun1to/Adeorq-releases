@@ -43,9 +43,20 @@ const r = await pag.evaluate(() => {
     preguntas: document.querySelectorAll('.pregunta').length,
     pasos: document.querySelectorAll('.paso').length,
     rasgos: document.querySelectorAll('.rasgo').length,
-    // La frase que evita el malentendido de licencia tiene que estar y decirlo
-    // con esas palabras: publicar el codigo NO es publicarlo como open source.
-    licencia: /no es open source/i.test(document.body.innerText),
+    // La frase de la licencia del pie tiene que estar y decirlo con esas
+    // palabras: desde el 2026-11-21 es open source (AGPL-3.0). La frase vieja
+    // de que NO lo era no puede quedarse ni en el pie ni en las preguntas.
+    // Solo esas dos piezas: las notas de versión que pinta `.log__fila` pueden
+    // nombrar PolyForm con todo derecho, y la pregunta «¿Es open source?» del
+    // FAQ casaría sola con la frase buscada aunque el pie la hubiera perdido.
+    // `textContent` y no `innerText`: este se salta las respuestas de las
+    // preguntas cerradas, que es donde estaría la frase vieja.
+    licencia: (() => {
+      const pie = document.querySelector('.pie__linea')?.textContent || '';
+      const faq = document.querySelector('#faq')?.textContent || '';
+      return /es open source/i.test(pie) && /AGPL-3\.0/.test(pie) &&
+        !/no es open source|PolyForm/i.test(pie + '\n' + faq);
+    })(),
   };
 });
 await ctx.close();
@@ -70,7 +81,7 @@ if (!/^v\d+\.\d+\.\d+$/.test(r.version)) fallos.push('la version no se ha rellen
 if (!r.fecha) fallos.push('la fecha de la descarga esta vacia');
 if (!r.peso) fallos.push('el peso del instalador esta vacio');
 if (!r.filas) fallos.push('las novedades no han pintado ninguna version');
-if (!r.licencia) fallos.push('falta la frase de que NO es open source');
+if (!r.licencia) fallos.push('el pie no dice que es open source con la AGPL-3.0, o queda la frase vieja de PolyForm en el pie o en las preguntas');
 if (!crudo.version) fallos.push('sin JavaScript no se ve ni la version: el HTML tiene que traerla escrita');
 if (crudo.clientes < 20) fallos.push('sin JavaScript solo se leen ' + crudo.clientes + ' clientes');
 

@@ -16,7 +16,7 @@ estés donde estés.
 <a href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-arm64.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/readme/download-mac-dark.es.svg"><img src=".github/readme/download-mac-light.es.svg" alt="Descargar Adeorq para Mac"></picture></a>
 <a href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-x86_64.AppImage"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/readme/download-linux-dark.es.svg"><img src=".github/readme/download-linux-light.es.svg" alt="Descargar Adeorq para Linux"></picture></a>
 
-Gratis · sin cuenta · sin API keys · se actualiza sola · [PolyForm Shield License 1.0.0](LICENSE)
+Gratis · código abierto · sin cuenta · sin API keys · se actualiza sola · [AGPL-3.0](LICENSE)
 
 [Todas las versiones](https://github.com/Mun1to/Adeorq-releases/releases) · [La web](https://adeorq.com) · [La guía](https://adeorq.com/guia) · [Última versión](https://github.com/Mun1to/Adeorq-releases/releases/latest) · [English](README.md)
 
@@ -301,19 +301,19 @@ sudo apt install build-essential pkg-config libssl-dev \
 
 ## Licencia
 
-**[PolyForm Shield License 1.0.0](LICENSE)**, una licencia de catálogo escrita
-por abogados, no un EULA a medida.
+Adeorq es **open source** con la **[GNU Affero General Public License v3.0](LICENSE)**
+(`AGPL-3.0-only`). Copyright (c) 2026 Munir Torres Athayde.
 
 Puedes hacer **cualquier cosa** con Adeorq, incluido usarlo para tu trabajo y el
 de tu empresa: leer el código, estudiarlo, auditarlo, modificarlo, compilarlo,
-bifurcarlo y distribuirlo. Lo único que no puedes es usarlo para ofrecer un
-producto que **compita** con Adeorq. La licencia aclara que competir incluye
-regalarlo, y que vender algo como sustituto práctico de Adeorq compite sin
-discusión.
+bifurcarlo, compartirlo y hasta venderlo. La condición principal es que el código
+siga abierto: si distribuyes Adeorq o una versión modificada, o dejas que otras
+personas usen por red una versión que has modificado, tienes que darles su
+código fuente completo con esta misma licencia.
 
-Dicho como se pregunta de verdad: **no puedes vender Adeorq**, ni una versión
-modificada suya, ni cobrar por darle acceso a otros. Vender el trabajo que TÚ
-hagas usando Adeorq sí es cosa tuya.
+Las versiones hasta la 0.9.264 conservan la licencia con la que salieron: la
+PolyForm Shield License 1.0.0 desde el 2026-08-21
+y, antes, una licencia de uso propia con todos los derechos reservados.
 
 Los avisos sobre marcas y sobre las cuentas de los proveedores de IA están en
 [`NOTICE.md`](NOTICE.md). Los componentes de terceros conservan sus propias

@@ -73,9 +73,12 @@ jobs:
         working-directory: web
         run: |
           grep -q "cinta__grupo" dist/index.html || { echo "el build no trae la cinta de clientes"; exit 1; }
-          grep -q "No es open source" dist/index.html || { echo "falta el aviso de licencia"; exit 1; }
+          # Con su marca: «Es open source» a secas también casa con la pregunta del FAQ.
+          grep -qF "<b>Es open source.</b>" dist/index.html || { echo "falta el aviso de licencia del pie"; exit 1; }
+          grep -q "AGPL-3.0" dist/index.html || { echo "la portada no nombra la licencia AGPL-3.0"; exit 1; }
           grep -q '<html lang="en"' dist/en/index.html || { echo "falta la portada inglesa en /en/"; exit 1; }
-          grep -q "It is not open source" dist/en/index.html || { echo "la portada inglesa no trae el aviso de licencia"; exit 1; }
+          grep -qF "<b>It is open source.</b>" dist/en/index.html || { echo "la portada inglesa no trae el aviso de licencia del pie"; exit 1; }
+          grep -q "AGPL-3.0" dist/en/index.html || { echo "la portada inglesa no nombra la licencia AGPL-3.0"; exit 1; }
           # El registro no está abierto: la página de las cuentas no sube sin pedirla.
           if [ "$ADEORQ_CUENTAS" != "1" ] && [ -e dist/cuenta ]; then echo "dist/cuenta no puede publicarse sin ADEORQ_CUENTAS=1"; exit 1; fi
 

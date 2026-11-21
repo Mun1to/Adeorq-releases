@@ -47,7 +47,7 @@ const ES = {
             ['Qué es', 'Panel de escritorio con terminales reales', 'Terminal con agente propio', 'Herramienta para planificar y revisar el trabajo de agentes', 'App de terminal que gestiona varios agentes'],
             ['Sistemas', 'Windows, Linux y Mac con Apple Silicon', 'Windows, Linux y macOS', 'Publica binarios para Windows, Linux y macOS', 'Publica binarios para los tres; en Windows pide instalar tmux por WSL u otro método'],
             ['Precio', 'Gratis', 'Plan gratis; de pago desde 18 $ al mes con pago anual', 'Gratis para uso individual', 'Sin dato oficial'],
-            ['Licencia', 'PolyForm Shield: código a la vista, no es open source', 'Cliente AGPL v3; del servidor, sin dato oficial', 'Apache 2.0', 'AGPL v3'],
+            ['Licencia', 'AGPL v3: open source', 'Cliente AGPL v3; del servidor, sin dato oficial', 'Apache 2.0', 'AGPL v3'],
             ['Cuenta', 'No hace falta', 'Opcional, pero sin ella la IA queda en espera', 'Opcional; su documentación dice que sin ella no hay tablero', 'Sin dato oficial'],
             ['Agentes', '11 clientes', 'Su agente y 16 CLI de otros', '10 agentes', 'Claude Code, Codex, Gemini, Aider, OpenCode y Amp'],
             ['Aislar cada sesión', 'Modo Espejo: una rama aparte, si lo eliges al abrir', 'Sin dato oficial', 'Worktree automático', 'Worktree y rama por sesión'],
@@ -86,7 +86,7 @@ const ES = {
   preguntas: [
     {
       q: '¿Adeorq es open source?',
-      a: 'No. El código está publicado entero con la licencia PolyForm Shield: puedes leerlo, usarlo en tu trabajo, modificarlo y compartirlo. Lo único que no deja es usarlo para ofrecer un producto que compita con Adeorq, y eso incluye venderlo.',
+      a: 'Sí. El código está publicado entero con la licencia AGPL-3.0: puedes leerlo, usarlo en tu trabajo, modificarlo, compartirlo y hasta venderlo. La condición principal es que siga abierto: si repartes Adeorq o una versión cambiada, o dejas usar por red una versión que has cambiado, das también su código con la misma licencia.',
     },
     {
       q: '¿Vibe Kanban sigue funcionando?',
@@ -130,7 +130,7 @@ const EN = {
             ['What it is', 'Desktop panel with real terminals', 'Terminal with its own agent', 'Tool to plan and review the work of agents', 'Terminal app that manages several agents'],
             ['Systems', 'Windows, Linux and Mac with Apple Silicon', 'Windows, Linux and macOS', 'Publishes binaries for Windows, Linux and macOS', 'Publishes binaries for all three; on Windows it asks you to install tmux via WSL or another method'],
             ['Price', 'Free', 'Free plan; paid from $18 a month billed yearly', 'Free for individual use', 'No official info'],
-            ['Licence', 'PolyForm Shield: source available, not open source', 'Client AGPL v3; server, no official info', 'Apache 2.0', 'AGPL v3'],
+            ['Licence', 'AGPL v3: open source', 'Client AGPL v3; server, no official info', 'Apache 2.0', 'AGPL v3'],
             ['Account', 'Not needed', 'Optional, but without one AI stays on hold', 'Optional; its docs say there is no board without one', 'No official info'],
             ['Agents', '11 clients', 'Its own agent and 16 third-party CLIs', '10 agents', 'Claude Code, Codex, Gemini, Aider, OpenCode and Amp'],
             ['Isolating each session', 'Mirror Mode: a separate branch, if you choose it on opening', 'No official info', 'Automatic worktree', 'Worktree and branch per session'],
@@ -169,7 +169,7 @@ const EN = {
   preguntas: [
     {
       q: 'Is Adeorq open source?',
-      a: 'No. The code is published in full under the PolyForm Shield licence: you can read it, use it at work, modify it and share it. The only thing it forbids is using it to offer a product that competes with Adeorq, and that includes selling it.',
+      a: 'Yes. The code is published in full under the AGPL-3.0: you can read it, use it at work, modify it, share it and even sell it. The main condition is that it stays open: if you distribute Adeorq or a modified version, or let people use a modified version over a network, you also share its source under the same licence.',
     },
     {
       q: 'Does Vibe Kanban still work?',

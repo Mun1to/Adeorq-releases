@@ -1,6 +1,6 @@
 // Publica el CÓDIGO en el repo público, que no es un `git push`.
 //
-// `Mun1to/Adeorq-releases` lleva el código con licencia propietaria, pero no
+// `Mun1to/Adeorq-releases` lleva el código entero con la AGPL-3.0, pero no
 // comparte historial con el privado: se publica como una FOTO de la versión,
 // un commit por versión. Empujar el privado ahí subiría los siete documentos
 // internos de la casa, y uno de ellos (las reglas de agentes que llevaba dentro

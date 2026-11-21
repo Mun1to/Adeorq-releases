@@ -125,15 +125,15 @@ export default {
   'reparte.ia': 'Adeo is an AI and can make mistakes.',
 
   /* ── El código, a la vista ─────────────────────────────────────────────── */
-  // «Source available» y ninguna etiqueta de software libre: la licencia es
-  // PolyForm Shield, lo mismo que dicen el pie y las preguntas.
+  // Open source desde el 2026-11-21: la licencia es la AGPL-3.0, con su
+  // condición dicha, lo mismo que dicen el pie y las preguntas.
   'codigo.sec': 'Read all of it, and make it yours',
   'codigo.tit': 'The full source code is on GitHub',
   'codigo.p': 'Read every line, build it yourself or make your own fork, and see for yourself what it does on your machine.',
   'codigo.licencia':
-    'Source available under the ' +
-    '<a href="https://github.com/Mun1to/Adeorq-releases/blob/main/LICENSE" rel="noopener">PolyForm Shield</a> ' +
-    'licence: you can use, modify and share it, not sell it or compete with it.',
+    'Open source under the ' +
+    '<a href="https://github.com/Mun1to/Adeorq-releases/blob/main/LICENSE" rel="noopener">AGPL-3.0</a> ' +
+    'licence: you can use, modify, share and sell it, as long as the code stays open.',
   'codigo.seguro':
     '<b>Don’t trust it: <a href="https://github.com/Mun1to/Adeorq-releases#dont-trust-it-check-it" rel="noopener">check it</a>.</b> ' +
     'The security tests ship with the code: they attack an isolated Adeorq the way a bad program ' +
@@ -298,10 +298,11 @@ export default {
     'real, you can run whatever you want inside them, your own scripts included.',
   'faq.q3': 'Is it open source?',
   'faq.r3':
-    'No, and it is worth saying clearly. The code is published in full under the PolyForm Shield ' +
-    'licence: you can read it, use it at work, modify it and share it. The one thing it does not ' +
-    'allow is using it to offer a product that competes with Adeorq, and that includes selling it. ' +
-    'Source-available, which is not the same as free software.',
+    'Yes. The code is published in full under the AGPL-3.0, a free software licence from the ' +
+    'Free Software Foundation: you can read it, use it at work, modify it, share it and even sell ' +
+    'it. The main condition is that it stays open: if you distribute Adeorq or a modified version, ' +
+    'or let people use a modified version over a network, you also share its source under the ' +
+    'same licence.',
   'faq.q4': 'Why does Windows warn me when I install it?',
   'faq.r4':
     'Because the installer does not have a publisher certificate yet, and SmartScreen distrusts by ' +
@@ -381,8 +382,8 @@ export default {
   'pie.repositorio.aria': 'The repository on GitHub',
   'pie.incidencias': 'Issues and ideas',
   'pie.licencia':
-    'Code published on GitHub under the PolyForm Shield licence: you can read, use, modify and ' +
-    'share it, not compete with it or sell it.\n      <b>It is not open source.</b>',
+    'Code published on GitHub under the AGPL-3.0 licence: you can read, use, modify, share and ' +
+    'sell it, as long as the code stays open.\n      <b>It is open source.</b>',
   'pie.cookies': '© 2026 Adeorq · This site uses no cookies and does not track you.',
   subir: 'Back to top',
 }

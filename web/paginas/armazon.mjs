@@ -56,7 +56,7 @@ export const COMUN = {
       versiones: 'Todas las versiones',
       privacidad: 'Privacidad',
       privacidadUrl: '/privacidad',
-      licencia: 'Licencia de uso',
+      licencia: 'Licencia',
       claudeWindows: 'Claude Code en Windows',
       variosClientes: 'Claude Code, Codex y Gemini',
       comparativa: 'Frente a Warp y otros',

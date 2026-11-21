@@ -2,7 +2,7 @@
   "name": "adeorq",
   "private": true,
   "author": "Munir Torres Athayde",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "AGPL-3.0-only",
   "version": "0.9.264",
   "type": "module",
   "scripts": {

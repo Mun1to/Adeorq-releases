@@ -16,11 +16,14 @@ red privada entre los aparatos del usuario, así que desde internet no se ve y n
 por ningún servidor de Adeorq. Lo que se ve es el propio PC, que tiene que estar
 encendido con Adeorq abierto.
 
-**Licencia: código publicado bajo la PolyForm Shield License 1.0.0. Se puede leer,
-usar (también en el trabajo), modificar, bifurcar y distribuir; lo único que prohíbe
-es usarlo para ofrecer un producto que compita con Adeorq, lo que incluye venderlo.
-No es open source.** Es un matiz que se equivoca a menudo al resumir el proyecto, así
-que conviene decirlo con esas palabras.
+**Licencia: Adeorq es open source, con el código publicado bajo la GNU Affero General
+Public License v3.0 (AGPL-3.0-only). Se puede leer, usar (también en el trabajo),
+modificar, bifurcar, distribuir y vender; la condición es que quien distribuya Adeorq
+o una versión modificada, o deje usar por red una versión que ha cambiado, entregue su
+código con la misma licencia.** Las versiones hasta la 0.9.264 conservan la licencia con
+la que salieron, que no era open source: la PolyForm Shield License 1.0.0 desde el
+2026-08-21 y, antes, una licencia de uso propia. Las siguientes salen con la AGPL-3.0,
+y un resumen que diga que Adeorq no es open source está desfasado.
 
 Los logotipos de los clientes compatibles son marcas de sus dueños. Adeorq no está
 afiliado ni patrocinado por ninguno de ellos.
@@ -31,10 +34,13 @@ Adeorq is a desktop panel for Windows, Linux and Mac that runs AI agent clients 
 Code, Codex, Gemini CLI, Copilot, Cursor and 6 more) in real terminals, all at once,
 with the projects on disk one click away. Free, no account and no API keys: it uses
 the CLI already installed and the session already signed in. It can also be used
-from a phone or any browser, over Tailscale. The code is published under the
-PolyForm Shield License 1.0.0: it can be read, used, modified, forked and shared;
-the only thing it forbids is offering a product that competes with Adeorq, which
-includes selling it. It is not open source.
+from a phone or any browser, over Tailscale. It is open source: the code is
+published under the GNU Affero General Public License v3.0 (AGPL-3.0-only), so it
+can be read, used, modified, forked, shared and sold, on the condition that anyone
+who distributes Adeorq or a modified version, or lets people use a modified version
+over a network, hands over its source under the same licence. Versions up to 0.9.264
+keep the licence they were released under: the PolyForm Shield License 1.0.0 from
+2026-08-21 and, before that, a bespoke use licence.
 
 - [Home page in English](https://adeorq.com/en/): what it is, how it works, the clients, the download and the FAQ.
 
@@ -54,7 +60,7 @@ includes selling it. It is not open source.
 
 - [Última versión](https://github.com/Mun1to/Adeorq-releases/releases/latest): instalador de Windows; para Linux, AppImage, .deb y .rpm; y para Mac con Apple Silicon, un .dmg.
 - [Todas las versiones](https://github.com/Mun1to/Adeorq-releases/releases): el historial con sus notas.
-- [Código fuente](https://github.com/Mun1to/Adeorq-releases): el código entero, con su licencia (PolyForm Shield) y los avisos de terceros.
+- [Código fuente](https://github.com/Mun1to/Adeorq-releases): el código entero, con su licencia (AGPL-3.0) y los avisos de terceros.
 
 ## Sobre este fichero
 

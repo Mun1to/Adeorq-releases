@@ -219,8 +219,11 @@
   <div class="nav__acciones">
     <!-- Un enlace de verdad y no un botón de JavaScript: es el camino por el
          que el buscador descubre la otra versión (cada idioma es su URL). -->
+    <!-- Entre 861 y 1079 px se lee el código («EN»): con el nombre entero los
+         botones no dejaban sitio para centrar los enlaces. El nombre sigue ahí
+         para el lector de pantalla. -->
     <a class="nav__idioma" href="/en/" hreflang="en" lang="en" data-idioma="en"
-       data-en="nav.idioma" data-en-attr="href:nav.idioma.href|hreflang:nav.idioma.lang|lang:nav.idioma.lang|data-idioma:nav.idioma.lang">English</a>
+       data-en-attr="href:nav.idioma.href|hreflang:nav.idioma.lang|lang:nav.idioma.lang|data-idioma:nav.idioma.lang"><span class="nav__idioma-largo" data-en="nav.idioma">English</span><span class="nav__idioma-corto" aria-hidden="true" data-en="nav.idioma.corto">EN</span></a>
     <!-- Con el logo de GitHub delante. Por debajo de 860 px se queda solo el
          logo, en su botón redondo junto al menú: el nombre lo da aria-label,
          que empieza por el mismo texto que se ve («Código»). -->
@@ -230,34 +233,31 @@
       <span data-en="nav.codigo">Código</span>
     </a>
     <a class="btn btn--claro btn--chico" href="#descargar" data-en="nav.descargar">Descargar</a>
-    <button class="nav__menu" type="button" aria-label="Abrir el menú" aria-haspopup="dialog"
-            aria-controls="menu-movil" aria-expanded="false" data-menu-abrir data-en-attr="aria-label:menu.abrir">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    <button class="nav__menu" type="button" aria-label="Abrir el menú" data-etiqueta-cerrar="Cerrar el menú"
+            aria-controls="menu-movil" aria-expanded="false" data-menu-abrir data-en-attr="aria-label:menu.abrir|data-etiqueta-cerrar:menu.cerrar">
+      <svg class="nav__menu-abre" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      <svg class="nav__menu-cierra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
+  <!-- El menú del móvil (por debajo de 861 px): la barra misma crece hacia
+       abajo con lo que esconde, el idioma incluido, como en winshotx.com. Lo
+       abre y lo cierra portada/menu.js. -->
+  <div class="nav__panel" id="menu-movil">
+    <nav aria-label="Menú" data-en-attr="aria-label:menu.titulo">
+      <a href="#trabajo" data-en="nav.trabajo">Cómo trabaja</a>
+      <a href="#que-es" data-en="nav.queEs">Qué hace</a>
+      <a href="#cinta" data-en="nav.clientes">Clientes</a>
+      <a href="#movil" data-en="nav.movil">En el móvil</a>
+      <a href="#descargar" data-en="nav.descargar">Descargar</a>
+      <a href="#faq" data-en="pie.preguntas">Preguntas</a>
+      <a href="/guia" data-en="nav.guia">Guía</a>
+      <hr>
+      <a href="https://github.com/Mun1to/Adeorq-releases" rel="noopener"><svg class="gh-marca" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-github"/></svg><span data-en="menu.codigo">Código en GitHub</span></a>
+      <a href="/en/" hreflang="en" lang="en" data-idioma="en"
+         data-en="nav.idioma" data-en-attr="href:nav.idioma.href|hreflang:nav.idioma.lang|lang:nav.idioma.lang|data-idioma:nav.idioma.lang">English</a>
+    </nav>
+  </div>
 </header>
-
-<!-- El menú del móvil (por debajo de 860 px): una hoja modal, que lleva lo
-     que la barra esconde, el idioma incluido. Lo abre y lo cierra portada/menu.js. -->
-<dialog class="hoja-menu" id="menu-movil" aria-label="Menú" data-en-attr="aria-label:menu.titulo">
-  <button class="hoja-menu__cerrar" type="button" aria-label="Cerrar el menú" data-menu-cerrar data-en-attr="aria-label:menu.cerrar">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-  </button>
-  <p class="hoja-menu__titulo" data-en="menu.titulo">Menú</p>
-  <nav aria-label="Secciones" data-en-attr="aria-label:nav.aria">
-    <a href="#trabajo" autofocus data-en="nav.trabajo">Cómo trabaja</a>
-    <a href="#que-es" data-en="nav.queEs">Qué hace</a>
-    <a href="#cinta" data-en="nav.clientes">Clientes</a>
-    <a href="#movil" data-en="nav.movil">En el móvil</a>
-    <a href="#descargar" data-en="nav.descargar">Descargar</a>
-    <a href="#faq" data-en="pie.preguntas">Preguntas</a>
-    <a href="/guia" data-en="nav.guia">Guía</a>
-    <hr>
-    <a href="https://github.com/Mun1to/Adeorq-releases" rel="noopener"><svg class="gh-marca" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-github"/></svg><span data-en="menu.codigo">Código en GitHub</span></a>
-    <a href="/en/" hreflang="en" lang="en" data-idioma="en"
-       data-en="nav.idioma" data-en-attr="href:nav.idioma.href|hreflang:nav.idioma.lang|lang:nav.idioma.lang|data-idioma:nav.idioma.lang">English</a>
-  </nav>
-</dialog>
 
 <main id="contenido"><span id="top" aria-hidden="true"></span>
 
@@ -298,29 +298,22 @@
       </a>
       <a class="btn btn--fantasma btn--grande" href="#trabajo" data-en="hero.verComo">Ver cómo trabaja</a>
     </div>
-    <!-- Las cifras de verdad, con el número grande y lo que quiere decir debajo
-         (Munir eligió «Números de verdad» el 2026-11-16), y las que le importan
-         a quien va a usarla (Munir, 2026-11-17: «a la gente no le interesa el
-         instalador sino el tamaño de la app en sí», «11 clientes soportados, no
-         que pueda abrir», «y ya firmado por Apple»).
-         · Los clientes los escribe el build (vite.config.js), contando la cinta.
-         · 30,5 MB es la carpeta instalada en Windows (adeorq.exe, 30,2 MB, más
-           el desinstalador), medida el 2026-11-17 con la 0.9.257. GitHub no lo
-           sabe, así que no sale de datos.js: se escribe aquí, en la respuesta
-           «¿Cuánto ocupa y cuánto consume?» de las preguntas (y su copia de
-           arriba, en el JSON-LD) y, con punto, en `hero.instalada` y `faq.r7`
-           de portada/en.mjs.
-         · En Mac va firmada y notarizada por Apple desde la 0.9.249. El
-           instalador de Windows no lleva certificado: no se dice «firmada» a secas. -->
-    <ul class="cifras">
-      <li><b data-cifra-clientes>11</b><span data-en="hero.cifra1">clientes <i>soportados</i></span></li>
-      <li><b data-en="hero.instalada">30,5 MB</b><span data-en="hero.cifra2"><i>ocupa </i>instalada</span></li>
-      <li><b>3</b><span data-en="hero.cifra3">sistemas<i>: Windows, Linux y Mac. <em>En Mac, firmada y notarizada por Apple</em></i></span></li>
-    </ul>
-    <!-- Aquí iban cuatro notas a mano y, encima de la demo, una frase de «toca
-         la app». Fuera el 2026-11-17 (Munir: «estructúralo mejor, me explota la
-         cabeza de tantas cosas»; eligió «Dos columnas»): la primera pantalla es
-         el mensaje a la izquierda, las cifras a la derecha y la app debajo. -->
+    <!-- ADEO, el de la barra de la app (portada/adeo.js lo pinta y lo mueve), al
+         lado del titular: a lo ancho, en la columna de la derecha; en estrecho,
+         debajo de los botones. Ahí iban las cifras (11 clientes, 30,5 MB, 3
+         sistemas), y a la tercera vuelta Munir las quitó: «la parte esa como
+         está ahora pero con más espacio, y lo de la derecha no me gusta, pon a
+         Adeo y ya» (2026-11-21). Esos datos siguen en la cinta de clientes y en
+         las preguntas. Antes Adeo iba sentado encima de la ventana, a la derecha
+         de las pestañas; ahora hay uno solo, aquí. Entra después del titular y
+         no pesa: es un <svg> vacío hasta que carga el script. Su frase es texto
+         de la página. -->
+    <div class="adeo-hola">
+      <p class="adeo-dice adeo-dice--der" data-en="adeo.hola"
+         data-celebra="¡Allá va! Instálalo y nos vemos en tu barra." data-en-attr="data-celebra:adeo.celebra">Hola,
+         soy <b>Adeo</b>. Vivo en tu Adeorq y te aviso cuando un agente te necesita.</p>
+      <svg class="adeo" data-adeo="quieta" width="128" height="90" aria-hidden="true"></svg>
+    </div>
   </div>
 
   <!-- La ventana. `loading="lazy"` no: es lo primero que se ve, y por eso sube
@@ -339,7 +332,7 @@
          Iban en una fila propia entre los botones y la ventana; Munir,
          2026-11-17: «lo de la cabina, lienzo, chat… al lado de abrirla en
          grande, a la derecha». Va antes que la demo en el HTML para que el
-         teclado llegue primero aquí. La derecha de esta línea es de Adeo. -->
+         teclado llegue primero aquí. -->
     <div class="ventana__encima">
       <a class="ventana__grande" href="/demo/" target="_blank" rel="noopener"
          data-en="hero.grande" data-en-attr="href:hero.grande.href">Abrirla en grande</a>
@@ -361,16 +354,6 @@
               data-src="/demo/?desnuda=1"></iframe>
       <noscript><iframe title="Adeorq en marcha" src="/demo/?desnuda=1"
               data-en-attr="title:hero.demo.corto|src:hero.demo.src"></iframe></noscript>
-    </div>
-    <!-- ADEO, el de la barra de la app (portada/adeo.js lo pinta y lo mueve),
-         sentado en el borde de arriba de la ventana, a la derecha: presenta la
-         app que tiene debajo. Entra después del titular y no pesa: es un <svg>
-         vacío hasta que carga el script. Su frase es texto de la página. -->
-    <div class="adeo-hola">
-      <p class="adeo-dice adeo-dice--der" data-en="adeo.hola"
-         data-celebra="¡Allá va! Instálalo y nos vemos en tu barra." data-en-attr="data-celebra:adeo.celebra">Hola,
-         soy <b>Adeo</b>. Vivo en tu Adeorq y te aviso cuando un agente te necesita.</p>
-      <svg class="adeo" data-adeo="quieta" width="128" height="90" aria-hidden="true"></svg>
     </div>
   </div>
 </section>

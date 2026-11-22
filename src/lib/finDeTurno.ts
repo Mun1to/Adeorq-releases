@@ -97,6 +97,56 @@ export function crearFinDeTurno(ahora: () => number = Date.now) {
   };
 }
 
+/** Lo que tarda en apagarse «trabajando» desde que su pie deja de decirlo: lo
+    mismo que el asiento del fin, para que un respiro entre dos pasos no corte
+    el tramo azul del borde y para que, al acabar, el azul y el amarillo se
+    releven en la misma mirada. */
+export const SUELTA_TRABAJO_MS = ASIENTO_FIN_MS;
+
+/**
+ * Si el panel está trabajando ahora, para el borde (`lib/aroDeEstado.ts`). Se
+ * enciende en cuanto se ve trabajar y se apaga tras `SUELTA_TRABAJO_MS` sin
+ * verlo. `ver` dice si cambió y, si está esperando para apagarse, cuándo volver
+ * a mirar (parado no escribe nada que lo despierte).
+ */
+export function crearTrabajando(ahora: () => number = Date.now) {
+  let si = false;
+  let sinVerDesde: number | null = null;
+  return {
+    get si() {
+      return si;
+    },
+    ver(trabajando: boolean): { cambio: boolean; volverEn?: number } {
+      if (trabajando) {
+        sinVerDesde = null;
+        if (si) return { cambio: false };
+        si = true;
+        return { cambio: true };
+      }
+      if (!si) return { cambio: false };
+      const t = ahora();
+      sinVerDesde ??= t;
+      const falta = sinVerDesde + SUELTA_TRABAJO_MS - t;
+      if (falta > 0) return { cambio: false, volverEn: falta };
+      si = false;
+      sinVerDesde = null;
+      return { cambio: true };
+    },
+    /** Apagado ya (un fin de turno dicho, o una terminal que ya no se sabe
+        leer). `true` si estaba encendido. */
+    soltar(): boolean {
+      sinVerDesde = null;
+      if (!si) return false;
+      si = false;
+      return true;
+    },
+  };
+}
+
+/** Cómo se lee en una pantalla que el programa está trabajando
+    (`trabajaEnPantalla`, o el `trabaja` de `lectorDeCaja`). */
+export type LeerTrabajo = (linea: (i: number) => string, filas: number) => boolean;
+
 /** Lo que hace falta de un terminal de xterm. */
 export interface TerminalDeTurno {
   rows: number;
@@ -112,6 +162,10 @@ export interface TerminalDeTurno {
  * después de montar el terminal); en los demás la campana dispara siempre, como
  * antes. Se mira tras lo que escribe el programa, como mucho cada
  * `MIRAR_CADA_MS`, y otra vez al asentarse (parado no escribe nada).
+ *
+ * Con `alTrabajar`, de paso dice cuándo empieza y cuándo deja de trabajar
+ * (`crearTrabajando`), leído con `trabajaCon`: el lector de SU CLI, o `null`
+ * si su pantalla no se sabe leer. Sin él, solo donde corre Claude Code.
  * Devuelve con qué soltarlo.
  */
 export function engancharFinDeTurno(
@@ -119,6 +173,8 @@ export function engancharFinDeTurno(
   o: {
     esClaude: () => boolean;
     alAcabar: () => void;
+    alTrabajar?: (si: boolean) => void;
+    trabajaCon?: () => LeerTrabajo | null;
     ahora?: () => number;
     programar?: (f: () => void, ms: number) => () => void;
   },
@@ -131,17 +187,35 @@ export function engancharFinDeTurno(
       return () => clearTimeout(t);
     });
   const fin = crearFinDeTurno(ahora);
+  const trabajo = crearTrabajando(ahora);
+  const trabajaCon = o.trabajaCon ?? (() => (o.esClaude() ? trabajaEnPantalla : null));
   let ultima = -Infinity;
   /** La próxima mirada ya programada, y cuándo cae. */
   let luego: { cancelar: () => void; en: number } | null = null;
+  const soltarTrabajo = () => {
+    if (trabajo.soltar()) o.alTrabajar?.(false);
+  };
   const mirar = () => {
     luego?.cancelar();
     luego = null;
-    if (!o.esClaude()) return;
+    const claude = o.esClaude();
+    const lee = o.alTrabajar ? trabajaCon() : null;
+    if (!lee) soltarTrabajo();
+    if (!claude && !lee) return;
     ultima = ahora();
-    const r = fin.mirar({ trabajando: enPantalla(term, trabajaEnPantalla), parada: enPantalla(term, esperaEnSuCaja) });
-    if (r.fin) o.alAcabar();
-    else if (r.volverEn != null) dentroDe(r.volverEn);
+    let pie: boolean | undefined;
+    const trabajando = () => (pie ??= enPantalla(term, trabajaEnPantalla));
+    if (lee) {
+      const t = trabajo.ver(lee === trabajaEnPantalla ? trabajando() : enPantalla(term, lee));
+      if (t.cambio) o.alTrabajar?.(trabajo.si);
+      if (t.volverEn != null) dentroDe(t.volverEn);
+    }
+    if (!claude) return;
+    const r = fin.mirar({ trabajando: trabajando(), parada: enPantalla(term, esperaEnSuCaja) });
+    if (r.fin) {
+      soltarTrabajo();
+      o.alAcabar();
+    } else if (r.volverEn != null) dentroDe(r.volverEn);
   };
   const dentroDe = (ms: number) => {
     const en = ahora() + ms;

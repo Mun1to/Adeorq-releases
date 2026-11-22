@@ -33,6 +33,14 @@
      se veían, y las que no (la pastilla de «no pude enviar» del chat, entre
      ellas) salían sin borde ni fondo. Es el mismo amarillo de esos respaldos. */
   --warn: #ffd166;
+  /* Los tres estados de una terminal, y lo único con color alrededor de ella
+     (`05-cabina.css`, Munir 2026-11-21): rojo te necesita, amarillo terminó y
+     azul trabajando. Los mismos en todos los temas oscuros, para que digan lo
+     mismo en todos; los claros llevan los suyos, más oscuros (3:1 sobre su
+     fondo, lo que pide una raya que se tiene que ver). */
+  --estado-necesita: #ff6b6b;
+  --estado-termino: #ffd23f;
+  --estado-trabaja: #5aa9ff;
   --glass-blur: saturate(150%) blur(22px);
   --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.09);
   font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
@@ -48,6 +56,7 @@
 :root[data-theme="contraste"],
 [data-tema-prev="contraste"] {
   --c3-negro: #000000;
+  --c3-velo: #000000;
   --c3-sobre-blanco: #000000;
   --c3-icono: #c6c6cc;
   --c3-sombra-2: 0 12px 36px rgba(0, 0, 0, 0.5);
@@ -115,20 +124,29 @@
 
    Va DELANTE de los temas y pesa lo mismo que ellos: lo que un tema declare
    después, manda (así siguen cerrados los dos apagados). En la miniatura va con
-   `:where()` por lo mismo, que allí un tema pesa uno menos. Los dos claros se
-   quedan con el cristal de siempre: su forma pide darle la vuelta al velo de la
-   foto y a las sombras, y eso no se ha diseñado. */
-:root:not([data-theme="contraste"], [data-theme="claro"], [data-theme="papel"]),
-[data-tema-prev]:where(:not([data-tema-prev="contraste"], [data-tema-prev="claro"], [data-tema-prev="papel"])) {
+   `:where()` por lo mismo, que allí un tema pesa uno menos.
+
+   Desde el 2026-11-21 también es la forma de los claros (Munir: «haz los temas
+   claros con la misma forma que los oscuros»): la misma receta sale bien del
+   revés, porque todo se mezcla entre el fondo y la letra del tema. Lo único que
+   no sale de ahí, el velo de la foto y las sombras, va en «los claros», debajo
+   de los temas. */
+:root:not([data-theme="contraste"]),
+[data-tema-prev]:where(:not([data-tema-prev="contraste"])) {
   /* Lo que se escribe encima del acento: el oscuro de la casa, salvo que el tema
      diga otro. Va aquí y no solo en la raíz para que la miniatura de un tema
      oscuro no herede el de la app cuando la app está en claro (que es blanco). */
   --on-accent: #071019;
   --c3-negro: var(--panel-solid);
   --c3-sobre-blanco: var(--on-accent);
-  --c3-sobre-blanco-2: color-mix(in srgb, var(--on-accent) 78%, var(--accent));
+  /* La cuenta de la pestaña activa. Mezclada con el acento (al 78 %) se quedaba
+     en 3,5:1 en Latte y Solarizado claro y en 4,3 en Cyberpunk: entera. */
+  --c3-sobre-blanco-2: var(--on-accent);
   --c3-beta-sobre-blanco: var(--on-accent);
   --c3-icono: color-mix(in srgb, var(--text) 80%, var(--panel-solid));
+  /* El color del velo que apaga la foto y del halo de lo que va suelto encima
+     (`41-contraste.css`): negro en un tema oscuro, blanco en uno claro. */
+  --c3-velo: #000000;
   --c3-sombra-2: 0 12px 36px rgba(0, 0, 0, 0.5);
   --c3-sombra-3: 0 18px 48px rgba(0, 0, 0, 0.7);
   --c3-sombra-caja: 0 18px 48px rgba(0, 0, 0, 0.5);
@@ -139,7 +157,16 @@
   --c3-raya-2: color-mix(in srgb, var(--text) 42%, transparent);
   --c3-raya-3: color-mix(in srgb, var(--text) 85%, transparent);
   --c3-tinta: var(--text);
-  --c3-gris: color-mix(in srgb, var(--text) 74%, var(--panel-solid));
+  /* Declarado aquí, y no solo en los temas que lo suben, para que la miniatura
+     de un tema en Ajustes no herede el de la app: con la app en Latte (91 %),
+     la de Drácula salía con su gris al 91 %. */
+  --letra-gris: 74%;
+  /* El gris de los rótulos (`--muted`): la letra al 74 % sobre el fondo (en
+     Terminal, al 66 %; en Consola y en Liso, que lo ponen sobre una barra más
+     honda, al 78 y al 84 %, `42-aspectos.css`). Un tema de letra floja (One Dark, los dos
+     Solarized, Latte) se queda así por debajo de 4,5:1 y sube `--letra-gris`;
+     lo vigila `scripts/temas-check.mjs`. */
+  --c3-gris: color-mix(in srgb, var(--text) var(--letra-gris, 74%), var(--panel-solid));
   --c3-gris-2: color-mix(in srgb, var(--text) 56%, var(--panel-solid));
   --c3-claro: color-mix(in srgb, var(--text) 90%, var(--panel-solid));
   --c3-claro-2: color-mix(in srgb, var(--text) 82%, var(--panel-solid));
@@ -228,23 +255,10 @@
 [data-tema-prev="cyberpunk"] {
   --panel-solid: #1e0e33;
   --text: #fbeefe;
-  --accent: #ff007f;
+  /* Su rosa #ff007f, un punto más claro: como letra se quedaba en 4,37:1. */
+  --accent: #ff2190;
   --accent-dim: #99004d;
   --done: #00f0ff;
-}
-
-/* Los temas de paleta ajena (Dracula, Solarized, One Dark…) traían su gris de
-   la paleta oficial, que allí es el de los COMENTARIOS DE CÓDIGO: está hecho
-   para desaparecer dentro de un editor y aquí es texto que hay que leer. Ya no
-   lo declaran: `--muted` sale de la receta de arriba (la letra del tema al 74 %
-   sobre su fondo), que pasa de sobra el 4,5 de la norma en todos. */
-:root[data-theme="dracula"],
-[data-tema-prev="dracula"] {
-  --panel-solid: #21222c;
-  --text: #f8f8f2;
-  --accent: #bd93f9;
-  --accent-dim: #6272a4;
-  --done: #50fa7b;
 }
 
 :root[data-theme="esmeralda"],
@@ -274,58 +288,15 @@
   --done: #00f0ff;
 }
 
-:root[data-theme="synthwave"],
-[data-tema-prev="synthwave"] {
-  --panel-solid: #221238;
-  --text: #fff5fd;
-  --accent: #ff7edb;
-  --accent-dim: #a63c87;
-  --done: #fefe60;
-}
-
-:root[data-theme="solarized"],
-[data-tema-prev="solarized"] {
-  --panel-solid: #042029;
-  --text: #93a1a1;
-  --accent: #268bd2;
-  --accent-dim: #1a5b8a;
-  --done: #cb4b16;
-}
-
-:root[data-theme="rose"],
-[data-tema-prev="rose"] {
-  --panel-solid: #1f1d2e;
-  --text: #e0def4;
-  --accent: #ebbcba;
-  --accent-dim: #9b7270;
-  --done: #f6c177;
-}
-
-:root[data-theme="onedark"],
-[data-tema-prev="onedark"] {
-  --panel-solid: #21252b;
-  --text: #abb2bf;
-  --accent: #61afef;
-  --accent-dim: #326996;
-  --done: #98c379;
-}
-
-:root[data-theme="catppuccin"],
-[data-tema-prev="catppuccin"] {
-  --panel-solid: #181825;
-  --text: #cdd6f4;
-  --accent: #cba6f7;
-  --accent-dim: #8459b8;
-  --done: #a6e3a1;
-}
-
 :root[data-theme="turquesa"],
 [data-tema-prev="turquesa"] {
   --panel-solid: #0d2230;
   --text: #e6ffff;
   --accent: #00f5d4;
   --accent-dim: #009985;
-  --done: #ff007f;
+  /* El rosa de Cyberpunk, un punto más claro: en Terminal y Consola el nombre de
+     lo terminado va en este color, y con el #ff007f daba 3,88:1. */
+  --done: #ff45a2;
 }
 
 /* Light: the acrylic window shows white, so the layers invert. */
@@ -386,77 +357,364 @@
   --accent-dim: #8a6d3c;
 }
 
-/* Everforest: verde apagado de bosque, el más descansado de todos. */
-:root[data-theme="everforest"],
-[data-tema-prev="everforest"] {
-  --panel-solid: #374145;
-  --text: #d3c6aa;
-  --accent: #a7c080;
-  --accent-dim: #5c6f4a;
+/* ------------------------------------------------------------- los conocidos
+   Los de otro sitio, con su nombre de siempre y su paleta oficial ENTERA: el
+   fondo del editor (`--panel-solid`), su letra, su acento, y también sus colores
+   de bien, mal, te espera, te pregunta y terminó, que antes eran los de la casa.
+   Munir, 2026-11-21: «haz los temas mucho mejor», el día que alguien que vive en
+   la terminal dijo de la portada «Solo con ver la UI ya sé que no es para mí».
+   Hasta entonces un conocido era su fondo y su acento con todo lo demás de la
+   casa: el fondo de Drácula era el de su barra lateral, el de Solarizado no era
+   de Solarized, y con solo dos colores medidos, Nord, Tokyo Night, Gruvbox y
+   Kanagawa salieron el 17-nov por gemelos de otros. Ahora vuelven, completos.
+
+   `--tema-term` es el fondo que su terminal tiene en Ghostty, y lo usan los
+   estilos lisos (`42-aspectos.css`): allí la terminal es opaca y tiene que ser
+   la de verdad, no un tono mezclado. La letra de la terminal sale del esquema
+   del mismo nombre (`lib/temasTerm.ts`, «A juego con el tema»).
+
+   Su gris de los comentarios de código no se declara: está hecho para
+   desaparecer dentro de un editor, y aquí es texto que hay que leer. `--muted`
+   sale de la receta de arriba, la letra del tema al 74 % sobre su fondo, y el
+   tema de letra floja sube ese 74 (`--letra-gris`). Por lo mismo, un color de
+   estado de su paleta que como letra no llega a 4,5:1 sobre su fondo se aclara
+   lo justo para llegar (el rojo de Nord, el de Monokai), con el suyo al lado.
+   En la terminal, en cambio, van tal cual (`lib/temasTerm.ts`). Lo vigila
+   `scripts/temas-check.mjs`. */
+:root[data-theme="onedark"],
+[data-tema-prev="onedark"] {
+  --panel-solid: #282c34;
+  --tema-term: #282c34;
+  --text: #abb2bf;
+  /* Su letra da 6,6:1, y el gris al 74 % se quedaba en 4,3. */
+  --letra-gris: 86%;
+  --accent: #61afef;
+  --accent-dim: #326996;
+  --done: #d19a66;
+  --ok: #98c379;
+  --mal: #e2737c; /* su rojo #e06c75 daba 4,38:1 */
+  --wait: #e2737c;
+  --ask: #e5c07b;
+  --warn: #d19a66;
 }
 
-/* Monokai: el verde ácido sobre oliva oscuro de toda la vida. */
+:root[data-theme="catppuccin"],
+[data-tema-prev="catppuccin"] {
+  --panel-solid: #1e1e2e;
+  --tema-term: #1e1e2e;
+  --text: #cdd6f4;
+  --accent: #cba6f7;
+  --accent-dim: #8459b8;
+  --done: #fab387;
+  --ok: #a6e3a1;
+  --mal: #f38ba8;
+  --wait: #f38ba8;
+  --ask: #f9e2af;
+  --warn: #fab387;
+}
+
+:root[data-theme="dracula"],
+[data-tema-prev="dracula"] {
+  --panel-solid: #282a36;
+  --tema-term: #282a36;
+  --text: #f8f8f2;
+  --accent: #bd93f9;
+  --accent-dim: #6272a4;
+  --done: #ffb86c;
+  --ok: #50fa7b;
+  --mal: #ff5555;
+  --wait: #ff5555;
+  --ask: #f1fa8c;
+  --warn: #ffb86c;
+}
+
+:root[data-theme="tokyo"],
+[data-tema-prev="tokyo"] {
+  --panel-solid: #1a1b26;
+  --tema-term: #1a1b26;
+  --text: #c0caf5;
+  --accent: #7aa2f7;
+  --accent-dim: #3d59a1;
+  --done: #ff9e64;
+  --ok: #9ece6a;
+  --mal: #f7768e;
+  --wait: #f7768e;
+  --ask: #e0af68;
+  --warn: #ff9e64;
+}
+
+:root[data-theme="nord"],
+[data-tema-prev="nord"] {
+  --panel-solid: #2e3440;
+  --tema-term: #2e3440;
+  --text: #d8dee9;
+  --accent: #88c0d0;
+  --accent-dim: #5e81ac;
+  --done: #d28c76; /* su naranja #d08770 daba 4,39:1 */
+  --ok: #a3be8c;
+  --mal: #d08c92; /* su rojo #bf616a daba 3,05:1 */
+  --wait: #d08c92;
+  --ask: #ebcb8b;
+  --warn: #d28c76;
+}
+
+/* Gruvbox con su naranja de acento: con el amarillo era gemelo de Arena. */
+:root[data-theme="gruvbox"],
+[data-tema-prev="gruvbox"] {
+  --panel-solid: #282828;
+  --tema-term: #282828;
+  --text: #ebdbb2;
+  --accent: #fe8019;
+  --accent-dim: #af3a03;
+  --done: #8ec07c;
+  --ok: #b8bb26;
+  --mal: #fb5844; /* su rojo #fb4934 daba 4,29:1 */
+  --wait: #fb5844;
+  --ask: #fabd2f;
+  --warn: #fe8019;
+}
+
+:root[data-theme="rose"],
+[data-tema-prev="rose"] {
+  --panel-solid: #191724;
+  --tema-term: #191724;
+  --text: #e0def4;
+  --accent: #ebbcba;
+  --accent-dim: #9b7270;
+  --done: #c4a7e7;
+  --ok: #9ccfd8;
+  --mal: #eb6f92;
+  --wait: #eb6f92;
+  --ask: #f6c177;
+  --warn: #f6c177;
+}
+
+:root[data-theme="kanagawa"],
+[data-tema-prev="kanagawa"] {
+  --panel-solid: #1f1f28;
+  --tema-term: #1f1f28;
+  --text: #dcd7ba;
+  --accent: #7e9cd8;
+  --accent-dim: #2d4f67;
+  --done: #ffa066;
+  --ok: #98bb6c;
+  --mal: #ed5252; /* su rojo #e82424 daba 3,66:1 */
+  --wait: #e46876;
+  --ask: #e6c384;
+  --warn: #ffa066;
+}
+
+/* Everforest, en su variante media: el más descansado de todos. */
+:root[data-theme="everforest"],
+[data-tema-prev="everforest"] {
+  --panel-solid: #2d353b;
+  --tema-term: #2d353b;
+  --text: #d3c6aa;
+  /* Su letra da 7,4:1, y el gris de Terminal y Consola se quedaba en 4,2. */
+  --letra-gris: 80%;
+  --accent: #a7c080;
+  --accent-dim: #5c6f4a;
+  --done: #e69875;
+  --ok: #83c092;
+  --mal: #e67e80;
+  --wait: #e67e80;
+  --ask: #dbbc7f;
+  --warn: #e69875;
+}
+
 :root[data-theme="monokai"],
 [data-tema-prev="monokai"] {
-  --panel-solid: #34352d;
+  --panel-solid: #272822;
+  --tema-term: #272822;
   --text: #f8f8f2;
   --accent: #a6e22e;
   --accent-dim: #5f7d1c;
+  --done: #fd971f;
+  --ok: #a6e22e;
+  --mal: #fa4d8b; /* su rosa #f92672 daba 3,93:1 */
+  --wait: #fa4d8b;
+  --ask: #e6db74;
+  --warn: #fd971f;
 }
 
-/* Papel: el segundo claro, y cálido. El «Claro» de al lado es blanco de
-   pantalla; este es blanco de hoja, para quien lo quiere claro pero no
-   quirófano. */
+/* Solarized oscuro: la letra va entre su base1 y su base2, más clara que la
+   base0 de la terminal, porque aquí hay que leer rótulos y no solo código. Con
+   la base1 sola (5,6:1) el gris de los rótulos no llegaba a 4,5 ni con toda la
+   letra, en Liso. Su azul, su naranja y su rojo, que como letra daban 3,3:1,
+   van aclarados lo justo. */
+:root[data-theme="solarized"],
+[data-tema-prev="solarized"] {
+  --panel-solid: #002b36;
+  --tema-term: #002b36;
+  --text: #c1c5bb; /* base1 #93a1a1 y base2 #eee8d5, a medias */
+  --accent: #3a95d6; /* su azul, #268bd2 */
+  --accent-dim: #1a5b8a;
+  --done: #d7744c; /* su naranja, #cb4b16 */
+  --ok: #859900;
+  --mal: #e56765; /* su rojo, #dc322f */
+  --wait: #e56765;
+  --ask: #b58900;
+  --warn: #d7744c;
+}
+
+/* Synthwave '84, el tema de VS Code de Robb Owen (licencia MIT). */
+:root[data-theme="synthwave"],
+[data-tema-prev="synthwave"] {
+  --panel-solid: #262335;
+  --tema-term: #262335;
+  --text: #fff5fd;
+  --accent: #ff7edb;
+  --accent-dim: #a63c87;
+  --done: #fede5d;
+  --ok: #72f1b8;
+  --mal: #fe4b57; /* su rojo #fe4450 daba 4,48:1 */
+  --wait: #fe4b57;
+  --ask: #fede5d;
+  --warn: #f97e72;
+}
+
+/* ── Los claros ─────────────────────────────────────────────────────────────
+   Desde el 2026-11-21, con la forma de los oscuros: cada uno declara solo sus
+   colores, como ellos, y la receta de arriba saca lo demás. Hasta ese día
+   llevaban el cristal de antes escrito entero (catorce rgba a mano cada uno), y
+   los colores de bien y mal eran los de la casa oscura: un verde claro sobre
+   blanco que daba 1,6:1. Ahora cada claro trae los suyos, y como letra llegan
+   a 4,5:1 sobre su fondo: el de una paleta oficial que no llega (el melocotón
+   de Latte daba 2,6:1) va oscurecido lo justo, con el suyo al lado. Lo vigila
+   `scripts/temas-check.mjs`. */
+
+/* Papel: el claro cálido. El «Claro» de al lado es blanco de pantalla; este es
+   blanco de hoja, para quien lo quiere claro pero no quirófano. */
 :root[data-theme="papel"],
 [data-tema-prev="papel"] {
   color-scheme: light;
-  --bg: rgba(250, 246, 238, 0.9);
-  --panel: rgba(246, 240, 229, 0.94);
-  --panel-solid: #f3ece0;
-  --panel-head: rgba(236, 226, 208, 0.85);
-  --row: rgba(150, 125, 85, 0.14);
-  --row-hover: rgba(150, 125, 85, 0.24);
-  --border: rgba(90, 70, 40, 0.18);
-  --border-strong: rgba(90, 70, 40, 0.32);
+  --panel-solid: #f6f0e5;
   --text: #33291c;
-  --muted: #6f6250;
-  --accent: #a3622a;
+  --letra-gris: 76%;
+  --accent: #945926;
   --accent-dim: #d8b48a;
-  --done: #c2601c;
-  --topbar: rgba(252, 249, 243, 0.96);
-  --page-tint: rgba(245, 239, 229, 0.97);
-  --pane-bg: rgba(253, 250, 244, 0.94);
-  --popover: rgba(253, 250, 245, 0.97);
   --on-accent: #fffaf2;
-  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --done: #a35118;
+  --ok: #46701a;
+  --mal: #b23f2f;
   --wait: #b23f2f;
-  --ask: #8a6412;
+  --ask: #866111;
+  --warn: #975812;
 }
 
 :root[data-theme="claro"],
 [data-tema-prev="claro"] {
   color-scheme: light;
-  --bg: rgba(255, 255, 255, 0.86);
-  --panel: rgba(248, 250, 254, 0.94);
-  --panel-solid: #f4f7fc;
-  --panel-head: rgba(228, 236, 250, 0.85);
-  --row: rgba(120, 150, 195, 0.16);
-  --row-hover: rgba(110, 145, 195, 0.26);
-  --border: rgba(40, 70, 120, 0.18);
-  --border-strong: rgba(40, 70, 120, 0.32);
+  --panel-solid: #fbfcfe;
   --text: #16213a;
-  --muted: #5a6a86;
-  --accent: #1f6fe0;
+  --accent: #1d69d5;
   --accent-dim: #9dbdea;
-  --done: #ff9a3c;
-  --topbar: rgba(250, 252, 255, 0.96);
-  --page-tint: rgba(240, 244, 251, 0.97);
-  --pane-bg: rgba(252, 253, 255, 0.94);
-  --popover: rgba(255, 255, 255, 0.97);
   --on-accent: #ffffff;
-  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --done: #c2410c;
+  --ok: #1a7f37;
+  --mal: #cf222e;
   --wait: #c2415a;
-  --ask: #9a6b12;
+  --ask: #916511;
+  --warn: #956400;
+}
+
+/* GitHub claro: el GitHub Light Default de su tema de VS Code, con los colores
+   de estado de Primer. Lo «terminado» va en su morado, que en GitHub es el de
+   lo hecho (un pull request fusionado). */
+:root[data-theme="github-claro"],
+[data-tema-prev="github-claro"] {
+  color-scheme: light;
+  --panel-solid: #ffffff;
+  --tema-term: #ffffff;
+  --text: #1f2328;
+  --accent: #0969da;
+  --accent-dim: #b6e3ff;
+  --on-accent: #ffffff;
+  --done: #8250df;
+  --ok: #1a7f37;
+  --mal: #d1242f;
+  --wait: #d1242f;
+  --ask: #9a6700;
+  --warn: #bc4c00;
+}
+
+/* Solarized claro: su base3 de fondo y, de letra, su base02. La de su editor,
+   la base01, da 4,99:1, y el gris de los rótulos, hecho con ella, se quedaba
+   en 3,0. Sus colores, que sobre la base3 dan de 2,5 a 4,3, van oscurecidos lo
+   justo (el suyo al lado); con eso su azul ya lleva letra clara encima. La
+   terminal oscura, cuando se elige un esquema de la lista, es su base03. */
+:root[data-theme="solarized-claro"],
+[data-tema-prev="solarized-claro"] {
+  color-scheme: light;
+  --panel-solid: #fdf6e3;
+  --tema-term: #fdf6e3;
+  --tema-term-oscura: #002b36;
+  --text: #073642;
+  --letra-gris: 76%;
+  --accent: #2075b0; /* #268bd2 */
+  --accent-dim: #a9d1ee;
+  --on-accent: #fdf6e3;
+  --done: #c14715; /* #cb4b16 */
+  --ok: #667600; /* #859900 */
+  --mal: #d1302d; /* #dc322f */
+  --wait: #d1302d;
+  --ask: #8b6900; /* #b58900 */
+  --warn: #c14715;
+}
+
+/* Catppuccin Latte, el claro de Catppuccin: su base, su text y su mauve de
+   acento, como el Mocha. Su text da 7:1, así que el gris lleva casi toda la
+   letra, y su melocotón, su amarillo y su verde, que como letra daban de 2,3 a
+   3,0, van oscurecidos lo justo. La terminal oscura es la base del Mocha. */
+:root[data-theme="latte"],
+[data-tema-prev="latte"] {
+  color-scheme: light;
+  --panel-solid: #eff1f5;
+  --tema-term: #eff1f5;
+  --tema-term-oscura: #1e1e2e;
+  --text: #4c4f69;
+  --letra-gris: 91%;
+  --accent: #8839ef;
+  --accent-dim: #cfb2f8;
+  --on-accent: #eff1f5;
+  --done: #b94908; /* #fe640b */
+  --ok: #317b21; /* #40a02b */
+  --mal: #d20f39;
+  --wait: #d20f39;
+  --ask: #986114; /* #df8e1d */
+  --warn: #b94908;
+}
+
+/* Lo que en un claro no sale de la receta. El velo que apaga la foto y el halo
+   de la letra que va suelta encima pasan a blanco, y el velo pesa más (aclarar
+   una foto la apaga menos que oscurecerla); lo lleno, al pasar el ratón,
+   se oscurece en vez de aclararse; y las sombras bajan de 0,5 y 0,7 de negro,
+   que sobre un fondo claro eran manchas, a lo que se ve en una hoja. La marca
+   `data-claro` la pone `App.tsx` en los temas de la familia «claro»
+   (`lib/i18n.ts`), así que un claro nuevo no tiene que apuntarse aquí. */
+:root[data-claro] {
+  --c3-velo: #ffffff;
+  --c3-velo-alfa: 0.6;
+  --c3-blanco-2: color-mix(in srgb, var(--accent) 86%, #000000);
+  --c3-sombra-2: 0 12px 36px rgba(0, 0, 0, 0.12);
+  --c3-sombra-3: 0 18px 48px rgba(0, 0, 0, 0.18);
+  --c3-sombra-caja: 0 18px 48px rgba(0, 0, 0, 0.12);
+  --sombra-2: 0 0 0 1px var(--c3-raya-2), 0 8px 24px rgba(0, 0, 0, 0.12);
+  --sombra-3: 0 0 0 1px var(--c3-raya-2), 0 18px 48px rgba(0, 0, 0, 0.18);
+  /* La terminal cuando va oscura dentro de un claro: con un esquema de los de
+     la lista, que son todos oscuros (`data-term-oscura`, `42-aspectos.css`).
+     La tinta del tema hacia el negro, que vale si su letra es casi negra; si
+     no (la de Latte es un gris azulado), el tema dice cuál con
+     `--tema-term-oscura`, o la letra clara de Drácula o de Solarized no se lee
+     (2,2:1 sobre la de Solarizado claro, cuando era su base01 al 85 %). */
+  --term-oscura: var(--tema-term-oscura, color-mix(in srgb, var(--text) 85%, #000000));
+  /* Los tres estados del borde de las terminales, más hondos: los de fábrica
+     son para un fondo oscuro, y el amarillo daba 1,3:1 sobre una hoja clara.
+     Sobre los fondos de los cinco claros, de 3,5:1 (el amarillo en Papel) a
+     5,2:1 (el rojo en GitHub claro). */
+  --estado-necesita: #c93434;
+  --estado-termino: #a77800;
+  --estado-trabaja: #2f74d8;
 }
 
 /* ==========================================================================

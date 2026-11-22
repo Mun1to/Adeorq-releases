@@ -18,7 +18,14 @@
 // matarle las terminales— haría desaparecer la vista que sí estás mirando
 // mientras carga la suya.
 
-import { lazy, Suspense, type ComponentType } from "react";
+import { lazy, Suspense, useState, type ComponentType } from "react";
+
+/** Una vista perezosa, con su forma de traerla antes de pintarla. */
+export type Perezosa<P> = ComponentType<P> & {
+  /** Trae el trozo ya. Lo que se monte DESPUÉS de que acabe se pinta en el
+   *  primer fotograma, sin pasar por la frontera de espera. */
+  precargar: () => Promise<void>;
+};
 
 /**
  * Envuelve un `import()` en un componente normal que se puede pintar como
@@ -27,16 +34,33 @@ import { lazy, Suspense, type ComponentType } from "react";
  * El hueco mientras llega es `null` y no un cartel de «cargando»: son
  * milisegundos leyendo un archivo del propio disco, y un parpadeo de texto
  * ahí se ve peor que no ver nada.
+ *
+ * `precargar` existe porque pedir el trozo antes NO basta: `React.lazy` se
+ * para en la frontera la primera vez que se pinta aunque el archivo ya esté
+ * cargado, y React tarda hasta 300 ms en enseñar lo que llega a una frontera
+ * ya pintada vacía (la bienvenida asomaba de 110 a 460 ms tarde, medido el
+ * 2026-11-22). Con el trozo precargado se pinta el componente tal cual.
  */
 export function perezoso<P extends object>(
   carga: () => Promise<{ default: ComponentType<P> }>,
-): ComponentType<P> {
+): Perezosa<P> {
   const Vista = lazy(carga);
-  return function Perezosa(props: P) {
+  let lista: ComponentType<P> | null = null;
+  function Perezosa(props: P) {
+    // Se decide al montar y no en cada pintado: si el trozo llegara con la
+    // vista ya montada, cambiar de rama la desmontaría y perdería su estado.
+    const [Ya] = useState(() => lista);
+    if (Ya) return <Ya {...props} />;
     return (
       <Suspense fallback={null}>
         <Vista {...props} />
       </Suspense>
     );
-  };
+  }
+  return Object.assign(Perezosa, {
+    precargar: () =>
+      carga().then((m) => {
+        lista = m.default;
+      }),
+  });
 }

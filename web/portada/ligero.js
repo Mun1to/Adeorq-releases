@@ -73,9 +73,77 @@ function paginaDeFuera() {
   }
 }
 
-function decidir() {
+/* FUERA DEL HILO PRINCIPAL (2026-11-21). Pedir el contexto es esperar a que
+   el proceso de la gráfica lo cree, y esa espera bloqueaba la página entera:
+   en la portada, el `requestIdleCallback` de `decidir` midió de 50 ms a 12 s
+   de reloj con solo 6 ms de CPU (Brave sin cabeza a 1920 x 1080, con la
+   máquina al 100 % por otras sesiones; en la publicada, 6.784 ms dentro del
+   trozo `adeo-*.js`, que es donde el build mete este archivo). No es cosa del
+   modo sin ventana: en una página vacía los cuatro modos probados (Brave y
+   Chromium, con y sin los argumentos de la gráfica) lo resuelven en 7 a 72 ms;
+   en la portada la espera es al proceso de la gráfica, que a esa hora tiene
+   más trabajo, y crece con lo cargada que esté la máquina. Por eso se pregunta
+   desde un trabajador con un OffscreenCanvas: espera él y la página sigue.
+   Donde un trabajador no tiene WebGL (Safari antes del 17), contesta «no sé»
+   y se pregunta como siempre. */
+const PREGUNTA = `
+try {
+  if (typeof OffscreenCanvas === 'undefined' || typeof WebGLRenderingContext === 'undefined') {
+    postMessage('no-se')
+  } else {
+    const op = { failIfMajorPerformanceCaveat: true }
+    const gl = new OffscreenCanvas(1, 1).getContext('webgl2', op) || new OffscreenCanvas(1, 1).getContext('webgl', op)
+    postMessage(gl ? 'grafica' : 'software')
+    gl?.getExtension('WEBGL_lose_context')?.loseContext()
+  }
+} catch {
+  postMessage('no-se')
+}
+`
+
+const ESPERA_MAX = 8000
+
+function preguntarAparte() {
+  return new Promise((contestar) => {
+    let url = ''
+    let trabajador
+    try {
+      url = URL.createObjectURL(new Blob([PREGUNTA], { type: 'text/javascript' }))
+      trabajador = new Worker(url)
+    } catch {
+      if (url) URL.revokeObjectURL(url)
+      contestar('no-se')
+      return
+    }
+    let reloj = 0
+    const acabar = (r) => {
+      clearTimeout(reloj)
+      trabajador.terminate()
+      URL.revokeObjectURL(url)
+      contestar(r)
+    }
+    trabajador.onmessage = (e) => acabar(e.data)
+    trabajador.onerror = () => acabar('no-se')
+    // Si el trabajador no contesta, se pregunta como antes: la decisión siempre llega.
+    // Pasó con WebGL por software (SwiftShader forzado) dentro de la portada: más de
+    // 30 s sin respuesta, cuando desde el hilo principal la misma pregunta sí llegaba.
+    reloj = setTimeout(() => acabar('no-se'), ESPERA_MAX)
+  })
+}
+
+async function porSoftware() {
+  const forzado = pedido()
+  if (forzado === '1') return true
+  if (forzado === '0') return false
+  const r = await preguntarAparte()
+  if (r === 'grafica') return false
+  if (r === 'software') return true
+  return dibujoPorSoftware()
+}
+
+async function decidir() {
   const raiz = document.documentElement
-  if (dibujoPorSoftware()) {
+  if (await porSoftware()) {
     raiz.setAttribute('data-ligero', '')
     // Y a los marcos de la casa que ya estén cargados (la demo).
     for (const marco of document.querySelectorAll('iframe')) {

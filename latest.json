@@ -1,11 +1,11 @@
 {
-  "version": "0.9.264",
-  "notes": "Un sonido para cada momento: el PIN del escudo, una decision nueva, Adeo que te contesta, algo que falla, una version nueva, el cambio de cuenta y fijar, cada uno con su boton para oirlo y para apagarlo, un volumen propio y la opcion de poner un sonido tuyo. Y al abrir una version nueva, Adeo te avisa y te pregunta si quieres que te ensene lo nuevo; si te saltaste versiones, te ensena todo lo que te perdiste.",
-  "pub_date": "2026-11-20T19:15:17Z",
+  "version": "0.9.265",
+  "notes": "Cuatro estilos para la app (Cristal, Terminal, Consola y Liso), los temas conocidos con su paleta oficial y siete de vuelta o nuevos, alrededor de cada terminal solo tres colores (rojo te necesita, amarillo termino, azul trabaja) con parpadeo opcional en Ajustes, arreglos del movil y del aviso de contexto, y la bienvenida que se carga solo cuando sale.",
+  "pub_date": "2026-11-22T02:01:14Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzRKU1dEYTh0RVBaVVFjbmFNOTV5RDZ4U0FSMVZuRWNBOTY4MmRSTTNLTTMrVE9oenpHalhRUFBTa0cxcWFRODltai9xNlp2WGxmZTlGWlNsc3NQcVE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MjAyMDk5CWZpbGU6QWRlb3JxXzAuOS4yNjRfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNjQKWkRmbWFjaGR5eUluU1ZiRTVVL2JLZjdWSE5oT2dzTDF0M2t2aEdGeGhQQXNFS01Pd1BvblZjMDVvUi8xdG8zak1pWGFHd2ZOTU1mMjRrNmx6NHp2REE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.264/Adeorq_0.9.264_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzhIVlJrSTlNdExHcjhoanJKQkJpVFpOT1BHN1JFZHpnbDlWeVNDTEdiMjJnQ3c3cDRkeHM2dzhlV0sxQUk4OEIrNTh3dHh3aGZZYkdjdG5EeTU0WFEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MzEyODYxCWZpbGU6QWRlb3JxXzAuOS4yNjVfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNjUKeUNCYm8zNTBtNCtMUjZMWG0xcWdQY1dISUdQZFZINVl4S3JHL3dVMHREMUgrNnpsR2FwV3o0cW9qbGR5bjJaOEpIRkNTSmU4K0UwZUoxd0E5eUJKQmc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.265/Adeorq_0.9.265_x64-setup.exe"
     }
   }
 }

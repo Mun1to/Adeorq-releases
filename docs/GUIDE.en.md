@@ -1045,13 +1045,23 @@ names appear below so you can jump to one.
   it came*.
 - **Language**: Spanish or English. It changes the whole app, this guide included. The
   terminals keep speaking whatever each agent speaks.
-- **Theme**: 26 themes in five families (House, Familiar, Loud, Blacked out and Light
-  background), with a filter and a search box. Each card is a miniature of the app with
+- **Style**: the shape of the whole app. *Glass* (the default: your photo behind and
+  each terminal in its own glass box), *Terminal* (one flat background, terminals side
+  by side with a thin line between them and their buttons on hover), *Console* (the
+  whole app in the terminal's font, with a status bar at the foot of each one) or
+  *Flat* (the usual pieces, with no photo or glass). The colour comes from the theme
+  you pick, in any of the four.
+- **Theme**: 33 themes in five families (House, Familiar, Loud, Blacked out and Light
+  background, with GitHub Light, Solarized Light and Catppuccin Latte), with a filter
+  and a search box. Each card is a miniature of the app with
   that palette. You can ask it to follow the **light or dark of the system**, with a
   theme for each case, and **To match your photo** picks the theme whose accent
   resembles your background image.
-- **The colour of the terminals**: 12 colour schemes for the 16 colours of the
-  terminal, and **Import a theme…** brings one from Warp (`.yaml`) or from Ghostty.
+- **The colour of the terminals**: by default, **Matches the theme** (with Dracula, the
+  Dracula terminal, as in Ghostty, and with a light theme, a light terminal); otherwise
+  16 schemes for the 16 colours of the terminal, and **Import a theme…** brings one from
+  Warp (`.yaml`) or from Ghostty. With a light theme and one of those schemes, which are
+  dark, the terminal goes dark.
 - **Blackout**: solid black behind the terminals, even if there is a background.
 - **Scroll smoothness**: *Snap*, *Smooth* or *Very smooth*; it changes at once.
 - **Performance mode**: *Automatic* (it switches off the glass when you open the

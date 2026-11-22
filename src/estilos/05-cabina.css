@@ -671,6 +671,8 @@ html[data-panes="tarjetas"] .divider-row {
 html[data-panes="suaves"] .pane {
   border-color: var(--border);
   border-radius: var(--r-chico);
+  /* La esquina de dentro, para el aro de estado: la de fuera menos el borde. */
+  --pane-r-dentro: calc(var(--r-chico) - 1px);
 }
 
 html[data-panes="tarjetas"] .pane {
@@ -679,6 +681,7 @@ html[data-panes="tarjetas"] .pane {
      lo que hay que pagar por que se vean sueltas. */
   border: 6px solid transparent;
   border-radius: var(--r-btn);
+  --pane-r-dentro: max(0px, calc(var(--r-btn) - 6px));
   background-clip: padding-box;
   /* La línea va DENTRO y no en el borde, porque el borde ahora es el hueco. */
   box-shadow:
@@ -698,15 +701,11 @@ html[data-panes="tarjetas"] .grid > .pane {
    azul vertical pegada al panel enfocado). Ojo con lo que de verdad decide
    aquí: la regla del panel-tarjeta de arriba ya gana por especificidad a los
    `border-color` Y a los `box-shadow` de los estados (html+atributo+clase
-   contra clase+atributo), así que en esta forma el anillo del foco y el inset
-   de la cuadrilla NO se ven; cada estado se señala por su cabecera teñida, y
-   el turno terminado además por su latido, que sobrevive porque una animación
-   gana al cascade normal. Esta regla deja el borde transparente CLAVADO por
-   si algún estado futuro sube de especificidad. */
-html[data-panes="tarjetas"] .pane[data-focused="true"],
-html[data-panes="tarjetas"] .pane[data-done="true"],
-html[data-panes="tarjetas"] .pane[data-team="true"],
-html[data-panes="tarjetas"] .pane[data-delegada="true"] {
+   contra clase+atributo), así que en esta forma el contorno del foco NO se
+   ve; los tres estados van en su aro (`.pane-aro`), que es una pieza aparte
+   por dentro del hueco. Esta regla deja el borde transparente CLAVADO por si
+   algún estado futuro sube de especificidad. */
+html[data-panes="tarjetas"] .pane[data-focused="true"] {
   border-color: transparent;
 }
 
@@ -1068,45 +1067,147 @@ html[data-panes="tarjetas"] .pane[data-delegada="true"] {
    arreglo del «a veces no se ve la barra» del 2026-08-17 nunca llegó a
    aplicar, y lo que se veía era el desvanecido de VS Code tal cual. */
 
-/* Where you are typing has to be obvious at a glance across a wall of panes
-   (Munir: "se nota muy poco"): a full accent ring plus a real halo. */
+/* ── Alrededor de una terminal, tres estados y nada más ──────────────────────
+   Munir, 2026-11-21: «que no hayan tantos colorines de neón alrededor de las
+   terminales que molesta a la vista, solo hayan tres claros, rojo porque te
+   necesita sí o sí, amarillo porque ha terminado y verde de que está
+   trabajando». De cuatro variantes con la app de verdad eligió la 3: el
+   trabajando en azul, con un tramo que recorre el borde. Quién manda cuando
+   coinciden lo decide `lib/aroDeEstado.ts`, y el panel lo deja en
+   `data-estado`; aquí solo se pinta.
+
+   Dónde escribes ya no es un color: un contorno claro y la cabecera un punto
+   más clara. Antes era un aro azul con halo, el «terminó» un naranja que
+   respiraba con su halo (322 % de un núcleo en la tarjeta gráfica con seis
+   terminales, medido), y la cuadrilla y el proyecto pintaban su borde. */
 .pane[data-focused="true"] {
-  border-color: var(--accent);
   box-shadow:
-    var(--glass-edge), inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent), 0 0 0 2px color-mix(in srgb, var(--accent) 75%, transparent), 0 0 26px color-mix(in srgb, var(--accent) 45%, transparent), var(--sombra-2);
+    var(--glass-edge), inset 0 0 0 2px color-mix(in srgb, var(--text) 55%, transparent), var(--sombra-2);
   z-index: 2;
 }
 
-/* Its header lights up too, so the eye lands on the right pane instantly. */
 .pane[data-focused="true"] .pane-head {
-  background: color-mix(in srgb, var(--accent) 22%, var(--panel-head));
-  border-bottom-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--text) 8%, var(--panel-head));
+  border-bottom-color: color-mix(in srgb, var(--text) 30%, transparent);
 }
 
-/* The Claude CLI finished its turn and is waiting for you: brighter still,
-   and it breathes so you catch it out of the corner of your eye. */
-.pane[data-done="true"] {
-  border-color: var(--done);
-  box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--done) 85%, transparent),
-    0 0 34px color-mix(in srgb, var(--done) 55%, transparent);
-  animation: pane-waiting 1.9s ease-in-out infinite;
-  /* A su propia capa MIENTRAS late, y solo mientras late.
-     Este halo respira sobre un panel del tamaño de media pantalla, y sin capa
-     propia cada latido obliga a repintar también todo lo que hay detrás: la
-     foto de fondo y el desenfoque de cada cristal que la tapa. Con `will-change`
-     el navegador lo pinta aparte una vez y luego solo lo compone, que es lo que
-     hace la tarjeta gráfica sin despeinarse. Y este estado no es raro: se
-     enciende cada vez que un agente termina su turno (2026-08-07). */
+/* El aro va en su propia pieza, encima de todo lo del panel y sin cogerle el
+   ratón, y por DENTRO del borde: el borde es el hueco de las tarjetas. Su
+   esquina es la de dentro del panel (`--pane-r-dentro`, puesta junto a cada
+   `border-radius` de un panel), o el recorte del panel le comería el anillo
+   justo en la curva. */
+.pane-aro {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  border-radius: var(--pane-r-dentro, 0px);
+  display: none;
+}
+
+.pane[data-estado] > .pane-aro {
+  display: block;
+  box-shadow: inset 0 0 0 2px var(--aro);
+}
+
+/* El contorno claro del foco va también en el aro: el del panel se pinta DEBAJO
+   de la cabecera y de la terminal, que lo tapan (medido con píxeles: 13 de 255
+   contra 11 en una sin foco). Solo sin estado, que si no manda el estado, y solo
+   en la Cabina: en el lienzo la selección ya es el marco del nodo. */
+.grid > .pane[data-focused="true"]:not([data-estado]) > .pane-aro {
+  display: block;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--text) 55%, transparent);
+}
+
+.pane[data-estado="necesita"] {
+  --aro: var(--estado-necesita);
+}
+
+.pane[data-estado="termino"] {
+  --aro: var(--estado-termino);
+}
+
+/* Trabajando: el color quieto y más suave, y un tramo más intenso que le da la
+   vuelta en cuatro segundos. El tramo es un cono ya pintado que gira entero
+   (`transform`, lo mueve la tarjeta gráfica sin volver a pintarlo), recortado
+   al anillo por la máscara. Y a pasos: lo que cuesta en la Cabina es cuántas
+   veces por segundo cambia la pantalla, porque cualquier cosa que se mueva
+   obliga a recomponer la ventana entera, y no la técnica ni el área. A 25
+   cambios por segundo, y no a los 144 o 240 de su pantalla, gasta un tercio
+   del naranja que respiraba (medido en el `scratchpad` de la sesión del
+   2026-11-21 con seis terminales). Todos los tramos dan el paso a la vez
+   (`lib/relojDeAnimaciones.ts`): seis a destiempo serían seis veces más
+   cambios. El modo rendimiento los deja en la mitad de pasos, sin apagarlos. */
+.pane[data-estado="trabaja"] {
+  --aro: color-mix(in srgb, var(--estado-trabaja) 30%, transparent);
+}
+
+.pane[data-estado="trabaja"] > .pane-aro {
+  container-type: size;
+  overflow: hidden;
+  padding: 3px;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+
+.pane-aro > i {
+  display: none;
+}
+
+.pane[data-estado="trabaja"] > .pane-aro > i {
+  display: block;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* Un cuadrado que cubre el panel girado en cualquier ángulo: su diagonal. */
+  width: 150%;
+  width: hypot(100cqw, 100cqh);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  background: conic-gradient(
+    transparent 0 285deg,
+    color-mix(in srgb, var(--estado-trabaja) 40%, transparent) 325deg,
+    var(--estado-trabaja) 350deg,
+    color-mix(in srgb, var(--estado-trabaja) 45%, #fff) 358deg,
+    transparent 360deg
+  );
+  animation: aro-vuelta 4s steps(100) infinite;
   will-change: transform;
-  z-index: 3;
 }
 
-@keyframes pane-waiting {
+@keyframes aro-vuelta {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* El parpadeo del rojo y del amarillo es un ajuste, apagado de fábrica
+   (Ajustes › Terminales, `lib/parpadeo.ts`). Dos cambios por vuelta (`steps`),
+   no uno por fotograma. */
+html[data-parpadeo] .pane:is([data-estado="necesita"], [data-estado="termino"]) > .pane-aro {
+  animation: aro-parpadeo 1.2s steps(1, end) infinite;
+}
+
+@keyframes aro-parpadeo {
   50% {
-    box-shadow:
-      0 0 0 2px color-mix(in srgb, var(--done) 60%, transparent),
-      0 0 18px color-mix(in srgb, var(--done) 30%, transparent);
+    opacity: 0.2;
+  }
+}
+
+/* Quien pide al sistema menos movimiento lo tiene: el aro entero en su color,
+   quieto, y sin parpadeo. */
+@media (prefers-reduced-motion: reduce) {
+  .pane[data-estado="trabaja"] {
+    --aro: color-mix(in srgb, var(--estado-trabaja) 75%, transparent);
+  }
+
+  .pane[data-estado="trabaja"] > .pane-aro > i {
+    display: none;
+  }
+
+  html[data-parpadeo] .pane:is([data-estado="necesita"], [data-estado="termino"]) > .pane-aro {
+    animation: none;
   }
 }
 
@@ -1139,12 +1240,6 @@ html[data-panes="tarjetas"] .pane[data-delegada="true"] {
 
 .pane-btn:hover {
   color: color-mix(in srgb, var(--accent) 25%, #fff);
-}
-
-/* En los temas claros ese azul casi blanco no se vería sobre la cabecera. */
-:root[data-theme="claro"] .pane-btn:hover,
-:root[data-theme="papel"] .pane-btn:hover {
-  color: var(--accent);
 }
 
 /* La papelera borra una conversación: su color es el de peligro. */
@@ -1426,7 +1521,7 @@ button.pane-agents[data-on] {
   color: color-mix(in srgb, var(--text) 52%, transparent);
   /* Sobre la foto de la casa un gris tenue se pierde: ver la regla de encima
      de `.panel-card`. */
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 3px color-mix(in srgb, var(--c3-velo) 50%, transparent);
 }
 
 /* A glyph instead of a word: the header is narrow and the name lives in the

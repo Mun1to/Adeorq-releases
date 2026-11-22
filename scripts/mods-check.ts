@@ -8,7 +8,8 @@
 // reserva y sin que nadie los declare, porque a esos nombres se agarran los
 // mods de la gente y un renombrado los suelta a todos sin romper nada a la vista.
 
-import { PIEZAS, encargoDeMod, encargoDeRehacer, guiaDeMods, hojaDeLosMods, porqueNoCarga, repasar, resumenDeMods } from "../src/lib/mods";
+import { PIEZAS, encargoDeMod, encargoDeRehacer, hojaDeLosMods, porqueNoCarga, repasar, resumenDeMods } from "../src/lib/mods";
+import { guiaDeMods } from "../src/lib/modsGuia";
 import { makeT } from "../src/lib/i18n";
 import type { Mod } from "../src/lib/mods";
 

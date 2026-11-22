@@ -29,12 +29,15 @@ async (page) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.route("**/__fondo/**", (r) => r.fulfill({ path: "C:/proyectos/Adeorq/.playwright-mcp/fondo.png", contentType: "image/png" }));
   await page.addInitScript(() => {
-    // Una casa limpia en cada carga: español, bienvenida hecha, sin paneles.
+    // Una casa limpia en cada carga: español, bienvenida hecha, sin paneles. El
+    // tema y el estilo sí se quedan, para poder recargar uno ya elegido.
     const tema = localStorage.getItem("adeorq-theme");
+    const estilo = localStorage.getItem("adeorq-aspecto");
     localStorage.clear();
     localStorage.setItem("adeorq-lang", "es");
     localStorage.setItem("adeorq-perfil", JSON.stringify({ hecho: true, clis: ["claude", "codex", "agy", "gemini"] }));
     if (tema) localStorage.setItem("adeorq-theme", tema);
+    if (estilo) localStorage.setItem("adeorq-aspecto", estilo);
 
     const convs = {};
     // Segundos, como `conserje.rs`: la primera de hace una hora, y cada una un

@@ -15,13 +15,11 @@
 :root { --cj-hueco: rgba(0, 0, 0, 0.22); --cj-vivo: #7ee08a; }
 /* El verde de `.live-dot` sobre blanco no se lee como texto (1,6:1); este da
    5:1 y sigue siendo el mismo verde de «vivo». */
-:root:is([data-theme="claro"], [data-theme="papel"]) { --cj-hueco: rgba(255, 255, 255, 0.72); --cj-vivo: #15803d; }
+:root[data-claro] { --cj-hueco: rgba(255, 255, 255, 0.72); --cj-vivo: #15803d; }
 
 [data-estado="trabajando"] { --cj-c: var(--cj-vivo); }
 [data-estado="pregunta"]   { --cj-c: var(--ask); }
 [data-estado="termino"]    { --cj-c: var(--done); }
-/* El --done de «Claro» es #ff9a3c, que como texto sobre blanco da 2:1. */
-:root[data-theme="claro"] [data-estado="termino"] { --cj-c: #c2410c; }
 [data-estado="cerrada"]    { --cj-c: var(--muted); }
 [data-estado="conserje"]   { --cj-c: var(--accent); }
 

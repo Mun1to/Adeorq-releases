@@ -38,6 +38,7 @@ export const COMPROBADORES = [
   "botones-check.mjs",
   "estilo-check.mjs",
   "estilo-check-check.mjs",
+  "temas-check.mjs",
   "textarea-check.mjs",
   "svg-check.mjs",
   "i18n-check.mjs",

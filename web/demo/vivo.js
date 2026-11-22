@@ -266,13 +266,27 @@ app.addEventListener('pointerdown', quitarGlobo, true);
    4. LA RUEDA
    -------------------------------------------------------------------------- */
 
+/* PRIMERO SE LEE TODO, LUEGO SE ESCRIBE. Leía el estilo de una pieza y le
+   ponía su clase en la misma vuelta: cada clase nueva ensuciaba el estilo y la
+   lectura siguiente obligaba al navegador a recalcularlo, y como la hoja de la
+   app lleva consultas de contenedor (`@container`), leer el estilo de lo que
+   cuelga de una obliga además a maquetar. Medido el 2026-11-21 en la carga de
+   la portada (Brave sin cabeza, 1920 x 1080, traza con pilas): 47 recálculos y
+   maquetaciones forzados desde esta función. Separadas las dos pasadas, queda
+   uno como mucho, y ninguno si la pieza ya está pintada (ver «Después del
+   primer pintado», abajo). Las piezas marcadas son las mismas: comprobado
+   pieza por pieza en catorce pantallas de la demo. */
 function marcarRuedas(desde) {
   if (!embebida) return;
+  const ruedas = [];
+  const sinCristal = [];
   for (const e of [desde, ...$$('*', desde)]) {
     const c = getComputedStyle(e);
-    if (!e.classList.contains('demo-rueda') && /auto|scroll/.test(c.overflowY + ' ' + c.overflowX)) e.classList.add('demo-rueda');
-    marcarCristal(e, c);
+    if (!e.classList.contains('demo-rueda') && /auto|scroll/.test(c.overflowY + ' ' + c.overflowX)) ruedas.push(e);
+    if (cristalTapado(e, c)) sinCristal.push(e);
   }
+  for (const e of ruedas) e.classList.add('demo-rueda');
+  for (const e of sinCristal) e.classList.add('demo-sin-cristal');
 }
 
 /* EL CRISTAL QUE NO SE VE. Media app lleva `backdrop-filter` (la barra de
@@ -296,11 +310,13 @@ function opacidadDe(color) {
   return rgba ? parseFloat(rgba[1]) : 1;
 }
 
-function marcarCristal(e, c) {
-  if (e.classList.contains('demo-sin-cristal')) return;
+/** Si la pieza lleva cristal y su propio fondo lo tapa. Solo lee: la clase la
+ *  pone quien llama, después de leer todas (ver `marcarRuedas`). */
+function cristalTapado(e, c) {
+  if (e.classList.contains('demo-sin-cristal')) return false;
   const cristal = c.backdropFilter ?? c.webkitBackdropFilter;
-  if (!cristal || cristal === 'none') return;
-  if (opacidadDe(c.backgroundColor) >= TAPA) e.classList.add('demo-sin-cristal');
+  if (!cristal || cristal === 'none') return false;
+  return opacidadDe(c.backgroundColor) >= TAPA;
 }
 
 /** Con otro tema los fondos cambian: se devuelve el cristal a todas y se vuelve
@@ -311,12 +327,47 @@ function repasarCristal() {
   for (const e of $$('.demo-sin-cristal', app)) e.classList.remove('demo-sin-cristal');
   clearTimeout(relojCristal);
   relojCristal = setTimeout(() => {
-    for (const e of [app, ...$$('*', app)]) marcarCristal(e, getComputedStyle(e));
+    const tapados = [app, ...$$('*', app)].filter((e) => cristalTapado(e, getComputedStyle(e)));
+    for (const e of tapados) e.classList.add('demo-sin-cristal');
   }, 700);
 }
 
+/* DESPUÉS DEL PRIMER PINTADO. La primera pasada, la de la ventana entera,
+   leía el estilo nada más entrar la ventana, sin nada colocado aún: la primera
+   lectura obligaba a maquetarla entera dentro del script, con las 47 vueltas
+   de arriba detrás. Era el grueso del `.then` de `Response.text` (2.751 ms de
+   script, 2.254 forzados, en la medida que abrió esto). Medido el 2026-11-21,
+   tres trazas de cada, alternadas, con la máquina al 100 % de CPU por otras
+   sesiones (reloj y, entre paréntesis, CPU):
+
+     antes   el .then  1.359 a 2.545 ms (278 a 373), 865 a 2.304 forzados
+     ahora   el .then     92 a 522 ms (47 a 57), sin nada forzado
+             1.ª maquetación, ya del navegador: 895 a 1.344 ms (222 a 247)
+             esta pasada, en su propia tarea: 97 a 405 ms (51 a 91)
+
+   La maquetación no desaparece: hace falta para pintar, y la paga el primer
+   fotograma igual. Casi todo su reloj es esperar al proceso del navegador
+   para cargar las letras del sistema (Consolas, Segoe UI Symbol, Cambria
+   Math y la ronda de respaldo de los caracteres que no están en ninguna): en
+   una traza, 1.595 ms de reloj y 173 de CPU. Mientras llega esta pasada, un
+   fotograma: las zonas con scroll propio aún se quedan con la rueda y las
+   piezas opacas aún llevan su cristal, que no se ve. El reloj de reserva es
+   para cuando no llegan fotogramas (una pestaña de fondo; en una de las
+   cuatro trazas, el primer `requestAnimationFrame` de la demo tardó más de
+   dos segundos): entonces lee igual, y la maquetación ya suele estar hecha. */
+function trasElPrimerPintado(hacer) {
+  let hecho = false;
+  const una = () => {
+    if (hecho) return;
+    hecho = true;
+    hacer();
+  };
+  requestAnimationFrame(() => setTimeout(una, 0));
+  setTimeout(una, 2000);
+}
+
 if (embebida) {
-  marcarRuedas(app);
+  trasElPrimerPintado(() => marcarRuedas(app));
   html.dataset.quieta = '';
   /* Con ratón, pulsar dentro la suelta y salir la vuelve a dejar quieta. Con el
      dedo, tocar ES empezar a deslizar: si el toque la soltara, el gesto con el

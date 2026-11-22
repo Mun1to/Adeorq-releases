@@ -58,7 +58,7 @@
    misma sombra de texto que el resto de lo que va suelto ahí (`34-inicio.css`). */
 .inicio-caja + .inf-aviso {
   margin-top: 10px;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 1px 4px color-mix(in srgb, var(--c3-velo) 55%, transparent);
 }
 .inicio-caja + .inf-aviso .inf-boton {
   color: var(--text);

@@ -26,7 +26,6 @@ import WebAuto from "./components/WebAuto";
 import Copiloto from "./components/Copiloto";
 import type { CanvasPane } from "./components/CanvasView";
 import NewSession, { type Launch } from "./components/NewSession";
-import Onboarding from "./components/Onboarding";
 import Orbe from "./components/Orbe";
 import Recorridos from "./components/Recorridos";
 import { Overlays } from "./components/Overlays";
@@ -129,12 +128,12 @@ import { useCabina } from "./lib/cabina";
 import type { RepartoInicial } from "./lib/reparto";
 import { NOTIFY_KEY, type NotifyMode } from "./lib/notify";
 import { bonito, useRamPanes } from "./lib/ram";
-import { apagon, aplicarApagon } from "./lib/temasTerm";
+import { apagon, aplicarApagon, marcarTermOscura } from "./lib/temasTerm";
 import { aplicarRendimiento, debeAhorrar, prefRendimiento } from "./lib/rendimiento";
 import { aplicarForma, prefForma } from "./lib/formaPaneles";
 import type { AccionConsejo } from "./lib/acciones";
 import { sessionIdOf, shellCommand } from "./lib/comandos";
-import { ponerBarraDelTema } from "./lib/barraMac";
+import { ponerBarraDelTema, temaEsClaro } from "./lib/barraMac";
 import {
   agyCommand,
   carpetaDeSuConversacion,
@@ -173,6 +172,7 @@ import { planDeArranque } from "./lib/arranque";
 import { actaDeRelevo } from "./lib/relevo";
 import { type Hit } from "./lib/redact";
 import { perezoso } from "./lib/perezoso";
+import { Onboarding } from "./components/OnboardingPerezoso";
 import { entornoDeCaja, nombreDeCaja } from "./lib/cajas";
 import "@xterm/xterm/css/xterm.css";
 import "./App.css";
@@ -560,6 +560,9 @@ function App() {
   // Theme lives on <html> so it also tints things rendered outside .app.
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
+    // Un claro da la vuelta al velo y a las sombras (`01-base.css`), y su terminal va clara u oscura.
+    document.documentElement.toggleAttribute("data-claro", temaEsClaro(theme));
+    marcarTermOscura();
     localStorage.setItem(THEME_KEY, theme);
     void ponerBarraDelTema(theme);
   }, [theme]);

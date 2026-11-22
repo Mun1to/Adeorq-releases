@@ -182,8 +182,10 @@
     content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
     background: var(--fondo); opacity: var(--foto-velo, 0.4);
   }
-  /* Adeo escondido (Ajustes): el saludo se queda, el muñeco no. */
+  /* Adeo escondido (Ajustes): el saludo se queda, el muñeco no. En Mejorar
+     se queda, que ahí es el icono del botón y sin él quedaría vacío. */
   :root[data-adeo="oculto"] .masc { display: none; }
+  :root[data-adeo="oculto"] #mejorar .masc { display: block; }
   button { font: inherit; color: inherit; }
   :focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
   code { font: 0.88em var(--mono); background: var(--hondo); border: 1px solid var(--borde); padding: 1px 6px; border-radius: 6px; overflow-wrap: anywhere; }
@@ -718,7 +720,14 @@
   }
   .pestanas .pastilla { border: 0; padding: 5px 16px; font-size: calc(13px * var(--z)); }
   .pestanas .pastilla[data-on="true"] { background: var(--acento); color: var(--sobre-acento); font-weight: 650; }
-  /* Una decisión pendiente se ve desde dentro de una terminal. */
+  /* Una decisión pendiente se ve desde dentro de una terminal. Va DENTRO de la
+     cabecera, con su cristal, igual que el aviso de compactar: suelta debajo,
+     con la foto asomando alrededor, parecía tapar la primera línea del chat
+     (Munir, 2026-11-21, con su captura). */
+  .barra > .aviso-dec, .barra > .aviso-ctx { grid-column: 1 / -1; width: auto; margin: 8px 0 2px; }
+  .barra > .aviso-dec { background: color-mix(in srgb, var(--pregunta) 12%, transparent); }
+  .barra > .aviso-ctx { background: color-mix(in srgb, var(--termino) 12%, transparent); }
+  .barra > .aviso-ctx[data-nivel="2"] { background: color-mix(in srgb, var(--mal) 12%, transparent); }
   .aviso-dec {
     display: flex; align-items: center; gap: 10px; width: min(calc(100% - 24px), calc(var(--ancho) + 8px)); margin: 10px auto 0; padding: 10px 14px;
     border-radius: var(--r-btn); border: 1px solid color-mix(in srgb, var(--pregunta) 45%, transparent);
@@ -851,11 +860,11 @@
   .mandos { display: flex; align-items: center; gap: 6px; padding: 4px 8px 8px; min-width: 0; }
   .mandos .hueco { flex: 1; }
   /* Un carril que se desliza: el borde derecho se difumina para que se vea que
-     sigue, en vez de cortar la última pastilla en seco contra el botón de mandar. */
-  .mandos .pastillas {
-    flex: 1; min-width: 0; margin: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
-    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
-  }
+     sigue, en vez de cortar la última pastilla en seco contra el botón de mandar.
+     Solo si de verdad no cabe (`data-desborda`, `vigilarCarril`): difuminado
+     siempre, «Auto» salía medio borrado con sitio de sobra (Munir, 2026-11-21). */
+  .mandos .pastillas { flex: 1; min-width: 0; margin: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .mandos .pastillas[data-desborda="true"] { mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
   .mandos .pastillas::-webkit-scrollbar { display: none; }
   .enviar {
     flex: none; width: 42px; height: 42px; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center;
@@ -868,17 +877,44 @@
     border: 1px solid var(--borde); background: var(--capa-fuerte); color: var(--tinta);
   }
   .abrir-teclas[aria-expanded="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
-  .adjuntos { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+  /* Lo adjuntado, en miniaturas dentro de la caja, encima del texto: una fila
+     que se desliza si no caben. La X va en la esquina, con 44 px de dedo, y
+     esos 44 tienen que caber dentro de la fila: con overflow-x la fila también
+     recorta por arriba, así que su relleno de arriba llega hasta el borde de la
+     caja (12 px), y el dedo de la X sube esos 12 en vez de 17 y baja lo que le
+     falta. Va por encima de la miniatura siguiente, que si no se queda los
+     toques de su lado derecho. */
+  .adjuntos { padding: 12px 14px 0; }
+  .miniaturas { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; padding: 12px 6px 2px 0; margin: -12px 0 0; }
+  .miniaturas::-webkit-scrollbar { display: none; }
   .adjunto {
-    display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 4px; border-radius: var(--r-chico); font-size: calc(13px * var(--z));
-    border: 1px solid var(--borde); background: var(--capa); color: var(--suave);
+    position: relative; flex: none; width: var(--mini, 56px); height: var(--mini, 56px); border-radius: 12px;
+    display: grid; place-items: center; border: 1px solid var(--borde-fuerte); background: var(--capa-fuerte); color: var(--tinta);
   }
-  .adjunto img { width: 30px; height: 30px; object-fit: cover; border-radius: 7px; flex: none; }
-  .adjunto svg { flex: none; margin: 0 2px 0 4px; }
-  .adjunto .que { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-  .adjunto[data-estado="listo"] { color: var(--tinta); }
-  .adjunto[data-estado="mal"] { color: var(--mal); border-color: color-mix(in srgb, var(--mal) 45%, transparent); }
-  .adjunto .quitar { flex: none; width: 26px; height: 26px; border: 0; border-radius: 50%; background: none; color: inherit; cursor: pointer; font-size: calc(17px * var(--z)); line-height: 1; }
+  /* Fuera de la rejilla: dentro, su fila crecía a lo que pide la foto (una
+     vertical de 56 de ancho pide 84 de alto) y se salía por abajo, sin las
+     esquinas de abajo. */
+  .adjunto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 11px; }
+  .adjunto .tipo { display: grid; justify-items: center; gap: 1px; font-size: calc(11px * var(--z)); font-weight: 700; letter-spacing: 0.02em; }
+  .adjunto .tipo b { max-width: calc(var(--mini, 56px) - 8px); overflow: hidden; text-overflow: ellipsis; }
+  /* El nombre y lo que pasa, para quien no ve la miniatura. */
+  .adjunto .que { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* Mientras sube: lo que falta, oscurecido como una tarta que se va llenando. */
+  .adjunto[data-estado="subiendo"]::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: conic-gradient(transparent var(--p, 0%), rgba(0, 0, 0, 0.58) 0);
+  }
+  .adjunto[data-estado="mal"] { border: 2px solid var(--mal); }
+  .adjunto[data-estado="mal"] img { opacity: 0.45; }
+  .adjunto .quitar {
+    position: absolute; z-index: 1; top: -6px; right: -6px; width: 22px; height: 22px; padding: 0; border-radius: 50%; cursor: pointer;
+    display: grid; place-items: center; border: 1px solid var(--borde-fuerte); background: var(--cristal); color: var(--tinta);
+    font-size: calc(15px * var(--z)); line-height: 1; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  }
+  /* Se cuenta desde dentro del borde de 1 px: 20 + 12 + 12 = 44. */
+  .adjunto .quitar::after { content: ""; position: absolute; inset: -7px -12px -17px; }
+  .adjuntos-nota { margin: 8px 0 0; color: var(--mal); font-size: calc(13px * var(--z)); line-height: 1.4; overflow-wrap: anywhere; }
+  .adjuntos:not([hidden]) + textarea { padding-top: 10px; }
   .pastillas { display: flex; flex-wrap: wrap; gap: 6px; }
   .pastilla {
     flex: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
@@ -901,6 +937,32 @@
   .mandos-term .pastilla { height: 32px; padding: 0 12px; font-size: calc(13px * var(--z)); background: var(--hondo); }
   .mandos-term .pastilla[aria-expanded="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 55%, transparent); }
   .fila-caja:has(.mandos-term) .adjuntar { width: 34px; height: 34px; }
+  /* En un móvil estrecho (360 px) el modelo con su versión, «Parar» y el modo no
+     cabían por 16 px: menos aire dentro y entre ellas, y caben. Si con la letra
+     de otro teléfono faltara algún píxel, el carril se difumina y se desliza. */
+  @media (max-width: 400px) {
+    .mandos { gap: 4px; padding-inline: 6px; }
+    .mandos .pastillas { gap: 4px; }
+    .mandos .pastilla, .mandos-term .pastilla { padding: 0 9px; gap: 5px; }
+  }
+  /* Poco alto: el móvil en horizontal, o con el teclado fuera. La cabecera con
+     Chat y Pantalla, la decisión, el aviso de compactar, los adjuntos y la caja
+     sumaban más que la pantalla: a 844 × 390 la Pantalla de una terminal medía
+     0 px y el chat 40, con la página entera desplazada (2026-11-21). Aquí todo
+     va en una fila de cabecera, el aviso de compactar espera a que haya sitio
+     (el anillo sigue diciendo cuánto lleva) y la caja no pasa de un cuarto. */
+  @media (max-height: 560px) {
+    .barra { padding-top: calc(2px + env(safe-area-inset-top)); padding-bottom: 2px; }
+    .barra:has(> .pestanas:not([hidden])) { grid-template-columns: 44px minmax(0, 1fr) auto 44px; }
+    .barra > .pestanas { grid-column: 3; grid-row: 1; margin-top: 0; }
+    .barra:has(> .pestanas:not([hidden])) > .ctx { grid-column: 4; }
+    .barra > .aviso-ctx { display: none; }
+    .barra > .aviso-dec { margin: 4px 0 2px; padding-block: 7px; }
+    textarea { max-height: min(160px, 24dvh); }
+    .fila-caja { --mini: 44px; }
+    .adjuntos { padding-top: 8px; }
+    .caja { padding-top: 4px; }
+  }
   /* La barra para elegir con un toque: dentro de la caja, entre el texto y los
      mandos, una fila de modelos y otra de esfuerzos, con lo puesto en azul. */
   /* Su columna puede encoger (`minmax(0, 1fr)`): con la de por defecto crece
@@ -1206,7 +1268,7 @@ const AJUSTES = "adeorq-movil-ajustes";
 const GUARDADO_PC = "adeorq-movil-pc";
 const DE_FABRICA = {
   fondo: "pc", cristal: "pc", ve: 60, desenfoque: 0,
-  tema: "sistema", acento: "pc", letra: 1, adeo: "vivo",
+  tema: "sistema", acento: "pc", letra: 1, adeo: "vivo", idioma: "pc",
   inicio: ["saludo", "reclaman", "marcha", "conversaciones"], ocultas: [], caja: true,
 };
 const LETRAS = [0.9, 1, 1.12, 1.25];
@@ -1266,6 +1328,16 @@ function aplicarAspecto() {
 }
 aplicarAspecto();
 matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => aplicarAspecto());
+/* El idioma de este aparato. De entrada, el de la app del PC, que `movil.rs`
+   pone en `<html lang>`; en Ajustes se puede elegir otro para este aparato
+   (2026-11-21: su Adeorq estaba en inglés y su móvil en español, y la página
+   le salía en inglés). Se pone antes de que la página lea `lang`, así que
+   cambiarlo recarga. */
+(() => {
+  const r = document.documentElement;
+  const elegido = misAjustes().idioma;
+  if (elegido === "es" || elegido === "en") r.lang = elegido;
+})();
 </script>
 </head>
 <body>
@@ -1349,6 +1421,7 @@ const EN = {
   // Adjuntos, conexión, avisos y la app
   "Adjuntar una foto o un archivo": "Attach a photo or a file",
   "No se ha subido: {e}": "Not uploaded: {e}",
+  "«{nombre}» no se ha subido: {e}": "“{nombre}” was not uploaded: {e}",
   "Quitar {nombre}": "Remove {nombre}",
   "está vacío": "it is empty",
   "el PC no dijo dónde lo guardó": "the PC did not say where it saved it",
@@ -1475,6 +1548,7 @@ const EN = {
   "Claro": "Light",
   "Color": "Colour",
   "El de tu PC": "Your PC's",
+  "Idioma": "Language",
   "Letra": "Text size",
   "Moviéndose": "Moving",
   "Quieto": "Still",
@@ -2379,10 +2453,11 @@ const ICONO = {
   bajar: trazo('<path d="M12 4v15.4"/><path d="M5.6 13 12 19.4 18.4 13"/>', 20),
   teclas: trazo('<rect x="2.5" y="6" width="19" height="12" rx="3"/><path d="M6.5 10h.01M10.2 10h.01M13.8 10h.01M17.5 10h.01M8 14h8"/>', 20),
   clip: trazo('<path d="M12 5v14M5 12h14"/>', 20),
+  // Un archivo adjunto que no es una foto: la hoja con su esquina doblada.
+  archivo: trazo('<path d="M14 3.5H7.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z"/><path d="M14 3.5V8h4.5"/>', 20),
   diana: trazo('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>', 15),
   deshacer: trazo('<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>', 14),
   parar: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>',
-  chispa: '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/></svg>',
   // Programados: un reloj. Uso: un medidor con su aguja.
   reloj: trazo('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', 20),
   uso: trazo('<path d="M4.5 16.5a7.5 7.5 0 1 1 15 0"/><path d="M12 16.5l3.6-4.1"/>', 20),
@@ -2602,12 +2677,21 @@ function montarAdjuntos(caja, cambio) {
   const input = caja.querySelector('input[type="file"]');
   const bandeja = caja.querySelector(".adjuntos");
   const lista = [];
+  /* En miniatura, como en la app de Claude (Munir, 2026-11-21, con tres
+     capturas adjuntas: cada una era una fila entera con su nombre, y tres se
+     comían 126 px encima de la caja). La foto o el tipo del archivo, la X en
+     su esquina y lo que sube como una tarta que se va llenando. El nombre va
+     en `.que`, para quien no ve la miniatura; lo que no subió se dice debajo. */
   const pintarBandeja = () => {
     bandeja.hidden = !lista.length;
-    bandeja.innerHTML = lista.map((a, i) => {
+    const tipo = (n) => (/\.([a-z0-9]{1,5})$/i.exec(n)?.[1] || "").toUpperCase();
+    const fotos = lista.map((a, i) => {
       const que = a.error ? tr("No se ha subido: {e}", { e: a.error }) : a.ruta ? a.nombre : `${a.nombre} · ${Math.round(a.progreso * 100)} %`;
-      return `<span class="adjunto" data-estado="${a.error ? "mal" : a.ruta ? "listo" : "subiendo"}">${a.imagen ? `<img src="${a.imagen}" alt="">` : ICONO.clip}<span class="que">${esc(que)}</span><button type="button" class="quitar" data-i="${i}" aria-label="${esc(tr("Quitar {nombre}", { nombre: a.nombre }))}">×</button></span>`;
+      const cara = a.imagen ? `<img src="${a.imagen}" alt="">` : `<span class="tipo">${ICONO.archivo}<b>${esc(tipo(a.nombre))}</b></span>`;
+      return `<span class="adjunto" data-estado="${a.error ? "mal" : a.ruta ? "listo" : "subiendo"}" style="--p: ${Math.round(a.progreso * 100)}%" title="${esc(a.nombre)}">${cara}<span class="que">${esc(que)}</span><button type="button" class="quitar" data-i="${i}" aria-label="${esc(tr("Quitar {nombre}", { nombre: a.nombre }))}">×</button></span>`;
     }).join("");
+    const mal = lista.filter((a) => a.error).map((a) => tr("«{nombre}» no se ha subido: {e}", { nombre: a.nombre, e: a.error }));
+    bandeja.innerHTML = `<div class="miniaturas">${fotos}</div>${mal.length ? `<p class="adjuntos-nota">${mal.map(esc).join("<br>")}</p>` : ""}`;
     bandeja.querySelectorAll(".quitar").forEach((b) => b.addEventListener("click", () => {
       const [a] = lista.splice(Number(b.dataset.i), 1);
       if (a?.imagen) URL.revokeObjectURL(a.imagen);
@@ -2644,6 +2728,43 @@ function montarAdjuntos(caja, cambio) {
 }
 
 const CLIP = `<button class="adjuntar" type="button" aria-label="${tr("Adjuntar una foto o un archivo")}">${ICONO.clip}</button><input type="file" multiple hidden>`;
+
+/* El carril de pastillas de la caja solo se difumina por la derecha si no
+   cabe. Se vuelve a mirar cuando cambia de ancho él o cualquiera de sus
+   pastillas (el modelo con otro nombre, «Parar» que sale y se va). Uno por
+   pantalla: el de la anterior se suelta. */
+let carrilVigilado = null;
+function vigilarCarril(carril) {
+  carrilVigilado?.disconnect();
+  carrilVigilado = null;
+  if (!carril) return;
+  const mirar = () => { carril.dataset.desborda = String(carril.scrollWidth > carril.clientWidth + 1); };
+  if (window.ResizeObserver) {
+    carrilVigilado = new ResizeObserver(mirar);
+    carrilVigilado.observe(carril);
+    for (const p of carril.children) carrilVigilado.observe(p);
+  }
+  mirar();
+}
+
+/* Si estabas abajo del todo y el hueco del chat encoge (la caja crece con una
+   foto adjunta o con otra línea de texto, sale el teclado), sigues abajo. Antes
+   lo último quedaba detrás de la caja y salía «Ir al final» sin haber subido
+   (2026-11-21). Uno por pantalla, como el carril. */
+let abajoVigilado = null;
+function seguirAbajo(...cuerpos) {
+  abajoVigilado?.disconnect();
+  abajoVigilado = null;
+  const lista = cuerpos.filter(Boolean);
+  if (!lista.length || !window.ResizeObserver) return;
+  const abajo = new Map(lista.map((el) => [el, true]));
+  const pegado = (el) => el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+  for (const el of lista) el.addEventListener("scroll", () => abajo.set(el, pegado(el)), { passive: true });
+  abajoVigilado = new ResizeObserver((vistas) => {
+    for (const v of vistas) if (abajo.get(v.target) && v.target.clientHeight) v.target.scrollTop = v.target.scrollHeight;
+  });
+  for (const el of lista) abajoVigilado.observe(el);
+}
 const conRutas = (texto, rutas) => [texto, ...rutas].filter(Boolean).join(" ");
 
 /** `limite`, en milisegundos: pasado ese tiempo se deja de esperar, como si no hubiera contestado. `alIrse`: la petición sobrevive a que la página se cierre. */
@@ -2748,6 +2869,8 @@ function terminalDelAviso(hash) {
   // Y el de algo que te enseñan (`compartir_en_el_movil`), eso mismo.
   const mv = /#ver=([0-9a-f]{32})/.exec(location.hash);
   if (mv && clave) e = { vista: "visto", id: mv[1] };
+  // Recién cambiado el idioma en Ajustes, se vuelve a Ajustes.
+  if (location.hash === "#ajustes" && clave) e = { vista: "ajustes" };
   if (location.hash) history.replaceState(null, "", location.pathname);
 }
 
@@ -3388,7 +3511,7 @@ function pintar() {
 function pintarEmparejar() {
   app.innerHTML = `
     <div class="emparejar">
-      <span class="avatar">${ICONO.chispa}</span>
+      ${mascota("quieta", 56, "emparejar")}
       <h1>${tr("Conecta este aparato con tu Adeorq")}</h1>
       <p>${tr("En tu PC, abre Adeorq y ve a {donde}, o saca el código en un aparato ya emparejado, en {otro}. Escríbelo aquí. Solo hace falta una vez por navegador.", { donde: `<b>${esc(tr("Ajustes > Móvil > Emparejar un móvil"))}</b>`, otro: `<b>${esc(tr("Ajustes > Emparejar otro aparato"))}</b>` })}</p>
       <input id="codigo" class="campo codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" aria-label="${tr("Código de seis cifras")}">
@@ -3662,8 +3785,8 @@ function pintarHiloEntero() {
       <main class="cuerpo" id="hilo"></main>
       <footer class="caja" id="caja">
         <p class="aviso-mejora" id="aviso-mejora" hidden>${tr("Mejorado: lo mismo que dijiste, ordenado. Si no te gusta, Deshacer.")}</p>
-        <div class="adjuntos" hidden></div>
         <div class="fila-caja">
+          <div class="adjuntos" hidden></div>
           <textarea id="texto" rows="1" placeholder="${tr("Dile qué hay que hacer")}" aria-label="${tr("Mensaje a Adeo")}"></textarea>
           <div class="elegir elegir-adeo" id="elegir-adeo" hidden></div>
           <div class="mandos">
@@ -3679,6 +3802,8 @@ function pintarHiloEntero() {
       </footer>
     </div>`;
   montarBotonCajon();
+  vigilarCarril(document.querySelector("#caja .mandos .pastillas"));
+  seguirAbajo(document.getElementById("hilo"));
   cargarVersion();
   const texto = document.getElementById("texto");
   const crecer = () => { texto.style.height = "auto"; texto.style.height = `${Math.min(texto.scrollHeight, 160)}px`; };
@@ -3804,7 +3929,10 @@ function pintarCaja() {
   const mejorarB = document.getElementById("mejorar");
   // Mejorar va con su icono solo, para que la pastilla de Adeo quepa entera;
   // Deshacer y «Mejorando…» sí dicen su palabra, que es cuando hace falta leerla.
-  mejorarB.innerHTML = e.antes != null ? `${ICONO.deshacer}<span>${tr("Deshacer")}</span>` : e.mejorando ? `${ICONO.chispa}<span>${tr("Mejorando…")}</span>` : ICONO.chispa;
+  // El icono es Adeo y no una chispita, como en el PC desde el 2026-10-31 («D: 1»):
+  // quien reescribe es él, y mientras lo hace se le ve pensar.
+  const adeoMejora = mascota(e.mejorando ? "piensa" : "quieta", 16, "mejorar");
+  mejorarB.innerHTML = e.antes != null ? `${ICONO.deshacer}<span>${tr("Deshacer")}</span>` : e.mejorando ? `${adeoMejora}<span>${tr("Mejorando…")}</span>` : adeoMejora;
   mejorarB.setAttribute("aria-label", e.antes != null ? tr("Deshacer") : tr("Mejorar"));
   mejorarB.title = e.antes != null ? "" : tr("Mejorar: ordena lo que dijiste sin cambiar lo que pides");
   mejorarB.disabled = !!e.mejorando || (e.antes == null && !texto.value.trim());
@@ -4366,6 +4494,15 @@ function urlDeFoto(k) {
     return null;
   }
 }
+/* En el PC la foto va detrás de paneles de cristal; aquí la letra va encima
+   de ella sin panel. Con el PC al 100 % (como lo tiene Munir, 2026-11-21) el
+   velo era 0 y el chat se leía sobre la foto tal cual: medido con la suya, el
+   peor contraste de la letra bajaba a 1,8:1. Así que «cuánto se ve» va de 0 a
+   lo más que deja leer: con un velo de 0,62 la tinta da 4,5:1 hasta sobre un
+   punto blanco puro en oscuro, y sobre uno negro en claro. */
+const VELO_MINIMO = 0.62;
+const veloDeFoto = (ve) => Number((VELO_MINIMO + (1 - VELO_MINIMO) * (100 - ve) / 100).toFixed(3));
+
 /** La foto de detrás del cristal, con su velo y su desenfoque. */
 function aplicarFoto() {
   const a = misAjustes();
@@ -4382,7 +4519,7 @@ function aplicarFoto() {
   const desenfoque = comoPc ? entre(pc.desenfoque, 0, 0, 24) : entre(a.desenfoque, 0, 0, 24);
   b.dataset.foto = "";
   b.style.setProperty("--foto", `url("${url}")`);
-  b.style.setProperty("--foto-velo", String((100 - ve) / 100));
+  b.style.setProperty("--foto-velo", String(veloDeFoto(ve)));
   b.style.setProperty("--foto-desenfoque", `${desenfoque}px`);
 }
 aplicarFoto();
@@ -4574,6 +4711,9 @@ function pintarAjustes() {
       <h2 class="seccion"><span>Adeo</span></h2>
       <div class="grupo"><div class="ajuste">${seg("adeo", [["vivo", tr("Moviéndose")], ["quieto", tr("Quieto")], ["oculto", tr("Escondido")]])}</div></div>
 
+      <h2 class="seccion"><span>${tr("Idioma")}</span></h2>
+      <div class="grupo"><div class="ajuste">${seg("idioma", [["pc", tr("El de tu PC")], ["es", "Español"], ["en", "English"]])}</div></div>
+
       <h2 class="seccion"><span>${tr("El inicio")}</span></h2>
       <div class="grupo">
         ${a.inicio.map((s, i) => `<div class="fila-ajuste"${a.ocultas.includes(s) ? " data-apagada" : ""}>
@@ -4628,6 +4768,16 @@ function pintarAjustes() {
         document.getElementById("foto-propia").click();
         return;
       }
+      // Cada texto de la página se elige al cargarla: otro idioma es recargar, y se vuelve aquí.
+      if (cual === "idioma") {
+        if (b.dataset.valor === a.idioma) return;
+        guardarAjustes({ idioma: b.dataset.valor });
+        // Sin entrada nueva en el historial: con `location.hash = …` cada cambio
+        // de idioma dejaba una más, y «atrás» volvía a esta misma página.
+        history.replaceState(history.state, "", "#ajustes");
+        location.reload();
+        return;
+      }
       guardarAjustes({ [cual]: cual === "letra" ? Number(b.dataset.valor) : b.dataset.valor });
       return pintarlo();
     }
@@ -4641,7 +4791,8 @@ function pintarAjustes() {
       return pintarlo();
     }
     if (b.id === "de-fabrica") {
-      try { localStorage.removeItem(AJUSTES); } catch (_) {}
+      // El aspecto vuelve a como venía; el idioma no es aspecto y se queda.
+      try { localStorage.setItem(AJUSTES, JSON.stringify(a.idioma === "pc" ? {} : { idioma: a.idioma })); } catch (_) {}
       aplicarAspecto();
       aplicarFoto();
       return pintarlo();
@@ -6601,9 +6752,9 @@ function pintarTerminal() {
           <button class="pastilla" data-cara="conversa">Chat</button>
           <button class="pastilla" data-cara="pantalla">${tr("Pantalla")}</button>
         </nav>
+        <button class="aviso-dec" id="aviso-dec" hidden></button>
+        <div class="aviso-ctx" id="aviso-ctx" role="status" hidden></div>
       </header>
-      <button class="aviso-dec" id="aviso-dec" hidden></button>
-      <div class="aviso-ctx" id="aviso-ctx" role="status" hidden></div>
       <main class="cuerpo" id="conversa" hidden><div id="turnos"></div><div class="ahora" id="ahora" hidden></div></main>
       <main class="cuerpo" id="marco">
         <p class="nota-pantalla" id="nota-pantalla" hidden>${tr("Lo de antes de esta pantalla está en el {chat}.", { chat: "<button data-ir-chat>Chat</button>" })}</p>
@@ -6612,8 +6763,8 @@ function pintarTerminal() {
       <footer class="caja" id="caja">
         <button class="bajar" id="bajar" hidden aria-label="${tr("Ir al final")}">${ICONO.bajar}</button>
         <p class="nota fallo" id="fallo" hidden></p>
-        <div class="adjuntos" hidden></div>
         <div class="fila-caja">
+          <div class="adjuntos" hidden></div>
           <textarea id="texto" rows="1" placeholder="${tr("Escríbele a esta terminal")}" aria-label="${tr("Texto para la terminal")}"></textarea>
           <div class="elegir" id="elegir" hidden></div>
           <div class="mandos">
@@ -6629,6 +6780,8 @@ function pintarTerminal() {
       </footer>
     </div>`;
   montarBotonCajon();
+  vigilarCarril(document.querySelector("#caja .mandos-term"));
+  seguirAbajo(document.getElementById("marco"), document.getElementById("conversa"));
   const texto = document.getElementById("texto");
   const enviarB = document.getElementById("enviar");
   const crecer = () => { texto.style.height = "auto"; texto.style.height = `${Math.min(texto.scrollHeight, 160)}px`; };

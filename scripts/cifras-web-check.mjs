@@ -1,6 +1,6 @@
 // Cuántos clientes dice la web, contra cuántos hay en `src/lib/providers.ts`.
 //
-// La cifra grande y la frase del haz las pone el build contando la cinta de logos
+// La frase del haz («y otros ocho») la pone el build contando la cinta de logos
 // (`bakeReleaseData` en web/vite.config.js), y las metas las cuenta
 // `poner-metadatos.mjs` del catálogo. Pero la cinta la escribe `pnpm clientes`
 // (en web/), que el build no lanza, y quedan copias escritas a mano: la respuesta

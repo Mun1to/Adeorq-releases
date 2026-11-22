@@ -1036,14 +1036,17 @@
   box-shadow: var(--sombra-3);
 }
 
+/* Elegida en el lienzo: el mismo contorno claro y sin color del foco de la
+   Cabina (2026-11-21). En azul se confundía con el de «trabajando». */
 .rf-term[data-selected="true"] {
-  outline: 2px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--text) 55%, transparent);
   outline-offset: 2px;
 }
 
 /* The pane fills its node, and its header is the drag handle. */
 .rf-term .pane {
   border-radius: var(--r-btn);
+  --pane-r-dentro: calc(var(--r-btn) - 1px);
 }
 
 .rf-term .pane-head {
@@ -1059,40 +1062,22 @@
 
 /* ── Las terminales del lienzo tienen dueño (2026-10-06) ─────────────────────
    Cada terminal lleva el color de su proyecto (`--c`, el mismo del chip y del
-   avatar): una franja arriba, la cabecera teñida y las iniciales del proyecto
-   de marca de agua. Así un lienzo con tres proyectos se lee sin acercarse
-   (Munir: «en cada terminal de un proyecto en específico un color diferente»). */
+   avatar) en las iniciales o el logo de agua (`.rf-marca`). Así un lienzo con
+   tres proyectos se lee sin acercarse (Munir: «en cada terminal de un proyecto
+   en específico un color diferente»). Hasta el 2026-11-21 iba también en una
+   franja de tres píxeles arriba, en el borde y en la cabecera teñida: fuera,
+   porque alrededor de una terminal solo van los tres estados (`05-cabina.css`). */
 .rf-term {
   position: relative;
-  border: 1px solid color-mix(in srgb, var(--c) 35%, var(--border));
-}
-
-.rf-term::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 3px;
-  background: var(--c);
-  z-index: 3;
-  pointer-events: none;
-}
-
-.rf-term .pane-head {
-  background: color-mix(in srgb, var(--c) 12%, var(--panel-head));
+  border: 1px solid var(--border);
 }
 
 /* El chip del proyecto trae su `--c` puesto en línea (el azul de la casa, de
-   `hueOf`). En el lienzo manda el del nodo, o el chip y la franja dirían dos
+   `hueOf`). En el lienzo manda el del nodo, o el chip y la marca de agua dirían dos
    colores distintos del mismo proyecto; `!important` es la única forma de que
    una hoja le gane a un estilo en línea. */
 .rf-term .pane-proj {
   --c: inherit !important;
-}
-
-.rf-term .pane[data-focused="true"] .pane-head {
-  background: color-mix(in srgb, var(--c) 22%, var(--panel-head));
 }
 
 .rf-marca {

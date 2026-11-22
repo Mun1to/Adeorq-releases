@@ -189,29 +189,25 @@ function barra(lang, ruta) {
       <span>${c.codigo}</span>
     </a>
     <a class="btn btn--claro btn--chico" href="${i}#descargar">${c.descargar}</a>
-    <button class="nav__menu" type="button" aria-label="${esc(c.menuAbrir)}" aria-haspopup="dialog" aria-controls="menu-movil" aria-expanded="false" data-menu-abrir>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    <button class="nav__menu" type="button" aria-label="${esc(c.menuAbrir)}" data-etiqueta-cerrar="${esc(c.menuCerrar)}" aria-controls="menu-movil" aria-expanded="false" data-menu-abrir>
+      <svg class="nav__menu-abre" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      <svg class="nav__menu-cierra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
-</header>
-
-<dialog class="hoja-menu" id="menu-movil" aria-label="${esc(c.menu)}">
-  <button class="hoja-menu__cerrar" type="button" aria-label="${esc(c.menuCerrar)}" data-menu-cerrar>
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-  </button>
-  <p class="hoja-menu__titulo">${c.menu}</p>
-  <nav aria-label="${esc(c.seccionesAria)}">
-    <a href="${i}#trabajo" autofocus>${c.trabajo}</a>
-    <a href="${i}#que-es">${c.queEs}</a>
-    <a href="${i}#cinta">${c.clientes}</a>
-    <a href="${i}#movil">${c.movil}</a>
-    <a href="${i}#descargar">${c.descargar}</a>
-    <a href="/guia">${c.guia}</a>
-    <hr>
-    <a href="${REPO}" rel="noopener"><svg class="gh-marca" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-github"/></svg><span>${c.codigoGitHub}</span></a>
-    <a href="${ruta[otro].url}" hreflang="${otro}" lang="${otro}">${c.otroIdioma}</a>
-  </nav>
-</dialog>`
+  <div class="nav__panel" id="menu-movil">
+    <nav aria-label="${esc(c.menu)}">
+      <a href="${i}#trabajo">${c.trabajo}</a>
+      <a href="${i}#que-es">${c.queEs}</a>
+      <a href="${i}#cinta">${c.clientes}</a>
+      <a href="${i}#movil">${c.movil}</a>
+      <a href="${i}#descargar">${c.descargar}</a>
+      <a href="/guia">${c.guia}</a>
+      <hr>
+      <a href="${REPO}" rel="noopener"><svg class="gh-marca" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-github"/></svg><span>${c.codigoGitHub}</span></a>
+      <a href="${ruta[otro].url}" hreflang="${otro}" lang="${otro}">${c.otroIdioma}</a>
+    </nav>
+  </div>
+</header>`
 }
 
 function pie(lang, ruta, marcasExtra) {

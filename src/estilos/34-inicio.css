@@ -47,8 +47,8 @@
   text-align: center;
   text-wrap: balance;
   text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.55),
-    0 2px 14px rgba(0, 0, 0, 0.4);
+    0 1px 2px color-mix(in srgb, var(--c3-velo) 55%, transparent),
+    0 2px 14px color-mix(in srgb, var(--c3-velo) 40%, transparent);
 }
 
 .inicio-estado {
@@ -63,7 +63,7 @@
   font-size: 14px;
   color: color-mix(in srgb, var(--text) 82%, transparent);
   cursor: pointer;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 1px 4px color-mix(in srgb, var(--c3-velo) 55%, transparent);
 }
 
 /* Lo que te toca a ti va en el sitio de la frase, con su botón: en el color
@@ -73,7 +73,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 1px 4px color-mix(in srgb, var(--c3-velo) 55%, transparent);
 }
 
 .inicio-aviso-txt {

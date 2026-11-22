@@ -13,7 +13,11 @@
 // - --construir: vuelve a compilar la app aunque ya haya una, que es lo que hace
 //   falta tras tocar src/. Compila con el candado del laboratorio puesto.
 //
-// La app compilada y el doble viven en %TEMP%\adeorq-probador, fuera del repo.
+// - demo.js (opcional, en la carpeta): corre en todas las opciones, la 0 incluida,
+//   para poner la app en el estado que hay que juzgar.
+//
+// La app compilada y el doble viven en %TEMP%\adeorq-probador, fuera del repo, o
+// en PROBADOR_CASA si otra terminal ya tiene el suyo en marcha (con otro --puerto).
 // Las fotos de cada dirección las hace fotos.js, de esta misma carpeta.
 import { spawnSync } from "node:child_process";
 import { createServer } from "node:http";
@@ -24,7 +28,9 @@ import { fileURLToPath } from "node:url";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(AQUI, "../../..");
-const CASA = join(tmpdir(), "adeorq-probador");
+// PROBADOR_CASA deja compilar y servir otra copia a la vez que la de otra
+// terminal (cada una con su puerto), sin pisarle la app que está enseñando.
+const CASA = process.env.PROBADOR_CASA ? resolve(process.env.PROBADOR_CASA) : join(tmpdir(), "adeorq-probador");
 const APP = join(CASA, "app");
 const DOBLE = join(CASA, "doble.js");
 const CANDADO = join(REPO, ".adeorq", "laboratorio.lock");
@@ -120,6 +126,20 @@ async function hacerDoble() {
     "\x1b[38;5;75m●\x1b[0m He cambiado \x1b[1msrc/lib/barraQueCabe.ts\x1b[0m\r\n  y el banco pasa en los 47 anchos.\r\n\r\n" +
     "\x1b[38;5;75m●\x1b[0m Bash(pnpm comprobar --rapido)\r\n  \x1b[38;5;244m⎿  Todo en verde: 23 comprobadores.\x1b[0m\r\n\r\n" +
     "\x1b[38;5;215m✻\x1b[0m Pensando… \x1b[38;5;244m(12s · ↓ 1.2k tokens)\x1b[0m\r\n";
+  // La de VoCript, una consola corriente: git, una lista y unas pruebas con los
+  // dieciséis colores de siempre, que son los que cambia un tema. La de arriba
+  // va casi toda en colores fijos (256 y RGB, como Claude Code), y con ella sola
+  // dos temas de terminal se veían iguales.
+  const e = (n, s) => `\x1b[${n}m${s}\x1b[0m`;
+  const ps = `${e(32, "PS")} ${e(34, "C:\\proyectos\\VoCript")}> `;
+  const consola =
+    `${ps}git status -sb\r\n${e(32, "## main")}...${e(31, "origin/main")} [${e(33, "ahead 2")}]\r\n` +
+    ` ${e(31, "M")} src/dictado.ts\r\n ${e(32, "A")} src/voz/corta.ts\r\n${e(31, "??")} notas.md\r\n\r\n` +
+    `${ps}git diff --stat\r\n src/dictado.ts | 14 ${e(32, "+++++++++")}${e(31, "-----")}\r\n\r\n` +
+    `${ps}ls\r\n${e("1;34", "src")}  ${e("1;34", "docs")}  ${e("1;32", "vocript.exe")}  ${e(36, "enlace")}  ${e(35, "icono.png")}  README.md\r\n\r\n` +
+    `${ps}pnpm test\r\n ${e(32, "✓")} dictado ${e(90, "(8)")}\r\n ${e(31, "✗")} voz/corta\r\n   ${e(31, "esperaba 3 y llegó 4")}\r\n` +
+    ` ${e(33, "aviso")}: el micrófono va a 44,1 kHz\r\n\r\n ${e(1, "Pruebas")}  ${e(31, "1 fallo")} ${e(90, "|")} ${e(32, "8 bien")}\r\n\r\n` +
+    ps;
   js += `
 (function () {
   try { localStorage.setItem("adeorq-layout", ${JSON.stringify(sembrado)}); } catch (e) {}
@@ -130,7 +150,9 @@ async function hacerDoble() {
       var a = l[1];
       if (l[0] !== "pty_spawn" || !a || hechos.has(a.id)) return;
       hechos.add(a.id);
-      setTimeout(function () { window.__emitir && window.__emitir("pty-data", { id: a.id, data: ${JSON.stringify(texto)} }); }, 600);
+      var vocript = a.cwd ? String(a.cwd).indexOf("VoCript") >= 0 : hechos.size === 3;
+      var dato = vocript ? ${JSON.stringify(consola)} : ${JSON.stringify(texto)};
+      setTimeout(function () { window.__emitir && window.__emitir("pty-data", { id: a.id, data: dato }); }, 600);
     });
   }, 400);
 })();
@@ -171,8 +193,14 @@ function enviar(res, ruta, sinCache) {
   res.end(readFileSync(ruta));
 }
 
+// Un `demo.js` en la carpeta de las direcciones corre en todas, también en la 0:
+// pone la app en el estado que hay que juzgar (una terminal que te pide algo,
+// otra que terminó…), que la hoja sola no puede fabricar.
+const DEMO = join(CARPETA, "demo.js");
+
 function portada(res) {
-  const cabeza = '<script src="/__probador/doble.js"></script><script src="/__probador/cambiador.js"></script>';
+  const demo = existsSync(DEMO) ? '<script src="/__probador/demo.js"></script>' : "";
+  const cabeza = `<script src="/__probador/doble.js"></script><script src="/__probador/cambiador.js"></script>${demo}`;
   const html = readFileSync(join(APP, "index.html"), "utf8").replace("<head>", `<head>${cabeza}`);
   res.writeHead(200, { "Content-Type": TIPOS[".html"], "Cache-Control": "no-store" });
   res.end(html);
@@ -188,6 +216,7 @@ createServer((req, res) => {
     if (ruta.startsWith("/__fondo/")) return FONDO ? enviar(res, FONDO, false) : res.writeHead(404).end();
     if (ruta === "/__probador/doble.js") return enviar(res, DOBLE, true);
     if (ruta === "/__probador/cambiador.js") return enviar(res, join(AQUI, "cambiador.js"), true);
+    if (ruta === "/__probador/demo.js") return existsSync(DEMO) ? enviar(res, DEMO, true) : res.writeHead(404).end();
     if (ruta === "/__probador/variantes.json") {
       // Se relee en cada petición: un diseñador que retoca su hoja solo tiene que recargar.
       const v = variantes().map(({ css, ...resto }) => resto);

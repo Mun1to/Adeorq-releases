@@ -228,7 +228,12 @@ document.addEventListener('click', (e) => {
     m.adeo.ponAnimo('lista')
     const frase = m.dice?.dataset.celebra
     if (frase) {
-      if (!m.dice.dataset.antes) m.dice.dataset.antes = m.dice.innerHTML
+      if (!m.dice.dataset.antes) {
+        m.dice.dataset.antes = m.dice.innerHTML
+        /* Con su alto de antes: la frase de fiesta es más corta, y en una
+           columna el bocadillo encogía y subía la demo de debajo 22 px. */
+        m.dice.style.minHeight = `${m.dice.offsetHeight}px`
+      }
       m.dice.textContent = frase
     }
   }
@@ -238,6 +243,7 @@ document.addEventListener('click', (e) => {
       if (m.dice?.dataset.antes) {
         m.dice.innerHTML = m.dice.dataset.antes
         delete m.dice.dataset.antes
+        m.dice.style.minHeight = ''
       }
     }
   }, FIESTA_MS)

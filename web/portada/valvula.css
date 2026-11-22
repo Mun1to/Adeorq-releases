@@ -103,3 +103,37 @@
     padding: 6px 10px;
   }
 }
+
+/* Con la pantalla baja (un portátil con zoom del 200 % o más, un móvil tumbado)
+   el flotante tapaba media línea del texto de la portada (medido el 2026-11-21
+   con WebKit: a 720x450 y a 480x300 se comía el final de la entradilla). Queda
+   el icono, en un botón redondo gemelo del de volver arriba, y el rótulo sigue
+   ahí para el lector de pantalla, que lo lee como nombre del botón. El del pie
+   no cambia: no flota encima de nada. */
+@media (max-height: 560px) {
+  .valvula:not(.valvula--pie) {
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    justify-content: center;
+  }
+  .valvula:not(.valvula--pie) .valvula__ico + span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  /* En fila con el de volver arriba, que va a `clamp(14px, 3vw, 26px)` del
+     borde: con 14 fijos los dos círculos quedaban 11 px descuadrados. */
+  .valvula:not(.valvula--pie) { right: clamp(14px, 3vw, 26px); }
+}
+/* Y estrecha además de baja (un zoom del 400 %, 480x300), la entradilla va
+   centrada y de lado a lado, y su última línea seguía acabando debajo del
+   botón (20 px, revisión aparte del 2026-11-21). Un margen a los dos lados,
+   para que siga centrada, del ancho del botón y su hueco. */
+@media (max-height: 560px) and (max-width: 640px) {
+  .valvula:not(.valvula--pie) { right: 10px; }
+  .entrada { padding-inline: 40px; }
+}

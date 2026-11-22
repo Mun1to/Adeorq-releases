@@ -35,12 +35,16 @@
   --pane-abre: 1;
 }
 
-/* Y lo que respira deja de respirar: el halo del panel que te espera, que ocupa
-   media pantalla. Se sigue distinguiendo, con su borde y su aro fijos; lo que se
-   va es el latido. */
-:root[data-rendimiento="1"] .pane[data-done="true"] {
-  animation: none;
-  will-change: auto;
+/* El tramo azul de las terminales que trabajan no se apaga: va a la mitad de
+   pasos (12 y medio por segundo en vez de 25), porque es lo único que dice
+   quién está trabajando sin mirar dentro. El hilo de la barra, igual, y los dos
+   siguen dando el paso a la vez (80 ms: `lib/relojDeAnimaciones.ts`). */
+:root[data-rendimiento="1"] .pane[data-estado="trabaja"] > .pane-aro > i {
+  animation-timing-function: steps(50);
+}
+
+:root[data-rendimiento="1"] .session-row[data-trabajando] > .hilo::before {
+  animation-timing-function: steps(40);
 }
 
 /* El ecualizador de la música no se apaga: va a pasos. Este modo se enciende solo
@@ -179,11 +183,6 @@
   background: var(--panel-solid);
   transition: border-color var(--t-rapida) ease, transform var(--t-rapida) ease;
 }
-/* Los dos claros siguen con el cristal de siempre: lo elegido va teñido, no lleno. */
-.tema-prev:is([data-tema-prev="claro"], [data-tema-prev="papel"]) {
-  --tm-fila: color-mix(in srgb, var(--accent) 26%, transparent);
-  --tm-fila-tinta: var(--text);
-}
 .tema-tarjeta:hover .tema-prev {
   transform: translateY(-2px);
 }
@@ -271,6 +270,34 @@
   margin-left: 0;
   border-radius: 0;
   background: linear-gradient(90deg, var(--done) 0 5px, transparent 5px 11px, var(--tm-tenue) 11px);
+}
+/* Una orden y un fallo con los colores de SU terminal (`varsDeMiniatura` en
+   `lib/temasTerm.ts`, que los pone en línea): el aviso en verde, la carpeta en
+   azul y la orden en su letra; el fallo en rojo con el archivo en magenta. Así
+   un conocido se reconoce también por su terminal. Sin ellos, en tenue. */
+.tema-prev-linea.tema-prev-orden {
+  width: 76%;
+  margin-left: 0;
+  border-radius: 0;
+  background: linear-gradient(
+    90deg,
+    var(--tm-verde, var(--tm-tenue)) 0 12%,
+    transparent 12% 17%,
+    var(--tm-azul, var(--tm-tenue)) 17% 52%,
+    transparent 52% 57%,
+    var(--tm-letra, var(--tm-tenue)) 57%
+  );
+}
+.tema-prev-linea.tema-prev-fallo {
+  width: 58%;
+  margin-left: 0;
+  border-radius: 0;
+  background: linear-gradient(
+    90deg,
+    var(--tm-rojo, var(--tm-tenue)) 0 40%,
+    transparent 40% 46%,
+    var(--tm-morado, var(--tm-tenue)) 46%
+  );
 }
 
 .tema-nombre {

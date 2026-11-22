@@ -44,7 +44,9 @@ async (page) => {
   debe(e0.tema === "oscuro", `de entrada sigue al teléfono, en oscuro (${e0.tema})`);
   debe(e0.acento === "#a877ff", `de entrada, el acento del PC (${e0.acento})`);
   debe(e0.foto && /^url\("blob:/.test(e0.url), `de entrada, la foto del PC (${e0.url})`);
-  debe(e0.velo === "0.45" && e0.desenfoque === "4px", `el cristal como en el PC: se ve el 55 % y 4 px (${e0.velo}, ${e0.desenfoque})`);
+  // «Cuánto se ve» va de 0 a lo más que deja leer (`veloDeFoto`, 2026-11-21): el
+  // 55 % del PC deja un velo de 0,62 + 0,38 × 0,45.
+  debe(e0.velo === "0.791" && e0.desenfoque === "4px", `el cristal como en el PC: se ve el 55 % y 4 px (${e0.velo}, ${e0.desenfoque})`);
 
   const entrar = async () => {
     await page.click("#abrir-cajon");
@@ -61,7 +63,7 @@ async (page) => {
     ancho: document.querySelector(".cuerpo").scrollWidth <= document.querySelector(".cuerpo").clientWidth + 1,
     actual: document.querySelector('#cajon .a-ajustes')?.getAttribute("aria-current"),
   }));
-  debe(JSON.stringify(pasos.pantalla.secciones) === JSON.stringify(["Fondo", "Colores", "Letra", "Adeo", "El inicio", "Avisos", "Tus aparatos", "Este aparato"]), `las secciones de Ajustes (${pasos.pantalla.secciones})`);
+  debe(JSON.stringify(pasos.pantalla.secciones) === JSON.stringify(["Fondo", "Colores", "Letra", "Adeo", "Idioma", "El inicio", "Avisos", "Tus aparatos", "Este aparato"]), `las secciones de Ajustes (${pasos.pantalla.secciones})`);
   debe(pasos.pantalla.ancho, "Ajustes no se sale de la pantalla");
   debe(await marcado('[data-ajuste="fondo"][data-valor="pc"]'), "la foto del PC sale elegida");
   debe(await marcado('[data-ajuste="acento"][data-valor="pc"]'), "el acento del PC sale elegido");
@@ -88,7 +90,7 @@ async (page) => {
   await page.$eval('input[data-ajuste="ve"]', (i) => { i.value = "30"; i.dispatchEvent(new Event("input", { bubbles: true })); });
   await page.$eval('input[data-ajuste="desenfoque"]', (i) => { i.value = "12"; i.dispatchEvent(new Event("input", { bubbles: true })); });
   const cristal = await aspecto();
-  debe(cristal.velo === "0.7" && cristal.desenfoque === "12px", `los deslizadores cambian el velo y el desenfoque al momento (${cristal.velo}, ${cristal.desenfoque})`);
+  debe(cristal.velo === "0.886" && cristal.desenfoque === "12px", `los deslizadores cambian el velo y el desenfoque al momento (${cristal.velo}, ${cristal.desenfoque})`);
   debe(await page.$eval("#ve-valor", (o) => o.textContent) === "30 %", "el deslizador dice su valor");
 
   // Una foto del móvil: un PNG hecho aquí, por el selector de archivos.
@@ -183,7 +185,7 @@ async (page) => {
   // Como venía: el aspecto de fábrica (con lo del PC), los avisos no se tocan.
   await tocar("#de-fabrica");
   const fabrica = await aspecto();
-  debe(fabrica.z === "1" && fabrica.adeo === "vivo" && fabrica.acento === "#a877ff" && /^url\("blob:/.test(fabrica.url) && fabrica.velo === "0.45", `«Como venía» vuelve a lo del PC (${JSON.stringify(fabrica)})`);
+  debe(fabrica.z === "1" && fabrica.adeo === "vivo" && fabrica.acento === "#a877ff" && /^url\("blob:/.test(fabrica.url) && fabrica.velo === "0.791", `«Como venía» vuelve a lo del PC (${JSON.stringify(fabrica)})`);
 
   // Olvidar este móvil: dos toques, y vuelve a emparejar.
   await page.click("#olvidarme");

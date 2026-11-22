@@ -32,6 +32,12 @@
   --p-tipo: "Geist", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   --p-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, Consolas, monospace;
 
+  /* El aire entre secciones, en píxeles: en alto de pantalla se encogía justo en
+     su portátil (730 de alto, 51 px entre secciones) y todo se tocaba. Aquí, 108
+     en su portátil y 124 a 1920. Munir eligió «Aire fijo» el 2026-11-21, tras
+     «hay que mejorar la web, esto queda todo muy apretujado». */
+  --p-sec: clamp(72px, 4.2vw + 44px, 124px);
+
   /* Por si esta hoja se carga suelta: el interruptor del <head> lo pisa. */
   --motion-gain: 1;
 }
@@ -246,7 +252,10 @@ body {
      sin que haga falta una flechita que lo diga; al bajar se ve ENTERA, con
      su rotulo debajo, que es para lo que esta el relleno de abajo. */
   min-height: 100svh;
-  padding: clamp(92px, 11vh, 132px) 0 clamp(64px, 9vh, 104px);
+  /* El titular, lejos de la barra y en píxeles: la barra acaba a 72-81 px y el
+     titular empieza a 114 (390), 159 (1366), 166 (1536) y 184 (1920). En alto de
+     pantalla quedaba a 11-22 px de ella cuando la barra creció (2026-11-21). */
+  padding: clamp(112px, 4.6vw + 96px, 196px) 0 clamp(64px, 9vh, 104px);
   overflow: hidden;
   isolation: isolate;
 }
@@ -337,7 +346,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
    (Munir eligió «Escaparate» el 2026-11-16). A 800 desde que la web va en
    Geist: él pidió la letra «más gorda y sólida» y eligió este peso medido. */
 .titular {
-  margin: 0 0 16px;
+  margin: 0 0 22px;
   font-size: clamp(2.3rem, 1rem + 3.9vw, 4.8rem);
   /* Que una línea partida no deje una palabra sola debajo («screen», a 390). */
   text-wrap: pretty;
@@ -372,7 +381,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
 .haz[data-entrada] .titular__linea > span { transform: none; opacity: 1; }
 
 .entrada {
-  margin: 0 auto 26px;
+  margin: 0 auto 32px;
   max-width: 58ch;
   color: var(--p-suave);
   font-size: clamp(1.06rem, 1rem + .4vw, 1.3rem);
@@ -386,85 +395,31 @@ html[data-ligero] .haz__grano { opacity: .05; }
 
 .acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-bottom: 18px; }
 
-/* Las cifras: el número grande y lo que quiere decir debajo, sin caja. */
-.cifras {
-  display: flex; flex-wrap: wrap; justify-content: center;
-  gap: 14px clamp(30px, 4vw, 70px);
-  margin: 10px 0 0; padding: 0; list-style: none;
-}
-.cifras li { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.cifras b {
-  color: var(--p-texto);
-  font-size: clamp(1.8rem, 1.2rem + 1.3vw, 2.5rem);
-  font-weight: 760;
-  letter-spacing: -.035em;
-  line-height: 1.05;
-}
-/* Con tope de ancho: la etiqueta larga (los tres sistemas y lo de Apple) va en
-   dos líneas parejas, y su número no se queda descolgado de los otros dos. */
-.cifras span { max-width: 19em; color: var(--p-suave); font-size: 15.5px; text-wrap: balance; text-align: center; }
-.cifras i, .cifras em { font-style: normal; }
-/* En el móvil, las tres en una fila y con la etiqueta corta («clientes»,
-   «instalada», «sistemas»): en dos filas bajaban la demo fuera de la primera
-   pantalla. */
-@media (max-width: 560px) {
-  .cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 6px; margin-top: 4px; }
-  .cifras b { font-size: 1.6rem; }
-  .cifras span { font-size: 13.5px; }
-  .cifras i { display: none; }
-}
-
 /* A lo ancho, dos columnas: el mensaje a la izquierda (titular, frase y
-   botones) y las cifras a la derecha, a la vista sin bajar. Munir lo eligió el
-   2026-11-17 entre tres caminos, tras «estructúralo mejor, me explota la cabeza
-   de tantas cosas»: antes iba centrado, con cuatro notas a mano en los lados. */
+   botones) y Adeo a la derecha. Munir eligió las dos columnas el 2026-11-17
+   («estructúralo mejor, me explota la cabeza de tantas cosas»). A la derecha
+   iban las cifras, y a la tercera vuelta las cambió por Adeo: «la parte esa
+   como está ahora pero con más espacio, y lo de la derecha no me gusta, pon a
+   Adeo y ya» (2026-11-21). Más aire entre columnas y entre las líneas del
+   mensaje que antes. */
 @media (min-width: 1180px) {
   .haz__texto {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) clamp(390px, 31vw, 450px);
-    column-gap: clamp(40px, 5vw, 96px);
+    grid-template-columns: minmax(0, 1fr) clamp(320px, 26vw, 420px);
+    column-gap: clamp(72px, 7vw, 150px);
     align-items: center;
     max-width: 1360px;
     text-align: left;
-    /* El tamaño del titular, una vez: el número grande de las cifras se mide con él. */
     --titular: clamp(2.3rem, 1rem + 3vw, 4rem);
   }
-  .titular { grid-column: 1; grid-row: 1; font-size: var(--titular); }
-  .entrada { grid-column: 1; grid-row: 2; margin-inline: 0; }
+  .titular { grid-column: 1; grid-row: 1; font-size: var(--titular); margin-bottom: 26px; }
+  .entrada { grid-column: 1; grid-row: 2; margin-inline: 0; margin-bottom: 38px; }
   .acciones { grid-column: 1; grid-row: 3; justify-content: flex-start; margin-bottom: 0; }
-  /* Las cifras, «una manda» (Munir la eligió el 2026-11-19 entre tres, tras
-     «organiza y rediseña mejor lo de los datos de la derecha»): los clientes,
-     enormes y en el azul de la marca, con su etiqueta al lado, y los otros dos
-     datos debajo, en dos columnas, cada número encima de lo que quiere decir.
-     Antes, una ficha de tres filas iguales con una raya fina entre ellas.
-     Abajo y no centradas: acaban a la altura de los botones. Desde unos 1500 px
-     eso deja el número grande junto a la frase; más estrecho, la etiqueta de los
-     sistemas va en cuatro líneas, el bloque crece hacia arriba y el número queda
-     a la altura de la segunda línea del titular (medido en la revisión aparte). */
-  .cifras {
-    grid-column: 2; grid-row: 1 / span 3;
-    align-self: end;
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 22px 40px;
-    align-items: start;
-    margin: 0;
-  }
-  .cifras li { align-items: flex-start; gap: 6px; }
-  .cifras li:first-child { grid-column: 1 / -1; flex-direction: row; align-items: baseline; gap: 18px; }
-  /* 1,8 veces el titular: los 115 px con que la eligió a 1920, y en una pantalla
-     más estrecha baja con el titular en vez de ganarle (a 1180 iba a 2,2 veces). */
-  .cifras li:first-child b { color: var(--p-acento); font-size: calc(var(--titular) * 1.8); font-weight: 800; letter-spacing: -.06em; line-height: .82; }
-  .cifras li:first-child span { max-width: 6em; color: var(--p-texto); font-size: 1.7rem; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
-  .cifras b { font-size: 2rem; }
-  .cifras span { text-align: left; font-size: 16px; line-height: 1.35; }
-  /* Lo de Apple, en su propia línea debajo de los tres sistemas. */
-  .cifras em { display: block; font-size: 15px; }
 }
 
 /* La entrada del texto de abajo del titular, con el dial aplicado al recorrido
    y NUNCA a la opacidad: con `gain: 0` esto sigue siendo un fundido. */
-.entrada, .acciones, .cifras {
+.entrada, .acciones {
   opacity: 0;
   transform: translateY(calc(18px * var(--motion-gain)));
   transition: opacity .6s ease, transform .7s cubic-bezier(.16,1,.3,1);
@@ -477,7 +432,6 @@ html[data-ligero] .haz__grano { opacity: .05; }
 .entrada { opacity: 1; }
 .haz[data-entrada] .entrada  { opacity: 1; transform: none; transition-delay: .18s; }
 .haz[data-entrada] .acciones { opacity: 1; transform: none; transition-delay: .26s; }
-.haz[data-entrada] .cifras   { opacity: 1; transform: none; transition-delay: .34s; }
 
 /* -------- la ventana --------
    ENTERA (Munir, 2026-10-12: «se corta, tiene que ser un poco mas pequeña»).
@@ -526,21 +480,19 @@ html[data-ligero] .haz__grano { opacity: .05; }
   position: relative;
   z-index: 2;
   width: min(1400px, 88vw, calc((100svh - 150px) * 16 / 9));
-  /* El hueco de arriba es el sitio de Adeo, que va sentado en el borde. Más
-     justo desde el 2026-11-17 (y Adeo algo más pequeño): con la letra sólida
-     la demo apenas asomaba, 90 px a 1280 x 860; así asoma 145. */
-  margin: clamp(80px, 9.5vh, 96px) auto 0;
+  /* Encima solo va la línea del enlace y las pestañas: Adeo, que iba sentado en
+     el borde, subió al lado del titular el 2026-11-21. */
+  margin: 84px auto 0;
   aspect-ratio: 16 / 9;
   /* Adeo y el aviso de encima se miden por el ancho de la ventana, no de la
      pantalla (ver ADEO, abajo). */
   container: ventana / inline-size;
 }
-/* A lo ancho, más abajo: el globo de Adeo quedaba a 7 px de los botones y las
-   pestañas a 45, pegadas al mensaje (Munir, 2026-11-19: «haz que toda esta
-   parte esté más para abajo»). Solo en las dos columnas: en el móvil la
-   primera pantalla se queda como está. */
+/* A lo ancho, más abajo: las pestañas no se pegan al mensaje (Munir,
+   2026-11-19: «haz que toda esta parte esté más para abajo»). En píxeles, como
+   el resto del aire. */
 @media (min-width: 1180px) {
-  .ventana { margin-top: clamp(132px, 15.5vh, 150px); }
+  .ventana { margin-top: clamp(104px, 3vw + 66px, 124px); }
 }
 
 /* El filo de luz del borde de arriba: es lo que ata la ventana al haz. Sin
@@ -577,7 +529,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
    y, a su derecha, las pestañas (Munir, 2026-11-17: «lo de la cabina, lienzo,
    chat… al lado de abrirla en grande, a la derecha»). Fuera de la ventana
    (pintada dentro tapaba la app) y ENCIMA: debajo y en gris no se enteraba
-   nadie (2026-10-13). La derecha de esa línea es de Adeo. */
+   nadie (2026-10-13). */
 .ventana__encima {
   position: absolute;
   left: 2px; bottom: calc(100% + 6px);
@@ -763,7 +715,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
   margin: clamp(14px, 2vh, 22px) auto 0;
   padding: 0 clamp(18px, 4vw, 54px);
   color: var(--p-tenue);
-  font-size: 13.5px;
+  font-size: 14.5px;
   line-height: 1.5;
   text-align: center;
   text-wrap: balance;
@@ -777,7 +729,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
    lector de pantalla lee cada línea con su «Sin» y su «Con».
    ========================================================================= */
 
-.comparar { padding: clamp(60px, 9vh, 104px) 0 0; }
+.comparar { padding: var(--p-sec) 0 0; }
 .comparar__caja {
   max-width: 1100px;
   margin: 0 auto;
@@ -837,7 +789,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
    frase de cartel que había aquí («Escribe el encargo…»).
    ========================================================================= */
 
-.reparte { padding: clamp(60px, 9vh, 104px) 0 clamp(40px, 6vh, 72px); }
+.reparte { padding: var(--p-sec) 0 calc(var(--p-sec) * .7); }
 .reparte__caja {
   max-width: 1320px;
   margin: 0 auto;
@@ -958,7 +910,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
   font-weight: 600;
 }
 .rchat__enviar { margin-left: auto; border-color: transparent; background: var(--p-acento); color: #050a12; }
-.rchat__ia { margin: 0; padding: 10px 20px 16px; color: var(--p-tenue); font-size: 13.5px; text-align: center; }
+.rchat__ia { margin: 0; padding: 10px 20px 16px; color: var(--p-tenue); font-size: 14.5px; text-align: center; }
 @media (max-width: 560px) {
   .rchat__cab { padding: 11px 16px; }
   .rchat__hilo { gap: 16px; padding: 20px 16px 6px; }
@@ -981,7 +933,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
 .codigo {
   max-width: 1320px;
   margin: 0 auto;
-  padding: clamp(28px, 4.5vh, 44px) clamp(18px, 4vw, 54px) clamp(56px, 9vh, 104px);
+  padding: calc(var(--p-sec) * .4) clamp(18px, 4vw, 54px) var(--p-sec);
   text-align: center;
 }
 .codigo__sec { margin-inline: auto; }
@@ -1055,7 +1007,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
    debajo de otro en el móvil. Sin tarjetas: una raya arriba de cada uno.
    ========================================================================= */
 
-.ayuda { padding: clamp(56px, 9vh, 104px) 0 clamp(20px, 3vh, 34px); }
+.ayuda { padding: var(--p-sec) 0 calc(var(--p-sec) * .35); }
 .ayuda__caja { max-width: 1320px; margin: 0 auto; padding: 0 clamp(18px, 4vw, 54px); }
 .ayuda__lista {
   display: grid;
@@ -1103,7 +1055,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
    Adeo, una frase y un botón secundario, en una fila y sin caja.
    ========================================================================= */
 
-.apoyar { padding: clamp(30px, 5vh, 56px) 0 clamp(56px, 9vh, 104px); }
+.apoyar { padding: calc(var(--p-sec) * .45) 0 var(--p-sec); }
 .apoyar__caja {
   display: flex;
   align-items: center;
@@ -1136,7 +1088,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
   background:
     radial-gradient(60% 50% at 50% 0%, rgba(77, 159, 255, .07), transparent 70%),
     var(--p-fondo);
-  padding: clamp(56px, 8vh, 96px) 0 clamp(48px, 7vh, 84px);
+  padding: var(--p-sec) 0;
 }
 
 .explica__caja {
@@ -1145,7 +1097,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
   padding: 0 clamp(18px, 4vw, 54px);
 }
 
-.explica__cabecera { margin: 0 0 clamp(38px, 6vh, 58px); }
+.explica__cabecera { margin: 0 0 clamp(48px, 4vw, 72px); }
 
 .explica__tit {
   margin: 0 0 20px;
@@ -1402,7 +1354,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
 
 .seccion__entrada {
   max-width: 58ch;
-  margin: 0 0 clamp(34px, 5vh, 52px);
+  margin: 0 0 clamp(40px, 3vw, 58px);
   color: var(--p-suave);
   font-size: clamp(1.06rem, .99rem + .35vw, 1.2rem);
   line-height: 1.65;
@@ -1411,7 +1363,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
 /* -------------------------------- CÓMO TRABAJA --------------------------- */
 
 .pasos {
-  padding: clamp(48px, 7vh, 84px) 0;
+  padding: var(--p-sec) 0;
 }
 /* El ancho y el reparto los pone .bloque--dos. */
 
@@ -1532,7 +1484,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
   background:
     radial-gradient(52% 60% at 50% 0%, rgba(77, 159, 255, .06), transparent 72%),
     var(--p-fondo);
-  padding: clamp(48px, 7vh, 84px) 0;
+  padding: var(--p-sec) 0;
   text-align: center;
 }
 .cuenta__caja {
@@ -1563,7 +1515,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
 /* --------------------------------- DESCARGA ------------------------------ */
 
 .descarga {
-  padding: clamp(48px, 7vh, 84px) 0;
+  padding: var(--p-sec) 0;
 }
 /* Centrada entera, con Adeo encima del título y los tres botones en fila: el
    cierre «Dos clics y ya está» de winshotx.com (Munir eligió «Escaparate» el
@@ -1645,7 +1597,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
 /* -------------------------------- NOVEDADES ------------------------------ */
 
 .novedades {
-  padding: clamp(48px, 7vh, 84px) 0;
+  padding: var(--p-sec) 0;
 }
 /* El ancho y el reparto los pone .bloque--dos. */
 /* La cifra, en blanco. La palabra clave no: va en el azul de todas las entradas
@@ -1701,7 +1653,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
 /* -------------------------------- PREGUNTAS ------------------------------ */
 
 .faq {
-  padding: clamp(48px, 7vh, 84px) 0;
+  padding: var(--p-sec) 0;
 }
 
 /* ======================= EL TÍTULO ARRIBA ================================ */
@@ -1723,11 +1675,11 @@ html[data-ligero] .haz__grano { opacity: .05; }
   padding: 0 clamp(18px, 4vw, 54px);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 30px;
+  gap: 44px;
 }
 
 .bloque__rotulo .seccion__tit { margin-bottom: 0; }
-.bloque__rotulo .seccion__entrada { margin: 14px 0 0; }
+.bloque__rotulo .seccion__entrada { margin: 18px 0 0; }
 .bloque__cuerpo { min-width: 0; }
 .bloque__cuerpo > :first-child { margin-top: 0; }
 
@@ -1855,7 +1807,7 @@ html[data-ligero] .haz__grano { opacity: .05; }
 
 .pie {
   background: linear-gradient(180deg, var(--p-fondo), #04060a);
-  padding: clamp(56px, 8vh, 88px) 0 26px;
+  padding: var(--p-sec) 0 26px;
 }
 .pie__caja {
   display: grid;
@@ -1955,7 +1907,8 @@ html[data-ligero] .haz__grano { opacity: .05; }
   border-radius: 14px;
   background: var(--p-panel);
   color: var(--p-suave);
-  font-size: 14.5px;
+  /* La letra que se lee, a 15 px o más (2026-11-21, con el aire nuevo). */
+  font-size: 15.5px;
   line-height: 1.45;
   text-align: left;
   text-wrap: pretty;
@@ -1976,71 +1929,65 @@ html[data-ligero] .haz__grano { opacity: .05; }
 
 .adeo-dice--der::after { right: -6.5px; top: 50%; transform: translateY(-50%) rotate(-45deg); }
 
-/* En la primera pantalla va sentado en el borde de arriba de la ventana, a la
-   derecha, con su frase al lado: presenta la app que tiene debajo. Entra
-   DESPUÉS del titular, con el dial en el recorrido y nunca en la opacidad,
-   como el resto del haz. */
+/* En la primera pantalla, al lado del titular (en estrecho, debajo de los
+   botones), con su saludo encima: el personaje de la marca en vez de un bloque
+   de datos. Entra DESPUÉS del titular, con el dial en el recorrido y nunca en
+   la opacidad, como el resto del haz. */
 .adeo-hola {
-  position: absolute;
-  right: 18px;
-  bottom: calc(100% + 2px);
-  z-index: 5;
   display: flex;
+  justify-content: center;
   align-items: center;
   gap: 14px;
+  margin: 30px 0 0;
   opacity: 0;
   transform: translateY(calc(16px * var(--motion-gain)));
   transition: opacity .6s ease, transform .8s cubic-bezier(.16,1,.3,1);
 }
 .adeo-hola .adeo { flex: none; width: 110px; height: 77px; }
-.adeo-hola .adeo-dice { max-width: 400px; }
-.haz[data-entrada] .adeo-hola { opacity: 1; transform: none; transition-delay: .55s; }
+.adeo-hola .adeo-dice { max-width: 330px; }
+.haz[data-entrada] .adeo-hola { opacity: 1; transform: none; transition-delay: .34s; }
 @media (scripting: none) { .adeo-hola { opacity: 1; transform: none; } }
-/* Con la ventana más estrecha, el aviso de la izquierda se parte en dos líneas
-   para dejarle sitio, y él y su frase encogen un poco. Va por el ancho de la
-   VENTANA y no de la pantalla: en un móvil apaisado (844x390) la ventana sale
-   del alto y mide 426 px aunque la pantalla mida 844, y medido por la pantalla
-   el aviso se quedaba en 0 px, pisaba las notas de encima y «Abrirla en
-   grande» acababa detrás del bocadillo (revisión del 2026-11-16). Por debajo
-   de 660 px de ventana no cabe al lado de Adeo y se va, como en el móvil. */
-@media (max-width: 1179px) {
-  .ventana { margin-top: clamp(96px, 12vh, 132px); }
+@media (max-width: 440px) {
+  .adeo-hola .adeo { width: 84px; height: 59px; }
+  .adeo-hola .adeo-dice { max-width: 250px; }
+}
+/* A lo ancho, en su columna: el saludo encima, con la colita hacia abajo, y
+   Adeo más grande, sin pasar del alto del titular que tiene al lado. */
+@media (min-width: 1180px) {
+  .adeo-hola {
+    grid-column: 2; grid-row: 1 / span 3;
+    flex-direction: column;
+    gap: 16px;
+    margin: 0;
+  }
+  /* Hasta 180 de ancho (126 de alto): a 1920 el titular mide 131. */
+  .adeo-hola .adeo { width: clamp(150px, 10vw, 180px); height: auto; aspect-ratio: 128 / 90; }
+  .adeo-hola .adeo-dice { max-width: 340px; }
+  .adeo-hola .adeo-dice--der::after { right: auto; top: auto; left: 50%; bottom: -6.5px; transform: translateX(-50%) rotate(45deg); }
 }
 /* Con la ventana por debajo de unos 940 px (por el ancho de la pantalla o por
-   su alto, que también la encoge) el enlace y las pestañas ya no caben al lado
-   de Adeo: suben a su propia línea, centrada, por encima de él, y el hueco de
-   arriba crece lo que ocupa esa línea. */
+   su alto, que también la encoge) el enlace y las pestañas van en su línea,
+   centrada sobre la ventana. */
 @media (max-width: 1068px), (max-height: 679px) {
-  .ventana { --adeo-hueco: 100px; margin-top: calc(var(--adeo-hueco) + 58px); }
-  .ventana__encima { left: -8px; right: -8px; bottom: calc(100% + var(--adeo-hueco)); justify-content: center; }
+  .ventana { margin-top: 72px; }
+  .ventana__encima { left: -8px; right: -8px; justify-content: center; }
 }
 /* En el móvil, solo las pestañas, con letra y huecos que encogen con el ancho:
    las cinco caben en una fila hasta 320 px, también en inglés. */
 @media (max-width: 700px) {
-  .ventana { --adeo-hueco: 110px; }
   .ventana__grande { display: none; }
   .pestanas-demo { gap: 4px clamp(7px, 2.9vw, 17px); }
   .pestanas-demo button { font-size: clamp(13px, 3.9vw, 16px); }
 }
-/* Con la ventana más estrecha, las pestañas aprietan un poco, y Adeo y su frase
-   encogen para dejarles sitio. */
+/* Con la ventana más estrecha, las pestañas aprietan un poco. */
 @container ventana (min-width: 660px) and (max-width: 1180px) {
   .ventana__encima { gap: 18px; }
   .pestanas-demo { column-gap: 18px; }
   .pestanas-demo button { font-size: 15px; }
 }
-@container ventana (max-width: 1070px) {
-  .adeo-hola .adeo { width: 96px; height: 67px; }
-  .adeo-hola .adeo-dice { font-size: 14px; max-width: 300px; }
-}
-@container ventana (max-width: 660px) {
-  .adeo-hola { right: 4px; }
-  .adeo-hola .adeo { width: 80px; height: 56px; }
-  .adeo-hola .adeo-dice { font-size: 13.5px; max-width: 250px; }
-}
 
 /* En cada sección, al lado del título (desde 901 px; más estrecho, encima),
    con la colita apuntándole. */
 .adeo-presenta { display: flex; align-items: center; gap: 14px; margin: 0 0 22px; }
-.adeo-presenta .adeo-dice { font-size: 14px; max-width: 290px; }
+.adeo-presenta .adeo-dice { max-width: 330px; }
 .adeo-presenta--centro { justify-content: center; margin-bottom: 26px; }

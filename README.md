@@ -18,9 +18,24 @@ Free · open source · no account · no API keys · updates itself · [AGPL-3.0]
 
 </div>
 
-<p align="center"><img src="web/assets/screens/en/cockpit.png" alt="The Cockpit with four agents at once, each in its own project: a Claude Code session that has finished, Codex working, a Claude Code session asking permission with the answer buttons above its terminal, and another one in the middle of an edit"></p>
+<p align="center"><img src="web/assets/screens/en/style-terminal.png" alt="The Cockpit in the Terminal style, one flat black background with the terminals edge to edge: four agents at once, each in its own project, a Claude Code session that has finished, Codex working, a Claude Code session asking permission with the answer buttons above its terminal, and another one in the middle of an edit"></p>
 
-<p align="center">Four agents, four projects. One has finished, two are working, and one is asking permission, with the answer one click away.</p>
+<p align="center">Four agents, four projects. One has finished, two are working, and one is asking permission, with the answer one click away. Here in the Terminal style: <a href="#make-it-your-style">it comes in four</a>.</p>
+
+## Make it your style
+
+Four styles in **Settings > Look > Style**, each one with any of the **33 themes** (Dracula, Catppuccin, Tokyo Night, Nord, Gruvbox, One Dark, GitHub Light and more; the familiar and the light ones bring their own terminal colours), and **your mods** on top, kept in your own mods folder so an update does not take them away. A theme changes the colour; a style changes the shape.
+
+<table>
+<tr>
+<td width="50%" valign="top"><img src="web/assets/screens/en/style-terminal.png" alt="The Terminal style"><br><b>Terminal.</b> One flat background from side to side, the terminals edge to edge with a thin line, and their buttons when you hover.</td>
+<td width="50%" valign="top"><img src="web/assets/screens/en/style-console.png" alt="The Console style"><br><b>Console.</b> The whole app in the terminal's type, and each terminal's header as a status bar at its foot, a shade lighter on the one you are typing in.</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="web/assets/screens/en/style-flat.png" alt="The Flat style"><br><b>Flat.</b> The usual pieces without the photo or the glass, in your theme's colour, with the terminals edge to edge.</td>
+<td width="50%" valign="top"><img src="web/assets/screens/en/style-glass.png" alt="The Glass style, the default"><br><b>Glass</b>, the default. Your photo behind and each terminal in its glass box.</td>
+</tr>
+</table>
 
 ## How it works
 

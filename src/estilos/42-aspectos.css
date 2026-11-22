@@ -1,0 +1,594 @@
+/* ==========================================================================
+   Los estilos: Cristal (el de fábrica, sin atributo), Terminal, Consola y Liso.
+
+   Se eligen en Ajustes › Aspecto › Estilo, y el mando vive en `lib/aspecto.ts`,
+   que marca `<html data-aspecto="…">`. Nacieron el 2026-11-21: alguien que vive
+   en la terminal vio la portada y dijo «Solo con ver la UI ya sé que no es para
+   mí». Munir vio tres direcciones en el probador y quiso las tres, «la mejor
+   posible que puedan elegir con estilos familiares los que vengan de otros
+   sitios». Las hojas con las que se le enseñaron están en
+   `docs/propuestas/aspectos/`.
+
+   Un estilo es FORMA, no color. Ningún color va escrito aquí: todos salen del
+   fondo (`--panel-solid`), la letra (`--text`) y el acento (`--accent`) del tema
+   que tengas puesto, así que los treinta y tres temas valen en los cuatro
+   estilos, también los claros. Los nombres son genéricos a propósito: no
+   copian el de ningún producto.
+
+   Lo que tienen en común los tres lisos: sin foto (`.fondo` fuera), sin cristal
+   ni desenfoque, y las terminales opacas, que es lo que le devuelve a xterm su
+   camino rápido (ver `esFondoSolido` en `TerminalPane.tsx`).
+   ========================================================================== */
+
+/* El fondo de la terminal, registrado como color. Sin esto, `--xterm-bg`
+   llegaría a `TerminalPane` como el texto «color-mix(…)», que no sabe leer
+   como opaco, y xterm seguiría componiendo cada celda contra lo de detrás.
+   Registrado, el navegador lo resuelve a un color de verdad antes de dárselo. */
+@property --as-term {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #000;
+}
+
+/* ── 1. Lo común a los tres lisos ────────────────────────────────────────── */
+/* Pesa como la regla de la foto de `41-contraste.css` (`:root:has(.fondo)` con
+   sus dos `:not`), y va detrás: con la foto puesta, aquella abriría la terminal
+   a la mitad. El mando «cuánto se ve» de Ajustes va en línea y sigue mandando,
+   aunque sin foto detrás solo deja ver el panel. */
+:root:root[data-aspecto][data-aspecto] {
+  --pane-abre: 1;
+  --xterm-bg: var(--as-term);
+  --glass-blur: none;
+  --glass-edge: none;
+}
+
+/* Un tema claro lleva la terminal clara, con su esquema claro
+   (`lib/temasTerm.ts`). Pero si eliges a mano un esquema de la lista, que son
+   todos oscuros, su letra es clara y sobre un fondo claro no se lee (medido en
+   el probador: el texto de Claude desaparecía). Entonces la terminal va oscura,
+   en la tinta del tema (`--term-oscura`: azul noche en Claro, marrón en Papel).
+   Lo marca `data-term-oscura` (`marcarTermOscura`), en los cuatro estilos: en
+   el cristal, por encima del mando «cuánto se ve», que se pone en línea y sobre
+   una foto clara volvería a dejar la letra clara sobre blanco. */
+:root[data-term-oscura] {
+  --as-term: var(--term-oscura) !important;
+  --xterm-bg: var(--as-term) !important;
+}
+
+/* El apagón, negro detrás de las terminales también en los tres lisos. El suyo
+   de `19-temas.css` pone `--xterm-bg`, pero aquí la terminal se pinta con
+   `--as-term` y cada estilo lo pone con su tema (Drácula + Terminal + apagón
+   seguía en rgb(40,42,54)). Con `!important`, para ganar también a la terminal
+   oscura de un claro, que con el apagón se marca siempre (`esquemaPuesto`). */
+:root[data-apagon="1"] {
+  --as-term: #000000 !important;
+}
+
+/* Y la muestra de cada esquema en Ajustes, que si no enseña otra cosa: va con
+   `--pane-bg`, que en un liso es el fondo del tema, y en un claro la de un
+   esquema oscuro va en su tinta (`07-ajustes.css`). Pesa como esa y va detrás. */
+:root[data-apagon="1"] .term-tarjeta[data-claro] .term-prev {
+  background: #000000;
+}
+
+:root[data-aspecto] .fondo {
+  display: none;
+}
+
+:root[data-aspecto] .app::before {
+  background: var(--as-pared);
+}
+
+:root[data-aspecto] :is(.app, .view-cabina, .grid) {
+  background: var(--as-pared);
+}
+
+/* El chat y su lista se desenfocaban a mano, sin pasar por `--glass-blur`. Sin
+   foto detrás no hay nada que desenfocar y solo cuesta. */
+:root[data-aspecto] :is(.chat-lista, .chat-hilo) {
+  backdrop-filter: none;
+}
+
+:root[data-aspecto] :is(.topbar, .sidebar, .lateral, .franja) {
+  box-shadow: none;
+}
+
+/* Las terminales, pegadas y sin esquinas, en todos: la forma de los paneles de
+   Ajustes (pegadas, suaves, tarjetas) es del cristal. Pesa más que
+   `html[data-panes="tarjetas"] .pane[data-focused="true"]`, que es la más
+   fuerte de las suyas. */
+:root[data-aspecto] .grid > .pane {
+  border-radius: 0;
+  /* El aro de los tres estados (`05-cabina.css`) toma esta esquina: con la de
+     las tarjetas, sobre un panel cuadrado, dejaba las cuatro puntas sin anillo. */
+  --pane-r-dentro: 0px;
+  box-shadow: none;
+  animation: none;
+}
+
+:root[data-aspecto] .pane-term {
+  background: var(--as-term);
+}
+
+/* Lo que trae cada terminal en la cabecera (proyecto, nombre, modelo) sigue
+   siendo el mismo. El estado no lo señala ningún estilo por su cuenta: es el
+   aro de tres colores de `05-cabina.css`, igual en los cuatro.
+   La FORMA de la cabecera cambia solo en el mosaico (`.grid > .pane`): en el
+   lienzo la cabecera es el asa con la que se mueve la terminal, y allí un
+   estilo solo le cambia el color, como a cualquier otra pieza. */
+
+/* ── 2. Terminal ─────────────────────────────────────────────────────────────
+   Como una terminal de las de siempre: un solo fondo liso de pared a pared, las
+   terminales pegadas y separadas por una raya de un píxel, la cabecera de cada
+   una en una línea fina y sus botones solo al pasar el ratón. El foco es la
+   cabecera un punto más clara, con el contorno claro del aro. */
+:root[data-aspecto="terminal"] {
+  /* Con un tema conocido (Drácula, Nord…), el fondo es el de su terminal tal
+     cual (`--tema-term`, en `01-base.css`); con uno de la casa, su fondo con
+     una gota de su letra, que en Contraste levanta el negro puro. */
+  --as-fondo: var(--tema-term, color-mix(in srgb, var(--panel-solid) 96%, var(--text)));
+  --as-pared: var(--as-fondo);
+  --c3-negro: var(--as-fondo);
+  --as-term: var(--as-fondo);
+  --as-raya: color-mix(in srgb, var(--text) 14%, var(--as-fondo));
+  --as-raya-2: color-mix(in srgb, var(--text) 22%, var(--as-fondo));
+  --as-gris: color-mix(in srgb, var(--text) calc(var(--letra-gris, 74%) - 8%), var(--as-fondo));
+  --as-hover: color-mix(in srgb, var(--text) 6%, var(--as-fondo));
+  --panel: var(--as-fondo);
+  --panel-head: var(--as-fondo);
+  --pane-bg: var(--as-fondo);
+  --topbar: var(--as-fondo);
+  --popover: color-mix(in srgb, var(--text) 4%, var(--as-fondo));
+  --bg: var(--as-fondo);
+  --page-tint: var(--as-fondo);
+  --border: var(--as-raya);
+  --border-strong: var(--as-raya-2);
+  --line: var(--as-raya);
+  --c3-raya: var(--as-raya);
+  --c3-raya-2: var(--as-raya-2);
+  --c3-capa: var(--as-fondo);
+  --c3-capa-2: var(--as-hover);
+  --muted: var(--as-gris);
+  --c3-gris: var(--as-gris);
+}
+
+/* La barra de arriba: fina, y las pestañas en texto con su raya debajo. */
+:root[data-aspecto="terminal"] .topbar {
+  height: 34px;
+  padding: 0 10px;
+  gap: 10px;
+  border-bottom: 1px solid var(--as-raya);
+}
+
+:root[data-aspecto="terminal"] .tabs {
+  gap: 0;
+}
+
+:root[data-aspecto="terminal"] .tabs .tab .tab-icon {
+  display: none;
+}
+
+:root[data-aspecto="terminal"] .tabs .tab {
+  padding: 4px 11px;
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--as-gris);
+  /* Sin esquina, salvo que un mod la pida: la de las pestañas es `--r-icono`
+     (`02-armazon.css`), y un 0 a secas dejaba sin efecto el de iconos redondos. */
+  border-radius: var(--r-icono, 0px);
+}
+
+:root[data-aspecto="terminal"] .tabs .tab:hover {
+  color: var(--text);
+}
+
+:root[data-aspecto="terminal"] .tabs .tab[data-active="true"],
+:root[data-aspecto="terminal"] .topbar .tabs .tab[data-active="true"]:not(:disabled):is(:hover, :active) {
+  background: none;
+  border-color: transparent;
+  color: var(--text);
+  font-weight: 650;
+}
+
+/* La raya de la activa, la de siempre (`02-armazon.css`), a lo ancho del texto
+   y pegada al borde de la barra. Más abajo de -3 px la cortaba la barra. */
+:root[data-aspecto="terminal"] .tabs .tab[data-active="true"]::after {
+  display: block;
+  left: 11px;
+  right: 11px;
+  width: auto;
+  bottom: -3px;
+  transform: none;
+  border-radius: 0;
+}
+
+:root[data-aspecto="terminal"] .tabs .tab[data-active="true"] :is(.tab-count, .tab-beta) {
+  color: var(--as-gris);
+}
+
+/* La barra de proyectos: una lista, sin tarjetas. El ancho es el tuyo. */
+:root[data-aspecto="terminal"] .sidebar {
+  padding: 10px 8px 8px;
+  gap: 6px;
+  border-right: 1px solid var(--as-raya);
+}
+
+:root[data-aspecto="terminal"] .finder {
+  min-height: 30px;
+  border-radius: var(--r-chico);
+}
+
+:root[data-aspecto="terminal"] :is(.project, .project[data-open="true"]) {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+:root[data-aspecto="terminal"] .project:hover {
+  background: var(--as-hover);
+  border-color: transparent;
+}
+
+:root[data-aspecto="terminal"] .project[data-open="true"] .project-name {
+  color: var(--text);
+}
+
+:root[data-aspecto="terminal"] .project-name {
+  font-size: 14px;
+  font-weight: 550;
+}
+
+/* Las terminales: pegadas, una raya a la derecha y otra debajo. */
+:root[data-aspecto="terminal"] .grid > .pane {
+  border: 0;
+  border-right: 1px solid var(--as-raya);
+  border-bottom: 1px solid var(--as-raya);
+  background: var(--as-fondo);
+}
+
+/* La cabecera: una línea de 28 px del mismo fondo que la terminal. */
+:root[data-aspecto="terminal"] .grid > .pane > .pane-head {
+  position: relative;
+  height: 28px;
+  min-height: 0;
+  padding: 3px 6px 3px 10px;
+  gap: 8px;
+  border-bottom: 1px solid var(--as-raya);
+  border-radius: 0;
+}
+
+:root[data-aspecto="terminal"] .pane-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--as-gris);
+}
+
+:root[data-aspecto="terminal"] :is(.pane-brain, .pane-proj) {
+  color: var(--as-gris);
+}
+
+/* El foco: la cabecera un punto más clara y el nombre en la letra del tema; el
+   contorno claro lo pone el aro, como en todos los estilos. Ni el foco, ni el
+   «terminó», ni la cuadrilla, ni la delegada pintan aquí su color: alrededor de
+   una terminal solo salen los tres estados del aro (`05-cabina.css`). */
+:root[data-aspecto="terminal"] .grid > .pane[data-focused="true"] .pane-head {
+  background: color-mix(in srgb, var(--text) 8%, var(--panel-head));
+  border-bottom-color: var(--as-raya);
+}
+
+:root[data-aspecto="terminal"] .grid > .pane[data-focused="true"] .pane-name {
+  color: var(--text);
+}
+
+/* Los botones, encima de la cabecera y no dentro de la fila: así no dejan un
+   hueco cuando no están ni empujan el nombre cuando salen. Dejan ver la raya
+   de arriba. */
+:root[data-aspecto="terminal"] .grid > .pane .ph-acts {
+  position: absolute;
+  right: 34px;
+  top: 2px;
+  bottom: 0;
+  padding: 0 4px;
+  background: var(--panel-head);
+  border-left: 0;
+}
+
+:root[data-aspecto="terminal"] .grid > .pane :is(.pane-btn, .pane-close) {
+  min-height: 22px;
+}
+
+/* Solo con un ratón que pasa por encima. En una pantalla táctil, o con el
+   teclado dentro de la terminal, se quedan a la vista. */
+@media (hover: hover) {
+  :root[data-aspecto="terminal"] .grid > .pane :is(.ph-acts, .pane-close) {
+    opacity: 0;
+    transition: opacity var(--t-rapida) ease;
+  }
+
+  :root[data-aspecto="terminal"] .grid > .pane:is(:hover, :focus-within) :is(.ph-acts, .pane-close) {
+    opacity: 1;
+  }
+}
+
+/* La barra de la derecha: lisa, con su raya. */
+:root[data-aspecto="terminal"] :is(.lateral, .franja) {
+  background: var(--as-fondo);
+  border-left: 1px solid var(--as-raya);
+}
+
+/* ── 3. Consola ──────────────────────────────────────────────────────────────
+   Como un multiplexor de terminales: toda la interfaz en la letra de la
+   terminal, la terminal empieza arriba del todo y lo que dice quién es
+   (proyecto, nombre, modelo) baja a una barra de estado al pie de cada una. La
+   del foco va un punto más clara, como la ventana activa. Entre terminales, un
+   píxel de pared. Va contra «nada de letra de máquina en las etiquetas» de
+   la guía, y a propósito: es justo lo que usa quien viene de ahí. */
+:root[data-aspecto="consola"] {
+  --as-mono: "Cascadia Mono", Consolas, ui-monospace, monospace;
+  --as-fondo: var(--tema-term, color-mix(in srgb, var(--panel-solid) 97%, var(--text)));
+  --as-pared: color-mix(in srgb, var(--text) 5%, var(--as-fondo));
+  --c3-negro: var(--as-fondo);
+  --as-term: var(--as-fondo);
+  --as-estado: color-mix(in srgb, var(--text) 9%, var(--as-fondo));
+  --as-raya: color-mix(in srgb, var(--text) 15%, var(--as-fondo));
+  --as-raya-2: color-mix(in srgb, var(--text) 23%, var(--as-fondo));
+  /* Sus rótulos van sobre la barra (`--as-estado`), más honda que el fondo: el
+     gris lleva más letra que en Terminal (con el 66 % de allí, Latte daba 2,78:1). */
+  --as-gris: color-mix(in srgb, var(--text) min(100%, calc(var(--letra-gris, 74%) + 4%)), var(--as-fondo));
+  --as-hover: color-mix(in srgb, var(--text) 10%, var(--as-fondo));
+  --panel: var(--as-fondo);
+  --panel-head: var(--as-estado);
+  --pane-bg: var(--as-fondo);
+  --topbar: var(--as-estado);
+  --popover: color-mix(in srgb, var(--text) 6%, var(--as-fondo));
+  --bg: var(--as-fondo);
+  --page-tint: var(--as-fondo);
+  --border: var(--as-raya);
+  --border-strong: var(--as-raya-2);
+  --line: var(--as-raya);
+  --c3-raya: var(--as-raya);
+  --c3-raya-2: var(--as-raya-2);
+  --c3-capa: var(--as-fondo);
+  --c3-capa-2: var(--as-hover);
+  --muted: var(--as-gris);
+  --c3-gris: var(--as-gris);
+  font-family: var(--as-mono);
+  font-feature-settings: normal;
+}
+
+/* Los botones y las cajas no heredan la letra por su cuenta. */
+:root[data-aspecto="consola"] :is(button, input, select, textarea) {
+  font-family: var(--as-mono);
+}
+
+:root[data-aspecto="consola"] body {
+  letter-spacing: 0;
+}
+
+:root[data-aspecto="consola"] .app::before {
+  background: var(--as-fondo);
+}
+
+/* Arriba, una línea de estado. */
+:root[data-aspecto="consola"] .topbar {
+  height: 30px;
+  padding: 0 8px;
+  gap: 6px;
+  border-bottom: 0;
+}
+
+:root[data-aspecto="consola"] .tabs {
+  gap: 0;
+}
+
+:root[data-aspecto="consola"] .tabs .tab .tab-icon {
+  display: none;
+}
+
+:root[data-aspecto="consola"] .tabs .tab {
+  padding: 2px 10px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--as-gris);
+  border-radius: var(--r-icono, 0px); /* como en Terminal: la esquina es del mod */
+}
+
+:root[data-aspecto="consola"] .tabs .tab:hover {
+  color: var(--text);
+}
+
+/* La activa, llena del acento: la ventana de ahora. */
+:root[data-aspecto="consola"] .tabs .tab[data-active="true"],
+:root[data-aspecto="consola"] .topbar .tabs .tab[data-active="true"]:not(:disabled):is(:hover, :active) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+}
+
+:root[data-aspecto="consola"] .tabs .tab[data-active="true"] :is(.tab-count, .tab-beta) {
+  color: var(--on-accent);
+}
+
+:root[data-aspecto="consola"] .tabs .tab[data-active="true"]::after {
+  display: none;
+}
+
+/* Los proyectos: una lista lisa. */
+:root[data-aspecto="consola"] .sidebar {
+  padding: 8px 6px 6px;
+  gap: 6px;
+  background: var(--as-fondo);
+  border-right: 1px solid var(--as-raya);
+}
+
+:root[data-aspecto="consola"] .finder {
+  min-height: 30px;
+  border-radius: 0;
+}
+
+:root[data-aspecto="consola"] :is(.project, .project[data-open="true"]) {
+  background: none;
+  border-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+:root[data-aspecto="consola"] .project:hover {
+  background: var(--as-hover);
+  border-color: transparent;
+}
+
+:root[data-aspecto="consola"] .project-name {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+/* Las terminales: un píxel de pared entre una y otra, comido por dentro con un
+   borde transparente para que la rejilla no se mueva. */
+:root[data-aspecto="consola"] .grid > .pane {
+  border: 1px solid transparent;
+  border-top-width: 0;
+  border-left-width: 0;
+  background: var(--as-fondo) padding-box;
+  background-clip: padding-box;
+}
+
+/* La cabecera baja al pie y se vuelve barra de estado. Solo en el mosaico: en
+   el lienzo, la cabecera es el asa con la que se mueve la terminal. */
+:root[data-aspecto="consola"] .grid > .pane > .pane-head {
+  order: 2;
+}
+
+:root[data-aspecto="consola"] .grid > .pane > .pane-term {
+  order: 1;
+}
+
+:root[data-aspecto="consola"] .grid > .pane > .pane-head {
+  height: 26px;
+  min-height: 0;
+  padding: 0 4px 0 8px;
+  gap: 8px;
+  border: 0;
+  border-radius: 0;
+}
+
+:root[data-aspecto="consola"] .pane-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+:root[data-aspecto="consola"] .pane-proj {
+  font-weight: 500;
+}
+
+:root[data-aspecto="consola"] .pane-brain {
+  color: var(--as-gris);
+}
+
+:root[data-aspecto="consola"] .grid > .pane .ph-acts {
+  border-left: 0;
+  padding-left: 0;
+  gap: 0;
+}
+
+:root[data-aspecto="consola"] .grid > .pane :is(.pane-btn, .pane-close) {
+  min-height: 22px;
+}
+
+/* La del foco, con la barra un punto más clara y toda su letra en la del tema.
+   Ni el acento ni el «terminó» la llenan: el color de los estados es del aro
+   (`05-cabina.css`), igual en los cuatro estilos. */
+:root[data-aspecto="consola"] .grid > .pane[data-focused="true"] > .pane-head {
+  background: color-mix(in srgb, var(--text) 16%, var(--as-fondo));
+}
+
+:root[data-aspecto="consola"] .grid > .pane[data-focused="true"] > .pane-head :is(.pane-name, .pane-proj, .pane-brain, .pane-kind, .pane-btn, .pane-close, .pane-de, .pane-team) {
+  color: var(--text);
+}
+
+:root[data-aspecto="consola"] :is(.lateral, .franja) {
+  background: var(--as-fondo);
+  border-left: 1px solid var(--as-raya);
+}
+
+/* ── 4. Liso ─────────────────────────────────────────────────────────────────
+   Como un editor de código: las piezas de siempre (la cabecera con sus botones,
+   la pestaña llena, las tarjetas de proyecto), pero lisas, sin foto ni
+   cristal, en el color de tu tema un punto más claro, y con las terminales
+   pegadas y separadas por un píxel de pared en vez de flotar con hueco. */
+:root[data-aspecto="liso"] {
+  --as-fondo: color-mix(in srgb, var(--panel-solid) 90%, var(--text));
+  --as-pared: color-mix(in srgb, var(--panel-solid) 87%, var(--text));
+  /* La terminal, como el editor de un IDE: con un tema conocido, su fondo de
+     verdad dentro del marco gris; con uno de la casa, el mismo gris. */
+  --as-term: var(--tema-term, var(--as-fondo));
+  --as-cabeza: color-mix(in srgb, var(--panel-solid) 84.5%, var(--text));
+  --as-raya: color-mix(in srgb, var(--panel-solid) 80%, var(--text));
+  --as-raya-2: color-mix(in srgb, var(--panel-solid) 73%, var(--text));
+  --as-hover: color-mix(in srgb, var(--panel-solid) 82.5%, var(--text));
+  --panel: var(--as-pared);
+  --panel-head: var(--as-cabeza);
+  --pane-bg: var(--as-fondo);
+  --topbar: var(--as-pared);
+  --popover: color-mix(in srgb, var(--panel-solid) 86%, var(--text));
+  --bg: var(--as-pared);
+  --page-tint: var(--as-pared);
+  --border: var(--as-raya);
+  --border-strong: var(--as-raya-2);
+  --line: var(--as-raya);
+  --c3-negro: var(--as-pared);
+  --c3-capa: var(--as-fondo);
+  --c3-capa-2: var(--as-hover);
+  --c3-capa-3: var(--as-hover);
+  --c3-raya: var(--as-raya);
+  --c3-raya-2: var(--as-raya-2);
+  /* Los rótulos van sobre la pared y la cabecera, más hondas que el fondo del
+     tema: el gris de la receta (al 74 %, sobre el fondo) se quedaba en 4,1:1 en
+     One Dark. Aquí se mezcla sobre la pared, y con diez puntos más de letra. */
+  --as-gris: color-mix(in srgb, var(--text) min(100%, calc(var(--letra-gris, 74%) + 10%)), var(--as-pared));
+  --muted: var(--as-gris);
+  --c3-gris: var(--as-gris);
+}
+
+/* La marca «beta» va en `--ask` (`02-armazon.css`), y sobre la barra de Consola
+   y la pared de Liso, más hondas que el fondo, el de Latte y el de Solarizado
+   claro bajaban a 3,7:1: con algo menos de la mitad de letra pasan de 4,5. */
+:root:is([data-aspecto="consola"], [data-aspecto="liso"]) .tabs .tab:not([data-active="true"]) .tab-beta {
+  color: color-mix(in srgb, var(--ask) 55%, var(--text));
+}
+
+:root[data-aspecto="liso"] .topbar {
+  border-bottom: 1px solid var(--as-raya);
+}
+
+:root[data-aspecto="liso"] .sidebar {
+  border-right: 1px solid var(--as-raya);
+}
+
+:root[data-aspecto="liso"] .grid > .pane {
+  border: 1px solid transparent;
+  border-top-width: 0;
+  border-left-width: 0;
+  background: var(--as-fondo) padding-box;
+  background-clip: padding-box;
+}
+
+/* El aro del foco y de los tres estados es el de todos los estilos
+   (`.pane-aro`, `05-cabina.css`), una capa encima de la terminal: aquí, que la
+   terminal es opaca, una sombra hacia dentro quedaba tapada entera, y un
+   `outline`, por los lados, que xterm va en su propia capa. */
+:root[data-aspecto="liso"] .grid > .pane > .pane-head {
+  border-radius: 0;
+  border-bottom: 1px solid var(--as-raya);
+}
+
+:root[data-aspecto="liso"] .grid > .pane[data-focused="true"] > .pane-head {
+  background: color-mix(in srgb, var(--text) 8%, var(--as-cabeza));
+}
+
+:root[data-aspecto="liso"] :is(.lateral, .franja) {
+  background: var(--as-pared);
+}

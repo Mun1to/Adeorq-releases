@@ -22,9 +22,24 @@ Gratis · código abierto · sin cuenta · sin API keys · se actualiza sola · 
 
 </div>
 
-<p align="center"><img src="web/assets/screens/es/cockpit.png" alt="La Cabina con cuatro agentes a la vez, cada uno en su proyecto: una sesión de Claude Code que ya terminó, Codex trabajando, otra de Claude Code pidiendo permiso con los botones de respuesta encima de su terminal, y otra más a mitad de un cambio"></p>
+<p align="center"><img src="web/assets/screens/es/style-terminal.png" alt="La Cabina en el estilo Terminal, un fondo negro liso con las terminales pegadas: cuatro agentes a la vez, cada uno en su proyecto, una sesión de Claude Code que ya terminó, Codex trabajando, otra de Claude Code pidiendo permiso con los botones de respuesta encima de su terminal, y otra más a mitad de un cambio"></p>
 
-<p align="center">Cuatro agentes, cuatro proyectos. Uno ha terminado, dos trabajan y otro pide permiso, con la respuesta a un clic.</p>
+<p align="center">Cuatro agentes, cuatro proyectos. Uno ha terminado, dos trabajan y otro pide permiso, con la respuesta a un clic. Aquí en el estilo Terminal: <a href="#a-tu-estilo">hay cuatro</a>.</p>
+
+## A tu estilo
+
+Cuatro estilos en **Ajustes › Aspecto › Estilo**, cada uno con cualquiera de los **33 temas** (Drácula, Catppuccin, Tokyo Night, Nord, Gruvbox, One Dark, GitHub claro y más; los conocidos y los claros traen los colores de su terminal), y **tus mods** encima, guardados en tu carpeta de mods para que una actualización no se los lleve. El tema cambia el color; el estilo, la forma.
+
+<table>
+<tr>
+<td width="50%" valign="top"><img src="web/assets/screens/es/style-terminal.png" alt="El estilo Terminal"><br><b>Terminal.</b> Un solo fondo liso de lado a lado, las terminales pegadas con una raya fina y sus botones al pasar el ratón.</td>
+<td width="50%" valign="top"><img src="web/assets/screens/es/style-console.png" alt="El estilo Consola"><br><b>Consola.</b> Toda la app en la letra de la terminal, y la cabecera de cada terminal como barra de estado al pie, un punto más clara en la que escribes.</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="web/assets/screens/es/style-flat.png" alt="El estilo Liso"><br><b>Liso.</b> Las piezas de siempre sin la foto ni el cristal, en el color de tu tema, y las terminales pegadas.</td>
+<td width="50%" valign="top"><img src="web/assets/screens/es/style-glass.png" alt="El estilo Cristal, el de fábrica"><br><b>Cristal</b>, el de fábrica. Tu foto detrás y cada terminal en su caja de cristal.</td>
+</tr>
+</table>
 
 ## Cómo funciona
 

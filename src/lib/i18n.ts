@@ -39,11 +39,16 @@ export const THEMES = [
   { id: "ocaso", es: "Ocaso", en: "Sunset", familia: "casa" },
   { id: "ambar", es: "Ámbar", en: "Amber", familia: "casa" },
   { id: "arena", es: "Arena", en: "Sand", familia: "casa" },
-  // Prestados, con su nombre de siempre.
+  // Prestados, con su nombre de siempre y su paleta entera, terminal incluida
+  // (2026-11-21). Primero los que más se ven en las terminales de hoy.
   { id: "onedark", es: "One Dark", en: "One Dark", familia: "prestado" },
   { id: "catppuccin", es: "Catppuccin Mocha", en: "Catppuccin Mocha", familia: "prestado" },
   { id: "dracula", es: "Drácula", en: "Dracula", familia: "prestado" },
+  { id: "tokyo", es: "Tokyo Night", en: "Tokyo Night", familia: "prestado" },
+  { id: "nord", es: "Nord", en: "Nord", familia: "prestado" },
+  { id: "gruvbox", es: "Gruvbox", en: "Gruvbox", familia: "prestado" },
   { id: "rose", es: "Rosé Pine", en: "Rosé Pine", familia: "prestado" },
+  { id: "kanagawa", es: "Kanagawa", en: "Kanagawa", familia: "prestado" },
   { id: "everforest", es: "Everforest", en: "Everforest", familia: "prestado" },
   { id: "monokai", es: "Monokai", en: "Monokai", familia: "prestado" },
   { id: "solarized", es: "Solarizado", en: "Solarized Dark", familia: "prestado" },
@@ -54,9 +59,13 @@ export const THEMES = [
   // Apagados del todo.
   { id: "negro", es: "Negro absoluto", en: "Pure black", familia: "apagon" },
   { id: "tinta", es: "Tinta", en: "Ink", familia: "apagon" },
-  // De fondo claro.
+  // De fondo claro, con la forma de los oscuros desde el 2026-11-21: los dos de
+  // la casa y tres conocidos, con su paleta y su terminal claras.
   { id: "claro", es: "Claro", en: "Light", familia: "claro" },
   { id: "papel", es: "Papel", en: "Paper", familia: "claro" },
+  { id: "github-claro", es: "GitHub claro", en: "GitHub Light", familia: "claro" },
+  { id: "solarized-claro", es: "Solarizado claro", en: "Solarized Light", familia: "claro" },
+  { id: "latte", es: "Catppuccin Latte", en: "Catppuccin Latte", familia: "claro" },
 ] as const;
 
 export type ThemeId = (typeof THEMES)[number]["id"];
@@ -68,15 +77,15 @@ export type ThemeId = (typeof THEMES)[number]["id"];
  * oscuros tenían otro de fondo casi igual, y siete eran casi el mismo tema que
  * uno que se queda. Munir eligió quitarlos. Quien tenga uno guardado pasa a su
  * gemelo, que es el que se le parecía, y no al de fábrica: lo eligió él.
+ *
+ * Nord, Tokyo Night, Kanagawa y Gruvbox volvieron el 2026-11-21 con su paleta
+ * oficial entera (`01-base.css`, «los conocidos»): eran gemelos porque de ellos
+ * solo había un fondo y un acento. Quien pasó a su gemelo se queda en él.
  */
 export const TEMAS_QUITADOS: Readonly<Record<string, ThemeId>> = {
   verde: "esmeralda",
   volcano: "carmin",
   neon: "carmin",
-  nord: "oceano",
-  tokyo: "azul",
-  kanagawa: "onedark",
-  gruvbox: "arena",
 };
 
 /** Las familias en su orden, con el nombre que se lee encima de cada grupo. */
@@ -746,8 +755,25 @@ const EN: Record<string, string> = {
   Español: "Spanish",
   Inglés: "English",
   Tema: "Theme",
-  "El color de la casa. El cristal y el desenfoque se mantienen.":
-    "The house colour. Glass and blur stay put.",
+  "El color de la casa, en el estilo que tengas puesto.":
+    "The house colour, in whichever style you have on.",
+  Estilo: "Style",
+  "La forma de toda la app. El color sigue siendo el del tema que elijas debajo, en cualquiera de los cuatro.":
+    "The shape of the whole app. The colour is still the one from the theme you pick below, in any of the four.",
+  Cristal: "Glass",
+  "El de fábrica: tu foto detrás y cada terminal en su caja de cristal.":
+    "The default: your photo behind and each terminal in its own glass box.",
+  "Como una terminal de las de siempre: un solo fondo liso de lado a lado, las terminales pegadas con una raya fina y sus botones al pasar el ratón.":
+    "Like a classic terminal: one flat background from edge to edge, terminals side by side with a thin line between them, and their buttons on hover.",
+  Consola: "Console",
+  "Como un multiplexor de terminales: toda la app en la letra de la terminal, y lo que dice quién es cada una baja a una barra al pie, la del foco en tu color.":
+    "Like a terminal multiplexer: the whole app in the terminal's font, and what says which one is which drops to a bar at the bottom, the focused one in your colour.",
+  Liso: "Flat",
+  "Como un editor de código: las piezas de siempre sin foto ni cristal, en el color de tu tema, y las terminales pegadas.":
+    "Like a code editor: the usual pieces with no photo or glass, in your theme's colour, and the terminals side by side.",
+  "Con el estilo {e} la foto no se ve: ese estilo es liso a propósito. Se ve con Cristal.":
+    "With the {e} style the photo is not shown: that style is flat on purpose. It shows with Glass.",
+  "Volver a Cristal": "Back to Glass",
   Terminales: "Terminals",
   "Tamaño de la letra": "Font size",
   "Cuántas sesiones abre de golpe un proyecto":
@@ -827,8 +853,9 @@ const EN: Record<string, string> = {
   "Apagón": "Blackout",
   "Negro sólido detrás de las terminales, aunque tengas fondo puesto. Para cuando lo que hay debajo estorba a lo que estás leyendo. No toca el resto de la app: para eso está el tema «Negro absoluto».":
     "Solid black behind the terminals, even with a backdrop set. For when what is underneath gets in the way of what you are reading. It leaves the rest of the app alone: that is what the \"Pure black\" theme is for.",
-  "Los dieciséis colores con los que los programas pintan dentro de la terminal, aparte del tema de la casa: el tema es el mueble y esto es la letra que lees ocho horas. El fondo no lo toca, para que las terminales sigan siendo cristal sobre tu fondo.":
-    "The sixteen colours programs paint with inside the terminal, kept apart from the app's theme: the theme is the furniture, this is the type you read for eight hours. It leaves the background alone, so terminals stay glass over your own backdrop.",
+  "Los dieciséis colores con los que los programas pintan dentro de la terminal. De fábrica van a juego con el tema, como en tu terminal de siempre; si quieres otros, elígelos aquí.":
+    "The sixteen colours programs paint with inside the terminal. By default they match the theme, as in the terminal you already use; if you want others, pick them here.",
+  "A juego con el tema": "Matches the theme",
   // La Memoria: el segundo cerebro.
   "Tu memoria": "Your memory",
   "Buscar en tus notas": "Search your notes",
@@ -1055,6 +1082,7 @@ const EN: Record<string, string> = {
   "Preguntar si abro la web cuando una terminal levanta un servidor":
     "Ask to open the web view when a terminal starts a server",
   "¿Abro {u} en la web?": "Open {u} in the web view?",
+  "Que el borde rojo y el amarillo parpadeen": "Make the red and yellow borders blink",
   "Saltar a la sesión que termina, a pantalla completa":
     "Jump to the session that finishes, full screen",
 

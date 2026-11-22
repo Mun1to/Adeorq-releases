@@ -71,10 +71,18 @@ ok("quien eligió otro tema se queda con el suyo", t === "dracula" && almacen.ge
 almacen.set(THEME_KEY, "un-tema-que-ya-no-existe");
 ok("un tema que ya no existe arranca en el de fábrica", temaInicial() === "contraste");
 
-// 5. Los siete que salieron el 2026-11-17 por parecerse a otro: quien tenía uno
-//    puesto pasa a su gemelo, no al de fábrica.
+// 5. Los que salieron el 2026-11-17 por parecerse a otro: quien tenía uno
+//    puesto pasa a su gemelo, no al de fábrica. Eran siete; Nord, Tokyo Night,
+//    Kanagawa y Gruvbox volvieron el 2026-11-21 con su paleta entera.
 const enLista = new Set<string>(THEMES.map((x) => x.id));
-ok("salieron siete", Object.keys(TEMAS_QUITADOS).length === 7, Object.keys(TEMAS_QUITADOS));
+ok("quedan fuera tres", Object.keys(TEMAS_QUITADOS).length === 3, Object.keys(TEMAS_QUITADOS));
+for (const vuelto of ["nord", "tokyo", "kanagawa", "gruvbox"]) {
+  almacen.clear();
+  almacen.set("adeorq-tema-contraste", "1");
+  almacen.set(THEME_KEY, vuelto);
+  t = temaInicial();
+  ok(`quien tiene «${vuelto}» guardado se queda en él`, t === vuelto && enLista.has(vuelto), t);
+}
 for (const [viejo, gemelo] of Object.entries(TEMAS_QUITADOS)) {
   almacen.clear();
   almacen.set("adeorq-tema-contraste", "1");
@@ -87,15 +95,15 @@ for (const [viejo, gemelo] of Object.entries(TEMAS_QUITADOS)) {
   );
 }
 almacen.clear();
-almacen.set(THEME_KEY, "tokyo"); // de antes de Contraste: aún no ha pasado por aquello
+almacen.set(THEME_KEY, "neon"); // de antes de Contraste: aún no ha pasado por aquello
 t = temaInicial();
-ok("quien eligió Tokyo Night pasa a Azul noche, no a Contraste", t === "azul" && almacen.get(THEME_KEY) === "azul", t);
-ok("y en el arranque siguiente sigue en Azul noche", temaInicial() === "azul");
+ok("quien eligió Neón pasa a Carmín, no a Contraste", t === "carmin" && almacen.get(THEME_KEY) === "carmin", t);
+ok("y en el arranque siguiente sigue en Carmín", temaInicial() === "carmin");
 almacen.clear();
 almacen.set(THEME_KEY, "papel");
-almacen.set("adeorq-tema-sistema", JSON.stringify({ activo: true, oscuro: "nord", claro: "papel" }));
+almacen.set("adeorq-tema-sistema", JSON.stringify({ activo: true, oscuro: "volcano", claro: "papel" }));
 c = leerTemaSistema();
-ok("el tema del oscuro de Windows también pasa a su gemelo", c.oscuro === "oceano" && c.activo === true, c);
+ok("el tema del oscuro de Windows también pasa a su gemelo", c.oscuro === "carmin" && c.activo === true, c);
 
 console.log(fallos ? `\n${fallos} FALLAN` : "\nTodo bien.");
 if (fallos) process.exit(1);

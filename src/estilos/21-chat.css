@@ -334,15 +334,9 @@
   background: color-mix(in srgb, var(--page-tint) 100%, black 34%);
   backdrop-filter: blur(18px) saturate(1.1);
 }
-/* El negro que se mezcla aquí, en `.chat-lista` y en `.chat-caja` hunde el
-   cristal en los temas oscuros; en los claros lo dejaba gris barro. Ahí el
-   cristal se queda con su tinte y la caja con el fondo de un panel. */
-:root:is([data-theme="claro"], [data-theme="papel"]) :is(.chat-hilo, .chat-lista) {
-  background: var(--page-tint);
-}
-:root:is([data-theme="claro"], [data-theme="papel"]) .chat-caja {
-  background: var(--pane-bg);
-}
+/* El negro que se mezcla aquí, en `.chat-lista` y en `.chat-caja`, lo tapa la
+   forma de Contraste (`41-contraste.css`) en todos los temas, también en los
+   claros, donde lo dejaba gris barro. */
 
 .chat-cabecera {
   display: flex;

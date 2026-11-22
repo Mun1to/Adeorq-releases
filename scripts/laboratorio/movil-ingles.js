@@ -31,6 +31,8 @@ async (page) => {
         ".burbuja", ".pantalla", ".ahora-que", ".ahora-det", ".opciones-menu span:not(.num)", ".tarjeta-cab > b", ".quien > b",
         ".para", ".fila > b", ".fila-t > b", "legend", ".opcion .txt > b", ".opcion .txt > small",
         ".dec-cab > p:not(.dec-vig):not(.dec-hecha)", ".pregunta-d > p", ".dec-fila > span", ".dec-dicho", "#titulo > .tit", ".dec-mio p:not(:first-child)", ".pasos li:not(.antes)", ".pasos summary span", ".herramientas", ".adjunto .que",
+        // Ajustes > Idioma: «Español» se llama así también con la página en inglés.
+        '[data-ajuste="idioma"][data-valor="es"]',
       ].join(",");
       // Dentro de una burbuja, pero de la página.
       const UI_EN_DATOS = ".chip-img, .acciones button";

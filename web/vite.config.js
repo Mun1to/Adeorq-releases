@@ -254,10 +254,6 @@ function bakeReleaseData() {
         }
       }
       if (log?.count) out = out.replace(/(<b data-log-cuenta>)[^<]*(<\/b>)/, `$1${log.count}$2`)
-      // The figure under the hero buttons that the build knows: how many clients
-      // the logo strip shows (scripts/extraer-clientes.mjs writes that strip from
-      // the app's catalogue); it is filled in further down. The installed size
-      // next to it is measured by hand and written in index.html.
       // One bar per day of the last 90, lit on the days a release shipped. The
       // same count as `tira` in portada/datos.js, which redraws it in the browser.
       if (log?.entries?.length) {
@@ -271,15 +267,17 @@ function bakeReleaseData() {
         out = out.replace(/(<div class="tira__dias"[^>]*data-tira-dias>)\s*(<\/div>)/, `$1${bars.map((b) => (b ? '<i data-si></i>' : '<i></i>')).join('')}$2`)
         out = out.replace(/(<span data-tira-cuenta>)[^<]*(<\/span>)/, `$1${bars.filter(Boolean).length}$2`)
       }
-      if (out.includes('data-cifra-clientes')) {
+      // The hero names three clients and says how many more, in words, counted
+      // from the logo strip (scripts/extraer-clientes.mjs writes that strip from
+      // the app's catalogue). Typed by hand it would drift the next time the
+      // catalogue changes. Until 2026-11-21 a big figure under the buttons
+      // (`data-cifra-clientes`) said the total too, and this hung from it.
+      if (out.includes('data-cifra-otros')) {
         const strip = out.match(/<ul class="cinta__grupo">([\s\S]*?)<\/ul>/)
         const clients = strip ? (strip[1].match(/class="cli"/g) || []).length : 0
-        // Stop rather than ship the figures typed by hand: the strip changed shape,
+        // Stop rather than ship the figure typed by hand: the strip changed shape,
         // like poner-metadatos.mjs and the social card stop under five.
         if (clients < 5) throw new Error(`the logo strip of ${ctx.filename} gives ${clients} clients: the pattern no longer matches`)
-        out = out.replace(/(<b data-cifra-clientes>)[^<]*(<\/b>)/, `$1${clients}$2`)
-        // The hero names three of them and says how many more, in words. Typed by
-        // hand it would drift from the figure above the next time the catalogue changes.
         out = out.replace(/(<span data-cifra-otros>)[^<]*(<\/span>)/, `$1${inWords(clients - 3, lang)}$2`)
       }
       if (log?.entries?.length) {

@@ -126,10 +126,11 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   writeFileSync(resolve(WEB, 'en', 'index.html'), html, 'utf8')
   // Lo que quede con tilde o eñe fuera de scripts y estilos es español sin
   // traducir. Menos lo que va marcado como español a propósito (el enlace
-  // «Español» de la barra, con su `lang="es"`).
+  // «Español» de la barra, con su `lang="es"`, que lleva dentro el nombre y el
+  // código en dos <span>).
   const visible = html
     .replace(/<(script|style)[\s\S]*?<\/\1>/g, '')
-    .replace(/<a\b[^>]*\slang="es"[^>]*>[^<]*<\/a>/g, '')
+    .replace(/<a\b[^>]*\slang="es"[^>]*>[\s\S]*?<\/a>/g, '')
     .replace(/<[^>]+>/g, ' ')
   const restos = visible.split('\n').map((l) => l.trim()).filter((l) => /[áéíóúñ¿¡]/i.test(l))
   console.log(`en/index.html -> ${html.length} bytes`)

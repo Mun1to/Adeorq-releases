@@ -844,12 +844,17 @@
      en la tarjeta gráfica. Un margen en % es del ANCHO del contenedor, también
      el de arriba, que es justo la mitad del cuadrado. */
   margin: -75% 0 0 -75%;
+  /* En el azul de «trabajando» de las terminales (2026-11-21), y a pasos como
+     su tramo: 80 por vuelta son 25 cambios por segundo, dados a la vez que los
+     de las terminales (`lib/relojDeAnimaciones.ts`). Por fotograma, este hilo
+     solo ya obligaba a recomponer la ventana a 144 o 240 por segundo, y los
+     pasos de las terminales no habrían ahorrado nada. */
   background: conic-gradient(
     transparent 0 66%,
-    color-mix(in srgb, var(--accent) 85%, transparent) 78%,
+    color-mix(in srgb, var(--estado-trabaja) 85%, transparent) 78%,
     transparent 90%
   );
-  animation: hilo-vuelta 3.2s linear infinite;
+  animation: hilo-vuelta 3.2s steps(80) infinite;
 }
 
 @keyframes hilo-vuelta {
@@ -870,7 +875,7 @@
    (`23-encuadre-arrastre-repaso.css`), pero el hilo lo llevaba la fila misma,
    no algo de dentro, y en la copia seguía girando: así sigue. */
 .fantasma > .hilo::before {
-  animation: hilo-vuelta 3.2s linear infinite !important;
+  animation: hilo-vuelta 3.2s steps(80) infinite !important;
 }
 
 /* Con el ratón encima, o con otra sesión encima para soltarla, la fila cambia
@@ -898,7 +903,7 @@
    se queda el borde azul fijo, que sigue diciendo lo mismo sin moverse. */
 @media (prefers-reduced-motion: reduce) {
   .session-row[data-trabajando] {
-    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+    border-color: color-mix(in srgb, var(--estado-trabaja) 45%, transparent);
     background: var(--panel-solid);
   }
 
@@ -912,45 +917,44 @@
   border-color: color-mix(in srgb, var(--border) 90%, transparent);
 }
 
-/* ── El marco verde del proyecto: alguien está trabajando en él ahora ──
-   El primo quieto del hilo azul de las sesiones. Munir lo eligió el 2026-10-15
-   de cinco variantes («la 45 y la 48»): el marco entero en verde con un brillo
-   suave, y solo mientras un agente ESCRIBE en ese proyecto (`trabajando` en
-   `Sidebar.tsx`: viva y a medias). Sustituye al puntito verde del logo.
-   Quieto a propósito: el que se mueve es el de la sesión, y así se sabe de un
-   vistazo que el proyecto es el que la contiene. Va antes que las rayas del
-   arrastre (`04-sesiones.css`), que pisan esta sombra mientras arrastras. */
+/* ── El marco del proyecto: alguien está trabajando en él ahora ──
+   El primo quieto del hilo de las sesiones. Munir lo eligió el 2026-10-15 de
+   cinco variantes («la 45 y la 48»): el marco entero, y solo mientras un
+   agente ESCRIBE en ese proyecto (`trabajando` en `Sidebar.tsx`: viva y a
+   medias). Sustituye al puntito verde del logo. Desde el 2026-11-21 va en el
+   azul de «trabajando» de las terminales y sin su brillo, que alrededor solo
+   van tres colores. Quieto a propósito: el que se mueve es el de la sesión, y
+   así se sabe de un vistazo que el proyecto es el que la contiene. Va antes que
+   las rayas del arrastre (`04-sesiones.css`), que pisan esta sombra mientras
+   arrastras. */
 .project[data-trabajando] {
-  border-color: color-mix(in srgb, var(--ok) 75%, transparent);
-  box-shadow:
-    0 0 10px color-mix(in srgb, var(--ok) 22%, transparent),
-    inset 0 0 8px color-mix(in srgb, var(--ok) 8%, transparent);
+  border-color: color-mix(in srgb, var(--estado-trabaja) 55%, transparent);
 }
 
-/* Waiting for Munir: amber when Claude offers, red when it asks outright. */
+/* Waiting for Munir: the yellow of «terminó» when Claude offers, the red of
+   «te necesita» when it asks outright, the same two of the terminals' ring
+   (2026-11-21). */
 /* Waiting rows are tinted, not painted: a left-hand hairline carries the
    status so nine of them in a column still read as a list. */
 .session-row[data-wait="offer"] {
-  background: color-mix(in srgb, var(--ask) 11%, transparent);
-  border-color: color-mix(in srgb, var(--ask) 26%, transparent);
-  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--ask) 65%, transparent);
+  background: color-mix(in srgb, var(--estado-termino) 10%, transparent);
+  border-color: color-mix(in srgb, var(--estado-termino) 28%, transparent);
+  box-shadow: inset 2px 0 0 var(--estado-termino);
 }
 
 .session-row[data-wait="ask"] {
-  background: color-mix(in srgb, var(--wait) 12%, transparent);
-  border-color: color-mix(in srgb, var(--wait) 30%, transparent);
-  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--wait) 70%, transparent);
+  background: color-mix(in srgb, var(--estado-necesita) 12%, transparent);
+  border-color: color-mix(in srgb, var(--estado-necesita) 34%, transparent);
+  box-shadow: inset 2px 0 0 var(--estado-necesita);
 }
 
 /* The colour IS the message: keep the title's full width. */
 .session-row[data-wait="offer"] .dot {
-  background: var(--ask);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--ask) 70%, transparent);
+  background: var(--estado-termino);
 }
 
 .session-row[data-wait="ask"] .dot {
-  background: var(--wait);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--wait) 70%, transparent);
+  background: var(--estado-necesita);
 }
 
 .dot {
@@ -966,7 +970,7 @@
 }
 
 .dot-ask {
-  background: var(--ask);
+  background: var(--estado-termino);
 }
 
 .dot-half {
@@ -985,6 +989,6 @@
 }
 
 .dot-ask[data-visto="true"] {
-  --dot-c: var(--ask);
+  --dot-c: var(--estado-termino);
 }
 

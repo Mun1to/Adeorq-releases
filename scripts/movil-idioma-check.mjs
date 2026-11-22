@@ -56,6 +56,8 @@ export const SOLO_EN_EL_PC = {
 export const EN_DURO_A_PROPOSITO = [
   // Reconoce el bloque de compactación de un /fin, que viene así de la skill.
   "COMPACTACI[ÓO]N",
+  // Ajustes > Idioma: cada idioma se llama en el suyo, se vea la página en el que se vea.
+  '["es", "Español"]',
 ];
 
 const ESPANOL = /[áéíóúüñ¿¡«»]/i;

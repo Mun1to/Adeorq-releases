@@ -667,7 +667,9 @@
   filter: brightness(0.96);
 }
 
-/* TUI dialog translator: the CLI asks in cryptic text, Adeorq answers with buttons */
+/* TUI dialog translator: the CLI asks in cryptic text, Adeorq answers with buttons.
+   La tarjeta va en el rojo de «te necesita», el mismo del aro de la terminal
+   (2026-11-21); los botones se quedan en el color de la casa. */
 .pane-ask {
   display: flex;
   align-items: center;
@@ -676,10 +678,10 @@
   padding: 8px 12px;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--accent) 26%, var(--popover)),
-    color-mix(in srgb, var(--accent) 15%, var(--popover))
+    color-mix(in srgb, var(--estado-necesita) 18%, var(--popover)),
+    color-mix(in srgb, var(--estado-necesita) 9%, var(--popover))
   );
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--estado-necesita) 55%, transparent);
   font-size: 13px;
 }
 
@@ -821,8 +823,9 @@
    todo del panel, con el resto de avisos, porque es donde se mira. */
 .pane-ctx-warn {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px 10px;
   padding: 8px 12px;
   background: linear-gradient(
     180deg,
@@ -835,8 +838,33 @@
   line-height: 1.45;
 }
 
-.pane-ctx-warn span:first-child {
-  flex: 1;
+/* La frase pide al menos 260 px: en una terminal estrecha, con los botones
+   al lado, se quedaba en una columna de nueve renglones de dos palabras
+   (Munir, 2026-11-21, con captura de «469k tokens and already compacted 30
+   times…»). Los botones y la × van en una pieza (`.pane-ctx-acts`), así que
+   bajan juntos a su fila o no baja ninguno: sueltos, con un umbral fijo, la ×
+   se quedaba sola debajo en cuanto el botón era largo («Close this one», hasta
+   472 px). Con dos o tres botones, por debajo de 640 px por dentro del aviso
+   la frase va de lado a lado aunque quepan al lado, que en una columna
+   de 270 px se leía mal. */
+.pane-ctx-warn {
+  container-type: inline-size;
+}
+.pane-ctx-warn > span:first-child {
+  flex: 1 1 260px;
+}
+.pane-ctx-acts {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  min-width: 0;
+}
+@container (max-width: 639px) {
+  .pane-ctx-warn:has(.mini ~ .mini) > span:first-child {
+    flex-basis: 100%;
+  }
 }
 
 /* El botón de compactar con traspaso, a la derecha del aviso, en su color. */
@@ -885,7 +913,7 @@
 .panel-hero h1,
 .panel-hero p,
 .cmd-hint {
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 1px 4px color-mix(in srgb, var(--c3-velo) 55%, transparent);
 }
 
 .panel-hero p {
@@ -909,8 +937,8 @@
    que sea. Solo con foto puesta: sin ella no hace falta y sería suciedad. */
 :root:has(.fondo) .panel-hero h1 {
   text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.55),
-    0 2px 14px rgba(0, 0, 0, 0.4);
+    0 1px 2px color-mix(in srgb, var(--c3-velo) 55%, transparent),
+    0 2px 14px color-mix(in srgb, var(--c3-velo) 40%, transparent);
 }
 :root:has(.fondo) .panel-hero p {
   /* Sube de `--muted` a `--text` con opacidad: mantiene la jerarquía (sigue
@@ -918,8 +946,8 @@
      pared blanca no existe. */
   color: color-mix(in srgb, var(--text) 82%, transparent);
   text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.6),
-    0 1px 10px rgba(0, 0, 0, 0.45);
+    0 1px 2px color-mix(in srgb, var(--c3-velo) 60%, transparent),
+    0 1px 10px color-mix(in srgb, var(--c3-velo) 45%, transparent);
 }
 /* Y lo mismo para TODO texto que vuele sobre el fondo sin panel debajo.
    La regla es esa y no una lista de clases: dentro de una tarjeta el cristal ya
@@ -934,8 +962,8 @@
 :root:has(.fondo) .card-hint:not(.panel-card *) {
   color: color-mix(in srgb, var(--text) 80%, transparent);
   text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.65),
-    0 1px 10px rgba(0, 0, 0, 0.5);
+    0 1px 2px color-mix(in srgb, var(--c3-velo) 65%, transparent),
+    0 1px 10px color-mix(in srgb, var(--c3-velo) 50%, transparent);
 }
 /* Los títulos, con su color y algo más de peso: la sombra los salva de la foto,
    pero un título en gris apagado sigue pareciendo texto secundario. */
@@ -952,8 +980,8 @@
    la seleccionada: ya no lleva píldora de color detrás que la sostenga. */
 :root:has(.fondo) .set-tab {
   text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.55),
-    0 1px 10px rgba(0, 0, 0, 0.4);
+    0 1px 2px color-mix(in srgb, var(--c3-velo) 55%, transparent),
+    0 1px 10px color-mix(in srgb, var(--c3-velo) 40%, transparent);
 }
 
 :root:has(.fondo) .set-tab:not([data-on]) {

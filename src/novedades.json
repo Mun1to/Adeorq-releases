@@ -1,4 +1,45 @@
 {
+  "0.9.265": [
+    {
+      "vista": "ajustes",
+      "ajustes": "aspecto",
+      "bloque": "Estilo",
+      "es": {
+        "titulo": "Cuatro estilos para la app",
+        "texto": "Además del cristal de siempre, ahora puedes elegir Terminal, Consola o Liso: la misma Adeorq con otra forma, para quien viene de otras terminales. Pruébalos aquí."
+      },
+      "en": {
+        "titulo": "Four styles for the app",
+        "texto": "Besides the usual glass, you can now pick Terminal, Console or Flat: the same Adeorq in another shape, for anyone coming from other terminals. Try them here."
+      }
+    },
+    {
+      "vista": "ajustes",
+      "ajustes": "aspecto",
+      "bloque": "Tema",
+      "es": {
+        "titulo": "Temas con sus colores de verdad",
+        "texto": "Los temas conocidos llevan ya su paleta oficial, también en la terminal, y hay más: Nord, Tokyo Night, Gruvbox, Kanagawa y tres claros nuevos."
+      },
+      "en": {
+        "titulo": "Themes in their real colours",
+        "texto": "The well-known themes now carry their official palette, in the terminal too, and there are more: Nord, Tokyo Night, Gruvbox, Kanagawa and three new light ones."
+      }
+    },
+    {
+      "vista": "ajustes",
+      "ajustes": "terminales",
+      "bloque": "Terminales",
+      "es": {
+        "titulo": "Alrededor de cada terminal, solo tres colores",
+        "texto": "Rojo cuando te necesita, amarillo cuando terminó y azul, con un tramo que da la vuelta, mientras trabaja. Aquí puedes hacer que el rojo y el amarillo parpadeen."
+      },
+      "en": {
+        "titulo": "Only three colours around each terminal",
+        "texto": "Red when it needs you, yellow when it finished and blue, with a segment going round, while it works. Here you can make red and yellow blink."
+      }
+    }
+  ],
   "0.9.264": [
     {
       "vista": "ajustes",

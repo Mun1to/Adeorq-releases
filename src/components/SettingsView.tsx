@@ -20,6 +20,7 @@ import {
   guardarTemaTerm,
   temaTermId,
   TEMAS_TERM,
+  varsDeMiniatura,
 } from "../lib/temasTerm";
 import {
   debeAhorrar,
@@ -28,6 +29,7 @@ import {
   type ModoRend,
 } from "../lib/rendimiento";
 import { guardarForma, prefForma, type FormaPanel } from "../lib/formaPaneles";
+import AjustesEstilo, { NotaFondoEstilo, useAspecto } from "./AjustesEstilo";
 import { ponerSuavizado, suavizado, SUAVIZADOS, type Suavizado } from "../lib/suavizado";
 import {
   A_MANO,
@@ -40,7 +42,7 @@ import type { NotifyMode } from "../lib/notify";
 import { ADEORQ_APP_ID, type DiscordConfig } from "../lib/discord";
 import { autostartGet, autostartSet, guidePath, ollamaModels, terminalesPorActualizar, type Account } from "../lib/pty";
 import { AjusteAlCerrar } from "./AlCerrar";
-import { TarjetaTerm, TemasImportados } from "./TemasDeFuera";
+import { TarjetaDelTema, TarjetaTerm, TemasImportados } from "./TemasDeFuera";
 import { guardarModoAviso, modoAviso, type ModoAviso } from "../lib/router";
 import { guardarModoVigia, modoVigia, type ModoVigia } from "../lib/vigia";
 import { guardarModoCopiloto, modoCopiloto, type ModoCopiloto } from "../lib/copiloto";
@@ -83,6 +85,7 @@ import GuideView from "./GuideView";
 import TerminalesAparte from "./TerminalesAparte";
 import AjusteBuscador from "./AjusteBuscador";
 import AjusteCabeceraTerminal from "./AjusteCabeceraTerminal";
+import AjusteParpadeo from "./AjusteParpadeo";
 import AjusteCompactar from "./AjusteCompactar";
 import { AvisoIcon, CheckIcon, ChevronIcon, CommandIcon, PlusIcon, RobotIcon, SearchIcon, TerminalIcon } from "./Icons";
 import type { Atajos } from "../lib/atajos";
@@ -213,7 +216,7 @@ type SeccionId = (typeof SECCIONES)[number]["id"];
  * dentro, que era la condición.
  */
 const CUANTOS: Record<string, number> = {
-  aspecto: 5,
+  aspecto: 7,
   terminales: 2,
   avisos: 5,
   atajos: 1,
@@ -489,6 +492,7 @@ export default function SettingsView({
   const [avisoVigia, setAvisoVigia] = useState<ModoVigia>(() => modoVigia());
   const [avisoCopi, setAvisoCopi] = useState<ModoCopiloto>(() => modoCopiloto());
   const [forma, setForma] = useState<FormaPanel>(() => prefForma());
+  const [aspecto, elegirAspecto] = useAspecto();
   const [seccion, setSeccion] = useState<SeccionId>(() => {
     const guardada = localStorage.getItem(RECUERDO);
     return SECCIONES.some((s) => s.id === guardada) ? (guardada as SeccionId) : "aspecto";
@@ -812,10 +816,12 @@ export default function SettingsView({
                   </button>
                 </div>
               </section>
+              {/* La forma de toda la app, justo encima de su color. */}
+              <AjustesEstilo aspecto={aspecto} elegir={elegirAspecto} />
               <section className="panel-card">
                 <h2>{t("Tema")}</h2>
                 <p className="card-hint">
-                  {t("El color de la casa. El cristal y el desenfoque se mantienen.")}
+                  {t("El color de la casa, en el estilo que tengas puesto.")}
                 </p>
                 {/* Un punto de color no dice cómo se ve un tema: dice de qué
                     color es. Cada tarjeta pinta una app en pequeño con la
@@ -918,14 +924,16 @@ export default function SettingsView({
                       onClick={() => onTheme(th.id)}
                     >
                       {/* La miniatura: la app en pequeño con la paleta de ese tema.
-                          Aquí van la barra, la terminal y sus tres líneas; las
-                          pestañas, las filas y la caja de escribir las dibuja
-                          la hoja (`19-temas.css`). */}
-                      <span className="tema-prev" data-tema-prev={th.id} aria-hidden="true">
+                          Aquí van la barra, la terminal y sus líneas, dos de
+                          ellas con los colores de SU terminal; las pestañas, las
+                          filas y la caja de escribir las dibuja la hoja
+                          (`19-temas.css`). */}
+                      <span className="tema-prev" data-tema-prev={th.id} style={varsDeMiniatura(th.id)} aria-hidden="true">
                         <span className="tema-prev-barra" />
                         <span className="tema-prev-cuerpo">
                           <i className="tema-prev-linea tema-prev-acento" />
-                          <i className="tema-prev-linea" />
+                          <i className="tema-prev-linea tema-prev-orden" />
+                          <i className="tema-prev-linea tema-prev-fallo" />
                           <i className="tema-prev-linea tema-prev-corta" />
                         </span>
                       </span>
@@ -942,7 +950,7 @@ export default function SettingsView({
                 <h2>{t("El color de las terminales")}</h2>
                 <p className="card-hint">
                   {t(
-                    "Los dieciséis colores con los que los programas pintan dentro de la terminal, aparte del tema de la casa: el tema es el mueble y esto es la letra que lees ocho horas. El fondo no lo toca, para que las terminales sigan siendo cristal sobre tu fondo.",
+                    "Los dieciséis colores con los que los programas pintan dentro de la terminal. De fábrica van a juego con el tema, como en tu terminal de siempre; si quieres otros, elígelos aquí.",
                   )}
                 </p>
                 {/* El apagón. Va aquí arriba y no perdido entre los esquemas
@@ -1102,6 +1110,7 @@ export default function SettingsView({
                     escritas con SUS colores, con el fondo que le va a tocar (el
                     de la casa, que es quien lo pone). Así se elige mirando algo
                     que se parece a lo que vas a leer ocho horas. */}
+                <TarjetaDelTema tema={theme} elegido={termTheme} onElegir={elegirTemaTerm} />
                 {FAMILIAS_TERM.map((fam) => (
                   <div key={fam.id} className="tema-familia">
                     <h3 className="tema-familia-eti">{lang === "es" ? fam.es : fam.en}</h3>
@@ -1121,6 +1130,7 @@ export default function SettingsView({
                     "Lo que se ve detrás de las terminales. Los paneles ya son cristal, así que debajo había un color plano desaprovechado. Vale una imagen o un vídeo, que se pone en bucle y sin sonido. El archivo se copia a la carpeta de Adeorq, así que el fondo no se rompe si luego mueves el original.",
                   )}
                 </p>
+                <NotaFondoEstilo aspecto={aspecto} elegir={elegirAspecto} />
                 <div className="account-actions">
                   <button
                     className="np-btn"
@@ -1316,6 +1326,7 @@ export default function SettingsView({
                   <span className="setting-value">{openAll}</span>
                 </label>
                 <AjusteCabeceraTerminal />
+                <AjusteParpadeo />
                 <label className="setting-row setting-switch">
                   <span>{t("Recuperar las terminales al abrir")}</span>
                   <input

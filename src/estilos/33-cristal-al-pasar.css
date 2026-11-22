@@ -114,36 +114,10 @@
   transform: translateY(-1px);
 }
 
-/* En los temas claros el cristal azulado no se ve sobre el papel: el de antes
-   era un velo del color del texto con la luz blanca arriba. */
-:root:is([data-theme="claro"], [data-theme="papel"])
-  :is(
-    .pane-head button,
-    .tab,
-    .cj-pestana,
-    .cj-trabajo,
-    .mini.icono,
-    .franja-btn,
-    .cb-tool,
-    .cb-btn,
-    .cb-spawn,
-    .choice,
-    .set-tab,
-    .skill,
-    .inicio-proy,
-    .inicio-enlace,
-    .layout-grande,
-    .inicio-estado
-  ):not(:disabled):hover {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--text) 8%, transparent),
-    color-mix(in srgb, var(--text) 3%, transparent)
-  );
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-}
+/* Los temas claros tenían aquí su propio cristal al pasar, un velo del color del
+   texto; desde el 2026-11-21 llevan el de la forma de Contraste, la misma lámina
+   neutra que los oscuros (`41-contraste.css`, sección 3), que sale del revés
+   porque se mezcla con su letra. */
 
 /* Quien no quiere movimiento lo tiene sin el salto, con el cristal igual. */
 @media (prefers-reduced-motion: reduce) {

@@ -5,19 +5,62 @@
 import { useRef, useState } from "react";
 import { useT } from "../lib/i18n";
 import { leerTema, nombreDeArchivo } from "../lib/temasDeFuera";
-import { guardarImportado, quitarImportado, temasImportados, type TemaTerm } from "../lib/temasTerm";
+import {
+  coloresTerm,
+  DEL_TEMA,
+  esquemaClaro,
+  esquemaReal,
+  guardarImportado,
+  quitarImportado,
+  temasImportados,
+  type TemaTerm,
+} from "../lib/temasTerm";
 import { CheckIcon, CloseIcon, DownloadIcon } from "./Icons";
 
 /**
+ * «A juego con el tema», lo de fábrica desde el 2026-11-21, delante de los
+ * esquemas: enseña los colores del tema puesto (`tema`), que son los que va a
+ * llevar la terminal. `elegido` es el id guardado y `onElegir`, el mismo de
+ * los demás esquemas.
+ */
+export function TarjetaDelTema({ tema, elegido, onElegir }: { tema: string; elegido: string; onElegir: (id: string) => void }) {
+  // Lo que de verdad se pone: con el apagón, un claro enseña su esquema oscuro.
+  const esquema = esquemaReal(DEL_TEMA, tema);
+  const delTema: TemaTerm = {
+    id: DEL_TEMA,
+    es: "A juego con el tema",
+    en: "Matches the theme",
+    familia: esquemaClaro(esquema) ? "claro" : "casa",
+    colores: coloresTerm(esquema),
+  };
+  // Va como una familia más, sin título: así lleva el mismo aire que las de
+  // debajo (`.tema-familia + .tema-familia`) y no se pega a «De la casa».
+  return (
+    <div className="tema-familia">
+      <div className="term-rejilla">
+        <TarjetaTerm tema={delTema} elegido={elegido === DEL_TEMA} onElegir={() => onElegir(DEL_TEMA)} />
+      </div>
+    </div>
+  );
+}
+
+/**
  * Un esquema enseñado como lo que es: cuatro líneas de terminal escritas con
- * SUS colores, sobre el fondo que le va a tocar (el de la casa). Seis rayitas
- * de color dicen qué colores tiene; esto dice cómo se va a leer.
+ * SUS colores, sobre el fondo que le va a tocar (el de la casa; en un tema
+ * claro, el oscuro si el esquema es oscuro, `data-claro`). Seis rayitas de color
+ * dicen qué colores tiene; esto dice cómo se va a leer.
  */
 export function TarjetaTerm({ tema, elegido, onElegir }: { tema: TemaTerm; elegido: boolean; onElegir: () => void }) {
   const { lang, t } = useT();
   const c = tema.colores;
   return (
-    <button className="tema-tarjeta term-tarjeta" data-tema-term={tema.id} data-on={elegido} onClick={() => onElegir()}>
+    <button
+      className="tema-tarjeta term-tarjeta"
+      data-tema-term={tema.id}
+      data-on={elegido}
+      data-claro={tema.familia === "claro"}
+      onClick={() => onElegir()}
+    >
       <span className="term-prev" aria-hidden="true">
         <span style={{ color: c.cyan }}>~/adeorq</span> <span style={{ color: c.green }}>❯</span>{" "}
         <span style={{ color: c.foreground }}>pnpm build</span>

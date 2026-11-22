@@ -1557,7 +1557,7 @@
 }
 
 :root:has(.fondo) .choice {
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  text-shadow: 0 1px 3px color-mix(in srgb, var(--c3-velo) 45%, transparent);
 }
 
 .choice:hover {
@@ -1619,6 +1619,12 @@
   white-space: nowrap;
   overflow: hidden;
   transition: border-color var(--t-rapida) ease, transform var(--t-rapida) ease;
+}
+/* En un tema claro, un esquema oscuro de la lista lleva la terminal oscura
+   (`data-term-oscura`, `42-aspectos.css`): su muestra, también, o su letra clara
+   sobre el panel blanco no se leería. */
+:root[data-claro] .term-tarjeta[data-claro="false"] .term-prev {
+  background: var(--term-oscura);
 }
 .term-tarjeta:hover .term-prev {
   transform: translateY(-2px);

@@ -29,12 +29,14 @@ export default function AvisoContexto({ usados, avisoCtx, ctxNivel, traspaso, co
     return (
       <div className="pane-ctx-warn" data-fase="relevada">
         <span>{t("Sigue en la terminal nueva. Esta deja su rastro y se archiva al cerrarla.")}</span>
-        <button className="mini pane-ctx-compactar" onClick={() => onCerrar()}>
-          {t("Cerrar esta")}
-        </button>
-        <button className="pane-close" data-tip={t("Ocultar aviso")} onClick={() => traspaso.descartarRelevo()}>
-          ×
-        </button>
+        <span className="pane-ctx-acts">
+          <button className="mini pane-ctx-compactar" onClick={() => onCerrar()}>
+            {t("Cerrar esta")}
+          </button>
+          <button className="pane-close" data-tip={t("Ocultar aviso")} onClick={() => traspaso.descartarRelevo()}>
+            ×
+          </button>
+        </span>
       </div>
     );
   }
@@ -63,37 +65,39 @@ export default function AvisoContexto({ usados, avisoCtx, ctxNivel, traspaso, co
                       : t("{k} tokens de contexto: compacta ya, cada mensaje lo vuelve a pagar entero.", { k: enMiles(usados) })
                     : t("{k} tokens de contexto: buen momento para compactar, cada mensaje lo vuelve a pagar entero.", { k: enMiles(usados) })}
       </span>
-      {traspaso.fase === "nada" && (avisoCtx === 3 || (deMas && avisoCtx > 0)) && conNueva && (
-        <button
-          className="mini pane-ctx-compactar"
-          data-tip={t("Primero el /fin; al acabar, una terminal nueva aquí mismo que empieza con su bloque «Retomar», y esta se archiva al cerrarla")}
-          onClick={() => traspaso.nueva()}
-        >
-          {t("Nueva con traspaso")}
-        </button>
-      )}
-      {traspaso.fase === "nada" && (
-        <button
-          className="mini pane-ctx-compactar"
-          data-tip={t("Primero el traspaso (BUZON.md y docs vivos), después /compact. Con el agente trabajando, espera a que acabe su turno.")}
-          onClick={() => traspaso.compactar()}
-        >
-          {avisoCtx >= 2 && sola ? t("Compactar ya") : t("Compactar")}
-        </button>
-      )}
-      {traspaso.fase !== "nada" || avisoCtx >= 2 ? (
-        <button className="mini pane-ctx-compactar" data-tip={t("Nada solo hasta el aviso siguiente")} onClick={() => traspaso.ahoraNo()}>
-          {t("Ahora no")}
-        </button>
-      ) : (
-        <button
-          className="pane-close"
-          data-tip={t("Ocultar aviso (vuelve si la sesión sigue creciendo)")}
-          onClick={() => (avisoCtx > 0 ? setCtxVisto(avisoCtx) : traspaso.descartarSugerencia())}
-        >
-          ×
-        </button>
-      )}
+      <span className="pane-ctx-acts">
+        {traspaso.fase === "nada" && (avisoCtx === 3 || (deMas && avisoCtx > 0)) && conNueva && (
+          <button
+            className="mini pane-ctx-compactar"
+            data-tip={t("Primero el /fin; al acabar, una terminal nueva aquí mismo que empieza con su bloque «Retomar», y esta se archiva al cerrarla")}
+            onClick={() => traspaso.nueva()}
+          >
+            {t("Nueva con traspaso")}
+          </button>
+        )}
+        {traspaso.fase === "nada" && (
+          <button
+            className="mini pane-ctx-compactar"
+            data-tip={t("Primero el traspaso (BUZON.md y docs vivos), después /compact. Con el agente trabajando, espera a que acabe su turno.")}
+            onClick={() => traspaso.compactar()}
+          >
+            {avisoCtx >= 2 && sola ? t("Compactar ya") : t("Compactar")}
+          </button>
+        )}
+        {traspaso.fase !== "nada" || avisoCtx >= 2 ? (
+          <button className="mini pane-ctx-compactar" data-tip={t("Nada solo hasta el aviso siguiente")} onClick={() => traspaso.ahoraNo()}>
+            {t("Ahora no")}
+          </button>
+        ) : (
+          <button
+            className="pane-close"
+            data-tip={t("Ocultar aviso (vuelve si la sesión sigue creciendo)")}
+            onClick={() => (avisoCtx > 0 ? setCtxVisto(avisoCtx) : traspaso.descartarSugerencia())}
+          >
+            ×
+          </button>
+        )}
+      </span>
     </div>
   );
 }

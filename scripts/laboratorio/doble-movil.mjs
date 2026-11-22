@@ -101,6 +101,10 @@ function caducar() {
 const traspasos = [];
 let aspecto = { acento: "#4d9fff", opacidad: 60, desenfoque: 0, foto: null };
 if (process.env.FONDO) aspecto.foto = { tipo: /\.jpe?g$/i.test(process.env.FONDO) ? "image/jpeg" : "image/png", bytes: fs.readFileSync(process.env.FONDO), version: "fondo-de-fuera" };
+// `OPACIDAD=100` es cuánto se ve la foto en el PC (su ajuste de Apariencia): con
+// 100, «como en tu PC» deja la foto con el velo mínimo (0,62, `VELO_MINIMO` en
+// movil.html), que es como la tiene Munir.
+if (process.env.OPACIDAD) aspecto.opacidad = Number(process.env.OPACIDAD);
 
 /** Un PNG de un degradado, hecho aquí: una foto de prueba sin depender de ningún archivo. */
 function pngDegradado(ancho, alto) {

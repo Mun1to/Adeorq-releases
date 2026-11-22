@@ -137,7 +137,8 @@ const hrefs = [...html.matchAll(/href="#([^"]+)"/g)].map((m) => m[1]);
 const sinId = hrefs.filter((h) => !ids.has(h));
 dice(sinId.length === 0, `web/guia.html: ${hrefs.length} enlaces internos y todos llevan a un id${sinId.length ? ` (sin id: ${[...new Set(sinId)].join(", ")})` : ""}`);
 
-const usadas = new Set([...html.matchAll(/data-i18n(?:-html|-aria|-title|-alt)?="([^"]+)"/g)].map((m) => m[1]));
+// `-cerrar` es el nombre del botón del menú cuando está abierto (portada/menu.js).
+const usadas = new Set([...html.matchAll(/data-i18n(?:-html|-aria|-title|-alt|-cerrar)?="([^"]+)"/g)].map((m) => m[1]));
 // El diccionario inglés es la parte `en: {...}`; el español nace en el HTML.
 const dentroDeEn = dic.slice(dic.indexOf("en: {"));
 const definidas = new Set([...dentroDeEn.matchAll(/^\s*'([\w.\-]+)'\s*:/gm)].map((m) => m[1]));

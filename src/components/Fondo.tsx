@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { estiloLiso, FONDO_EVENTO } from "../lib/aspecto";
 import { comoFuente, esVideo } from "../lib/fondo";
 import { estiloDe, type Encuadre } from "../lib/encuadre";
 import { modoRendimiento } from "../lib/rendimiento";
@@ -50,7 +51,9 @@ export default function Fondo({ path, sello, opacidad, desenfoque, encuadre }: P
    *   · con la ventana escondida o minimizada, donde no lo mira nadie;
    *   · en modo rendimiento, que es el interruptor que ya apaga «lo que
    *     respira» y que en automático se enciende solo a partir de la cuarta
-   *     terminal, o sea justo cuando esos 33 puntos hacen falta para otra cosa.
+   *     terminal, o sea justo cuando esos 33 puntos hacen falta para otra cosa;
+   *   · en un estilo liso (Terminal, Consola, Liso), que esconde la capa entera
+   *     (`42-aspectos.css`): ahí el vídeo andaba sin que nadie lo viera.
    *
    * Con la ventana delante y sin ahorro, se mueve: eso es una decisión suya. */
   const src = path ? comoFuente(path, sello) : "";
@@ -59,16 +62,19 @@ export default function Fondo({ path, sello, opacidad, desenfoque, encuadre }: P
     const decidir = () => {
       const v = video.current;
       if (!v) return;
-      const sobra = document.visibilityState === "hidden" || modoRendimiento();
+      const sobra = document.visibilityState === "hidden" || modoRendimiento() || estiloLiso();
       if (sobra) v.pause();
       else void v.play().catch(() => {});
     };
     decidir();
     document.addEventListener("visibilitychange", decidir);
     window.addEventListener(TEMA_TERM_EVENTO, decidir);
+    // Cambiar de estilo en Ajustes avisa con este.
+    window.addEventListener(FONDO_EVENTO, decidir);
     return () => {
       document.removeEventListener("visibilitychange", decidir);
       window.removeEventListener(TEMA_TERM_EVENTO, decidir);
+      window.removeEventListener(FONDO_EVENTO, decidir);
     };
     // `deVideo` entra porque en Linux llega después (`lib/videoEnLinux.ts`), y un `play()`
     // sin fuente no se recuerda al cargarla.

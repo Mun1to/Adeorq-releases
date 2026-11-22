@@ -428,39 +428,10 @@
   margin: 4px 0;
 }
 
-/* Light theme fixes: highlights and shadows built for dark glass need to flip
-   so text stays readable and the raised buttons still read as raised.
-   Los dos claros comparten estos arreglos: son del FONDO CLARO, no del tema,
-   y dejarlos solo en uno habria dejado "Papel" con los realces de una app
-   oscura encima de una hoja (2026-08-02). */
-/* Los colores de estos arreglos salen del tema claro que esté puesto (eran los
-   azules de «Claro» escritos a mano, y «Papel» los heredaba encima de su hoja
-   cálida). */
-:root[data-theme="claro"] .mini:not(.icono):hover,
-:root[data-theme="papel"] .mini:not(.icono):hover {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--accent-dim) 40%, #fff),
-    color-mix(in srgb, var(--accent-dim) 65%, #fff)
-  );
-  color: var(--text);
-}
-
-:root[data-theme="claro"] .pane,
-:root[data-theme="claro"] .panel-card,
-:root[data-theme="claro"] .stat-card,
-:root[data-theme="papel"] .pane,
-:root[data-theme="papel"] .panel-card,
-:root[data-theme="papel"] .stat-card {
-  box-shadow: 0 2px 10px color-mix(in srgb, var(--text) 8%, transparent);
-}
-
-:root[data-theme="claro"] .session-row,
-:root[data-theme="claro"] .project,
-:root[data-theme="papel"] .session-row,
-:root[data-theme="papel"] .project {
-  border-color: color-mix(in srgb, var(--border-strong) 30%, transparent);
-}
+/* Los arreglos de los temas claros que vivían aquí (el realce de `.mini`, la
+   sombra de las tarjetas, el borde de las filas) se fueron el 2026-11-21: los
+   claros llevan desde entonces la forma de los oscuros (`41-contraste.css`), y
+   con más peso que ella la habrían pisado. */
 
 /* Context meter in the pane header: how full this session's window is. The
    number comes from its own transcript, so it costs nothing to read. La barrita

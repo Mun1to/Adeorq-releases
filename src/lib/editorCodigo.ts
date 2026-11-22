@@ -77,8 +77,15 @@ export function useVarsDeCodigo(): CSSProperties {
   const [vars, setVars] = useState(() => varsDeCodigo(coloresTerm()));
   useEffect(() => {
     const repintar = () => setVars(varsDeCodigo(coloresTerm()));
+    // Y al cambiar el tema de la casa, que avisa con el aviso del fondo
+    // (`FONDO_EVENTO` de `TerminalPane.tsx`): con el esquema «a juego con el
+    // tema», cambiar de tema es cambiar los colores del código.
     window.addEventListener(TEMA_TERM_EVENTO, repintar);
-    return () => window.removeEventListener(TEMA_TERM_EVENTO, repintar);
+    window.addEventListener("adeorq:fondo", repintar);
+    return () => {
+      window.removeEventListener(TEMA_TERM_EVENTO, repintar);
+      window.removeEventListener("adeorq:fondo", repintar);
+    };
   }, []);
   return vars as CSSProperties;
 }

@@ -1081,46 +1081,16 @@ textarea.note-body {
 /* ==========================================================================
    La cuadrilla: varias terminales repartiéndose UNA tarea.
    ==========================================================================
-   Seis paneles idénticos no dicen que estén trabajando juntos. Con esto sí:
-   comparten un color, cada uno lleva su puesto («2/5 · Backend») y el borde
-   los agrupa a la vista aunque estén separados en el mosaico. */
-.pane[data-team="true"] {
-  border-color: color-mix(in srgb, var(--team) 45%, var(--border));
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--team) 22%, transparent),
-    0 0 22px color-mix(in srgb, var(--team) 12%, transparent);
-}
+   Seis paneles idénticos no dicen que estén trabajando juntos: comparten un
+   color en su chapa (cada uno lleva su puesto, «2/5 · Backend»). Hasta el
+   2026-11-21 el color iba también en el borde, con su halo, y en la cabecera.
+   Fuera: alrededor de una terminal solo van los tres estados (`05-cabina.css`,
+   Munir: «que no hayan tantos colorines de neón alrededor de las terminales»).
 
-.pane[data-team="true"] .pane-head {
-  background: linear-gradient(
-    to right,
-    color-mix(in srgb, var(--team) 16%, var(--panel-head)),
-    var(--panel-head) 55%
-  );
-}
-
-/* Una terminal que abrió OTRA sesión (`open_pane`, un flujo de trabajo): el
-   color de SU proyecto, el mismo del lienzo (`coloresDeProyectos`), en el borde
-   y la cabecera, con el tratamiento de la cuadrilla. Munir, 2026-10-21: «que
-   les cambie de color el header de la sesión al proyecto el cual se está
-   trabajando para identificarlas más fácilmente». El «de: …» va en su color.
-   El borde cede ante el anillo del foco (misma fuerza y va después: sin el
-   `:not` taparía dónde estás escribiendo); la cabecera se queda su color. */
-.pane[data-delegada="true"]:not([data-focused="true"]) {
-  border-color: color-mix(in srgb, var(--proy) 45%, var(--border));
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--proy) 22%, transparent),
-    0 0 22px color-mix(in srgb, var(--proy) 12%, transparent);
-}
-
-.pane[data-delegada="true"] .pane-head {
-  background: linear-gradient(
-    to right,
-    color-mix(in srgb, var(--proy) 32%, var(--panel-head)),
-    color-mix(in srgb, var(--proy) 8%, var(--panel-head)) 75%
-  );
-}
-
+   Una terminal que abrió OTRA sesión (`open_pane`, un flujo de trabajo) llevaba
+   igual el color de SU proyecto en el borde y en la cabecera (2026-10-21). Ahora
+   lo lleva su «de: …», que es lo que dice quién la abrió; en el lienzo, además,
+   el logo de agua del proyecto. */
 .pane[data-delegada="true"] .pane-de {
   color: color-mix(in srgb, var(--proy) 70%, var(--text));
 }

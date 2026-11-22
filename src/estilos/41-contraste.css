@@ -13,10 +13,11 @@
    blanco ni un negro escrito a mano: salen de las variables `--c3-*`, que en
    Contraste valen blanco y negro y en los demás se sacan del fondo, la letra y
    el acento de cada tema (la receta, en `01-base.css`). Donde un comentario de
-   abajo dice «blanco» o «negro», léase «lo lleno» y «el fondo» del tema. Los
-   dos claros (Claro y Papel) se quedan con el cristal de siempre.
+   abajo dice «blanco» o «negro», léase «lo lleno» y «el fondo» del tema. Desde
+   el 2026-11-21 vale también para los claros, del revés: el velo de la foto y
+   el halo de los títulos salen de `--c3-velo`, que en un claro es blanco.
 
-   Todo cuelga de `:where(:root:not([data-theme="claro"], [data-theme="papel"]))`.
+   Todo cuelga de `:where(:root)`, que hasta ese día dejaba fuera a los claros.
    Va dentro de `:where()` para que no sume peso:
    cada regla pesa lo mismo que en la hoja de la propuesta y gana los empates
    por ir la última, como allí. Con el prefijo pesando, pisaba los estados que
@@ -34,7 +35,7 @@
 /* Tiene que ganar a la de `02-armazon.css` (`:root:has(.fondo)`, que tiñe de
    azul) pero no al apagón ni al modo rendimiento, que van en `19-temas.css`
    detrás de aquella justo para mandar sobre ella: por eso los `:not()`. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])):root:has(.fondo):not([data-apagon="1"]):not([data-rendimiento="1"]) {
+:root:has(.fondo):not([data-apagon="1"]):not([data-rendimiento="1"]) {
   --pane-abre: 1;
   --xterm-bg: color-mix(in srgb, var(--c3-negro) 42%, transparent);
 }
@@ -45,42 +46,46 @@
    tocarlo vale 1 y queda el 0,4 de siempre): si no, ese mando dejaba la foto
    tapada un 67 % al 100 % en este tema (Munir, 2026-11-17: «en el que estoy
    ahora no se puede activar que se vea lo de detrás de las terminales»). Lo
-   mide `scripts/laboratorio/contraste-transparente.js`. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .fondo::after {
+   mide `scripts/laboratorio/contraste-transparente.js`.
+   En un claro el velo es blanco y más fuerte (`--c3-velo-alfa`, `01-base.css`):
+   aclarar una foto la apaga menos que oscurecerla, y al 0,4 la letra suelta del
+   Panel y del Lienzo se perdía entre los tonos medios. */
+:where(:root) .fondo::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgb(0 0 0 / calc(0.4 * var(--pane-abre, 1)));
+  background: var(--c3-velo);
+  opacity: calc(var(--c3-velo-alfa, 0.4) * var(--pane-abre, 1));
   pointer-events: none;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) body {
+:where(:root) body {
   letter-spacing: -0.003em;
   -webkit-font-smoothing: antialiased;
 }
 
 /* ── 2. La barra de arriba ───────────────────────────────────────────────── */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .topbar {
+:where(:root) .topbar {
   background: var(--topbar);
   border-bottom: 1px solid var(--c3-raya);
   box-shadow: none;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .tab {
+:where(:root) .tab {
   font-size: 14px;
   font-weight: 550;
   color: var(--c3-gris);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .tab:hover {
+:where(:root) .tab:hover {
   color: var(--c3-viva);
 }
 
 /* La activa: píldora blanca llena, letra negra, sin la raya de debajo. También
    con el ratón encima: la lámina del cristal no la apaga. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .tab[data-active="true"],
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .topbar .tab[data-active="true"]:not(:disabled):hover,
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .topbar .tab[data-active="true"]:not(:disabled):active {
+:where(:root) .tab[data-active="true"],
+:where(:root) .topbar .tab[data-active="true"]:not(:disabled):hover,
+:where(:root) .topbar .tab[data-active="true"]:not(:disabled):active {
   background: var(--c3-blanco);
   color: var(--c3-sobre-blanco);
   font-weight: 650;
@@ -88,35 +93,35 @@
   box-shadow: none;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .tab[data-active="true"]::after {
+:where(:root) .tab[data-active="true"]::after {
   display: none;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .tab[data-active="true"] .tab-count {
+:where(:root) .tab[data-active="true"] .tab-count {
   color: var(--c3-sobre-blanco-2);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .tab[data-active="true"] .tab-beta {
+:where(:root) .tab[data-active="true"] .tab-beta {
   color: var(--c3-beta-sobre-blanco);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .tab-count {
+:where(:root) .tab-count {
   font-weight: 600;
   color: var(--c3-gris);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .tab-beta {
+:where(:root) .tab-beta {
   font-weight: 650;
   letter-spacing: 0;
 }
 
 /* La cuenta de Decisiones, cuando te toca, sigue en su color. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .tab-count[data-te-toca="true"] {
+:where(:root) .tab-count[data-te-toca="true"] {
   color: var(--ask);
 }
 
 /* ── 3. El cristal al pasar, en neutro: una lámina gris clara, sin azul ── */
-:where(:root:not([data-theme="claro"], [data-theme="papel"]))
+:where(:root)
   :is(
     .pane-head button,
     .tab,
@@ -140,7 +145,7 @@
   transform: none;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"]))
+:where(:root)
   :is(
     .pane-head button,
     .tab,
@@ -167,7 +172,7 @@
 /* ── 4. Botones ──────────────────────────────────────────────────────────── */
 
 /* El principal: invertido. Blanco lleno, letra negra, sin brillo ni degradado. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .np-btn {
+:where(:root) .np-btn {
   background: var(--c3-blanco);
   color: var(--c3-sobre-blanco);
   border: 1px solid var(--c3-blanco);
@@ -180,14 +185,14 @@
   box-shadow: none;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .np-btn:not(:disabled):hover {
+:where(:root) .np-btn:not(:disabled):hover {
   background: var(--c3-blanco-2);
   filter: none;
   transform: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--c3-luz) 14%, transparent);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .np-btn:not(:disabled):active {
+:where(:root) .np-btn:not(:disabled):active {
   background: var(--c3-pulsado);
   transform: none;
   filter: none;
@@ -195,7 +200,7 @@
 }
 
 /* Desactivado sigue siendo el principal: blanco lleno, solo atenuado. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .np-btn:disabled {
+:where(:root) .np-btn:disabled {
   background: var(--c3-blanco);
   color: var(--c3-sobre-blanco);
   border-color: var(--c3-blanco);
@@ -204,33 +209,33 @@
 }
 
 /* El de al lado del principal: contorno blanco nítido. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .np-btn.ghost {
+:where(:root) .np-btn.ghost {
   background: var(--c3-negro);
   color: var(--c3-tinta);
   border-color: var(--c3-raya-3);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .np-btn.ghost:not(:disabled):hover {
+:where(:root) .np-btn.ghost:not(:disabled):hover {
   background: var(--c3-capa-3);
   border-color: var(--c3-blanco-2);
   box-shadow: none;
 }
 
 /* El que borra o cierra: rojo lleno, letra blanca (4,8:1). */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .modal-danger,
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .np-btn.modal-danger {
+:where(:root) .modal-danger,
+:where(:root) .np-btn.modal-danger {
   background: var(--c3-rojo);
   border-color: var(--c3-rojo);
   color: #ffffff;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .np-btn.modal-danger:not(:disabled):hover {
+:where(:root) .np-btn.modal-danger:not(:disabled):hover {
   background: var(--c3-rojo-2);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--c3-rojo) 30%, transparent);
 }
 
 /* La tecla de la casa con texto: negra, con su contorno, sin degradado. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .mini:not(.icono) {
+:where(:root) .mini:not(.icono) {
   background: var(--c3-negro);
   border: 1px solid var(--c3-raya-3);
   color: var(--c3-tinta);
@@ -240,7 +245,7 @@
   padding: 5px 14px;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .mini:not(.icono):hover {
+:where(:root) .mini:not(.icono):hover {
   background: var(--c3-capa-3);
   border-color: var(--c3-blanco-2);
   color: var(--c3-viva);
@@ -248,23 +253,23 @@
   box-shadow: none;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .mini:not(.icono):active {
+:where(:root) .mini:not(.icono):active {
   background: var(--c3-capa-2);
   transform: none;
   box-shadow: none;
 }
 
 /* Los botones de solo icono siguen sueltos, más claros. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.mini.icono, .pane-btn, .franja-btn, .pane-close) {
+:where(:root) :is(.mini.icono, .pane-btn, .franja-btn, .pane-close) {
   color: var(--c3-icono);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.mini.icono, .pane-btn, .franja-btn):not(:disabled):hover {
+:where(:root) :is(.mini.icono, .pane-btn, .franja-btn):not(:disabled):hover {
   color: var(--c3-viva);
 }
 
 /* ── 5. Campos de texto y desplegables ───────────────────────────────────── */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(input.finder, .onb-campo input, .setting-row input[type="text"], .setting-input) {
+:where(:root) :is(input.finder, .onb-campo input, .setting-row input[type="text"], .setting-input) {
   background: var(--c3-negro);
   border: 1px solid var(--c3-raya-2);
   border-radius: var(--r-btn);
@@ -273,20 +278,20 @@
   min-height: 34px;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"]))
+:where(:root)
   :is(input.finder, .tema-buscar input, .onb-campo input, .inicio-texto, .chat-input)::placeholder {
   color: var(--c3-gris-2);
 }
 
 /* Los campos, con el foco en azul: un anillo nítido. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(input.finder, .onb-campo input):focus,
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) select:focus-visible {
+:where(:root) :is(input.finder, .onb-campo input):focus,
+:where(:root) select:focus-visible {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
   outline: none;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) select {
+:where(:root) select {
   appearance: none;
   -webkit-appearance: none;
   background-color: var(--c3-negro);
@@ -303,31 +308,31 @@
   cursor: pointer;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) select:hover {
+:where(:root) select:hover {
   border-color: var(--c3-raya-3);
 }
 
 /* Los desplegables con clase propia ponen su fondo con el atajo `background`,
    que se llevaba también la flecha de arriba: sin ella no parecían
    desplegables. La flecha vuelve, con su hueco a la derecha. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(select.finder, select.esq-elige, .ew-fila select) {
+:where(:root) :is(select.finder, select.esq-elige, .ew-fila select) {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23d4d4d8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
   padding-right: 30px;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) select option {
+:where(:root) select option {
   background: var(--c3-capa);
   color: var(--c3-tinta);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) input[type="range"] {
+:where(:root) input[type="range"] {
   accent-color: var(--c3-blanco);
 }
 
 /* ── 6. Interruptores: toda casilla de una fila de ajustes ───────────────── */
-:where(:root:not([data-theme="claro"], [data-theme="papel"]))
+:where(:root)
   :is(.setting-switch, .apagon-fila, .setting-row, .cab-fila)
   input[type="checkbox"] {
   appearance: none;
@@ -346,7 +351,7 @@
     border-color var(--t-media) ease;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"]))
+:where(:root)
   :is(.setting-switch, .apagon-fila, .setting-row, .cab-fila)
   input[type="checkbox"]::before {
   content: "";
@@ -364,7 +369,7 @@
   box-shadow: none;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"]))
+:where(:root)
   :is(.setting-switch, .apagon-fila, .setting-row, .cab-fila)
   input[type="checkbox"]:checked {
   background: var(--c3-blanco);
@@ -372,21 +377,21 @@
 }
 
 /* Encendido: pista blanca, bola negra. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"]))
+:where(:root)
   :is(.setting-switch, .apagon-fila, .setting-row, .cab-fila)
   input[type="checkbox"]:checked::before {
   transform: translate(18px, -50%);
   background: var(--c3-sobre-blanco);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"]))
+:where(:root)
   :is(.setting-switch, .apagon-fila, .setting-row, .cab-fila)
   input[type="checkbox"]:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"]))
+:where(:root)
   :is(.setting-switch, .setting-row, .cab-fila)
   input[type="checkbox"]:focus-visible {
   outline: 2px solid var(--accent);
@@ -394,68 +399,68 @@
 }
 
 /* ── 7. Tarjetas y títulos ───────────────────────────────────────────────── */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.panel-card, .perfil-seccion, .pu, .set-nav) {
+:where(:root) :is(.panel-card, .perfil-seccion, .pu, .set-nav) {
   background: var(--panel);
   border: 1px solid var(--c3-raya);
   border-radius: var(--r-caja);
   box-shadow: none;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .panel-card h2 {
+:where(:root) .panel-card h2 {
   font-size: 19px;
   font-weight: 650;
   letter-spacing: -0.01em;
   color: var(--c3-viva);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .card-hint {
+:where(:root) .card-hint {
   font-size: 14px;
   line-height: 1.55;
   color: var(--c3-gris);
 }
 
 /* Títulos de pantalla: grandes y en negrita. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .panel-hero h1 {
+:where(:root) .panel-hero h1 {
   font-size: 32px;
   font-weight: 700;
   letter-spacing: -0.03em;
   color: var(--c3-viva);
-  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 12px color-mix(in srgb, var(--c3-velo) 60%, transparent);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .panel-hero p {
+:where(:root) .panel-hero p {
   font-size: 15px;
   color: var(--c3-claro);
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.7);
+  text-shadow: 0 1px 10px color-mix(in srgb, var(--c3-velo) 70%, transparent);
 }
 
 /* ── 8. La barra de proyectos (izquierda) ────────────────────────────────── */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .sidebar {
+:where(:root) .sidebar {
   background: var(--panel);
   border-right: 1px solid var(--c3-raya);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .side-label span:first-child {
+:where(:root) .side-label span:first-child {
   font-weight: 650;
   color: var(--c3-gris);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.finder-orden, .badge-count, .side-foot) {
+:where(:root) :is(.finder-orden, .badge-count, .side-foot) {
   color: var(--c3-gris);
 }
 
 /* Cada proyecto es una tarjeta: negra, con su borde que se ve. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .project {
+:where(:root) .project {
   background: var(--c3-capa);
   border: 1px solid var(--c3-raya);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.project:hover, .project[data-open="true"]) {
+:where(:root) :is(.project:hover, .project[data-open="true"]) {
   background: var(--c3-capa-2);
   border-color: var(--c3-raya-3);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .project-name {
+:where(:root) .project-name {
   font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.005em;
@@ -469,238 +474,215 @@
    un poco mas gordos los bordes». */
 /* La rejilla también se abre con el mando de las terminales, como el velo de la
    foto (sección 1). */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .grid {
-  background: rgb(0 0 0 / calc(0.45 * var(--pane-abre, 1)));
+:where(:root) .grid {
+  background: color-mix(in srgb, var(--c3-velo) calc(45% * var(--pane-abre, 1)), transparent);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .grid > .pane {
+:where(:root) .grid > .pane {
   border: 4px solid transparent;
   border-radius: calc(var(--r-caja) + 4px);
+  --pane-r-dentro: var(--r-caja);
   /* Con el mando de «cuánto se ve» de Ajustes, como en los demás temas. */
   background: color-mix(in srgb, var(--pane-bg) calc(var(--pane-abre, 1) * 100%), transparent) padding-box;
   background-clip: padding-box;
   box-shadow: inset 0 0 0 2px var(--c3-raya-2);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .grid > .pane[data-focused="true"] {
+:where(:root) .grid > .pane[data-focused="true"] {
   border-color: transparent;
-  box-shadow:
-    inset 0 0 0 2px var(--accent),
-    inset 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--text) 55%, transparent);
 }
 
-/* Las de una cuadrilla, con su color: el contorno blanco de arriba pesa lo
-   mismo que su regla de `14-lienzo-piezas.css` y, por ir detrás, se lo comía. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .grid > .pane[data-team="true"]:not([data-focused="true"]) {
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--team) 70%, transparent);
-}
+/* La cuadrilla, el proyecto y el «terminó» ya no pintan el contorno (2026-11-21,
+   los tres estados de `05-cabina.css`): se quedan en el de dos líneas de todas.
+   El color de los estados lo lleva su aro, que va encima. */
 
-/* Terminó y te espera: el aro naranja por dentro, y su latido con la misma
-   forma de sombra (de una hacia fuera a una hacia dentro no se puede pasar
-   poco a poco, y el aro salía a saltos). El modo rendimiento le quita el
-   latido y el aro se queda. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .grid > .pane[data-done="true"] {
-  border-color: transparent;
-  box-shadow:
-    inset 0 0 0 2px var(--done),
-    0 0 18px color-mix(in srgb, var(--done) 30%, transparent);
-  animation-name: c3-termino;
-}
-
-@keyframes c3-termino {
-  50% {
-    box-shadow:
-      inset 0 0 0 2px var(--done),
-      0 0 34px color-mix(in srgb, var(--done) 60%, transparent);
-  }
-}
-
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .pane-head {
+:where(:root) .pane-head {
   background: var(--panel-head);
   border-bottom: 1px solid var(--c3-raya);
   border-radius: var(--r-caja) var(--r-caja) 0 0;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .pane[data-focused="true"] .pane-head {
-  background: color-mix(in srgb, var(--accent) 14%, var(--panel-head));
-  border-bottom-color: color-mix(in srgb, var(--accent) 45%, transparent);
+:where(:root) .pane[data-focused="true"] .pane-head {
+  background: color-mix(in srgb, var(--text) 8%, var(--panel-head));
+  border-bottom-color: color-mix(in srgb, var(--text) 30%, transparent);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .pane-proj {
+:where(:root) .pane-proj {
   font-weight: 600;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .pane-name {
+:where(:root) .pane-name {
   font-size: 14px;
   font-weight: 650;
   color: var(--c3-viva);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .pane-brain {
+:where(:root) .pane-brain {
   font-weight: 550;
   color: var(--c3-gris);
 }
 
 /* ── 10. La barra de la derecha ──────────────────────────────────────────── */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.lateral, .franja) {
+:where(:root) :is(.lateral, .franja) {
   background: var(--panel);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .lateral {
+:where(:root) .lateral {
   border-left: 1px solid var(--c3-raya-2);
   box-shadow: none;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .franja {
+:where(:root) .franja {
   border-left: 1px solid var(--c3-raya);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .lateral-title {
+:where(:root) .lateral-title {
   font-size: 17px;
   font-weight: 650;
   color: var(--c3-viva);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .skills-hint {
+:where(:root) .skills-hint {
   font-size: 14px;
   color: var(--c3-gris);
 }
 
 /* ── 11. Menús y diálogos ────────────────────────────────────────────────── */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.layout-pop, .modal) {
+:where(:root) :is(.layout-pop, .modal) {
   background: var(--popover);
   border: 1px solid var(--c3-raya-2);
   border-radius: var(--r-caja);
   box-shadow: var(--c3-sombra-3);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .layout-pop-title {
+:where(:root) .layout-pop-title {
   font-size: 17px;
   font-weight: 650;
   color: var(--c3-viva);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .layout-celda {
+:where(:root) .layout-celda {
   background: var(--c3-capa-2);
   border: 1px solid var(--c3-raya);
   border-radius: var(--r-chico);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .layout-celda[data-on="true"] {
+:where(:root) .layout-celda[data-on="true"] {
   background: var(--c3-blanco);
   border-color: var(--c3-blanco);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .layout-cuenta {
+:where(:root) .layout-cuenta {
   font-size: 15px;
   font-weight: 650;
   color: var(--c3-viva);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .layout-grande span {
+:where(:root) .layout-grande span {
   font-size: 14px;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .layout-pop-foot {
+:where(:root) .layout-pop-foot {
   font-size: 14px;
   line-height: 1.5;
   color: var(--c3-gris);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .modal-overlay {
+:where(:root) .modal-overlay {
   background: color-mix(in srgb, var(--c3-negro) 66%, transparent);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .modal-title {
+:where(:root) .modal-title {
   font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.015em;
   color: var(--c3-viva);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .modal-text {
+:where(:root) .modal-text {
   font-size: 14.5px;
   line-height: 1.6;
   color: var(--c3-claro);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .modal-warn {
+:where(:root) .modal-warn {
   background: color-mix(in srgb, var(--warn) 7%, var(--c3-negro));
   border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
   border-radius: var(--r-btn);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .modal-warn-title {
+:where(:root) .modal-warn-title {
   font-size: 14px;
   font-weight: 650;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .modal-files li {
+:where(:root) .modal-files li {
   line-height: 1.6;
   color: var(--c3-tinta);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .modal-actions {
+:where(:root) .modal-actions {
   gap: 10px;
 }
 
 /* ── 12. El Panel (inicio) ───────────────────────────────────────────────── */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .inicio-centro h1 {
+:where(:root) .inicio-centro h1 {
   font-size: 46px;
   font-weight: 700;
   letter-spacing: -0.035em;
   color: var(--c3-viva);
-  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 2px 18px color-mix(in srgb, var(--c3-velo) 60%, transparent);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .inicio-estado {
+:where(:root) .inicio-estado {
   font-size: 15px;
   color: var(--c3-claro);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .inicio-caja {
+:where(:root) .inicio-caja {
   background: var(--popover);
   border: 1px solid var(--c3-raya-2);
   border-radius: var(--r-caja);
   box-shadow: var(--c3-sombra-caja);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .inicio-texto {
+:where(:root) .inicio-texto {
   font-size: 15px;
   color: var(--c3-tinta);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .inicio-nota {
+:where(:root) .inicio-nota {
   color: var(--c3-gris);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.inf-aviso, .inf-aviso span) {
+:where(:root) :is(.inf-aviso, .inf-aviso span) {
   font-size: 14px;
   color: var(--c3-claro);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .inf-boton {
+:where(:root) .inf-boton {
   font-size: 14px;
   color: var(--c3-claro);
   text-decoration-color: color-mix(in srgb, var(--c3-luz) 40%, transparent);
   text-underline-offset: 3px;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .inicio-tit {
+:where(:root) .inicio-tit {
   font-size: 20px;
   font-weight: 650;
   letter-spacing: -0.01em;
   color: var(--c3-viva);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .inicio-proy-n {
+:where(:root) .inicio-proy-n {
   font-size: 15px;
   font-weight: 600;
 }
 
 /* «Ver los 3», «Nuevo proyecto», «Ver tu uso»: botones de contorno, no
    enlaces con flechita. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .inicio-enlace {
+:where(:root) .inicio-enlace {
   border: 1px solid var(--c3-raya-3);
   border-radius: var(--r-btn);
   background: var(--c3-negro);
@@ -710,59 +692,59 @@
   padding: 5px 12px;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .inicio-enlace:not(:disabled):hover {
+:where(:root) .inicio-enlace:not(:disabled):hover {
   border-color: var(--c3-blanco-2);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .inicio-uso-cifra b {
+:where(:root) .inicio-uso-cifra b {
   font-size: 36px;
   letter-spacing: -0.03em;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.inicio-uso-cifra, .inicio-uso-linea) {
+:where(:root) :is(.inicio-uso-cifra, .inicio-uso-linea) {
   font-size: 14px;
   color: var(--c3-gris);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .inicio-anio span {
+:where(:root) .inicio-anio span {
   background: color-mix(in srgb, var(--c3-luz) 7%, transparent);
 }
 
 /* ── 13. El Perfil ───────────────────────────────────────────────────────── */
 /* Lo de arriba va suelto sobre la foto: nada de gris, que sobre una pared clara
    bajaba a 3:1. Claro y con sombra, como los títulos. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.perfil-tu p.perfil-falta, .perfil-tu p.perfil-arroba) {
+:where(:root) :is(.perfil-tu p.perfil-falta, .perfil-tu p.perfil-arroba) {
   color: var(--c3-claro);
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.75);
+  text-shadow: 0 1px 10px color-mix(in srgb, var(--c3-velo) 75%, transparent);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .perfil-foto {
+:where(:root) .perfil-foto {
   color: var(--c3-claro);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .perfil-seccion:hover {
+:where(:root) .perfil-seccion:hover {
   background: var(--c3-capa-2);
   border-color: var(--c3-raya-3);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .perfil-seccion-cab {
+:where(:root) .perfil-seccion-cab {
   font-size: 17px;
   font-weight: 650;
   color: var(--c3-viva);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .perfil-cifra b {
+:where(:root) .perfil-cifra b {
   font-size: 30px;
   font-weight: 700;
   letter-spacing: -0.03em;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.perfil-cifra span, .perfil-linea) {
+:where(:root) :is(.perfil-cifra span, .perfil-linea) {
   font-size: 14px;
   color: var(--c3-gris);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .perfil-editar {
+:where(:root) .perfil-editar {
   border: 1px solid var(--c3-raya-3);
   border-radius: var(--r-btn);
   background: var(--c3-negro);
@@ -772,143 +754,143 @@
   text-decoration: none;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .pu-cifra > b {
+:where(:root) .pu-cifra > b {
   font-size: 48px;
   letter-spacing: -0.04em;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.pu-cifra em, .pu-fila) {
+:where(:root) :is(.pu-cifra em, .pu-fila) {
   font-size: 14px;
   color: var(--c3-gris);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .pu-fila b {
+:where(:root) .pu-fila b {
   font-size: 14px;
   font-weight: 650;
   color: var(--c3-viva);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .pu-pestanas button {
+:where(:root) .pu-pestanas button {
   font-size: 15px;
   font-weight: 600;
   color: var(--c3-gris);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .pu-titulo {
+:where(:root) .pu-titulo {
   font-size: 17px;
   font-weight: 650;
   color: var(--c3-viva);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.pu-nada, .pu-pista) {
+:where(:root) :is(.pu-nada, .pu-pista) {
   font-size: 14px;
   color: var(--c3-gris);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.pu-anio button, .pu-mes button, .pu-vacio) {
+:where(:root) :is(.pu-anio button, .pu-mes button, .pu-vacio) {
   background: color-mix(in srgb, var(--c3-luz) 7%, transparent);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .pu-mes em {
+:where(:root) .pu-mes em {
   color: var(--c3-gris);
 }
 
 /* ── 14. Ajustes ─────────────────────────────────────────────────────────── */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .set-tab {
+:where(:root) .set-tab {
   font-size: 15px;
   font-weight: 550;
   color: var(--c3-claro-2);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .set-sub-item {
+:where(:root) .set-sub-item {
   font-size: 14px;
   color: var(--c3-gris);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .set-sub-item:hover {
+:where(:root) .set-sub-item:hover {
   color: var(--c3-viva);
 }
 
 /* Sin raya entre filas: las separa el aire. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.setting-row, .cab-fila) {
+:where(:root) :is(.setting-row, .cab-fila) {
   border-bottom: none;
   font-size: 15px;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .setting-row {
+:where(:root) .setting-row {
   padding: 12px 0;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .cab-nombre {
+:where(:root) .cab-nombre {
   font-size: 15px;
   color: var(--c3-tinta);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.cab-nombre small, .setting-row small) {
+:where(:root) :is(.cab-nombre small, .setting-row small) {
   font-size: 14px;
   color: var(--c3-gris);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.choice, .tema-tab) {
+:where(:root) :is(.choice, .tema-tab) {
   font-size: 15px;
   border-radius: var(--r-btn);
 }
 
 /* ── 15. Decisiones ──────────────────────────────────────────────────────── */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .dec-cuerpo {
+:where(:root) .dec-cuerpo {
   background: var(--panel);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .dec-lista {
+:where(:root) .dec-lista {
   border-right: 1px solid var(--c3-raya);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .dec-head h1 {
+:where(:root) .dec-head h1 {
   font-size: 32px;
   font-weight: 700;
   letter-spacing: -0.025em;
   color: var(--c3-viva);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .dec-head p {
+:where(:root) .dec-head p {
   font-size: 15px;
   color: var(--c3-gris);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .dec-lista-nota {
+:where(:root) .dec-lista-nota {
   color: var(--c3-gris);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .dec-calma h2 {
+:where(:root) .dec-calma h2 {
   font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--c3-viva);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .dec-calma p {
+:where(:root) .dec-calma p {
   font-size: 15px;
   line-height: 1.55;
   color: var(--c3-gris);
 }
 
 /* ── 16. El Chat ─────────────────────────────────────────────────────────── */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-lista {
+:where(:root) .chat-lista {
   background: var(--panel);
   border-right: 1px solid var(--c3-raya);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-hilo {
+:where(:root) .chat-hilo {
   background: color-mix(in srgb, var(--c3-negro) 92%, transparent);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-pestana {
+:where(:root) .chat-pestana {
   font-size: 17px;
   font-weight: 650;
 }
 
 /* «Hablar con Adeo», la acción que manda en la lista: invertida. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .cj-nueva {
+:where(:root) .cj-nueva {
   background: var(--c3-blanco);
   border: 1px solid var(--c3-blanco);
   color: var(--c3-sobre-blanco);
@@ -917,51 +899,51 @@
   border-radius: var(--r-btn);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .cj-nueva:hover {
+:where(:root) .cj-nueva:hover {
   background: var(--c3-blanco-2);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--c3-luz) 14%, transparent);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-cajon-tit span {
+:where(:root) .chat-cajon-tit span {
   font-weight: 650;
   color: var(--c3-gris);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-fila {
+:where(:root) .chat-fila {
   border-radius: var(--r-btn);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-fila-tit {
+:where(:root) .chat-fila-tit {
   font-size: 14px;
   letter-spacing: -0.01em;
   color: var(--c3-tinta);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-fila-der {
+:where(:root) .chat-fila-der {
   color: var(--c3-gris);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .cj-pestana {
+:where(:root) .cj-pestana {
   font-size: 14.5px;
   font-weight: 600;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-cab-id strong {
+:where(:root) .chat-cab-id strong {
   font-size: 18px;
   font-weight: 650;
   color: var(--c3-viva);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-cab-id em {
+:where(:root) .chat-cab-id em {
   color: var(--c3-gris);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-burbuja {
+:where(:root) .chat-burbuja {
   font-size: 15px;
   line-height: 1.6;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-turno[data-rol="tu"] .chat-burbuja {
+:where(:root) .chat-turno[data-rol="tu"] .chat-burbuja {
   background: var(--c3-capa-3);
   border: 1px solid var(--c3-raya-2);
   color: var(--c3-viva);
@@ -969,42 +951,42 @@
 
 /* Cada sesión que abre Adeo es una tarjeta que se pulsa entera: con su borde.
    El relleno ya lo traía (con margen negativo), así que el texto no se mueve. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .cj-trabajo {
+:where(:root) .cj-trabajo {
   border: 1px solid var(--c3-raya);
   background: var(--c3-negro);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .cj-trabajo-cab strong {
+:where(:root) .cj-trabajo-cab strong {
   font-size: 16px;
   font-weight: 650;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .cj-estado {
+:where(:root) .cj-estado {
   font-weight: 600;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .cj-trabajo-para {
+:where(:root) .cj-trabajo-para {
   font-size: 14.5px;
   color: var(--c3-tinta);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.cj-porque, .cj-porque b) {
+:where(:root) :is(.cj-porque, .cj-porque b) {
   font-size: 14px;
   color: var(--c3-gris);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .cj-porque b {
+:where(:root) .cj-porque b {
   color: var(--c3-tinta);
 }
 
 /* «Ir a esta sesión»: texto suelto, porque la tarjeta entera ya se pulsa. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .cj-trabajo-ir {
+:where(:root) .cj-trabajo-ir {
   font-size: 14px;
   font-weight: 600;
   color: var(--c3-tinta);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.chat-caja, .cj-caja) {
+:where(:root) :is(.chat-caja, .cj-caja) {
   background: var(--popover);
   border: 1px solid var(--c3-raya-2);
   border-radius: var(--r-caja);
@@ -1013,42 +995,42 @@
 
 /* Donde escribes: el foco, que es lo único azul junto a los avisos. Un anillo
    nítido en vez del halo difuso. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.chat-caja, .cj-caja, .inicio-caja):focus-within {
+:where(:root) :is(.chat-caja, .cj-caja, .inicio-caja):focus-within {
   border-color: var(--accent);
   box-shadow:
     0 0 0 1px var(--accent),
     var(--c3-sombra-2);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-input {
+:where(:root) .chat-input {
   font-size: 15px;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-pastillas {
+:where(:root) .chat-pastillas {
   border-top: 1px solid var(--c3-raya);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-pastilla {
+:where(:root) .chat-pastilla {
   color: var(--c3-claro-2);
   border-radius: var(--r-btn);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-enviar {
+:where(:root) .chat-enviar {
   background: var(--c3-blanco);
   border: 1px solid var(--c3-blanco);
   color: var(--c3-sobre-blanco);
   border-radius: var(--r-btn);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-enviar:disabled {
+:where(:root) .chat-enviar:disabled {
   opacity: 0.5;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-yo-txt strong {
+:where(:root) .chat-yo-txt strong {
   font-size: 14px;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-yo-txt em {
+:where(:root) .chat-yo-txt em {
   color: var(--c3-gris);
 }
 
@@ -1057,7 +1039,7 @@
    las opciones elegidas (Español, Todos, Preguntar cada vez…), la pestaña del
    Chat, la fila abierta, la pastilla puesta y la tecla encendida. Con el ratón
    encima se quedan blancas: la lámina gris del cristal no las apaga. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"]))
+:where(:root)
   :is(
     .set-tab[data-on],
     .choice[data-on="true"],
@@ -1067,9 +1049,9 @@
     .chat-pastilla[data-on="true"],
     .mini.on
   ),
-:where(:root:not([data-theme="claro"], [data-theme="papel"]))
+:where(:root)
   :is(.set-tab[data-on], .choice[data-on="true"], .cj-pestana[data-on="true"]):not(:disabled):is(:hover, :active),
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .mini.on:hover {
+:where(:root) .mini.on:hover {
   background: var(--c3-blanco);
   color: var(--c3-sobre-blanco);
   border-color: var(--c3-blanco);
@@ -1079,40 +1061,40 @@
   font-weight: 650;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"]))
+:where(:root)
   :is(.set-tab[data-on] svg, .set-tab[data-on] .set-tab-chev, .choice[data-on="true"] svg, .cj-pestana[data-on="true"] svg) {
   color: var(--c3-sobre-blanco);
 }
 
 /* Un pseudoelemento no puede ir dentro de `:is()`: invalidaría la regla entera. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .set-tab[data-on]::before,
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .cj-pestana[data-on="true"]::after,
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-pestana[data-on="true"]::after {
+:where(:root) .set-tab[data-on]::before,
+:where(:root) .cj-pestana[data-on="true"]::after,
+:where(:root) .chat-pestana[data-on="true"]::after {
   display: none;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-fila[data-on="true"] .chat-fila-tit {
+:where(:root) .chat-fila[data-on="true"] .chat-fila-tit {
   color: var(--c3-sobre-blanco);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-fila[data-on="true"] .chat-fila-der {
+:where(:root) .chat-fila[data-on="true"] .chat-fila-der {
   color: var(--c3-sobre-blanco-2);
 }
 
 /* Las pestañas que no tienen relleno propio (Perfil, Chat): la píldora va
    detrás del texto, en un ::before, para no mover nada de sitio. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.pu-pestanas button, .chat-pestana) {
+:where(:root) :is(.pu-pestanas button, .chat-pestana) {
   position: relative;
   isolation: isolate;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.pu-pestanas button[aria-selected="true"], .chat-pestana[data-on="true"]) {
+:where(:root) :is(.pu-pestanas button[aria-selected="true"], .chat-pestana[data-on="true"]) {
   color: var(--c3-sobre-blanco);
   text-decoration: none;
   text-shadow: none;
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.pu-pestanas button[aria-selected="true"], .chat-pestana[data-on="true"])::before {
+:where(:root) :is(.pu-pestanas button[aria-selected="true"], .chat-pestana[data-on="true"])::before {
   content: "";
   position: absolute;
   inset: -3px -10px;
@@ -1121,26 +1103,26 @@
   background: var(--c3-blanco);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) .chat-pestana[data-on="true"]::before {
+:where(:root) .chat-pestana[data-on="true"]::before {
   inset: 1px -10px 5px;
 }
 
 /* Las teclas de solo icono que están puestas: en blanco, no en azul. */
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.franja-btn[data-on="true"], .rail-tab[data-active="true"]) {
+:where(:root) :is(.franja-btn[data-on="true"], .rail-tab[data-active="true"]) {
   color: var(--c3-viva);
 }
 
-:where(:root:not([data-theme="claro"], [data-theme="papel"])) :is(.franja-btn[data-on="true"], .rail-tab[data-active="true"])::after {
+:where(:root) :is(.franja-btn[data-on="true"], .rail-tab[data-active="true"])::after {
   background: var(--c3-blanco);
 }
 
 /* Con «menos movimiento» en Windows, los interruptores cambian sin deslizarse,
    como en los demás temas (`12-tablero-y-uso.css`). */
 @media (prefers-reduced-motion: reduce) {
-  :where(:root:not([data-theme="claro"], [data-theme="papel"]))
+  :where(:root)
     :is(.setting-switch, .apagon-fila, .setting-row, .cab-fila)
     input[type="checkbox"],
-  :where(:root:not([data-theme="claro"], [data-theme="papel"]))
+  :where(:root)
     :is(.setting-switch, .apagon-fila, .setting-row, .cab-fila)
     input[type="checkbox"]::before {
     transition: none;

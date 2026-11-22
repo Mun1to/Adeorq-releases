@@ -1011,13 +1011,23 @@ salen sus nombres para saltar a una.
   *Como venía de fábrica*.
 - **Idioma**: español o inglés. Cambia la app entera, incluida esta guía. Las
   terminales siguen hablando lo que hable cada agente.
-- **Tema**: 26 temas en cinco familias (De la casa, Conocidos, De los que se notan,
-  Apagados y De fondo claro), con filtro y buscador. Cada tarjeta es una miniatura de
+- **Estilo**: la forma de toda la app. *Cristal* (el de fábrica: tu foto detrás y
+  cada terminal en su caja de cristal), *Terminal* (un solo fondo liso, las
+  terminales pegadas con una raya fina y sus botones al pasar el ratón), *Consola*
+  (toda la app en la letra de la terminal, con una barra de estado al pie de cada
+  una) o *Liso* (las piezas de siempre, sin foto ni cristal). El color sale del tema
+  que elijas, en cualquiera de los cuatro.
+- **Tema**: 33 temas en cinco familias (De la casa, Conocidos, De los que se notan,
+  Apagados y De fondo claro, con GitHub claro, Solarizado claro y Catppuccin Latte),
+  con filtro y buscador. Cada tarjeta es una miniatura de
   la app con esa paleta. Puedes pedir que siga el **claro u oscuro del sistema**, con
   un tema para cada caso, y **A juego con tu foto** elige el tema cuyo acento se parece
   a tu imagen de fondo.
-- **El color de las terminales**: 12 esquemas de color para los 16 colores de la
-  terminal, y **Importar un tema…** trae uno de Warp (`.yaml`) o de Ghostty.
+- **El color de las terminales**: de fábrica, **A juego con el tema** (con Drácula, la
+  terminal de Drácula, como en Ghostty, y con un tema claro, una terminal clara); si no,
+  16 esquemas para los 16 colores de la terminal, y **Importar un tema…** trae uno de
+  Warp (`.yaml`) o de Ghostty. Con un tema claro y uno de esos esquemas, que son
+  oscuros, la terminal va oscura.
 - **Apagón**: negro sólido detrás de las terminales, aunque haya fondo.
 - **Suavidad del scroll**: *Seco*, *Suave* o *Muy suave*; cambia al momento.
 - **Modo rendimiento**: *Automático* (apaga el cristal al abrir la cuarta terminal y lo

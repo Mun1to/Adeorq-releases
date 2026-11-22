@@ -121,6 +121,17 @@ node scripts/laboratorio/capturas/movil/fotos-movil.mjs
 Lanza y para él mismo `movil/doble-sam.mjs` (4392 y 4393). Hay que repetirlas cada vez que
 `src-tauri/src/movil.html` cambia de cara.
 
+**Las cuatro de los estilos** (`style-terminal.png`, `style-console.png`, `style-flat.png` y
+`style-glass.png`, arriba en los README, en la portada y en la imagen del enlace) tampoco necesitan
+la casa abierta: son la demostración de la portada (abajo), que ya es el DOM de esta app con las
+sesiones grabadas, con la hoja de los estilos (`src/estilos/42-aspectos.css`) y `data-aspecto`
+puestos como los pone la app. Se rehacen las ocho con un comando, y hay que repetirlas cuando
+cambia esa hoja o se vuelve a volcar la demostración:
+
+```bash
+PLAYWRIGHT_CORE=C:/proyectos/Orquio/web/node_modules/playwright-core node web/scripts/fotos-estilos.mjs
+```
+
 ## La demostración de la portada sale de aquí también
 
 La ventana que se puede tocar en la portada de adeorq.com (`web/demo/`) no es una maqueta: es el

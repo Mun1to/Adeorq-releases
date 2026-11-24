@@ -522,14 +522,16 @@ html[data-ligero] .haz__grano { opacity: .05; }
   width: 1920px; height: 1080px;
   border: 0;
   transform-origin: top left;
-  transform: scale(var(--esc, .5));
+  /* `--dx` y `--dy` solo valen algo a pantalla completa, donde la caja ya no es
+     16:9 y la demo se centra en ella. */
+  transform: translate(var(--dx, 0px), var(--dy, 0px)) scale(var(--esc, .5));
 }
 
-/* La línea de encima de la ventana, a la izquierda: el enlace para verla grande
-   y, a su derecha, las pestañas (Munir, 2026-11-17: «lo de la cabina, lienzo,
-   chat… al lado de abrirla en grande, a la derecha»). Fuera de la ventana
-   (pintada dentro tapaba la app) y ENCIMA: debajo y en gris no se enteraba
-   nadie (2026-10-13). */
+/* La línea de encima de la ventana, a la izquierda: el botón de pantalla
+   completa y, a su derecha, las pestañas (Munir, 2026-11-17: «lo de la cabina,
+   lienzo, chat… al lado de abrirla en grande, a la derecha»). Fuera de la
+   ventana (pintada dentro tapaba la app) y ENCIMA: debajo y en gris no se
+   enteraba nadie (2026-10-13). */
 .ventana__encima {
   position: absolute;
   left: 2px; bottom: calc(100% + 6px);
@@ -538,16 +540,28 @@ html[data-ligero] .haz__grano { opacity: .05; }
   align-items: center;
   gap: 26px;
 }
-.ventana__grande {
-  font-size: 14px;
-  color: var(--p-texto);
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 4px;
-  white-space: nowrap;
+/* El botón: el fantasma pequeño de la casa, con su icono de las cuatro esquinas
+   (el de la app, trazo 1,9). A pantalla completa dice «Cerrar» con su X. */
+.ventana__completa {
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: inherit;
 }
-.ventana__grande::after { content: " \2197"; }
-.ventana__grande:hover { text-decoration-thickness: 2px; }
+.ventana__ico {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ventana__ico--cerrar { display: none; }
+.ventana__completa:focus-visible { outline: 2px solid var(--p-acento); outline-offset: 3px; }
+/* El de debajo de la ventana, solo en el móvil (ver más abajo). */
+.ventana__pie { display: none; }
 
 /* La ventana sube al entrar. Recorrido por el dial; la opacidad no se toca. */
 .ventana {
@@ -638,8 +652,17 @@ html[data-ligero] .haz__grano { opacity: .05; }
   animation: cinta-rodar calc(var(--cinta-seg) / max(var(--motion-gain), .025)) linear infinite;
   will-change: transform;
 }
+/* Más deprisa cuanto más estrecha. Las letras encogen con la pantalla, así
+   que con los mismos 70 s la cinta iba a 37 px/s en un móvil de 390 px frente a
+   86 px/s a 1920, y con cada logo ocupando el 60 % del ancho entraba uno nuevo
+   cada 6 s (Munir, 2026-11-23: «que el carrusel vaya más rápido en móvil, va
+   muy lento»). Con esto, 87 px/s a 390 y unos 80 a 1000, como en el ordenador. */
+@media (max-width: 1100px) { .cinta__ventana { --cinta-seg: 45s; } }
+@media (max-width: 700px) { .cinta__ventana { --cinta-seg: 30s; } }
 .cinta__ventana:hover .cinta__pista,
 .cinta__ventana:focus-within .cinta__pista { animation-play-state: paused; }
+/* Fuera de la pantalla, quieta: la marca la pone portada.js (sección 5). */
+.cinta__ventana[data-fuera] .cinta__pista { animation-play-state: paused; }
 
 @keyframes cinta-rodar {
   from { transform: translate3d(0, 0, 0); }
@@ -722,65 +745,12 @@ html[data-ligero] .haz__grano { opacity: .05; }
 }
 
 /* ============================================================================
-   SIN ADEORQ Y CON ADEORQ
-   Enfrentadas línea a línea, la 1 «pero más simple» que eligió Munir el
-   2026-11-17: sin tarjetas ni marcas, lo de antes apagado a la izquierda, una
-   flecha y lo de ahora en blanco a la derecha. Es una tabla de verdad: un
-   lector de pantalla lee cada línea con su «Sin» y su «Con».
+   LAS VENTAJAS (#comparar)
+   Su hoja es portada/ventajas.css. Hasta el 2026-11-23 aquí iba la tabla
+   «Sin Adeorq / Con Adeorq»; sus filas son ahora las seis ventajas.
    ========================================================================= */
 
 .comparar { padding: var(--p-sec) 0 0; }
-.comparar__caja {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 clamp(18px, 4vw, 54px);
-  text-align: center;
-}
-.comparar .comparar__entrada { margin-inline: auto; text-align: center; text-wrap: balance; }
-.comparar__tabla {
-  width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-.comparar__tabla th,
-.comparar__tabla td { padding: 15px 0; text-align: left; vertical-align: middle; text-wrap: balance; }
-/* La de antes, pegada a la flecha por la derecha: las dos columnas se miran y
-   no queda hueco en medio. */
-.comparar__tabla th:first-child,
-.comparar__tabla td:first-child { text-align: right; }
-.comparar__tabla th:nth-child(2),
-.comparar__tabla td:nth-child(2) { width: 76px; text-align: center; }
-.comparar__tabla th {
-  padding-top: 0;
-  padding-bottom: 14px;
-  font-size: clamp(1.3rem, 1rem + .9vw, 1.7rem);
-  font-weight: 760;
-  letter-spacing: -.03em;
-  /* Las dos cabeceras en una línea cada una y apoyadas abajo: en inglés a 360,
-     «Without Adeorq» se partía en dos y «With Adeorq» quedaba a media altura. */
-  vertical-align: bottom;
-  white-space: nowrap;
-}
-/* La columna de antes se lee igual de bien que la de después: lo que las
-   distingue es el peso, no un gris apagado (el texto que se lee no va en gris). */
-.comparar__tabla th:first-child { color: var(--p-suave); font-weight: 620; }
-.comparar__tabla tbody tr { border-top: 1px solid var(--p-linea); }
-.comparar__tabla td { font-size: 18px; line-height: 1.35; }
-.comparar__tabla td:first-child { color: var(--p-suave); font-weight: 500; }
-.comparar__tabla td:last-child { color: var(--p-texto); font-weight: 650; }
-.comparar__flecha { display: inline-block; width: 22px; height: 22px; color: var(--p-acento); vertical-align: middle; }
-@media (max-width: 600px) {
-  .comparar__tabla th:nth-child(2),
-  .comparar__tabla td:nth-child(2) { width: 38px; }
-  .comparar__tabla th,
-  .comparar__tabla td { padding: 12px 0; }
-  /* La letra justa para que «Without Adeorq» quepa en su columna de 320 a 600. */
-  .comparar__tabla th { font-size: clamp(15px, 4.6vw, 20.8px); }
-  .comparar__tabla td { font-size: 15.5px; }
-  .comparar__flecha { width: 18px; height: 18px; }
-}
 
 /* ============================================================================
    ADEO LO REPARTE
@@ -876,6 +846,8 @@ html[data-ligero] .haz__grano { opacity: .05; }
 }
 /* Solo opacidad, como el de la app: late también con el movimiento reducido. */
 @keyframes rchat-late { 50% { opacity: .45; } }
+/* Fuera de la pantalla, quieto: la marca la pone portada.js (sección 5). */
+.rchat[data-fuera] .rchat__estado i { animation-play-state: paused; }
 .rchat__para { color: var(--p-suave); font-size: 16px; }
 .rchat__porque { color: var(--p-tenue); font-size: 14.5px; }
 .rchat__porque b { color: var(--p-texto); font-weight: 650; }
@@ -1549,6 +1521,28 @@ html[data-ligero] .haz__grano { opacity: .05; }
   .descarga__acciones > .btn { width: 100%; }
   .descarga__acciones > .btn em { flex-basis: 100%; text-align: center; }
 }
+/* En el móvil, los botones grandes bajan un escalón, y el de descargar de arriba
+   ya no va de lado a lado: a 390 px medía 354 × 78, la pieza más gorda de la
+   primera pantalla después del titular (Munir, 2026-11-22: «que no sea tan grande
+   el boton de descargar en movil»). Mide lo que su texto, con la nota debajo: el
+   icono y «Descargar para Windows» en una fila y «gratis, sin cuenta» en la otra. */
+@media (max-width: 560px) {
+  .acciones > .btn--grande,
+  .descarga__acciones > .btn--grande { padding: 10px 20px; font-size: 15.5px; }
+  .acciones > [data-descarga-hero] {
+    display: inline-grid;
+    grid-template-columns: auto auto;
+    justify-content: center;
+    align-items: center;
+    column-gap: 9px;
+    row-gap: 1px;
+  }
+  .acciones > [data-descarga-hero] em { grid-column: 1 / -1; justify-self: center; }
+  /* De 480 a 560 los dos caben en una fila y «Ver cómo trabaja» se estira al
+     alto del de descargar (67 px), como en el ordenador; su texto, que con
+     `flex-wrap` se quedaba arriba (12 px arriba y 34 abajo), va en el medio. */
+  .acciones > .btn { align-content: center; }
+}
 
 /* La ficha de datos, con puntos entre ellos y en la letra de la página: se lee
    como una frase, no como código. La rellena datos.js con el JSON de verdad. */
@@ -1972,12 +1966,94 @@ html[data-ligero] .haz__grano { opacity: .05; }
   .ventana { margin-top: 72px; }
   .ventana__encima { left: -8px; right: -8px; justify-content: center; }
 }
-/* En el móvil, solo las pestañas, con letra y huecos que encogen con el ancho:
-   las cinco caben en una fila hasta 320 px, también en inglés. */
+/* En el móvil, encima solo las pestañas, con letra y huecos que encogen con el
+   ancho: las cinco caben en una fila hasta 320 px, también en inglés. El botón
+   de pantalla completa baja a su propia línea, debajo de la ventana, centrado y
+   con su zona de dedo de 48 px. */
 @media (max-width: 700px) {
-  .ventana__grande { display: none; }
+  .ventana__encima .ventana__completa { display: none; }
   .pestanas-demo { gap: 4px clamp(7px, 2.9vw, 17px); }
   .pestanas-demo button { font-size: clamp(13px, 3.9vw, 16px); }
+  .ventana__pie {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    margin: 18px 0 12px;
+  }
+  .ventana__pie .ventana__completa { align-items: center; min-height: 48px; padding: 0 22px; font-size: 15.5px; }
+}
+
+/* ============================================================================
+   LA DEMO A PANTALLA COMPLETA
+   Como la de orquio.com: una capa fija a toda la ventana, y no la pantalla
+   completa del navegador, que en el móvil echa encima su aviso de «arrastra
+   desde arriba para salir» (Munir lo quitó en Orquio el 2026-11-10: «quita el
+   aviso ese que aparece») y en iOS no existe para un <div>. La capa es esta
+   misma `.ventana`: la demo no se recarga y sigue donde estaba. La fila de
+   encima pasa a ser su barra, con las pestañas y «Cerrar»; la pone y la quita
+   portada/completa.js con `data-demo-completa` en <html>.
+
+   La sección sube por encima de la barra de la web y de las demás láminas
+   (todas van a `z-index: 1`), y la ventana por encima del titular de su
+   sección, que va a 3. Las reglas de la ventana llevan `.haz` delante para
+   pesar más que `.haz[data-entrada] .ventana`, la de la entrada, que le pone
+   `transform: none` y le quitaba el giro del móvil. */
+html[data-demo-completa] { overflow: hidden; }
+html[data-demo-completa] main > .haz { z-index: 1000; }
+html[data-demo-completa] .haz .ventana {
+  --barra-demo: 60px;
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  width: auto;
+  height: auto;
+  margin: 0;
+  aspect-ratio: auto;
+  opacity: 1;
+  transform: none;
+  transition: none;
+  background: var(--p-fondo);
+}
+html[data-demo-completa] .ventana__encima {
+  inset: 0 0 auto 0;
+  height: var(--barra-demo);
+  padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--p-fondo);
+  border-bottom: 1px solid var(--p-linea);
+}
+html[data-demo-completa] .ventana__encima .ventana__completa { display: inline-flex; order: 2; }
+html[data-demo-completa] .ventana__ico--abrir { display: none; }
+html[data-demo-completa] .ventana__ico--cerrar { display: block; }
+html[data-demo-completa] .ventana__caja {
+  inset: var(--barra-demo) 0 0 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--p-fondo);
+}
+/* Con poco alto (un portátil con la barra del navegador, un móvil tumbado), la
+   barra adelgaza: cada píxel de alto es demo. */
+@media (max-height: 560px) {
+  html[data-demo-completa] .haz .ventana { --barra-demo: 48px; }
+}
+/* Un móvil o una tableta en vertical: la app es apaisada, así que la capa se
+   tumba y la demo ocupa el largo de la pantalla (a 390 x 844, de 390 a 608 px
+   de ancho). Se gira el aparato y se lee derecha, también con la rotación
+   bloqueada; con ella suelta el navegador gira, la pantalla pasa a apaisada y
+   esta regla deja de valer. */
+@media (orientation: portrait) and (pointer: coarse) {
+  html[data-demo-completa] .haz .ventana {
+    --barra-demo: 48px;
+    inset: 0 auto auto 100%;
+    width: 100vh;
+    width: 100dvh;
+    height: 100vw;
+    transform-origin: 0 0;
+    transform: rotate(90deg);
+  }
 }
 /* Con la ventana más estrecha, las pestañas aprietan un poco. */
 @container ventana (min-width: 660px) and (max-width: 1180px) {
@@ -1991,3 +2067,161 @@ html[data-ligero] .haz__grano { opacity: .05; }
 .adeo-presenta { display: flex; align-items: center; gap: 14px; margin: 0 0 22px; }
 .adeo-presenta .adeo-dice { max-width: 330px; }
 .adeo-presenta--centro { justify-content: center; margin-bottom: 26px; }
+
+
+/* ============================ COMPARTE TU PnL ============================
+   La tarjeta de uso del Perfil (portada/pnl.js la pinta con las funciones de la
+   app). Ancha como el contenido, para que los gatos y la cifra se lean, y los
+   mandos debajo: el formato en texto con su raya y los cinco colores del editor.
+   ========================================================================= */
+
+
+.pnl { padding: var(--p-sec) 0; }
+.pnl__cuerpo { display: grid; justify-items: center; gap: 20px; min-width: 0; }
+.pnl__tarjeta {
+  margin: 0;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #0b0f1a;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .08);
+}
+#pnl[data-pnl-vertical] .pnl__tarjeta { width: min(100%, 440px); aspect-ratio: 9 / 16; }
+.pnl__tarjeta canvas { display: block; width: 100%; height: 100%; }
+
+.pnl__mandos { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px 36px; }
+/* El formato, en texto con su raya debajo, como las pestañas de la casa. */
+.pnl__formatos { display: flex; gap: 22px; }
+.pnl__formatos button {
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--p-suave);
+  font: 650 16px/1.2 var(--p-tipo);
+  cursor: pointer;
+}
+.pnl__formatos button[aria-pressed="true"] { color: var(--p-texto); border-bottom-color: var(--p-acento); }
+/* Los cinco colores del editor de la app: su mismo degradado (muestraDe). */
+.pnl__colores { display: flex; gap: 12px; }
+.pnl__colores button {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--muestra, #fff);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .25);
+  cursor: pointer;
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+.pnl__colores button:hover { transform: translateY(-1px); }
+.pnl__colores button[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--p-fondo-lam, var(--p-fondo)), 0 0 0 5px var(--p-texto); }
+/* «Resaltar la cifra» y el proyecto: interruptores, como en la barra del editor. */
+.pnl__interruptores { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 26px; }
+.pnl__interruptor {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: var(--p-suave);
+  font: 650 16px/1.2 var(--p-tipo);
+  cursor: pointer;
+}
+.pnl__interruptor i {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 2px var(--p-linea2);
+  transition: background-color .18s ease, box-shadow .18s ease;
+}
+.pnl__interruptor i::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--p-suave);
+  transition: transform .18s ease, background-color .18s ease;
+}
+.pnl__interruptor[aria-pressed="true"] { color: var(--p-texto); }
+.pnl__interruptor[aria-pressed="true"] i { background: var(--p-acento); box-shadow: none; }
+.pnl__interruptor[aria-pressed="true"] i::after { background: var(--p-fondo-lam, var(--p-fondo)); transform: translateX(16px); }
+/* La tira de fondos, como la del editor: miniaturas 3:2 y, al final, la tuya. */
+.pnl__fondos { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.pnl__fondo {
+  position: relative;
+  width: 84px;
+  aspect-ratio: 3 / 2;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: var(--p-panel) center / cover no-repeat;
+  box-shadow: inset 0 0 0 1px var(--p-linea2);
+  cursor: pointer;
+  transition: box-shadow .18s ease;
+}
+.pnl__fondo[aria-pressed="true"],
+.pnl__fondo--tuyo[data-elegido] { box-shadow: 0 0 0 3px var(--p-fondo-lam, var(--p-fondo)), 0 0 0 5px var(--p-texto); }
+.pnl__fondo--tuyo {
+  display: grid;
+  place-items: center;
+  width: auto;
+  height: 56px;
+  aspect-ratio: auto;
+  padding: 0 14px;
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--p-linea2);
+  color: var(--p-texto);
+  font: 650 15px/1.2 var(--p-tipo);
+}
+.pnl__fondo--tuyo:hover { box-shadow: inset 0 0 0 2px var(--p-texto); }
+.pnl__fondo--tuyo:focus-within { outline: 2px solid var(--p-texto); outline-offset: 3px; }
+.pnl__fondo--tuyo input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.pnl__nota { margin: 0; max-width: 62ch; color: var(--p-suave); font-size: 15px; text-align: center; }
+.pnl__nota a { color: var(--p-texto); text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 640px) {
+  .pnl__tarjeta { border-radius: 10px; }
+}
+
+/* =========================================================================
+   ADEO TE LA ENSEÑA
+   El vídeo del recorrido de la demo (portada/video.js lo carga y lo para).
+   Mismo marco que la tarjeta del PnL: a todo el ancho, 16:9, esquina de 14.
+   ========================================================================= */
+.video { padding: var(--p-sec) 0; }
+.video__marco {
+  position: relative;
+  margin: 0;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #05080e;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .35);
+}
+.video__marco video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.video__boton {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  padding: 9px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(5, 8, 14, .78);
+  color: #ffffff;
+  font: 650 14px/1.2 var(--p-tipo);
+  cursor: pointer;
+  transition: background-color .18s ease;
+}
+.video__boton:hover { background: rgba(5, 8, 14, .92); }
+@media (max-width: 640px) {
+  .video__marco { border-radius: 10px; }
+  .video__boton { right: 8px; bottom: 8px; padding: 7px 11px; font-size: 13px; }
+}

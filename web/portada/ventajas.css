@@ -1,0 +1,74 @@
+/* ===========================================================================
+   Adeorq · portada/ventajas.css
+   Las ventajas de Adeorq, la sección de justo después de la demo y la cinta
+   (#comparar). Munir, 2026-11-23: «decir bien todas las ventajas de adeorq en
+   el segundo apartado despues de la demo y bien claro y facil ver». De cuatro
+   formas eligió «Ventajas sueltas»: seis ventajas en dos columnas, sin cajas.
+   El 2026-11-24 se fue el bloque de la app de Claude de debajo («quita ese
+   texto nadie se lo va a leer es aburrido») y las seis crecieron para que se
+   vean de lejos («añade bien las funciones muy destacable»).
+
+   Nada de cárceles: ni tarjetas, ni el icono en su cuadradito, ni píldoras.
+   La letra se lee: los nombres a 24-32 px, el texto a 17-19 y nunca en gris
+   apagado. Los colores salen de la lámina (--p-texto, --p-suave, --p-acento).
+   ========================================================================= */
+
+.comparar .vt1 {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 4vw, 54px);
+  text-align: center;
+}
+.vt__entrada { margin-inline: auto; text-align: center; text-wrap: balance; }
+.vt code {
+  font-family: var(--p-mono);
+  font-size: .92em;
+  color: var(--p-texto);
+}
+
+/* ------------------------------ Las seis --------------------------------- */
+
+.vt1__lista {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(44px, 4vw, 64px) clamp(40px, 6vw, 96px);
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+/* Lo de encima de cada nombre: las marcas, una flecha entre marcas, un icono
+   suelto o Adeo. Mismo alto en las seis, para que los nombres caigan a la par. */
+.vt1__fig {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 44px;
+  margin-bottom: 18px;
+  color: var(--p-texto);
+}
+.vt1__fig .prov-mark { width: 34px; height: 34px; flex: none; }
+.vt1__fig .vt1__flecha { width: 26px; height: 26px; flex: none; color: var(--p-acento); }
+.vt1__fig .vt1__ico { width: 42px; height: 42px; flex: none; color: var(--p-acento); }
+.vt1__fig .adeo { width: 58px; height: 40px; }
+.vt1__nombre {
+  margin: 0 0 12px;
+  font-size: clamp(1.55rem, 1.1rem + 1.1vw, 2rem);
+  line-height: 1.15;
+  letter-spacing: -.035em;
+  font-weight: 780;
+  color: var(--p-texto);
+  text-wrap: balance;
+}
+.vt1__lista p {
+  margin: 0;
+  max-width: 44ch;
+  font-size: clamp(1.06rem, .98rem + .35vw, 1.2rem);
+  line-height: 1.6;
+  color: var(--p-suave);
+}
+.vt1__lista p b { color: var(--p-texto); font-weight: 700; }
+@media (max-width: 760px) {
+  .vt1__lista { grid-template-columns: 1fr; }
+}

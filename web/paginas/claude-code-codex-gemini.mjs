@@ -27,7 +27,6 @@ export const CLIENTES = [
   ['opencode', 0, 0, 0],
   ['Antigravity', 0, 0, 0],
   ['Cursor', 0, 0, 0],
-  ['Pi', 1, 0, 1],
   ['Kiro CLI', 0, 0, 0],
   ['Kimi Code', 1, 0, 1],
 ]
@@ -41,7 +40,7 @@ const ES = {
   miga: 'Claude Code, Codex y Gemini',
   h1: 'Claude Code, Codex y Gemini CLI en el mismo panel',
   entrada:
-    'Adeorq abre <b>Claude Code, Codex, Gemini CLI y otros ocho clientes</b> a la vez, cada uno en su terminal de verdad y dentro de la misma ventana. Entra con la sesión que ya tienes en cada uno: no pide claves ni revende acceso.',
+    'Adeorq abre <b>Claude Code, Codex, Gemini CLI y otros siete clientes</b> a la vez, cada uno en su terminal de verdad y dentro de la misma ventana. Entra con la sesión que ya tienes en cada uno: no pide claves ni revende acceso.',
   indice: [
     ['como', 'Cómo se abren juntos'],
     ['instalar', 'Instalar cada cliente'],
@@ -109,11 +108,11 @@ const ES = {
     },
     {
       q: '¿Adeorq abre opencode?',
-      a: 'Sí. opencode es uno de los once clientes del catálogo, y se abre en su terminal como los demás.',
+      a: 'Sí. opencode es uno de los diez clientes del catálogo, y se abre en su terminal como los demás.',
     },
     {
       q: '¿Puedo usar dos cuentas del mismo cliente?',
-      a: 'Sí en seis de ellos: Claude Code, Codex, Gemini CLI, Grok, Pi y Kimi Code. Tú eliges con qué cuenta nace cada terminal.',
+      a: 'Sí en cinco de ellos: Claude Code, Codex, Gemini CLI, Grok y Kimi Code. Tú eliges con qué cuenta nace cada terminal.',
     },
     {
       q: '¿Puedo ejecutar un CLI que no esté en la lista?',
@@ -132,7 +131,7 @@ const EN = {
   miga: 'Claude Code, Codex and Gemini',
   h1: 'Claude Code, Codex and Gemini CLI in the same panel',
   entrada:
-    'Adeorq opens <b>Claude Code, Codex, Gemini CLI and eight other clients</b> at once, each in its own real terminal and inside the same window. It signs in with the session you already have in each one: it asks for no keys and resells no access.',
+    'Adeorq opens <b>Claude Code, Codex, Gemini CLI and seven other clients</b> at once, each in its own real terminal and inside the same window. It signs in with the session you already have in each one: it asks for no keys and resells no access.',
   indice: [
     ['como', 'How they open together'],
     ['instalar', 'Install each client'],
@@ -200,11 +199,11 @@ const EN = {
     },
     {
       q: 'Does Adeorq open opencode?',
-      a: 'Yes. opencode is one of the eleven clients in the catalogue, and it opens in its own terminal like the others.',
+      a: 'Yes. opencode is one of the ten clients in the catalogue, and it opens in its own terminal like the others.',
     },
     {
       q: 'Can I use two accounts of the same client?',
-      a: 'Yes, on six of them: Claude Code, Codex, Gemini CLI, Grok, Pi and Kimi Code. You choose which account each terminal starts with.',
+      a: 'Yes, on five of them: Claude Code, Codex, Gemini CLI, Grok and Kimi Code. You choose which account each terminal starts with.',
     },
     {
       q: 'Can I run a CLI that is not on the list?',

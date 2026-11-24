@@ -1,0 +1,119 @@
+/* ===========================================================================
+   Adeorq · portada/laminas.css
+   La portada en láminas, al estilo de wisprflow.ai con los colores de Adeorq
+   (Munir, 2026-11-23: «haz la web mas simple y con elementos de wisprflow tipo
+   style pero con nuestros colores azul y blanco y negro y el ruido de pelicula
+   etc»; eligió esta, la «1 · Láminas», entre tres enseñadas en localhost).
+
+   Cada sección es una lámina negra, noche o azul (la clase `lam-*` en su
+   <section> de index.html) con las esquinas de arriba redondas, que sube
+   encima de la anterior y lleva su grano de película. El botón principal va
+   relleno claro con su borde.
+
+   De Wispr se copia lo que pasa, no su color: las láminas que suben, el
+   grano de su vídeo, el botón relleno con borde y las secciones cortas de
+   título y una frase. Su letra con serifa no: la web va en Geist (DISENO.md).
+
+   El grano es una textura QUIETA dentro de cada lámina (se mueve con ella al
+   bajar), sin `mix-blend-mode` ni capa fija encima de la página: cada mezcla o
+   capa que se rehace al hacer scroll es un pase de dibujo más por fotograma
+   (los tirones medidos de 2026-11-19 y 22, web/README.md).
+
+   Las reglas llevan `:root` delante para pesar lo que pesaban cuando eran una
+   variante (`[data-variante] .lam-negra`) y ganar a las de portada.css que
+   pisan (el padding de cada sección, el del pie): así es como se midió.
+   ========================================================================= */
+
+:root {
+  --l-negro: #05080e;
+  --l-noche: #0c1a37;
+  --l-azul: #1248b8;
+  /* El radio de las esquinas de arriba: lo que cada lámina sube sobre la de antes. */
+  --l-radio: clamp(28px, 4vw, 64px);
+  /* Grano de película en gris, uno para cada fondo (en uno claro se nota el doble). */
+  --l-grano-osc: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.4 -.55'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.16'/%3E%3C/svg%3E");
+}
+
+/* Cada sección en orden encima de la anterior: todas con el mismo z-index,
+   gana la que va después en el HTML. */
+:root main > section,
+:root .pie { position: relative; z-index: 1; }
+
+:root .lam-negra,
+:root .lam-noche,
+:root .lam-azul {
+  margin-top: calc(var(--l-radio) * -1);
+  padding-top: calc(var(--p-sec) + var(--l-radio) * .4);
+  padding-bottom: calc(var(--p-sec) + var(--l-radio));
+  border-radius: var(--l-radio) var(--l-radio) 0 0;
+}
+:root .lam-negra {
+  --p-fondo-lam: var(--l-negro);
+  background: var(--l-grano-osc), var(--l-negro);
+  box-shadow: 0 -1px 0 rgba(150, 185, 240, .14);
+}
+:root .lam-azul {
+  --p-fondo-lam: var(--l-azul);
+  --p-texto: #ffffff;
+  --p-suave: #e4ecfd;
+  --p-tenue: #c4d4f4;
+  --p-acento: #ffffff;
+  --p-linea: rgba(255, 255, 255, .22);
+  --p-linea2: rgba(255, 255, 255, .38);
+  --p-panel: #0d3a99;
+  color: var(--p-texto);
+  background: var(--l-grano-osc), var(--l-azul);
+}
+/* La noche ocupa el sitio de las láminas blancas, que deslumbraban (Munir,
+   2026-11-23: «en la web cambiar tanto blanco que deslumbra»; de cuatro formas
+   eligió «Sin blanco»). Es el tercer tono entre el negro y el azul, para que
+   las láminas sigan alternando de tres en tres. */
+:root .lam-noche {
+  --p-fondo-lam: var(--l-noche);
+  --p-texto: #e6edfa;
+  --p-suave: #cfdbee;
+  --p-tenue: #8fa3c4;
+  --p-acento: #6eb0ff;
+  --p-linea: rgba(140, 170, 220, .18);
+  --p-linea2: rgba(150, 185, 240, .32);
+  --p-panel: #14244a;
+  color: var(--p-texto);
+  background: var(--l-grano-osc), var(--l-noche);
+  box-shadow: 0 -1px 0 rgba(150, 185, 240, .16);
+}
+:root .lam-noche .adeo-dice { box-shadow: 0 8px 22px rgba(0, 0, 0, .3); }
+:root .lam-azul .adeo-dice { box-shadow: 0 8px 22px rgba(0, 0, 0, .22); }
+:root .lam-azul .btn--fantasma,
+:root .lam-noche .btn--fantasma { background: transparent; }
+:root .lam-noche .btn--fantasma:hover { background: rgba(255, 255, 255, .06); }
+
+/* «Léelo entero» es una caja de 1320 centrada: como lámina va de borde a borde,
+   con el contenido en el mismo ancho de siempre. */
+:root #codigo {
+  max-width: none;
+  padding-inline: max(clamp(18px, 4vw, 54px), calc((100% - 1320px) / 2 + clamp(18px, 4vw, 54px)));
+}
+/* La raya de encima del café separaba de lo de antes; ahí ya lo hace la lámina. */
+:root .apoyar__caja { border-top: 0; padding-top: 0; }
+
+/* La tarjeta del PnL sobre azul: la sombra de la noche ahí es una mancha. */
+:root .lam-azul .pnl__tarjeta { box-shadow: 0 24px 60px rgba(0, 0, 0, .35); }
+
+/* El botón principal, como el de Wispr: relleno claro, su borde y esquina poca.
+   En el azul de la marca aclarado, con la tinta de la app encima. */
+:root .btn--claro {
+  border-radius: 10px;
+  background: #d4e5ff;
+  color: #071019;
+  box-shadow: 0 0 0 2px #071019, 0 0 0 3px rgba(212, 229, 255, .55);
+}
+:root .btn--claro:hover {
+  background: #e4eeff;
+  box-shadow: 0 0 0 2px #071019, 0 0 0 4px rgba(212, 229, 255, .7);
+}
+:root .btn--claro em { color: rgba(7, 16, 25, .7); }
+:root .btn--fantasma { border-radius: 10px; border-width: 2px; }
+:root .nav .btn--claro { box-shadow: 0 0 0 2px #071019; }
+
+/* El pie también sube como lámina, con el aire de un pie y no el de una sección. */
+:root .pie.lam-negra { padding-top: calc(var(--l-radio) + 24px); padding-bottom: 0; }

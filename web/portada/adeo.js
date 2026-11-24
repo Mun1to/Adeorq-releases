@@ -76,21 +76,42 @@ function crearAdeo(svg, animo) {
   let vuelve = 0
   let visible = true
   let toques = []
+  // Los cuadros que hay ahora en el <svg>, en su orden.
+  let pintados = []
 
+  /* Cada postura son unos 130 cuadros. Se tiraban todos y se creaban de nuevo
+     en cada paso, en los diez Adeo de la página: unas 680 altas y bajas de
+     nodos por segundo mientras se baja (medido el 2026-11-22 con la traza de
+     invalidaciones, 8.228 en 12 s), y cada una obliga a recalcular estilo y
+     maqueta. Ahora se reutilizan y solo se toca el atributo que cambia: el
+     <svg> queda igual que antes, cuadro a cuadro y en el mismo orden. */
   function pintar() {
     // Con el dial por debajo de 1 no hay salto: la misma postura, en el suelo.
     const p = pose.salta && ganancia() < 1 ? { ...pose, salta: false } : pose
-    const rects = cuadrosDe(p, mirada).map((q) => {
-      const r = document.createElementNS(SVG, 'rect')
-      r.setAttribute('x', q.x)
-      r.setAttribute('y', q.y)
-      // Un pelo más ancho que la celda, para que no se vea la rejilla.
-      r.setAttribute('width', '1.02')
-      r.setAttribute('height', '1.02')
-      r.setAttribute('fill', q.c)
-      return r
-    })
-    svg.replaceChildren(...rects)
+    const nuevos = cuadrosDe(p, mirada)
+    const hay = svg.children
+    if (hay.length !== pintados.length) {
+      // Alguien lo ha tocado por fuera: se empieza de cero.
+      svg.replaceChildren()
+      pintados = []
+    }
+    for (let i = 0; i < nuevos.length; i++) {
+      const q = nuevos[i]
+      const antes = pintados[i]
+      let r = hay[i]
+      if (!r) {
+        r = document.createElementNS(SVG, 'rect')
+        // Un pelo más ancho que la celda, para que no se vea la rejilla.
+        r.setAttribute('width', '1.02')
+        r.setAttribute('height', '1.02')
+        svg.append(r)
+      }
+      if (antes?.x !== q.x) r.setAttribute('x', q.x)
+      if (antes?.y !== q.y) r.setAttribute('y', q.y)
+      if (antes?.c !== q.c) r.setAttribute('fill', q.c)
+    }
+    while (hay.length > nuevos.length) svg.lastElementChild.remove()
+    pintados = nuevos
   }
 
   function paso() {

@@ -353,6 +353,13 @@ export interface ContextInfo {
       limit», leído como lo lee el relevo (`mcp/relevo_cuota.rs`). Sin cuota,
       `/compact` y `/fin` fallan, así que la raya no se los teclea. */
   sinCuota?: boolean;
+  /** Cuándo EMPEZÓ la última llamada al modelo del hilo (ms desde 1970), 0 si
+      no se sabe: la caché dura una hora desde ahí (`alQuieto`, lib/contexto.ts). */
+  ultimaLlamadaMs?: number;
+  /** El último turno acabó con un `/goal` sin cumplir. */
+  goal?: boolean;
+  /** El hilo escribe su caché para una hora (no la de cinco minutos). */
+  cacheHora?: boolean;
 }
 
 /** What a session or a pane is doing. Empty = unknown, and never actionable. */

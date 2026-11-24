@@ -1013,6 +1013,27 @@ html[data-panes="tarjetas"] .pane[data-focused="true"] {
 
 .pane-term .xterm {
   height: 100%;
+  /* El hueco del aro de estado (`.pane-aro`, más abajo), que va por dentro del
+     panel y ENCIMA de la terminal: sin él se comía la primera letra de cada
+     línea (la pata de la «A», el «●» de Claude, la raya de una caja), en los
+     cuatro estilos y con los tres estados. A la izquierda, que es donde
+     empieza cada línea, y abajo, donde la última fila (la barra en vídeo
+     inverso de vim, less o htop, el pie de Claude Code) queda pegada al borde
+     cuando lo que sobra es menos que el aro: medido el 2026-11-22, Terminal al
+     100 % con 0-2 px de sobra perdía 624-1.872 píxeles de tinta y Liso al
+     125 %, hasta 1.620. Arriba va la cabecera (en Consola va abajo, y en
+     `42-aspectos.css` el hueco de abajo pasa arriba; el de la izquierda se
+     queda) y a la derecha, los 14 px que `FitAddon` reserva para la barra.
+     `FitAddon` resta este padding al contar filas y columnas, así que se
+     pierde una solo cuando lo que sobraba en ese lado era menos que el hueco,
+     o cuando el alto del padre trae decimales, que `FitAddon` tira con su
+     `parseInt`. Va en `.xterm` y no en `.pane-term` porque `FitAddon` solo
+     descuenta el padding del elemento de xterm: en su padre, con
+     `border-box`, xterm se saldría por la derecha. En la Cabina, los píxeles
+     de tinta que pisa el aro los cuenta `scripts/laboratorio/aro-tinta.js`,
+     con los cuatro estilos, las tres formas y sobrantes de 0 a 24 px. */
+  padding-left: var(--aro-hueco);
+  padding-bottom: var(--aro-hueco);
 }
 
 /* AQUÍ estaba el fondo que no se veía, y no era nuestro.
@@ -1095,7 +1116,19 @@ html[data-panes="tarjetas"] .pane[data-focused="true"] {
    ratón, y por DENTRO del borde: el borde es el hueco de las tarjetas. Su
    esquina es la de dentro del panel (`--pane-r-dentro`, puesta junto a cada
    `border-radius` de un panel), o el recorte del panel le comería el anillo
-   justo en la curva. */
+   justo en la curva.
+   Su grueso es el del tramo de «trabajando», el más ancho (la sombra quieta es
+   de 2 px), y la terminal deja ese grueso y un píxel de aire (`--aro-hueco`,
+   en `.pane-term .xterm`): si uno crece, crece el otro. El píxel no es
+   adorno: a 125 % los 3 px del tramo son 3,75 de pantalla, el lienzo de xterm
+   cae en un píxel entero, y el borde suavizado del tramo teñía la primera
+   columna de cada letra (medido: 33 píxeles de tinta tocados con 3 px de
+   hueco, ninguno con 4). */
+.pane {
+  --aro-grueso: 3px;
+  --aro-hueco: calc(var(--aro-grueso) + 1px);
+}
+
 .pane-aro {
   position: absolute;
   inset: 0;
@@ -1145,7 +1178,7 @@ html[data-panes="tarjetas"] .pane[data-focused="true"] {
 .pane[data-estado="trabaja"] > .pane-aro {
   container-type: size;
   overflow: hidden;
-  padding: 3px;
+  padding: var(--aro-grueso);
   mask:
     linear-gradient(#000 0 0) content-box exclude,
     linear-gradient(#000 0 0);

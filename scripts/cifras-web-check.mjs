@@ -7,13 +7,16 @@
 // de la pregunta frecuente («Conoce 11 clientes», con su copia en los datos para
 // buscadores, que se sacan del HTML de origen) y `llms.txt` («y 6 clientes más»).
 // Con un cliente nuevo, cada una se quedaba con su número (lo cazó la revisión
-// aparte del 2026-11-17). Aquí se mide que todas digan lo mismo que el catálogo.
+// aparte del 2026-11-17). Aquí se mide que todas digan lo mismo que el catálogo,
+// sin los que la web no enseña (`FUERA_DE_LA_WEB` en web/scripts/extraer-clientes.mjs:
+// Pi, desde el 2026-11-23).
 //
 //   node scripts/cifras-web-check.mjs
 
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { FUERA_DE_LA_WEB } from "../web/scripts/extraer-clientes.mjs";
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const leer = (r) => fs.readFileSync(path.join(RAIZ, r), "utf8");
@@ -22,11 +25,13 @@ const leer = (r) => fs.readFileSync(path.join(RAIZ, r), "utf8");
 // ficha tras `export const PROVIDERS`) y el de las metas (`poner-metadatos.mjs`, cada
 // `label:`). Si no dan lo mismo, la culpa no es de la web sino del catálogo o del patrón.
 const fuente = leer("src/lib/providers.ts");
-const total = [...fuente.slice(fuente.indexOf("export const PROVIDERS")).matchAll(/^ {4}id: "([a-z0-9]+)",$/gm)].length;
+const ids = [...fuente.slice(fuente.indexOf("export const PROVIDERS")).matchAll(/^ {4}id: "([a-z0-9]+)",$/gm)].map((m) => m[1]);
 const etiquetas = [...fuente.matchAll(/label:\s*"[^"]+"/g)].length;
 const fallos = [];
-if (total < 5) fallos.push(`src/lib/providers.ts solo da ${total} clientes: el patrón no encaja`);
-if (etiquetas !== total) fallos.push(`providers.ts: ${total} fichas pero ${etiquetas} \`label:\`, y las metas (poner-metadatos.mjs) cuentan las etiquetas`);
+if (ids.length < 5) fallos.push(`src/lib/providers.ts solo da ${ids.length} clientes: el patrón no encaja`);
+if (etiquetas !== ids.length) fallos.push(`providers.ts: ${ids.length} fichas pero ${etiquetas} \`label:\`, y las metas (poner-metadatos.mjs) cuentan las etiquetas`);
+for (const id of FUERA_DE_LA_WEB) if (!ids.includes(id)) fallos.push(`FUERA_DE_LA_WEB nombra «${id}», que ya no está en providers.ts`);
+const total = ids.filter((id) => !FUERA_DE_LA_WEB.includes(id)).length;
 
 // La frase del haz la rellena el build: sin su hueco, se quedaría el número escrito a mano.
 // Se busca con la misma regex que `bakeReleaseData` (web/vite.config.js): un span con otro
@@ -38,7 +43,7 @@ if (hueco(leer("web/portada/en.mjs")) !== 1) fallos.push("web/portada/en.mjs: la
 const portada = leer("web/index.html");
 const cinta = portada.match(/<ul class="cinta__grupo">([\s\S]*?)<\/ul>/);
 const enCinta = cinta ? (cinta[1].match(/class="cli"/g) || []).length : 0;
-if (enCinta !== total) fallos.push(`la cinta de logos de web/index.html lleva ${enCinta} y el catálogo ${total}: lanza \`pnpm clientes\` en web/`);
+if (enCinta !== total) fallos.push(`la cinta de logos de web/index.html lleva ${enCinta} y el catálogo ${total} para la web: lanza \`pnpm clientes\` en web/`);
 
 const faq = [...portada.matchAll(/Conoce (\d+) clientes/g)].map((m) => Number(m[1]));
 if (faq.length < 2) fallos.push(`web/index.html: esperaba «Conoce N clientes» en la pregunta frecuente y en sus datos para buscadores, y sale ${faq.length} vez`);
@@ -54,8 +59,26 @@ for (const [re, idioma] of [[/Cursor y (\d+) clientes/, "es"], [/Cursor and (\d+
   else if (Number(m[1]) !== total - 5) fallos.push(`web/llms.txt (${idioma}) dice ${m[1]} más tras cinco nombrados, y el catálogo tiene ${total}`);
 }
 
+// Y lo que la web no enseña no se nombra en lo que la web publica: ni en la cinta, ni
+// en la portada en los dos idiomas, ni en llms.txt, ni en las páginas por búsqueda,
+// ni en la guía. Las páginas de privacidad quedan fuera a propósito: la app sigue
+// leyendo su historial, y lo que dicen tiene que seguir siendo verdad.
+const etiquetaDe = (id) => fuente.slice(fuente.indexOf(`    id: "${id}",`)).match(/^ {4}label: "([^"]+)",$/m)?.[1];
+const publicado = ["web/index.html", "web/portada/en.mjs", "web/llms.txt", "web/guia.html", "web/js/guia-i18n.js",
+  ...fs.readdirSync(path.join(RAIZ, "web/paginas")).filter((f) => f.endsWith(".mjs")).map((f) => `web/paginas/${f}`)];
+for (const id of FUERA_DE_LA_WEB) {
+  const nombre = etiquetaDe(id);
+  if (!nombre) continue;
+  const re = new RegExp(`(?<![\\w-])${nombre.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`);
+  for (const r of publicado) {
+    // Los comentarios del taller no se publican: se miran solo el texto y los datos.
+    const texto = leer(r).replace(/<!--[\s\S]*?-->/g, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    if (re.test(texto)) fallos.push(`${r} nombra «${nombre}», que está en FUERA_DE_LA_WEB (web/scripts/extraer-clientes.mjs)`);
+  }
+}
+
 if (fallos.length) {
   for (const f of fallos) console.log(`FALLA ${f}`);
   process.exit(1);
 }
-console.log(`ok   ${total} clientes en el catálogo, en la cinta, en la pregunta frecuente y en llms.txt`);
+console.log(`ok   ${total} clientes para la web (catálogo sin ${FUERA_DE_LA_WEB.join(", ") || "nada"}), en la cinta, en la pregunta frecuente y en llms.txt`);

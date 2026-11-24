@@ -461,6 +461,9 @@ mod tests {
             title: String::new(),
             viva,
             sin_cuota: false,
+            ultima_llamada_ms: 0,
+            goal: false,
+            cache_hora: false,
         };
         assert_eq!(carga_si_corre(info(true), "s".into()).map(|c| c.usados), Some(450_000));
         assert_eq!(carga_si_corre(info(false), "s".into()), None);

@@ -22,9 +22,9 @@
 //
 // Quien no está en esta lista sale con sus iniciales, que es honesto: dos letras
 // no pretenden ser el logo de nadie (Munir quitó el 2026-07-29 dos dibujos que
-// eran míos y no venían de su logo). Hoy les pasa a Pi y a Kimi: la marca de Pi
-// es un patrón geométrico que no se leyó con claridad, y la web de Kimi no
-// sirve un SVG. Si algún día llegan los suyos, se añaden y ya.
+// eran míos y no venían de su logo). Hoy le pasa a Pi: su marca es un patrón
+// geométrico que no se leyó con claridad. Kimi llegó el 2026-11-23 y desde el
+// 24 lleva su K de siempre.
 
 import { useId } from "react";
 import type { ReactElement } from "react";
@@ -140,18 +140,16 @@ const MARCAS: Record<string, (uid: string) => ReactElement> = {
     />
   ),
 
-  // Grok: la X de xAI, que no es una equis de teclado.
-  //
-  // Su logo son dos cunas que se cruzan y cuyos brazos NO tienen el mismo
-  // grosor de punta a punta: nacen anchos y acaban en filo. Por eso va con
-  // `fill` y no con trazo: una X de linea uniforme se lee como una cruz de
-  // cerrar ventana, que es justo lo que hay que evitar en una fila de botones
-  // donde al lado hay una aspa de verdad.
+  // Grok: el logo de la propia app, no la X de xAI que iba aquí hasta el
+  // 2026-11-24 (Munir: «¿estás seguro que ese es el logo [...] de grok?»).
+  // Son los dos trazos blancos del favicon oficial, grok.com/images/favicon.svg
+  // (bajado ese día), sin su cuadrado negro: ocupan de 56 a 456 en su caja de
+  // 512, y el `transform` los lleva a la de 24.
   grok: () => (
-    <path
-      d="M2.6 2.6h3.7l15.1 18.8h-3.7Zm15.2 0h3.6l-6.1 7.3-1.8-2.2Zm-7.9 11 1.8 2.2-5.6 5.6H2.6Z"
-      fill="currentColor"
-    />
+    <g transform="translate(-3.36 -3.36) scale(.06)" fill="currentColor">
+      <path d="M210.484 312.759L343.465 210.383C349.984 205.364 359.302 207.322 362.408 215.117C378.758 256.231 371.454 305.64 338.925 339.563C306.397 373.487 261.137 380.927 219.768 363.983L174.577 385.803C239.394 432.008 318.104 420.581 367.289 369.251C406.303 328.564 418.386 273.104 407.088 223.091L407.19 223.198C390.807 149.726 411.218 120.359 453.03 60.3072C454.02 58.8833 455.01 57.4595 456 56L400.978 113.382V113.204L210.45 312.794Z" />
+      <path d="M183.042 337.641C136.519 291.294 144.54 219.567 184.236 178.203C213.59 147.59 261.683 135.096 303.666 153.464L348.755 131.75C340.632 125.627 330.221 119.042 318.275 114.414C264.277 91.2407 199.63 102.774 155.735 148.516C113.513 192.549 100.236 260.254 123.036 318.027C140.069 361.206 112.148 391.748 84.0229 422.575C74.0561 433.503 64.0553 444.431 56 456L183.007 337.677Z" />
+    </g>
   ),
 
   // Kiro: su fantasma.
@@ -159,6 +157,18 @@ const MARCAS: Record<string, (uid: string) => ReactElement> = {
     <g strokeWidth="1.8" {...T}>
       <path d="M4.6 20.2V10.4a7.4 7.4 0 0 1 14.8 0v9.8l-2.5-1.8-2.4 1.8-2.5-1.8-2.4 1.8-2.5-1.8Z" />
       <path d="M9.6 10.6v1.6M14.4 10.6v1.6" strokeWidth="2.2" />
+    </g>
+  ),
+
+  // Kimi: su K de siempre, fina, con el punto en gota arriba a la derecha.
+  // Calcada fila a fila del icono de su app (kimi.com/pwa-512.png, 2026-11-24):
+  // el palo, el brazo a 45° y la pierna a ~36°, en las coordenadas de ese
+  // icono de 512 y escalada a 24. Munir, 2026-11-24: «cambia el logo de kimi por
+  // su mítica K»; el 23-nov llevaba el de Kimi Code (la cúpula con `>_`).
+  kimi: () => (
+    <g transform="translate(12 12) scale(.0777) translate(-289.5 -227)" fill="currentColor">
+      <path d="M148 140H189V252L301 140H359L253 246L343 310Q357 313 364 320V364H354Q342 363 332 357L225 279L189 315V364H148Z" />
+      <path d="M380 141V115.5A25.5 25.5 0 1 1 405.5 141Z" />
     </g>
   ),
 

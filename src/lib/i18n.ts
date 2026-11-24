@@ -2268,6 +2268,8 @@ const EN: Record<string, string> = {
   "Compactar solo, sin commits": "Compact on its own, without commits",
   "Compactar solo, con el /fin entero": "Compact on its own, with the full /fin",
   "Sugerir compactar al acabar una tarea grande, desde los 200.000 tokens": "Suggest compacting after a big task, from 200,000 tokens",
+  "Compactar sola una terminal que lleve 55 minutos quieta, desde los 100.000 tokens, antes de que caduque su caché":
+    "Compact a terminal on its own after 55 idle minutes, from 100,000 tokens, before its cache expires",
   "Contarle a la terminal que abrió otras cuándo acaban, se bloquean o preguntan":
     "Tell the terminal that opened others when they finish, get blocked or ask",
   Compactar: "Compact",
@@ -3176,6 +3178,15 @@ const EN: Record<string, string> = {
   "(sin título)": "(untitled)",
   "listo en 3,1 s": "done in 3.1 s",
   "2 avisos": "2 warnings",
+  // Ajustes › Aspecto y Terminales: la vista al lado (VistaTerminal.tsx) y el
+  // número que se escribe (NumeroAjuste.tsx)
+  "Así se verá tu terminal": "How your terminal will look",
+  "arregla el login": "fix the login",
+  Leo: "Reading",
+  Edito: "Editing",
+  "12 pasan": "12 passed",
+  "Doble clic para escribir el número": "Double-click to type the number",
+  "Escribe el número": "Type the number",
   "ya está abierta en otro sitio (la app de escritorio, otra terminal u otro Adeorq). No la abro aquí: dos Claude sobre la misma sesión se bloquean y se queda congelada sin decir por qué. Ciérrala allí y vuelve a intentarlo.":
     "is already open somewhere else (the desktop app, another terminal or another Adeorq). I am not opening it here: two Claudes on the same session block each other and it freezes without saying why. Close it there and try again.",
   "«{c}» ({p}) se cerrará y se borrará su carpeta de configuración, con su historial. Tu cuenta de siempre y tus proyectos no se tocan. Para volver a usarla habría que hacer el login otra vez.":

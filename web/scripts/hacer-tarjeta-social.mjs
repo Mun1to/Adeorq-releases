@@ -36,6 +36,7 @@ import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, resolve, join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { clientesDeLaWeb } from './extraer-clientes.mjs'
 
 /** Carga playwright-core de donde este. */
 async function cargarChromium() {
@@ -77,8 +78,8 @@ const ALTO = 630
  * cliente nuevo, la tarjeta no se queda mintiendo.
  */
 function clientes() {
-  const src = readFileSync(resolve(WEB, '../src/lib/providers.ts'), 'utf8')
-  const etiquetas = [...src.matchAll(/label:\s*"([^"]+)"/g)].map((m) => m[1])
+  // Sin los que la web no enseña (`FUERA_DE_LA_WEB` en extraer-clientes.mjs).
+  const etiquetas = clientesDeLaWeb().map((c) => c.label)
   if (etiquetas.length < 5) throw new Error(`providers.ts solo da ${etiquetas.length} clientes: el patron no encaja`)
 
   // Los que se nombran. Munir decide cuales: son los que quiere ensenar fuera,

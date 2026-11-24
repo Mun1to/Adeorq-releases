@@ -243,6 +243,80 @@ sin su clic no (D8). Las rayas son las de la D7 (300k aviso, 400k compacta, 600k
     pregunta (un permiso, el «Type something», un «no» en prosa) pasa sin `confirm`
     (`tope_contexto::retiene`). El paso R4 del laboratorio, rojo antes y verde después.
 
+## Una terminal quieta casi una hora se compacta antes de que caduque su caché (2026-11-23)
+
+Munir, al ver que los arranques en frío eran el 11,7 % de su semana: *«lo de las sesiones que
+estén inactivas por una hora o así, compactarlas»*. La caché del hilo de Claude Code dura una hora
+desde la última llamada al modelo; pasada, el mensaje siguiente reescribe el contexto entero (489 $
+del 16 al 22 de noviembre con precios de API, `node scripts/cuota-por-terminal.mjs`). Compactando a
+los 55 minutos, el resumen relee la caché todavía viva y al volver se escriben unos 40k en vez de
+300k.
+
+- **Cuándo** (`alQuieto` en `lib/contexto.ts`, el porqué de cada número en `QUIETA_MS`): entre los
+  55 y los 58 minutos desde que empezó la última llamada del hilo (`ultimaLlamadaMs`, que Rust lee
+  de la línea de justo antes de la respuesta, tu mensaje o el resultado de una herramienta, que se
+  apunta al mandarla; si no la hay a menos de 5 minutos, de la primera línea de su `requestId`, que
+  llega tarde: 11 s de mediana, y 5 de 779 llamadas pasaron de 86 s, hasta 2 min), con 100.000
+  tokens o más y la caché escrita para una hora (`cacheHora`, de
+  `usage.cache_creation`: con la de cinco minutos no queda nada que leer). Pasados los 58 no. El
+  panel mira cada minuto (`MIRAR_QUIETA_MS`), en las terminales de Claude Code con su conversación
+  sabida, también las de Munir: es otro ajuste que el de la raya.
+- **Con las llaves de siempre** (turno acabado, sin subagentes, sin menú, sin borrador, en su caja,
+  con cuota, sin otro traspaso en marcha) y lo que vio la revisión aparte del mismo día: solo en
+  «lista» (una que acabó preguntándote, «ofrece», pasaría a «lista» tras la marca y dejaría de
+  decir TE ESPERA); nunca una delegada (su `/compact` le llegaría a quien la abrió como «trabajo de
+  fondo» y luego «paró sin entregar», y cada aviso es una llamada de esa otra); sin trabajo de
+  fondo en su pie (`trabajoDeFondoEnPantalla`: `agentsLive` ya no lo cuenta tras cinco minutos sin
+  escribir), y sin un `/goal` sin cumplir (`goal`). Y de la segunda revisión: nunca una relevada
+  (ya sigue en una terminal nueva: sería un resumen que nadie va a leer; «Ocultar aviso» la
+  devuelve), ni una compactada ya `COMPACTADA_DE_MAS` veces (un resumen de un resumen: la raya roja
+  tampoco compacta sola una tercera). Una vez por llamada (`quietaHecha`). No toca
+  `hecho`: si el `/compact` no se hace (un Esc, sin cuota), la raya roja y el corte de las delegadas
+  siguen; si se hace, la marca trae `postTokens` (205 de 205) y el número baja solo.
+- **Solo `/compact`** con lo de siempre que conservar (`ordenDeCompactar`). Ni `/fin` (un turno
+  entero con quien la usa lejos) ni «sigue» después: cualquier mensaje es otra llamada.
+- **Callada**: el fin de ese turno lo ve el detector del panel (`lib/finDeTurno.ts`), y sin más
+  sería un «terminó» con su brillo, su aviso al móvil y el salto a pantalla completa, a una hora
+  en que no hay nadie. `finDeQuieta` lo dice una vez (hasta `CALLAR_QUIETA_MS`, y se gasta con un
+  Intro de quien la usa: si el fin del `/compact` no se vio, el siguiente es suyo) y `TerminalPane`
+  no hace nada de eso, y le devuelve el brillo que tenía antes de compactar (el «trabajando» del
+  `/compact` lo apaga), salvo que la hayas mirado entretanto. **Y el que decide es el transcript,
+  no el camino del mensaje** (segunda revisión): un mensaje que esperaba en cola (del móvil, de
+  `send_command`, de Adeo, de una flecha del lienzo) arranca nada más acabar el `/compact`, sin
+  asentarse en la caja, y el panel ve UN solo fin, el suyo; por eso `finDeQuieta` relee el
+  transcript, y si una llamada al modelo empezó después de teclear el `/compact` (el `/compact` no
+  apunta llamada), ese fin avisa como siempre; sin poder leerlo, también. `TerminalPane` lo aplica
+  en cuanto llega la lectura, si entretanto no empezó otro turno. El transcript no hace falta callarlo: Claude Code apunta el `/compact` y su
+  resumen al acabar, detrás de la marca, y su estado sigue en «lista» (ni la campana de la lista
+  ni el salto de `App` lo ven como un fin).
+- **Por qué compensa, medido**: la cuenta lleva `tengu_compact_cache_prefix` (en `cachedGrowthBookFeatures`
+  de `~/.claude.json`, con `tengu_compact_cache_sharing_success` en el binario 2.1.330): el
+  `/compact` comparte el prefijo del hilo y lo lee de caché. Y en sus transcripts de 14 días
+  (`node scripts/quietas-que-vuelven.mjs 14`), de las quietas 55 minutos con 100-200k
+  volvió a hablarles el 84 % (36 de 43), con 200-450k el 94-100 %; a 100k compensa desde un 45 %.
+- **El ajuste**: Ajustes › Terminales, «Compactar sola una terminal que lleve 55 minutos quieta»,
+  encendido de fábrica (`leerQuietas`, `adeorq-compactar-quietas`).
+- **Medido:** `pnpm bancos contexto` (los casos de «Compactar una quieta»: sin la ventana de 55-59
+  minutos o sin mirar el `/goal`, 4 en rojo), `cargo test --lib el_contexto_dice_cuando_empezo` y
+  el paso Q de `node scripts/laboratorio/tope-de-contexto-de-verdad.mjs` (Claude de mentira con la
+  hora en su transcript: a los 50 minutos nada, a los 56 un `/compact`, sin brillo al acabarlo y
+  nada detrás; el turno siguiente sí brilla). El laboratorio se quedó atrás con las rayas del
+  14-nov (esperaba 400k y una expresión mal escapada lo tiraba en el paso 3): puesto al día el
+  mismo día. Lo de la segunda revisión, en el banco: el mensaje en cola, sin transcript, la
+  relevada y la tercera compactación (quitando cada guarda, su caso en rojo), y la hora de tu
+  mensaje en el `cargo test` (en rojo sin ella).
+- **Con un Claude Code de verdad quieto una hora (2026-11-24):** `node scripts/laboratorio/quieta-de-verdad.mjs`
+  (unos 65 minutos). Claude Code 2.1.331 real en una terminal de Munir de una Adeorq aislada y
+  minimizada, contra una API de mentira (150k, caché de una hora; no gasta cuota): a los 55,2 minutos
+  se le tecleó `/compact Conserva…`, Claude Code compactó de verdad, y en los 4 minutos siguientes ni
+  se le tecleó nada ni empezó otro turno. Segunda vuelta, con el laboratorio tal como está: a los 56,0,
+  con la página escondida en los 102 vistazos (el WebView con sus relojes frenados la hora entera, el
+  caso peor para el vigía de cada minuto). Dos cosas que se vieron: el WebView2 no siempre se da por
+  escondido al minimizar (minimizada 45 s y la página seguía «visible»), y algo devolvía a veces la
+  ventana minimizada sin saberse qué; el laboratorio vuelve a minimizar en cada vistazo y cuenta lo
+  que dice la página. NO PROBADO: la bajada de los arranques en frío, que se mide una semana
+  después de publicar con `cuota-por-terminal.mjs`.
+
 ## Una sesión se compacta a sí misma y sigue: `compactarme` (2026-11-11)
 
 Munir, por «Orquio General» (BUZON, 11-nov): *«que puedas tú coger el mensaje de compactación y

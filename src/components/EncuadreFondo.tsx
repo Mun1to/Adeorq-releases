@@ -15,6 +15,7 @@ import {
   type Encuadre,
 } from "../lib/encuadre";
 import { MinusIcon, PlusIcon } from "./Icons";
+import NumeroAjuste from "./NumeroAjuste";
 
 // El editor del encuadre: una ventana de Adeorq en pequeño con la foto dentro.
 //
@@ -179,7 +180,13 @@ export default function EncuadreFondo({ path, sello, desenfoque, encuadre, onEnc
         >
           <PlusIcon size={15} />
         </button>
-        <span className="setting-value">{encuadre.zoom}%</span>
+        <NumeroAjuste
+          valor={encuadre.zoom}
+          min={ZOOM_MIN}
+          max={ZOOM_MAX}
+          sufijo="%"
+          onCambiar={(zoom) => onEncuadre({ ...encuadre, zoom })}
+        />
       </div>
     </div>
   );

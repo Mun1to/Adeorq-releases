@@ -1,4 +1,32 @@
 {
+  "0.9.266": [
+    {
+      "vista": "ajustes",
+      "ajustes": "terminales",
+      "bloque": "Terminales",
+      "es": {
+        "titulo": "Las terminales quietas se compactan solas",
+        "texto": "Si una terminal de Claude Code lleva 55 minutos sin hacer nada y pasa de 100.000 tokens, Adeorq la compacta antes de que caduque su caché, y al volver gastas mucho menos. Aquí se apaga."
+      },
+      "en": {
+        "titulo": "Idle terminals compact on their own",
+        "texto": "If a Claude Code terminal has sat idle for 55 minutes with more than 100,000 tokens, Adeorq compacts it before its cache expires, so coming back costs far less. You can switch it off here."
+      }
+    },
+    {
+      "vista": "ajustes",
+      "ajustes": "aspecto",
+      "donde": [".set-vista"],
+      "es": {
+        "titulo": "Tu terminal, a la vista mientras la cambias",
+        "texto": "A la derecha ves cómo queda tu terminal con cada tema, color y letra, sin ir y volver. Y cada número se escribe: haz doble clic encima."
+      },
+      "en": {
+        "titulo": "Your terminal in view while you change it",
+        "texto": "On the right you see how your terminal looks with each theme, colour and font size, without going back and forth. And every number can be typed: double-click it."
+      }
+    }
+  ],
   "0.9.265": [
     {
       "vista": "ajustes",

@@ -10,18 +10,21 @@
 
      · cambiar de vista, de sección y de tema
      · el inicio: pedirle algo a Adeo, contestar a quien espera, ir a un proyecto
-     · la Cabina: enfocar, tapar, maximizar y cerrar terminales, la barra de
-       proyectos, los paneles de la derecha (Adeo entre ellos, también con
-       Ctrl+Mayús+A) y la paleta de Ctrl+K
+     · la Cabina: enfocar, tapar, minimizar (a la tira de las apartadas),
+       sacar a su ventana, maximizar y cerrar terminales, minimizarlas todas,
+       ordenarlas en columnas y filas, la barra de proyectos (cada uno con su
+       logo, `logos.js`), los paneles de la derecha (Adeo entre ellos, también
+       con Ctrl+Mayús+A) y la paleta de Ctrl+K
      · Adeo flotando, en las demás vistas; el Chat con sus dos pestañas
      · el Lienzo: arrastrar las piezas, mover y acercar el tablero, tachar tareas
      · el Perfil y sus cuatro secciones, tu uso, las decisiones con su menú de
        Posponer, los objetivos, los comandos y las cuentas
 
    Lo que no se puede imitar sin mentir (abrir una terminal de verdad, llamar a
-   un agente) no se finge: sale un aviso que dice qué haría la app. Ningún botón
-   se queda mudo: el que no tiene gesto propio cuenta lo que hace con su propio
-   globo de ayuda.
+   un agente) no se finge: Adeo lo cuenta al lado de lo que has pulsado
+   (`explica.js`). Ningún botón se queda mudo: el que no tiene gesto propio
+   cuenta lo que hace con su propio globo de ayuda. Y la primera vez, Adeo
+   enseña la demo por partes, con flechas (el recorrido, al final).
    ========================================================================= */
 
 import { ponerModoLigero } from '../portada/ligero.js';
@@ -49,10 +52,7 @@ const embebida = window.top !== window.self || consulta.has('quieta');
    -------------------------------------------------------------------------- */
 
 const T = EN ? {
-  marca: 'Demo',
-  deTip: (tip) => `${tip.replace(/[.\s]+$/, '')}. That is in the app: this is a copy you can click around, with no agents behind it.`,
   deRotulo: (r) => `"${r}" does its job in the app. This is a copy you can click around, with no agents behind it.`,
-  mudo: 'In the app this responds. This is a copy you can click around, with no agents behind it.',
   adeo: "I'm Adeo. In the app I tell you when a terminal is waiting for you, and one click takes you to it.",
   cerrada: 'Terminal closed. In the app that stops its agent.',
   ultima: 'In the app an empty Cockpit lets you pick a project to open. Here one stays, so there is something to look at.',
@@ -86,11 +86,40 @@ const T = EN ? {
   otraHora: 'In the app you type the time: 16:30, +45 or in 2 h.',
   nota: 'In the app that note opens, with where it leads and what links to it.',
   noCarga: 'The demo could not be loaded.',
+  copia: 'The app does that for real. This is a copy you can click around, with no agents behind it.',
+  // The strip of set-aside terminals and «Minimise all», with the app's own words.
+  apartadas: 'Set aside',
+  traerla: 'Bring it back to the mosaic',
+  traerTodas: 'Bring them all back',
+  minimizarTodas: 'Minimise all',
+  tipTraerTodas: 'Bring everything that is set aside back to the mosaic',
+  tipApartarTodas: 'Set every terminal aside: they stay alive in the strip below',
+  cerrarTerminal: 'Close terminal',
+  mata: 'Kills the agent inside',
+  otraVez: 'Press again to close it',
+  estados: { a_medias: 'working', pregunta: 'WAITING FOR YOU', lista: 'finished' },
+  apartada: 'Set aside, and still working. Click its tab down here to bring it back.',
+  suelta: 'In the app it goes to its own window, for another monitor. Here it floats: drag it by its bar, and the same button puts it back.',
+  devolver: 'Back to Adeorq (it keeps working)',
+  // «Arrange the terminals» (LayoutPicker.tsx).
+  ordena: 'Arrange what you have open',
+  cxr: (c, r) => `${c} by ${r}`,
+  cuenta: (c, r) => `${c === 1 ? '1 column' : `${c} columns`} and ${r === 1 ? '1 row' : `${r} rows`}: room for ${c * r}`,
+  grande: 'Or one big one and the rest beside it',
+  // The app's footer is about dragging bars and seams, which the demo cannot do: this one says what it does.
+  ordenaPie: 'Click a square and the terminals in view are shared out into those columns and rows. The ones set aside stay in their strip.',
+  verRecorrido: 'Show me around',
+  // The tour: one short line per stop.
+  recorrido: [
+    ['Your projects', 'Each one with its logo. One click unfolds its sessions.'],
+    ['One agent, one terminal', 'Hide it, set it aside or enlarge it. Try it: minimise this one.'],
+    ['Set aside, still working', 'They report from down here. Click one to bring it back.'],
+    ['When it asks for permission', 'You answer right here, without hunting for its window.'],
+    ['Arrange them your way', 'Columns and rows, like inserting a table.'],
+    ["And me, I'm Adeo", 'I tell you when an agent is waiting. Lienzo, Chat and Decisions are up here. Now, click anything.'],
+  ],
 } : {
-  marca: 'Demo',
-  deTip: (tip) => `${tip.replace(/[.\s]+$/, '')}. Eso, en la app: esto es una copia para tocar, sin agentes detrás.`,
   deRotulo: (r) => `«${r}» hace su trabajo en la app. Esto es una copia para tocar, sin agentes detrás.`,
-  mudo: 'En la app esto responde. Esto es una copia para tocar, sin agentes detrás.',
   adeo: 'Soy Adeo. En la app aviso cuando una terminal te espera, y con un clic te llevo a ella.',
   cerrada: 'Terminal cerrada. En la app, eso para a su agente.',
   ultima: 'En la app, con la Cabina vacía eliges qué proyecto abrir. Aquí se queda una, para que haya algo que mirar.',
@@ -124,6 +153,38 @@ const T = EN ? {
   otraHora: 'En la app escribes la hora: 16:30, +45 o en 2 h.',
   nota: 'En la app se abre esa nota, con a dónde lleva y quién llega hasta ella.',
   noCarga: 'La demostración no ha podido cargarse.',
+  copia: 'Eso lo hace la app de verdad. Esto es una copia para tocar, sin agentes detrás.',
+  // La tira de las apartadas y «Minimizar todas», con las palabras de la app.
+  apartadas: 'Apartadas',
+  traerla: 'Traerla de vuelta al mosaico',
+  traerTodas: 'Traer todas',
+  minimizarTodas: 'Minimizar todas',
+  tipTraerTodas: 'Devolver al mosaico todo lo que está apartado',
+  tipApartarTodas: 'Apartar todas las terminales: siguen vivas en la tira de abajo',
+  cerrarTerminal: 'Cerrar terminal',
+  mata: 'Mata al agente que hay dentro',
+  otraVez: 'Pulsa otra vez para cerrarla',
+  estados: { a_medias: 'trabajando', pregunta: 'TE ESPERA', lista: 'terminó' },
+  apartada: 'Apartada, y sigue trabajando. Pulsa su ficha aquí abajo para traerla.',
+  suelta: 'En la app sale a su propia ventana, para otro monitor. Aquí flota: arrástrala por su barra, y el mismo botón la devuelve.',
+  devolver: 'Devolver a Adeorq (sigue trabajando)',
+  // «Ordenar las terminales» (LayoutPicker.tsx).
+  ordena: 'Ordena lo que tienes abierto',
+  cxr: (c, r) => `${c} por ${r}`,
+  cuenta: (c, r) => `${c === 1 ? '1 columna' : `${c} columnas`} y ${r === 1 ? '1 fila' : `${r} filas`}: caben ${c * r}`,
+  grande: 'O una grande y el resto al lado',
+  // El pie de la app habla de arrastrar barras y bordes, que aquí no se puede: este dice lo que sí hace.
+  ordenaPie: 'Pulsa una casilla y las terminales que ves se reparten en esas columnas y filas. Las apartadas siguen en su tira.',
+  verRecorrido: 'Enséñame la demo',
+  // El recorrido: una línea corta por parada.
+  recorrido: [
+    ['Tus proyectos', 'Cada uno con su logo. Un clic despliega sus sesiones.'],
+    ['Un agente, una terminal', 'Tápala, apártala o amplíala. Pruébalo: minimiza esta.'],
+    ['Apartadas, y trabajando', 'Siguen contando qué hacen desde aquí abajo. Pulsa una para traerla.'],
+    ['Cuando te pide permiso', 'Lo contestas aquí mismo, sin buscar su ventana.'],
+    ['Ordénalas a tu manera', 'Columnas y filas, como al insertar una tabla.'],
+    ['Y yo soy Adeo', 'Te aviso cuando un agente te espera. Arriba tienes el Lienzo, el Chat y las decisiones. Ahora, toca lo que quieras.'],
+  ],
 };
 
 /* --------------------------------------------------------------------------
@@ -161,16 +222,29 @@ function dentro(r) {
    `stampDemo` en vite.config.js). Este archivo se lo pasa a los datos que pide,
    o el navegador juntaría un vivo.js nuevo con una ventana vieja. */
 const sello = new URL(import.meta.url).searchParams.get('v');
+const conSello = (archivo) => `${archivo}${sello ? `?v=${sello}` : ''}`;
 
+/* Los logos de los proyectos y Adeo explicando llegan a la vez que la ventana,
+   con el mismo sello: un `import` fijo los pediría sin él. */
+let ponerLogos, prepararAdeo, recorridoVisto;
 try {
-  const respuesta = await fetch(`datos-${EN ? 'en' : 'es'}.html${sello ? `?v=${sello}` : ''}`);
+  const [respuesta, logos, explica] = await Promise.all([
+    fetch(conSello(`datos-${EN ? 'en' : 'es'}.html`)),
+    import(conSello('./logos.js')),
+    import(conSello('./explica.js')),
+  ]);
   if (!respuesta.ok) throw new Error(String(respuesta.status));
   raiz.innerHTML = await respuesta.text();
+  ({ ponerLogos } = logos);
+  ({ prepararAdeo, recorridoVisto } = explica);
 } catch (e) {
   raiz.textContent = T.noCarga;
   raiz.removeAttribute('aria-busy');
   throw e;
 }
+
+// Antes de copiar nada (la barra de siempre, las plantillas): que nazca todo con su logo.
+ponerLogos(raiz);
 
 const app = $('.app', raiz);
 const meta = $('meta[name="adeorq-raiz"]', raiz);
@@ -189,27 +263,43 @@ const plantilla = (id) => {
 const unaPieza = (id) => plantilla(id)?.firstElementChild ?? null;
 
 /* --------------------------------------------------------------------------
-   3. EL AVISO Y EL GLOBO
+   3. ADEO LO CUENTA, Y EL GLOBO
+   Lo que la demo no puede hacer lo dice Adeo, que baja de su sitio en la
+   barra y habla al lado de lo que se acaba de tocar (`explica.js`).
    -------------------------------------------------------------------------- */
 
-let relojAviso = 0;
-function avisar(texto) {
-  let a = $('.demo-aviso', app);
-  if (!a) {
-    a = document.createElement('div');
-    a.className = 'demo-aviso';
-    a.setAttribute('role', 'status');
-    app.appendChild(a);
-  }
-  const marca = document.createElement('b');
-  marca.textContent = T.marca;
-  const cuerpo = document.createElement('span');
-  cuerpo.textContent = texto;
-  a.replaceChildren(marca, cuerpo);
-  // Un fotograma después, para que la transición vea el estado de partida.
-  requestAnimationFrame(() => { a.dataset.on = 'true'; });
-  clearTimeout(relojAviso);
-  relojAviso = setTimeout(() => delete a.dataset.on, 4200);
+/** Cuántos píxeles de pantalla mide uno de la ventana: dentro de la portada,
+ *  lo que la encoge ella; suelta, lo que la encoge `escalar`. */
+function escalaDePantalla() {
+  try {
+    const marco = window.frameElement;
+    // El lado largo: a pantalla completa en un móvil en vertical, la portada la
+    // tumba, y entonces el ancho en pantalla es su alto.
+    if (marco) {
+      const r = marco.getBoundingClientRect();
+      return Math.max(r.width, r.height) / 1920 || estado.lupa;
+    }
+  } catch { /* dentro de una página de otro origen */ }
+  return estado.lupa;
+}
+
+const adeo = prepararAdeo({
+  app,
+  EN,
+  dentro: (r) => dentro(r),
+  escala: escalaDePantalla,
+  casa: () => $('.brand .campana .mascota', app),
+  pegado: () => $$('.brand .campana .campana-n', app),
+});
+
+/* Lo último que se tocó: ahí al lado habla Adeo. */
+let ultimoToque = null;
+app.addEventListener('pointerdown', (e) => { ultimoToque = e.target; }, true);
+app.addEventListener('keydown', (e) => { ultimoToque = e.target; }, true);
+
+function avisar(texto, cerca = ultimoToque, extra) {
+  quitarGlobo();
+  adeo.decir(texto, cerca, extra);
 }
 
 /* El globo de ayuda de la app (`data-tip`), con sus mismas clases. */
@@ -253,6 +343,8 @@ function ponerGlobo(el) {
 app.addEventListener('mouseover', (e) => {
   const el = e.target.closest?.('[data-tip]');
   if (!el || el === globo?.dataset) return;
+  // Mientras Adeo habla, el globo de la app no sale encima de él.
+  if ($('.adeo-dice', app)) return;
   clearTimeout(relojGlobo);
   relojGlobo = setTimeout(() => ponerGlobo(el), 380);
 });
@@ -381,10 +473,21 @@ if (embebida) {
     if (puntero === 'mouse') delete html.dataset.quieta;
   }, true);
   document.addEventListener('click', () => { if (puntero !== 'mouse') delete html.dataset.quieta; }, true);
-  html.addEventListener('mouseleave', () => { html.dataset.quieta = ''; });
+  html.addEventListener('mouseleave', () => { if (!completa) html.dataset.quieta = ''; });
   try {
-    window.parent.addEventListener('scroll', () => { if (puntero !== 'mouse') html.dataset.quieta = ''; }, { passive: true });
+    window.parent.addEventListener('scroll', () => { if (puntero !== 'mouse' && !completa) html.dataset.quieta = ''; }, { passive: true });
   } catch { /* dentro de una página de otro origen: se queda como esté */ }
+}
+
+/* A pantalla completa (portada/completa.js) no hay página que bajar: la demo
+   se suelta del todo, y la rueda y el dedo vuelven a ser suyos, como en la app.
+   Al cerrar se queda quieta otra vez, como al llegar. */
+let completa = false;
+function pantallaCompleta(si) {
+  completa = !!si;
+  if (!embebida) return;
+  if (completa) delete html.dataset.quieta;
+  else html.dataset.quieta = '';
 }
 
 /* --------------------------------------------------------------------------
@@ -443,6 +546,9 @@ function irA(vista) {
   for (const [v, vuelta] of vueltas) vuelta.hidden = v !== vista;
   cerrarPaleta();
   cerrarCapataz();
+  cerrarDisposicion();
+  // El recorrido enseña la Cabina: quien se va a otra pantalla ya está mirando por su cuenta.
+  if (vista !== 'cabina') adeo.parar();
 }
 
 /** Las pestañas de dentro de una vista (Ahora / Proyectos, las de Cuentas, las
@@ -475,39 +581,422 @@ function enfocar(panel) {
   for (const p of $$('.pane', app)) p.dataset.focused = String(p === panel);
 }
 
-/** Reparte la rejilla entre los paneles que quedan: las columnas se reparten
- *  el ancho, y cada una reparte el alto entre los suyos. */
-function recolocar() {
-  const vivos = $$(':scope > .pane', rejilla).filter((p) => !p.dataset.demoFuera);
-  const columnas = new Map();
-  for (const p of vivos) {
-    const clave = p.dataset.demoCol ?? (p.dataset.demoCol = p.style.left);
-    if (!columnas.has(clave)) columnas.set(clave, []);
-    columnas.get(clave).push(p);
+/* EL MOSAICO. Como en la app (`lib/layout.ts`): columnas de izquierda a
+   derecha, cada una con su peso (lo que ocupa de ancho) y sus terminales de
+   arriba abajo. Una apartada o sacada a su ventana sigue en su columna, sin
+   ocupar sitio, y al volver vuelve a su hueco. Se lee del volcado. */
+const mosaico = [];
+{
+  const cols = new Map();
+  for (const p of $$(':scope > .pane', rejilla)) {
+    const x = parseFloat(p.style.left) || 0;
+    if (!cols.has(x)) cols.set(x, { peso: parseFloat(p.style.width) || 1, panes: [] });
+    cols.get(x).panes.push(p);
   }
-  const orden = [...columnas.keys()].sort((a, b) => parseFloat(a) - parseFloat(b));
-  orden.forEach((clave, i) => {
-    const suyos = columnas.get(clave).sort((a, b) => parseFloat(a.style.top) - parseFloat(b.style.top));
-    suyos.forEach((p, j) => {
-      p.style.left = (100 * i) / orden.length + '%';
-      p.style.width = 100 / orden.length + '%';
-      p.style.top = (100 * j) / suyos.length + '%';
-      p.style.height = 100 / suyos.length + '%';
+  for (const x of [...cols.keys()].sort((a, b) => a - b)) {
+    const c = cols.get(x);
+    c.panes.sort((a, b) => parseFloat(a.style.top) - parseFloat(b.style.top));
+    mosaico.push(c);
+  }
+}
+
+const enMosaico = (p) => p.isConnected && !p.dataset.demoFuera && !p.dataset.demoApartada && !p.dataset.demoSuelta;
+const todas = () => mosaico.flatMap((c) => c.panes).filter((p) => p.isConnected && !p.dataset.demoFuera);
+const apartadas = () => todas().filter((p) => p.dataset.demoApartada);
+
+/** Reparte la rejilla entre las que se ven: las columnas se reparten el
+ *  ancho por su peso, y cada una reparte el alto entre las suyas. */
+function recolocar() {
+  for (const c of mosaico) c.panes = c.panes.filter((p) => p.isConnected && !p.dataset.demoFuera);
+  for (let i = mosaico.length - 1; i >= 0; i--) if (!mosaico[i].panes.length) mosaico.splice(i, 1);
+  const cols = mosaico.map((c) => ({ peso: c.peso, panes: c.panes.filter(enMosaico) })).filter((c) => c.panes.length);
+  const total = cols.reduce((a, c) => a + c.peso, 0) || 1;
+  let x = 0;
+  for (const c of cols) {
+    c.x = x;
+    c.w = (100 * c.peso) / total;
+    c.panes.forEach((p, j) => {
+      p.style.left = c.x + '%';
+      p.style.width = c.w + '%';
+      p.style.top = (100 * j) / c.panes.length + '%';
+      p.style.height = 100 / c.panes.length + '%';
     });
-  });
+    x += c.w;
+  }
+  pintarJuntas(cols);
   const cuenta = $('nav.tabs .tab[data-tab="cabina"] .tab-count', app);
-  if (cuenta) cuenta.textContent = String(vivos.length);
+  if (cuenta) cuenta.textContent = String(todas().length);
+  pintarTira();
+  pintarTodas();
+}
+
+/** Las juntas entre terminales (`.divider`), donde caen ahora. */
+function pintarJuntas(cols) {
+  for (const d of $$(':scope > .divider', rejilla)) d.remove();
+  cols.forEach((c, i) => {
+    if (i > 0) {
+      const d = document.createElement('div');
+      d.className = 'divider divider-col';
+      d.style.left = c.x + '%';
+      rejilla.appendChild(d);
+    }
+    for (let j = 1; j < c.panes.length; j++) {
+      const d = document.createElement('div');
+      d.className = 'divider divider-row';
+      d.style.top = (100 * j) / c.panes.length + '%';
+      d.style.left = c.x + '%';
+      d.style.width = c.w + '%';
+      rejilla.appendChild(d);
+    }
+  });
 }
 
 function cerrarPanel(panel) {
   const nodo = panel.closest('.react-flow__node');
   if (nodo) return quitarNodo(nodo);
-  const vivos = $$(':scope > .pane', rejilla).filter((p) => !p.dataset.demoFuera);
-  if (vivos.length <= 1) return avisar(T.ultima);
+  if (todas().length <= 1) return avisar(T.ultima);
   if (panel.dataset.demoMax) maximizar(panel);
   panel.dataset.demoFuera = 'si';
   setTimeout(() => { panel.remove(); recolocar(); }, 190);
   avisar(T.cerrada);
+}
+
+/* LA TIRA DE LAS APARTADAS, al pie del mosaico, con las piezas de la app
+   (`.minim`, `.minim-chip`…): cada ficha dice qué agente corre dentro, cómo
+   va (la que te espera, en ámbar) y lo que ocupa, y al pulsarla vuelve. */
+let tira = null;
+
+/** Lo que dice de sí misma una terminal: te espera, terminó o trabaja. */
+const estadoDe = (p) => ($('.pane-ask', p) ? 'pregunta' : p.dataset.done === 'true' ? 'lista' : 'a_medias');
+
+/** «landing-web · claude code» es «landing-web»: el dibujo ya dice el cliente. */
+const sinCliente = (nombre) => nombre.replace(/\s·\s(claude code|claude|codex|gemini|terminal|powershell)\s*$/i, '');
+
+function ficha(p) {
+  const estado = estadoDe(p);
+  const b = document.createElement('button');
+  b.className = 'minim-chip';
+  b.dataset.estado = estado;
+  if (estado === 'pregunta') b.dataset.urge = 'true';
+  b.setAttribute('aria-label', `${nombreDePanel(p)}, ${T.estados[estado]}. ${T.traerla}`);
+  fichas.set(b, p);
+  const ico = document.createElement('span');
+  ico.className = 'minim-ico';
+  const marca = $('.ph-id svg', p);
+  if (marca) ico.appendChild(marca.cloneNode(true));
+  const nombre = document.createElement('span');
+  nombre.className = 'minim-nombre';
+  nombre.textContent = sinCliente(nombreDePanel(p));
+  b.append(ico, nombre);
+  const ram = $('.pane-ram', p)?.textContent.trim();
+  if (ram) {
+    const r = document.createElement('span');
+    r.className = 'minim-ram';
+    r.textContent = ram;
+    b.appendChild(r);
+  }
+  const x = document.createElement('span');
+  x.className = 'minim-x';
+  x.setAttribute('role', 'button');
+  x.setAttribute('aria-label', T.cerrarTerminal);
+  x.dataset.tip = `${T.cerrarTerminal}\n${T.mata}`;
+  x.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"></path></svg>';
+  b.appendChild(x);
+  return b;
+}
+const fichas = new WeakMap();
+
+function pintarTira() {
+  const fuera = apartadas();
+  if (!fuera.length) {
+    tira?.remove();
+    tira = null;
+    return;
+  }
+  if (!tira) {
+    tira = document.createElement('div');
+    tira.className = 'minim';
+    rejilla.after(tira);
+  }
+  const eti = document.createElement('span');
+  eti.className = 'minim-eti';
+  const n = document.createElement('b');
+  n.textContent = String(fuera.length);
+  eti.append(T.apartadas, n);
+  tira.replaceChildren(eti, ...fuera.map(ficha));
+}
+
+let yaContoApartar = false;
+function apartar(panel, callado = false) {
+  if (panel.dataset.demoMax) maximizar(panel);
+  if (panel.dataset.demoSuelta) devolver(panel);
+  panel.dataset.demoApartada = 'si';
+  panel.hidden = true;
+  recolocar();
+  adeo.hecho('minimizar');
+  if (!callado && !yaContoApartar && !adeo.enRecorrido()) {
+    yaContoApartar = true;
+    avisar(T.apartada, [...(tira?.children ?? [])].find((f) => fichas.get(f) === panel) ?? tira);
+  }
+}
+
+function traer(panel) {
+  delete panel.dataset.demoApartada;
+  panel.hidden = false;
+  recolocar();
+  enfocar(panel);
+  adeo.hecho('traer');
+}
+
+/* La × de una ficha: con el agente parado cierra al primer clic; si trabaja o
+   te espera, pide un segundo (la terminal está apartada y no ves qué pierdes). */
+function cerrarFicha(x) {
+  const p = fichas.get(x.closest('.minim-chip'));
+  if (!p) return;
+  if (estadoDe(p) === 'lista' || x.dataset.armado) {
+    p.dataset.demoFuera = 'si';
+    p.remove();
+    recolocar();
+    return avisar(T.cerrada, tira ?? rejilla);
+  }
+  x.dataset.armado = 'true';
+  x.dataset.tip = T.otraVez;
+  x.textContent = '?';
+  setTimeout(() => {
+    if (!x.isConnected) return;
+    delete x.dataset.armado;
+    pintarTira();
+  }, 4000);
+}
+
+/** «Minimizar todas» y su vuelta, «Traer todas»: el mismo botón, que cambia de
+ *  nombre y de dibujo (en la app, `MinimizeIcon` y `UnminimizeIcon`). Se
+ *  reconoce una vez por su dibujo y se marca, para que su regla sea solo suya:
+ *  una regla para todos los botones de la barra salvaba de `podar` a su vecino
+ *  «Cerrar todas», que aquí no puede cerrar nada. */
+$$('.topbar-acciones button.tab', app)
+  .find((b) => !b.classList.contains('layout-btn') && dibujo(b).includes(ES_MINIMIZAR))
+  ?.setAttribute('data-demo-todas', '');
+const botonTodas = () => $('.topbar-acciones button[data-demo-todas]', app);
+const todoApartado = () => todas().length > 0 && todas().every((p) => p.dataset.demoApartada);
+
+function pintarTodas() {
+  const b = botonTodas();
+  if (!b) return;
+  const vuelta = todoApartado();
+  b.setAttribute('aria-label', vuelta ? T.traerTodas : T.minimizarTodas);
+  b.dataset.tip = vuelta ? T.tipTraerTodas : T.tipApartarTodas;
+  const marco = $('svg rect', b), raya = $('svg path', b);
+  if (marco && raya) {
+    marco.setAttribute('opacity', vuelta ? '1' : '0.4');
+    raya.setAttribute('opacity', vuelta ? '0.4' : '1');
+  }
+}
+
+function alternarTodas() {
+  if (todoApartado()) for (const p of apartadas()) traer(p);
+  else for (const p of todas().filter((q) => !q.dataset.demoApartada)) apartar(p, true);
+}
+
+/* «Abrir en otra ventana». En la app sale a su propia ventana de Windows y su
+   botón pasa a ser el de volver (`DevolverIcon`); aquí flota encima del
+   mosaico, que se reparte el hueco, y se arrastra por su barra. */
+const FLECHA_SALE = 'M14.5 4H20v5.5';
+const FLECHA_ENTRA = 'M12 6.5V12h5.5';
+let yaContoSacar = false;
+
+function sacar(panel, boton) {
+  if (panel.dataset.demoSuelta) return devolver(panel);
+  if (panel.dataset.demoMax) maximizar(panel);
+  panel.dataset.demoSuelta = 'si';
+  recolocar();
+  Object.assign(panel.style, { left: '21%', top: '12%', width: '56%', height: '68%' });
+  const cabeza = $('.pane-head', panel);
+  if (cabeza?.hasAttribute('draggable')) {
+    cabeza.dataset.demoArrastrable = cabeza.getAttribute('draggable');
+    cabeza.setAttribute('draggable', 'false');
+  }
+  for (const ruta of $$('svg path', boton)) if (ruta.getAttribute('d') === FLECHA_SALE) ruta.setAttribute('d', FLECHA_ENTRA);
+  boton.dataset.demoTip ??= boton.dataset.tip ?? '';
+  boton.dataset.tip = T.devolver;
+  enfocar(panel);
+  if (!yaContoSacar && !adeo.enRecorrido()) {
+    yaContoSacar = true;
+    avisar(T.suelta, boton);
+  }
+}
+
+function devolver(panel) {
+  delete panel.dataset.demoSuelta;
+  const cabeza = $('.pane-head', panel);
+  if (cabeza?.dataset.demoArrastrable) {
+    cabeza.setAttribute('draggable', cabeza.dataset.demoArrastrable);
+    delete cabeza.dataset.demoArrastrable;
+  }
+  for (const boton of $$('.pane-head button', panel)) {
+    for (const ruta of $$('svg path', boton)) if (ruta.getAttribute('d') === FLECHA_ENTRA) ruta.setAttribute('d', FLECHA_SALE);
+    if (boton.dataset.demoTip !== undefined) {
+      boton.dataset.tip = boton.dataset.demoTip;
+      delete boton.dataset.demoTip;
+    }
+  }
+  recolocar();
+}
+
+/* La ventana suelta se lleva por su barra. Las cuentas van en proporción de
+   la rejilla, así que valen igual con la demo encogida que a tamaño real. Se
+   queda entera dentro del mosaico: podía salir hasta un 60 % por los lados y
+   quedarse a 228 px fuera de la ventana por la izquierda. */
+{
+  let llevo = null;
+  rejilla.addEventListener('pointerdown', (e) => {
+    const panel = e.target.closest('.pane[data-demo-suelta]');
+    if (!panel || e.button !== 0 || !e.target.closest('.pane-head') || e.target.closest('button, [role="button"], input')) return;
+    const g = rejilla.getBoundingClientRect();
+    llevo = { panel, x0: e.clientX, y0: e.clientY, l: parseFloat(panel.style.left), t: parseFloat(panel.style.top), w: g.width, h: g.height };
+    panel.dataset.demoLlevando = 'si';
+    e.target.closest('.pane-head').setPointerCapture(e.pointerId);
+  });
+  rejilla.addEventListener('pointermove', (e) => {
+    if (!llevo) return;
+    const ancho = parseFloat(llevo.panel.style.width), alto = parseFloat(llevo.panel.style.height);
+    const l = llevo.l + ((e.clientX - llevo.x0) / llevo.w) * 100;
+    const t = llevo.t + ((e.clientY - llevo.y0) / llevo.h) * 100;
+    llevo.panel.style.left = Math.max(0, Math.min(100 - ancho, l)) + '%';
+    llevo.panel.style.top = Math.max(0, Math.min(100 - alto, t)) + '%';
+  });
+  const soltar = () => {
+    if (!llevo) return;
+    delete llevo.panel.dataset.demoLlevando;
+    llevo = null;
+  };
+  rejilla.addEventListener('pointerup', soltar);
+  rejilla.addEventListener('pointercancel', soltar);
+}
+
+/* «ORDENAR LAS TERMINALES» (`LayoutPicker.tsx`): una rejilla de columnas por
+   filas, como al insertar una tabla, y debajo «una grande y el resto al
+   lado». Las cuentas son las de `lib/layout.ts`. */
+const MAX_COLS = 4, MAX_FILAS = 4;
+
+function equilibrada(n, c) {
+  const cols = Math.max(1, Math.min(c, n, MAX_COLS));
+  const base = Math.floor(n / cols);
+  const extra = n % cols;
+  return Array.from({ length: cols }, (_, i) => base + (i >= cols - extra ? 1 : 0));
+}
+const columnasPara = (n) => (n <= 3 ? Math.max(1, n) : n === 4 ? 2 : n <= 7 || n === 9 ? 3 : MAX_COLS);
+const enRejilla = (c, r) => ({ rows: Array.from({ length: c }, () => r) });
+function unaGrande(n) {
+  const resto = Math.max(1, n - 1);
+  const cols = Math.min(MAX_COLS - 1, Math.ceil(resto / 3));
+  const rows = [1, ...equilibrada(resto, cols)];
+  const grande = rows.length > 3 ? 1.3 : 1.6;
+  return { rows, weights: rows.map((_, i) => (i === 0 ? grande : 1)) };
+}
+
+/** Reparte las que se ven según la plantilla (`applyPreset`): si falta sitio
+ *  crece la columna más corta (la de la derecha entre empatadas) y si sobra
+ *  encoge la más larga (la de la izquierda). */
+function ordenar({ rows, weights }) {
+  const vistas = mosaico.flatMap((c) => c.panes).filter(enMosaico);
+  if (!vistas.length) return;
+  const filas = [...rows];
+  const masCorta = (xs) => xs.reduce((si, r, i) => (r <= xs[si] ? i : si), 0);
+  const masLarga = (xs) => xs.reduce((si, r, i) => (r > xs[si] ? i : si), 0);
+  let sitio = filas.reduce((a, b) => a + b, 0);
+  for (; sitio < vistas.length; sitio++) filas[masCorta(filas)]++;
+  for (; sitio > vistas.length; sitio--) filas[masLarga(filas)]--;
+  const fuera = mosaico.flatMap((c) => c.panes).filter((p) => !enMosaico(p));
+  mosaico.length = 0;
+  let k = 0;
+  filas.forEach((n, i) => {
+    if (n <= 0) return;
+    mosaico.push({ peso: weights?.[i] ?? 1, panes: vistas.slice(k, k + n) });
+    k += n;
+  });
+  // Las apartadas y la suelta se quedan en la última columna, sin ocupar sitio.
+  mosaico[mosaico.length - 1].panes.push(...fuera);
+  recolocar();
+  adeo.hecho('ordenar');
+}
+
+const vistasEnMosaico = () => Math.max(1, todas().filter(enMosaico).length);
+
+function cerrarDisposicion() {
+  $('.app > .layout-pop', app)?.remove();
+  const b = $('.layout-btn', app);
+  if (b) b.dataset.active = 'false';
+}
+
+function alternarDisposicion(boton) {
+  if ($('.app > .layout-pop', app)) return cerrarDisposicion();
+  const n = vistasEnMosaico();
+  const justa = equilibrada(n, columnasPara(n));
+  const deSiempre = { c: justa.length, r: Math.min(MAX_FILAS, Math.max(...justa)) };
+
+  const pop = document.createElement('div');
+  pop.className = 'layout-pop';
+  const r = dentro(boton.getBoundingClientRect());
+  pop.style.top = r.bottom + 8 + 'px';
+  pop.style.right = Math.max(8, 1920 - r.right) + 'px';
+
+  const titulo = document.createElement('div');
+  titulo.className = 'layout-pop-title';
+  titulo.textContent = T.ordena;
+  const cuadro = document.createElement('div');
+  cuadro.className = 'layout-rejilla';
+  const cuenta = document.createElement('div');
+  cuenta.className = 'layout-cuenta';
+  const marcar = (m) => {
+    for (const celda of cuadro.children) {
+      const [c, f] = celda.dataset.demoCelda.split('x').map(Number);
+      celda.dataset.on = String(c <= m.c && f <= m.r);
+    }
+    cuenta.textContent = T.cuenta(m.c, m.r);
+  };
+  for (let f = 1; f <= MAX_FILAS; f++) {
+    for (let c = 1; c <= MAX_COLS; c++) {
+      const celda = document.createElement('button');
+      celda.className = 'layout-celda';
+      celda.dataset.demoCelda = `${c}x${f}`;
+      celda.setAttribute('aria-label', T.cxr(c, f));
+      celda.addEventListener('mouseenter', () => marcar({ c, r: f }));
+      celda.addEventListener('focus', () => marcar({ c, r: f }));
+      cuadro.appendChild(celda);
+    }
+  }
+  cuadro.addEventListener('mouseleave', () => marcar(deSiempre));
+  marcar(deSiempre);
+  pop.append(titulo, cuadro, cuenta);
+
+  if (n >= 2) {
+    const g = unaGrande(n);
+    const grande = document.createElement('button');
+    grande.className = 'layout-grande';
+    const total = g.rows.reduce((a, _, i) => a + g.weights[i], 0);
+    let x = 0;
+    let cajas = '';
+    g.rows.forEach((filas, i) => {
+      const w = g.weights[i] / total;
+      for (let k = 0; k < filas; k++) {
+        cajas += `<rect x="${(x * 60 + 1.5).toFixed(2)}" y="${((k / filas) * 40 + 1.5).toFixed(2)}" width="${(w * 60 - 3).toFixed(2)}" height="${((1 / filas) * 40 - 3).toFixed(2)}" rx="2.5" fill="currentColor" fill-opacity="0.62"></rect>`;
+      }
+      x += w;
+    });
+    grande.innerHTML = `<svg viewBox="0 0 60 40" class="layout-thumb" aria-hidden="true">${cajas}</svg>`;
+    const rotulo = document.createElement('span');
+    rotulo.textContent = T.grande;
+    grande.appendChild(rotulo);
+    pop.appendChild(grande);
+  }
+  const pie = document.createElement('div');
+  pie.className = 'layout-pop-foot';
+  pie.textContent = T.ordenaPie;
+  pop.appendChild(pie);
+
+  app.appendChild(pop);
+  boton.dataset.active = 'true';
 }
 
 function maximizar(panel) {
@@ -539,6 +1028,16 @@ function botonDePanel(boton) {
     return true;
   }
   if (d.includes(ES_MAXIMIZAR)) return maximizar(panel);
+  // Minimizar y sacar, solo en la Cabina: en el Lienzo cuentan lo suyo con su globo.
+  if (panel.closest('.react-flow__node')) return false;
+  if (d.includes(ES_MINIMIZAR)) {
+    apartar(panel);
+    return true;
+  }
+  if (d.includes(ES_SACAR)) {
+    sacar(panel, boton);
+    return true;
+  }
   return false;
 }
 
@@ -942,11 +1441,14 @@ function repasarDecision(doc) {
    9 BIS. EL INICIO Y EL PERFIL
    -------------------------------------------------------------------------- */
 
-/** El nombre entero de un panel («storefront-api · Fallo en…») va en su globo. */
-const nombreDePanel = (p) => {
+/** El nombre entero de un panel («storefront-api · Fallo en…») va en la
+ *  primera línea de su globo; las de debajo son el modelo, el contexto y la
+ *  memoria. Con el globo entero, «Contestar» no encontraba la terminal que te
+ *  espera: buscaba su título con el modelo pegado detrás. */
+function nombreDePanel(p) {
   const n = $('.pane-name', p);
-  return (n?.dataset.tip || n?.textContent || '').trim();
-};
+  return (n?.dataset.tip || n?.textContent || '').split('\n')[0].trim();
+}
 
 /** Un proyecto del inicio: a la Cabina con su terminal delante (`goProject`). */
 function alProyecto(nombre) {
@@ -1029,7 +1531,20 @@ const unoSolo = (boton, atributo = 'on') => {
 const REGLAS = [
   // ── La barra de arriba ──
   ['nav.tabs .tab[data-tab]', (b) => irA(b.dataset.tab)],
-  ['.brand .campana', () => avisar(T.adeo)],
+  // Adeo, en su sitio: se presenta y ofrece volver a enseñar la demo.
+  ['.brand .campana', (b) => avisar(T.adeo, b, { botones: [{ texto: T.verRecorrido, hacer: empezarRecorrido }] })],
+  ['.layout-btn', (b) => alternarDisposicion(b)],
+  ['.topbar-acciones button[data-demo-todas]', () => alternarTodas()],
+  ['.layout-celda', (b) => {
+    const [c, f] = b.dataset.demoCelda.split('x').map(Number);
+    cerrarDisposicion();
+    ordenar(enRejilla(c, f));
+  }],
+  ['.layout-grande', () => {
+    const n = vistasEnMosaico();
+    cerrarDisposicion();
+    ordenar(unaGrande(n));
+  }],
   ['.objetivos-toggle', (b) => alternarObjetivos(b)],
   ['button.pulso', (b) => alternarPulso(b)],
   ['.stream-toggle', (b) => {
@@ -1064,6 +1579,12 @@ const REGLAS = [
     avisar(T.respuesta(numero));
   }],
   ['.pane-head button, .pane-ask .pane-close', (b) => botonDePanel(b)],
+  // La tira de las apartadas: la × cierra, la ficha entera la trae.
+  ['.minim-x', (x) => cerrarFicha(x)],
+  ['.minim-chip', (b) => {
+    const p = fichas.get(b);
+    if (p) traer(p);
+  }],
   // La barra en logos o en tira no es la misma con otro ancho: tiene otro
   // esqueleto, y viene en su plantilla. 0 son los logos, 1 la de siempre y 2 la tira.
   ['.rail-tab', (b) => ponerBarra($$('.rail-tab', b.parentElement).indexOf(b))],
@@ -1275,10 +1796,12 @@ const REGLAS = [
   ['button[data-active]', (b) => unoSolo(b, 'active')],
 ];
 
+/** El botón que no tiene gesto propio: Adeo dice lo que hace (su globo, o su
+ *  nombre) y que eso, en la app, pasa de verdad. */
 function porDefecto(boton) {
   const tip = boton.dataset.tip?.split('\n')[0];
   const rotulo = (boton.getAttribute('aria-label') || boton.textContent || '').replace(/\s+/g, ' ').trim();
-  avisar(tip ? T.deTip(tip) : rotulo && rotulo.length < 60 ? T.deRotulo(rotulo) : T.mudo);
+  avisar(T.copia, boton, { titulo: tip || (rotulo.length < 60 ? rotulo : '') });
 }
 
 app.addEventListener('click', (e) => {
@@ -1288,6 +1811,8 @@ app.addEventListener('click', (e) => {
   // El menú de Posponer se cierra con un clic fuera, como en la app.
   const menu = $('.dec-posponer', app);
   if (menu && !menu.contains(e.target) && !e.target.closest('.dec button[data-posponer]')) menu.remove();
+  // Y el de ordenar las terminales, igual.
+  if (!e.target.closest('.layout-pop, .layout-btn')) cerrarDisposicion();
 
   for (const [selector, hacer] of REGLAS) {
     const el = e.target.closest(selector);
@@ -1541,8 +2066,89 @@ if ('IntersectionObserver' in window) {
    14. ARRANCAR
    -------------------------------------------------------------------------- */
 
+/* LAS QUE YA ESTÁN APARTADAS. La barra de Sam dice que tiene siete terminales
+   abiertas y la Cabina enseña cuatro: dos de las otras van a la tira, como las
+   tendría él, con lo que dicen en el Lienzo (de ahí se copian). Al traerlas
+   caen en su columna: la de la izquierda y la de la derecha. */
+for (const [nombre, columna] of [['invoice-cli · terminal', 0], ['landing-web · claude code', 1]]) {
+  const suya = $$('.react-flow__node .pane', tablero ?? app).find((p) => nombreDePanel(p) === nombre);
+  if (!suya || !mosaico[columna]) continue;
+  const copia = suya.cloneNode(true);
+  // En el Lienzo su cabecera no lleva minimizar ni sacar; en la Cabina, sí.
+  const botones = $('.ph-acts', copia), deCabina = $(':scope > .pane .ph-acts', rejilla);
+  if (botones && deCabina) botones.replaceWith(deCabina.cloneNode(true));
+  copia.dataset.focused = 'false';
+  copia.dataset.demoApartada = 'si';
+  copia.hidden = true;
+  rejilla.appendChild(copia);
+  mosaico[columna].panes.push(copia);
+}
+recolocar();
+
 const pedida = consulta.get('vista') ?? '';
 irA($(`nav.tabs .tab[data-tab="${pestanaDe(pedida)}"]`, app) ? pedida : 'cabina');
 
-// Para las pruebas, y para quien quiera trastear desde la consola.
-window.adeDemo = { irA, avisar, estado };
+/* --------------------------------------------------------------------------
+   15. EL RECORRIDO
+   La primera vez que alguien ve la demo, Adeo la enseña por partes. Una vez
+   por visitante (`explica.js` lo apunta), saltable con su X o con Escape, y de
+   nuevo cuando se quiera pulsando a Adeo en la barra. Dentro de la portada
+   espera a que la demo se vea casi entera, y no sale si quien mira ya ha
+   empezado a tocar por su cuenta. `?tour=1` lo fuerza y `?tour=0` lo quita
+   (las fotos y el censo de botones).
+   -------------------------------------------------------------------------- */
+
+function pasosDelRecorrido() {
+  const primera = () => $$(':scope > .pane', rejilla).find(enMosaico);
+  const [r1, r2, r3, r4, r5, r6] = T.recorrido;
+  return [
+    { el: () => $('aside.sidebar .projects', app) ?? $('aside.sidebar', app), antes: () => estado.vista !== 'cabina' && irA('cabina'), titulo: r1[0], texto: r1[1] },
+    { el: () => { const p = primera(); return p && $('.ph-acts', p); }, titulo: r2[0], texto: r2[1], espera: 'minimizar' },
+    { el: () => tira, partes: () => (tira ? [...tira.children] : []), titulo: r3[0], texto: r3[1], espera: 'traer' },
+    { el: () => $(':scope > .pane:not([hidden]) .pane-ask', rejilla), titulo: r4[0], texto: r4[1] },
+    { el: () => $('.layout-btn', app), titulo: r5[0], texto: r5[1] },
+    { el: () => $('.brand .campana', app), titulo: r6[0], texto: r6[1], enCasa: true, lado: 'abajo' },
+  ];
+}
+
+function empezarRecorrido() {
+  if (estado.vista !== 'cabina') irA('cabina');
+  adeo.recorrido(pasosDelRecorrido());
+}
+
+/* Quien ya ha empezado a tocar por su cuenta no necesita el recorrido: un
+   puntero dentro de la demo, o las pestañas de encima de ella en la portada y
+   sus «Tocarlo en la demo» (`portada/pestanas.js`, `portada/muestra.js`), que
+   la cambian de pantalla con `adeDemo.irA` desde fuera, sin ningún puntero
+   aquí dentro. */
+let tocado = false;
+{
+  const pide = consulta.get('tour');
+  app.addEventListener('pointerdown', (e) => { if (e.isTrusted) tocado = true; }, true);
+  const toca = () => pide === '1' || (pide !== '0' && !recorridoVisto() && !tocado && estado.vista === 'cabina');
+  if (!embebida) {
+    if (toca()) setTimeout(() => toca() && !adeo.enRecorrido() && empezarRecorrido(), 900);
+  } else if (toca() && 'IntersectionObserver' in window) {
+    let reloj = 0;
+    const vigia = new IntersectionObserver(([e]) => {
+      clearTimeout(reloj);
+      if (e.intersectionRatio < 0.6) return;
+      reloj = setTimeout(() => {
+        if (toca() && !adeo.enRecorrido()) empezarRecorrido();
+        // Deja de mirar cuando ya ha salido o ya no va a salir (lo vio, o tocó
+        // por su cuenta). Si no había nada que enseñar, o no estaba en la
+        // Cabina, sigue mirando: sale la próxima vez que la demo se vea.
+        if (adeo.enRecorrido() || recorridoVisto() || tocado) vigia.disconnect();
+      }, 1200);
+    }, { threshold: [0, 0.6, 0.85, 1] });
+    vigia.observe(raiz);
+  }
+}
+
+// La portada (y las pruebas, y quien trastee desde la consola). Cambiar de
+// pantalla desde fuera es tocar: ver `tocado`, arriba.
+window.adeDemo = {
+  irA: (vista) => { tocado = true; irA(vista); },
+  avisar, estado, empezarRecorrido, callar: () => adeo.callar(),
+  pantallaCompleta, enRecorrido: () => adeo.enRecorrido(),
+};

@@ -27,16 +27,16 @@
 <meta property="og:locale:alternate" content="en_US">
 <meta property="og:url" content="https://adeorq.com/">
 <meta property="og:title" content="Adeorq · el panel donde trabajan tus agentes">
-<meta property="og:description" content="Panel de escritorio para Windows, Linux y Mac: Claude Code, Codex, Gemini y 8 clientes más trabajando a la vez en terminales de verdad, con tus proyectos a un clic. Gratis, sin cuenta y sin claves de API.">
-<meta property="og:image" content="https://adeorq.com/assets/og.png?v=43caab35">
+<meta property="og:description" content="Panel de escritorio para Windows, Linux y Mac: Claude Code, Codex, Gemini y 7 clientes más trabajando a la vez en terminales de verdad, con tus proyectos a un clic. Gratis, sin cuenta y sin claves de API.">
+<meta property="og:image" content="https://adeorq.com/assets/og.png?v=f30f8078">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Adeorq: all your agents, one single screen">
 
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Adeorq · el panel donde trabajan tus agentes">
-<meta name="twitter:description" content="Panel de escritorio para Windows, Linux y Mac: Claude Code, Codex, Gemini y 8 clientes más trabajando a la vez en terminales de verdad, con tus proyectos a un clic. Gratis, sin cuenta y sin claves de API.">
-<meta name="twitter:image" content="https://adeorq.com/assets/og.png?v=43caab35">
+<meta name="twitter:description" content="Panel de escritorio para Windows, Linux y Mac: Claude Code, Codex, Gemini y 7 clientes más trabajando a la vez en terminales de verdad, con tus proyectos a un clic. Gratis, sin cuenta y sin claves de API.">
+<meta name="twitter:image" content="https://adeorq.com/assets/og.png?v=f30f8078">
 
 <!-- Datos estructurados. Describen SOLO lo que se ve en la pagina: las
      preguntas salen de la propia seccion #faq, no de una lista aparte. -->
@@ -76,7 +76,7 @@
       },
       "downloadUrl": "https://github.com/Mun1to/Adeorq-releases/releases/latest",
       "softwareHelp": "https://adeorq.com/guia",
-      "screenshot": "https://adeorq.com/assets/og.png?v=43caab35",
+      "screenshot": "https://adeorq.com/assets/og.png?v=f30f8078",
       "description": "Panel de escritorio que ejecuta clientes de agente de IA en terminales reales: Claude Code, Codex, Gemini CLI, Copilot, Cursor y otros, en una sola ventana.",
       "offers": {
         "@type": "Offer",
@@ -103,7 +103,7 @@
           "name": "¿Funciona con algo que no sea Claude Code?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Conoce 11 clientes, entre ellos Codex, Gemini CLI, Copilot, Cursor, opencode, Antigravity, Kiro, Grok y Pi, y sabe instalar los que te falten. Y como las terminales son reales, dentro puedes ejecutar lo que quieras, incluidos tus propios scripts."
+            "text": "Conoce 10 clientes, entre ellos Codex, Gemini CLI, Copilot, Cursor, opencode, Antigravity, Kiro y Grok, y sabe instalar los que te falten. Y como las terminales son reales, dentro puedes ejecutar lo que quieras, incluidos tus propios scripts."
           }
         },
         {
@@ -183,6 +183,8 @@
 <link rel="stylesheet" href="./portada/barra.css">
 <link rel="stylesheet" href="./portada/portada.css">
 <link rel="stylesheet" href="./portada/valvula.css">
+<link rel="stylesheet" href="./portada/laminas.css">
+<link rel="stylesheet" href="./portada/ventajas.css">
 </head>
 <body>
 
@@ -283,9 +285,9 @@
       <span class="titular__linea"><span data-en="hero.linea2">en una sola pantalla</span></span>
     </h1>
     <p class="entrada" data-en="hero.entrada">
-      Claude Code, Codex, Gemini y otros <span data-cifra-otros>ocho</span> clientes <b class="clave">trabajando a la vez</b>, cada
-      uno en su <b class="clave">terminal de verdad</b> y con tus proyectos a un clic. Tú sueltas el
-      encargo y ellos trabajan.
+      Claude Code, Codex, Gemini y otros <span data-cifra-otros>ocho</span>, cada uno en su terminal de verdad
+      y <b class="clave">repartiéndose el trabajo</b>. Con <b class="clave">todas tus cuentas a la vez</b> y cada
+      agente <b class="clave">aislado en su caja</b>.
     </p>
     <div class="acciones">
       <!-- Sin numero de version en el enlace: `releases/latest/download` con
@@ -325,17 +327,26 @@
        «Descargar» con unas motas dentro; antes, cinco versiones en WebGL y una
        imagen con filamento y humo. -->
   <div class="ventana" id="ventana">
-    <!-- Encima de la ventana, a la izquierda: el enlace para verla grande
-         (/demo/ suelta ocupa toda la pantalla) y, a su derecha, las pestañas de
-         texto de winshotx.com, que llevan la demo a cada pantalla
-         (portada/pestanas.js) para quien no se atreve a tocarla por dentro.
-         Iban en una fila propia entre los botones y la ventana; Munir,
-         2026-11-17: «lo de la cabina, lienzo, chat… al lado de abrirla en
-         grande, a la derecha». Va antes que la demo en el HTML para que el
-         teclado llegue primero aquí. -->
+    <!-- Encima de la ventana, a la izquierda: el botón para verla a pantalla
+         completa y, a su derecha, las pestañas de texto de winshotx.com, que
+         llevan la demo a cada pantalla (portada/pestanas.js) para quien no se
+         atreve a tocarla por dentro. Iban en una fila propia entre los botones
+         y la ventana; Munir, 2026-11-17: «lo de la cabina, lienzo, chat… al lado
+         de abrirla en grande, a la derecha». Va antes que la demo en el HTML
+         para que el teclado llegue primero aquí.
+
+         El botón era un enlace, «Abrirla en grande», que abría /demo/ en otra
+         pestaña. Desde el 2026-11-23 la abre a pantalla completa aquí mismo,
+         como la demo de orquio.com (Munir: «haz como orquio que puedan poner la
+         demo en pantalla completa»): esta misma ventana pasa a ser una capa fija
+         a toda la pantalla, con esta fila de barra y el botón diciendo «Cerrar»
+         (portada/completa.js). -->
     <div class="ventana__encima">
-      <a class="ventana__grande" href="/demo/" target="_blank" rel="noopener"
-         data-en="hero.grande" data-en-attr="href:hero.grande.href">Abrirla en grande</a>
+      <button type="button" class="btn btn--fantasma btn--chico ventana__completa" data-demo-completa>
+        <svg class="ventana__ico ventana__ico--abrir" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        <svg class="ventana__ico ventana__ico--cerrar" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        <span data-demo-completa-texto data-en="hero.completa">Pantalla completa</span>
+      </button>
       <div class="pestanas-demo" role="group" aria-label="Pantallas de la demo" data-en-attr="aria-label:hero.pestanas" data-pestanas-demo>
         <button type="button" data-vista="cabina" aria-pressed="true" data-en="hero.p.cabina">Cabina</button>
         <button type="button" data-vista="lienzo" aria-pressed="false" data-en="hero.p.lienzo">Lienzo</button>
@@ -356,10 +367,18 @@
               data-en-attr="title:hero.demo.corto|src:hero.demo.src"></iframe></noscript>
     </div>
   </div>
+  <!-- En el móvil, encima de la ventana solo caben las pestañas: el botón de
+       pantalla completa va debajo, centrado y a la medida del dedo. -->
+  <div class="ventana__pie">
+    <button type="button" class="btn btn--fantasma ventana__completa" data-demo-completa>
+      <svg class="ventana__ico ventana__ico--abrir" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+      <span data-en="hero.completa.pie">Verla en pantalla completa</span>
+    </button>
+  </div>
 </section>
 
 <!-- CLIENTES:INICIO · generado por scripts/extraer-clientes.mjs, no editar a mano.
-     11 clientes en src/lib/providers.ts, 9 con dibujo propio.
+     10 clientes de src/lib/providers.ts, 10 con dibujo propio (fuera de la web: pi).
      El sprite va aquí dentro y no en un fichero aparte porque Codex y
      Copilot se recortan con una <mask>, y una máscara solo se resuelve contra
      el documento que la pinta. -->
@@ -433,15 +452,21 @@
     />
   </symbol>
   <symbol id="m-grok" viewBox="0 0 24 24">
-    <path
-      d="M2.6 2.6h3.7l15.1 18.8h-3.7Zm15.2 0h3.6l-6.1 7.3-1.8-2.2Zm-7.9 11 1.8 2.2-5.6 5.6H2.6Z"
-      fill="currentColor"
-    />
+    <g transform="translate(-3.36 -3.36) scale(.06)" fill="currentColor">
+      <path d="M210.484 312.759L343.465 210.383C349.984 205.364 359.302 207.322 362.408 215.117C378.758 256.231 371.454 305.64 338.925 339.563C306.397 373.487 261.137 380.927 219.768 363.983L174.577 385.803C239.394 432.008 318.104 420.581 367.289 369.251C406.303 328.564 418.386 273.104 407.088 223.091L407.19 223.198C390.807 149.726 411.218 120.359 453.03 60.3072C454.02 58.8833 455.01 57.4595 456 56L400.978 113.382V113.204L210.45 312.794Z" />
+      <path d="M183.042 337.641C136.519 291.294 144.54 219.567 184.236 178.203C213.59 147.59 261.683 135.096 303.666 153.464L348.755 131.75C340.632 125.627 330.221 119.042 318.275 114.414C264.277 91.2407 199.63 102.774 155.735 148.516C113.513 192.549 100.236 260.254 123.036 318.027C140.069 361.206 112.148 391.748 84.0229 422.575C74.0561 433.503 64.0553 444.431 56 456L183.007 337.677Z" />
+    </g>
   </symbol>
   <symbol id="m-kiro" viewBox="0 0 24 24">
     <g stroke-width="1.8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
       <path d="M4.6 20.2V10.4a7.4 7.4 0 0 1 14.8 0v9.8l-2.5-1.8-2.4 1.8-2.5-1.8-2.4 1.8-2.5-1.8Z" />
       <path d="M9.6 10.6v1.6M14.4 10.6v1.6" stroke-width="2.2" />
+    </g>
+  </symbol>
+  <symbol id="m-kimi" viewBox="0 0 24 24">
+    <g transform="translate(12 12) scale(.0777) translate(-289.5 -227)" fill="currentColor">
+      <path d="M148 140H189V252L301 140H359L253 246L343 310Q357 313 364 320V364H354Q342 363 332 357L225 279L189 315V364H148Z" />
+      <path d="M380 141V115.5A25.5 25.5 0 1 1 405.5 141Z" />
     </g>
   </symbol>
   <symbol id="m-shell" viewBox="0 0 24 24">
@@ -451,7 +476,7 @@
     </g>
   </symbol>
 </svg>
-<section class="cinta" id="cinta" aria-labelledby="cinta-tit">
+<section class="cinta lam-azul" id="cinta" aria-labelledby="cinta-tit">
   <div class="cinta__caja">
     <p class="cinta__rotulo" id="cinta-tit" data-en="cinta.rotulo">
       Funciona con lo que ya usas
@@ -468,8 +493,7 @@
         <li class="cli" style="--cli: #7aa6ff"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-agy"/></svg><span>Antigravity</span></li>
         <li class="cli" style="--cli: #c9d1d9"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-cursor"/></svg><span>Cursor</span></li>
         <li class="cli" style="--cli: #a855f7"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-kiro"/></svg><span>Kiro CLI</span></li>
-        <li class="cli" style="--cli: #2dd4bf"><span>Pi</span></li>
-        <li class="cli" style="--cli: #0a7aff"><span>Kimi Code</span></li>
+        <li class="cli" style="--cli: #0a7aff"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-kimi"/></svg><span>Kimi Code</span></li>
         </ul>
         <ul class="cinta__grupo" aria-hidden="true" data-copia>
         <li class="cli" style="--cli: #d97757"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-claude"/></svg><span>Claude Code</span></li>
@@ -481,8 +505,7 @@
         <li class="cli" style="--cli: #7aa6ff"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-agy"/></svg><span>Antigravity</span></li>
         <li class="cli" style="--cli: #c9d1d9"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-cursor"/></svg><span>Cursor</span></li>
         <li class="cli" style="--cli: #a855f7"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-kiro"/></svg><span>Kiro CLI</span></li>
-        <li class="cli" style="--cli: #2dd4bf"><span>Pi</span></li>
-        <li class="cli" style="--cli: #0a7aff"><span>Kimi Code</span></li>
+        <li class="cli" style="--cli: #0a7aff"><svg class="cli__marca prov-mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-kimi"/></svg><span>Kimi Code</span></li>
         </ul>
       </div>
     </div>
@@ -498,34 +521,101 @@
 </section>
 <!-- CLIENTES:FIN -->
 
-<!-- ======================= SIN ADEORQ Y CON ADEORQ ======================
-     El «Sin Orquio / Con Orquio» de orquio.com hecho Adeorq (Munir lo sumó a
-     la portada el 2026-11-16) y enfrentado línea a línea, la variante 1 «pero
-     más simple» que eligió el 2026-11-17: sin cajas ni marcas, una flecha en
-     medio. El título dice la ventaja de tenerlo todo en una app en vez de
-     repartido (su «G»). Todo lo de la derecha existe en la app de hoy. -->
+<!-- Los iconos de las ventajas: sueltos, de trazo y sin su cuadradito. Aquí
+     estuvo hasta el 2026-11-23 la tabla «Sin Adeorq / Con Adeorq» (la del
+     17-nov); sus filas viven ahora en las seis ventajas de abajo. -->
 <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true"
      style="position:absolute;width:0;height:0;overflow:hidden">
   <symbol id="i-flecha" viewBox="0 0 24 24"><path d="M4 12h15m0 0-5.5-5.5M19 12l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-caja" viewBox="0 0 24 24"><path d="M12 2.8 20.5 7.4v9.2L12 21.2l-8.5-4.6V7.4ZM3.8 7.6 12 12l8.2-4.4M12 12v9" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-cuentas" viewBox="0 0 24 24"><path d="M9 11.5a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2Zm-6 8.2c.6-3.2 3-5 6-5s5.4 1.8 6 5M16 4.6a3.4 3.4 0 0 1 0 6.6m2.4 3.8c1.5.8 2.4 2.4 2.7 4.7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><path d="M3.5 5.5h17v13h-17ZM7 10l3 2.5L7 15m5 0h5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-movil" viewBox="0 0 24 24"><path d="M8.6 2.8h6.8a2 2 0 0 1 2 2v14.4a2 2 0 0 1-2 2H8.6a2 2 0 0 1-2-2V4.8a2 2 0 0 1 2-2ZM10.6 18h2.8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-navegador" viewBox="0 0 24 24"><path d="M3.5 4.5h17v15h-17ZM3.5 8.8h17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.4 6.65h.01M9 6.65h.01" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-lienzo" viewBox="0 0 24 24"><path d="M3.5 3.8h8v6.4h-8ZM12.5 13.8h8v6.4h-8ZM7.5 10.2V17h5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-emision" viewBox="0 0 24 24"><path d="M3.5 7h17v10h-17Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.4 12h.01M10.5 12h.01M13.5 12h.01M16.6 12h.01" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></symbol>
 </svg>
-<section class="comparar" id="comparar" aria-labelledby="comparar-tit">
-  <div class="comparar__caja">
-    <h2 class="seccion__tit seccion__tit--centro" id="comparar-tit" data-aparece data-en="comparar.tit">De ventanas sueltas a una sola app de trabajo</h2>
-    <p class="seccion__entrada comparar__entrada" data-en="comparar.entrada">Un agente por ventana funciona hasta que tienes cuatro. Con todos en una, ves quién acabó, <b class="clave">quién te espera</b> y <b class="clave">cuánto llevas gastado</b> sin ir a buscarlo.</p>
-    <table class="comparar__tabla" data-aparece>
-      <thead><tr><th scope="col" data-en="comparar.sin">Sin Adeorq</th><th aria-hidden="true"></th><th scope="col" data-en="comparar.con">Con Adeorq</th></tr></thead>
-      <tbody>
-      <tr><td data-en="comparar.sin1">Una ventana por agente</td><td aria-hidden="true"><svg class="comparar__flecha"><use href="#i-flecha"/></svg></td><td data-en="comparar.con1">Todas en una ventana</td></tr>
-      <tr><td data-en="comparar.sin2">No sabes quién acabó</td><td aria-hidden="true"><svg class="comparar__flecha"><use href="#i-flecha"/></svg></td><td data-en="comparar.con2">Se enciende al acabar</td></tr>
-      <tr><td data-en="comparar.sin3">Un agente esperando tu sí</td><td aria-hidden="true"><svg class="comparar__flecha"><use href="#i-flecha"/></svg></td><td data-en="comparar.con3">Adeo te avisa si pregunta</td></tr>
-      <tr><td data-en="comparar.sin4">La cuota se acaba sin avisar</td><td aria-hidden="true"><svg class="comparar__flecha"><use href="#i-flecha"/></svg></td><td data-en="comparar.con4">Ves lo gastado por cuenta</td></tr>
-      <tr><td data-en="comparar.sin5">Cierras y pierdes la sesión</td><td aria-hidden="true"><svg class="comparar__flecha"><use href="#i-flecha"/></svg></td><td data-en="comparar.con5">Retomas las de Claude, Codex y Gemini</td></tr>
-      <tr><td data-en="comparar.sin6">Un encargo grande, en serie</td><td aria-hidden="true"><svg class="comparar__flecha"><use href="#i-flecha"/></svg></td><td data-en="comparar.con6">Adeo lo reparte en hasta seis</td></tr>
-      <tr><td data-en="comparar.sin7">Lejos del PC, a ciegas</td><td aria-hidden="true"><svg class="comparar__flecha"><use href="#i-flecha"/></svg></td><td data-en="comparar.con7">Contestas desde el móvil</td></tr>
-      <tr><td data-en="comparar.sin8">La cuenta, cambiada a mano</td><td aria-hidden="true"><svg class="comparar__flecha"><use href="#i-flecha"/></svg></td><td data-en="comparar.con8">La cuenta, al abrir la terminal</td></tr>
-      </tbody>
-    </table>
+<section class="comparar lam-noche" id="comparar" aria-labelledby="comparar-tit">
+
+  <!-- =========================== LAS VENTAJAS ===========================
+       Munir, 2026-11-23: «decir bien todas las ventajas de adeorq en el segundo
+       apartado despues de la demo y bien claro y facil ver como lo de [las cajas]
+       etc que se cordinan entre si los agentes coger lo que no tiene claude
+       desktop app o otras y poner los pros de adeorq y que las terminales son
+       mejores que la claude desktop app». De cuatro formas (la tabla «Sin y con»
+       de antes, frente a frente con la app de Claude, la tabla en grupos y
+       estas) eligió estas, «Ventajas sueltas», el 2026-11-23.
+
+       Munir, 2026-11-24, sobre el bloque «¿Y la app de escritorio de Claude?»
+       que iba debajo: «quita esta seccion y solo añade a adeorq y no le quites
+       merito puedes usar tailscale añade bien las funciones muy destacable [...]
+       quita ese texto nadie se lo va a leer es aburrido». La web habla solo de
+       Adeorq, sin compararse con nadie.
+
+       De Adeorq, solo lo que ya hace la versión publicada: las cajas de Docker
+       (docs/contexto/cajas.md, desde la 0.9.261; Windows Sandbox NO, que no está
+       construido), una terminal que abre otras con el MCP y su `entregar`
+       (docs/SUPREMA.md), el reparto entre cuentas (la guía, «El reparto entre
+       cuentas»), Adeo repartiendo en hasta seis y el móvil por Tailscale
+       (docs/contexto/movil.md). -->
+
+  <div class="vt vt1">
+    <h2 class="seccion__tit seccion__tit--centro" id="comparar-tit" data-aparece data-en="vt1.tit">Lo que ganas con Adeorq</h2>
+    <p class="seccion__entrada vt__entrada" data-en="vt.entrada">Cada agente trabaja en su <b class="clave">terminal de verdad</b>, y Adeorq los pone a <b class="clave">trabajar juntos</b>.</p>
+    <ul class="vt1__lista" data-aparece>
+      <li>
+        <span class="vt1__fig" aria-hidden="true"><svg class="prov-mark"><use href="#m-claude"/></svg><svg class="prov-mark"><use href="#m-codex"/></svg><svg class="prov-mark"><use href="#m-gemini"/></svg><svg class="prov-mark"><use href="#m-copilot"/></svg><svg class="prov-mark"><use href="#m-kimi"/></svg></span>
+        <h3 class="vt1__nombre" data-en="vt1.marcas">Todas las marcas, en una ventana</h3>
+        <p data-en="vt1.marcasP">Claude Code, Codex, Gemini, Copilot y los demás, <b>cada uno en su terminal</b> y trabajando a la vez.</p>
+      </li>
+      <li>
+        <span class="vt1__fig" aria-hidden="true"><svg class="prov-mark"><use href="#m-claude"/></svg><svg class="vt1__flecha"><use href="#i-flecha"/></svg><svg class="prov-mark"><use href="#m-codex"/></svg><svg class="prov-mark"><use href="#m-gemini"/></svg></span>
+        <h3 class="vt1__nombre" data-en="vt1.juntos">Se reparten el trabajo</h3>
+        <p data-en="vt1.juntosP">Una terminal <b>abre otras</b>, de la marca que haga falta, y al acabar <b>le entregan el resultado</b>. Adeo reparte un encargo en hasta seis.</p>
+      </li>
+      <li>
+        <span class="vt1__fig" aria-hidden="true"><svg class="vt1__ico"><use href="#i-caja"/></svg></span>
+        <h3 class="vt1__nombre" data-en="vt1.cajas">Una caja aparte para cada agente</h3>
+        <p data-en="vt1.cajasP">Una terminal puede nacer en una <b>caja de Docker</b> con un Linux limpio que, del disco, <b>solo ve su carpeta</b>. Al cerrarla, la caja se tira.</p>
+      </li>
+      <li>
+        <span class="vt1__fig" aria-hidden="true"><svg class="vt1__ico"><use href="#i-terminal"/></svg></span>
+        <h3 class="vt1__nombre" data-en="vt1.cli">El CLI de verdad, entero</h3>
+        <p data-en="vt1.cliP">Corre el <code>claude</code> o el <code>codex</code> que tú instalaste, <b>con todos sus comandos y atajos</b>, sin una app que lo traduzca.</p>
+      </li>
+      <li>
+        <span class="vt1__fig" aria-hidden="true"><svg class="vt1__ico"><use href="#i-cuentas"/></svg></span>
+        <h3 class="vt1__nombre" data-en="vt1.cuentas">Varias cuentas a la vez</h3>
+        <p data-en="vt1.cuentasP">Cada terminal con su cuenta, y la nueva va sola <b>a la que más cuota perdería</b> si se quedara sin usar.</p>
+      </li>
+      <li>
+        <span class="vt1__fig" aria-hidden="true"><svg class="adeo" data-adeo="quieta" width="46" height="32"></svg></span>
+        <h3 class="vt1__nombre" data-en="vt1.avisa">Te enteras sin mirar</h3>
+        <p data-en="vt1.avisaP">La terminal <b>se enciende al acabar</b>, Adeo te avisa si una te pregunta, y le contestas desde el móvil.</p>
+      </li>
+      <li>
+        <span class="vt1__fig" aria-hidden="true"><svg class="vt1__ico"><use href="#i-movil"/></svg></span>
+        <h3 class="vt1__nombre" data-en="vt1.movil">Tu PC, en el bolsillo</h3>
+        <p data-en="vt1.movilP">Desde el móvil y <b>estés donde estés</b>, por Tailscale: hablas con Adeo, <b>escribes en tus terminales</b>, les mandas fotos y te llegan los avisos.</p>
+      </li>
+      <li>
+        <span class="vt1__fig" aria-hidden="true"><svg class="vt1__ico"><use href="#i-navegador"/></svg></span>
+        <h3 class="vt1__nombre" data-en="vt1.nav">Tu web, al lado de la terminal</h3>
+        <p data-en="vt1.navP">Un <b>navegador de verdad</b> en un panel, junto a tus agentes, para ver el cambio <b>mientras lo hacen</b> sin cambiar de ventana.</p>
+      </li>
+      <li>
+        <span class="vt1__fig" aria-hidden="true"><svg class="vt1__ico"><use href="#i-lienzo"/></svg></span>
+        <h3 class="vt1__nombre" data-en="vt1.lienzo">Un lienzo para ordenarlo todo</h3>
+        <p data-en="vt1.lienzoP">Tus terminales en un <b>lienzo sin fin</b>, con notas y dibujos al lado y <b>cada proyecto con su color</b>.</p>
+      </li>
+      <li>
+        <span class="vt1__fig" aria-hidden="true"><svg class="vt1__ico"><use href="#i-emision"/></svg></span>
+        <h3 class="vt1__nombre" data-en="vt1.emision">Graba sin enseñar tus claves</h3>
+        <p data-en="vt1.emisionP">Con el <b>modo emisión</b>, Adeorq tapa las claves <b>antes de pintarlas</b>: emites o grabas tu pantalla y nadie ve un secreto.</p>
+      </li>
+    </ul>
   </div>
+
 </section>
 
 <!-- ========================== ADEO LO REPARTE ==========================
@@ -536,7 +626,7 @@
      medidas salen de src/estilos/21-chat.css y 22-conserje.css, y los textos,
      de la captura del móvil (assets/screens/es/phone-concierge.png). Munir lo
      pidió así el 2026-11-17: «como en el Chat, pero que se vea como en la app». -->
-<section class="reparte" id="reparte">
+<section class="reparte lam-negra" id="reparte">
   <div class="reparte__caja">
     <h2 class="seccion__tit seccion__tit--centro" data-aparece data-en="reparte.tit">Se lo dices una vez. Adeo lo reparte.</h2>
     <p class="seccion__entrada reparte__entrada" data-en="reparte.entrada">Escríbelo o díctalo <b class="clave">como te salga</b>. Si son dos trabajos, Adeo <b class="clave">abre dos sesiones</b>, cada una en su proyecto.</p>
@@ -579,6 +669,33 @@
   </div>
 </section>
 
+<!-- ============================ ADEO TE LA ENSEÑA ============================
+     Un vídeo de Adeo enseñando la app (Munir, 2026-11-23, eligió «Vídeo de
+     Adeo»): el recorrido de la demo, grabado a 1920x1080 con
+     scratchpad/grabar.mjs (/demo/?tour=1, pulsando «Siguiente»), 35 s, MP4 de
+     1,1 MB por idioma. Mudo, en bucle, sale con su foto y no baja nada hasta
+     que la sección se acerca; corre solo mientras se ve, y se para con su botón
+     o con la válvula del movimiento (portada/video.js). -->
+<section class="video lam-azul" id="video" aria-labelledby="video-tit">
+  <div class="video__caja bloque--dos">
+    <div class="bloque__rotulo">
+      <div class="adeo-presenta">
+        <svg class="adeo" data-adeo="quieta" width="86" height="60" aria-hidden="true"></svg>
+        <p class="adeo-dice adeo-dice--izq" data-en="adeo.video">Te la enseño en medio minuto. Si prefieres tocarla, la tienes arriba.</p>
+      </div>
+      <h2 class="seccion__tit" id="video-tit" data-aparece data-en="video.tit">Adeo te la enseña</h2>
+      <p class="seccion__entrada" data-en="video.entrada">Tus proyectos, <b class="clave">una terminal por agente</b>, los que trabajan apartados, los permisos y el orden. Treinta y cinco segundos, sin sonido.</p>
+    </div>
+    <figure class="video__marco bloque__cuerpo">
+      <video data-video muted loop playsinline preload="none" width="1920" height="1080"
+             poster="/assets/video/recorrido-es.webp" data-src="/assets/video/recorrido-es.mp4"
+             aria-label="Adeo enseña la app: los proyectos, una terminal por agente, las terminales apartadas, los permisos, el orden de las ventanas y él mismo."
+             data-en-attr="poster:video.poster|data-src:video.src|aria-label:video.aria"></video>
+      <button type="button" class="video__boton" data-video-boton aria-pressed="false"><span data-video-texto data-en="video.parar">Parar el vídeo</span></button>
+    </figure>
+  </div>
+</section>
+
 <!-- ===================== EL CÓDIGO A LA VISTA, Y TUS MODS =====================
      Arriba en la página para que se vea sin buscarla (Munir, 2026-10-16:
      «di bien claro que pueden ver el código»), y desde el 2026-11-17 con los
@@ -594,7 +711,7 @@
      encienden en Ajustes › Mods. Nada de código. Que aguantan una actualización
      es para lo que están hechos, pero todavía no se ha medido con una de verdad
      (mods.md, «NO PROBADO»): por eso se dice dónde viven y no «sobreviven». -->
-<section class="codigo" id="codigo" aria-labelledby="codigo-sec">
+<section class="codigo lam-noche" id="codigo" aria-labelledby="codigo-sec">
   <h2 class="seccion__tit seccion__tit--centro codigo__sec" id="codigo-sec" data-aparece data-en="codigo.sec">Léelo entero y cámbialo a tu gusto</h2>
   <div class="codigo__caja">
     <div class="codigo__mitad">
@@ -646,7 +763,7 @@
      de que va exactamente. Prosa de verdad, con los nombres propios de
      la app enlazados a su sección. Nada de metricas de comunidad que no
      tenemos: aqui solo va lo que se puede comprobar abriendo el programa. -->
-<section class="explica" id="que-es">
+<section class="explica lam-negra" id="que-es">
   <div class="explica__caja">
 
     <header class="explica__cabecera">
@@ -669,7 +786,12 @@
          con cada versión. Sin JavaScript es una lista, cada rasgo con su frase
          y su foto. Con él (portada/muestra.js) solo el rasgo elegido enseña lo
          suyo, y a lo ancho su foto pasa a la derecha, grande. El enlace de
-         cada rasgo abre esa misma vista en la demo de arriba. -->
+         cada rasgo abre esa misma vista en la demo de arriba.
+         Cada foto lleva su `srcset` de 960 y 1440 px (scripts/hacer-tamanos.mjs):
+         se pinta como mucho a unos 714 px CSS, y decodificar el original de
+         3840 al encenderse cada rasgo dejaba fotogramas de 100 a 300 ms. Su
+         `sizes` es lo que mide pintada; si cambia la columna de la foto, se
+         mide otra vez (SIZES, en scripts/capturas-check.mjs, dice cómo). -->
     <div class="muestra" data-muestra data-aparece>
       <div class="rasgo">
         <div class="rasgo__texto">
@@ -680,8 +802,10 @@
         </div>
         <figure class="rasgo__foto">
           <img src="/assets/screens/es/cockpit.png" width="3840" height="2160" loading="lazy" decoding="async"
+               srcset="/assets/screens/es/cockpit-960.png 960w, /assets/screens/es/cockpit-1440.png 1440w, /assets/screens/es/cockpit.png 3840w"
+               sizes="(min-width: 1300px) 720px, (min-width: 901px) calc(92vw - 480px), 100vw"
                alt="La Cabina con cuatro terminales en rejilla: tres sesiones de Claude Code y una de Codex, y una de ellas pide permiso antes de ejecutar un comando."
-               data-en-attr="src:rasgo.cabina.src|alt:rasgo.cabina.alt">
+               data-en-attr="src:rasgo.cabina.src|srcset:rasgo.cabina.srcset|alt:rasgo.cabina.alt">
         </figure>
       </div>
 
@@ -694,8 +818,10 @@
         </div>
         <figure class="rasgo__foto">
           <img src="/assets/screens/es/canvas.png" width="3840" height="2160" loading="lazy" decoding="async"
+               srcset="/assets/screens/es/canvas-960.png 960w, /assets/screens/es/canvas-1440.png 1440w, /assets/screens/es/canvas.png 3840w"
+               sizes="(min-width: 1300px) 720px, (min-width: 901px) calc(92vw - 480px), 100vw"
                alt="El Lienzo con tres terminales, el tablero con el trabajo de los agentes, un enjambre de dos sesiones con su chat y dos notas."
-               data-en-attr="src:rasgo.lienzo.src|alt:rasgo.lienzo.alt">
+               data-en-attr="src:rasgo.lienzo.src|srcset:rasgo.lienzo.srcset|alt:rasgo.lienzo.alt">
         </figure>
       </div>
 
@@ -708,8 +834,10 @@
         </div>
         <figure class="rasgo__foto">
           <img src="/assets/screens/es/files.png" width="3840" height="2160" loading="lazy" decoding="async"
+               srcset="/assets/screens/es/files-960.png 960w, /assets/screens/es/files-1440.png 1440w, /assets/screens/es/files.png 3840w"
+               sizes="(min-width: 1300px) 720px, (min-width: 901px) calc(92vw - 480px), 100vw"
                alt="Dos terminales a la izquierda y, a la derecha, el archivo cart.js abierto junto al árbol del proyecto con sus cambios de git."
-               data-en-attr="src:rasgo.archivos.src|alt:rasgo.archivos.alt">
+               data-en-attr="src:rasgo.archivos.src|srcset:rasgo.archivos.srcset|alt:rasgo.archivos.alt">
         </figure>
       </div>
 
@@ -722,8 +850,10 @@
         </div>
         <figure class="rasgo__foto">
           <img src="/assets/screens/es/decisions.png" width="3840" height="2160" loading="lazy" decoding="async"
+               srcset="/assets/screens/es/decisions-960.png 960w, /assets/screens/es/decisions-1440.png 1440w, /assets/screens/es/decisions.png 3840w"
+               sizes="(min-width: 1300px) 720px, (min-width: 901px) calc(92vw - 480px), 100vw"
                alt="Una decisión pendiente con dos preguntas, sus opciones numeradas y la recomendada marcada."
-               data-en-attr="src:rasgo.decisiones.src|alt:rasgo.decisiones.alt">
+               data-en-attr="src:rasgo.decisiones.src|srcset:rasgo.decisiones.srcset|alt:rasgo.decisiones.alt">
         </figure>
       </div>
 
@@ -736,10 +866,73 @@
         </div>
         <figure class="rasgo__foto">
           <img src="/assets/screens/es/accounts.png" width="3840" height="2160" loading="lazy" decoding="async"
+               srcset="/assets/screens/es/accounts-960.png 960w, /assets/screens/es/accounts-1440.png 1440w, /assets/screens/es/accounts.png 3840w"
+               sizes="(min-width: 1300px) 720px, (min-width: 901px) calc(92vw - 480px), 100vw"
                alt="Las cuentas de Claude Code y Codex, cada una con sus barras de consumo de la sesión y de la semana."
-               data-en-attr="src:rasgo.cuentas.src|alt:rasgo.cuentas.alt">
+               data-en-attr="src:rasgo.cuentas.src|srcset:rasgo.cuentas.srcset|alt:rasgo.cuentas.alt">
         </figure>
       </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ==================== COMPARTE TU PnL ====================
+     La tarjeta de uso del Perfil, la que se comparte como las de PnL: pintada
+     por portada/pnl.js con las mismas funciones que la pintan en la app, sobre
+     el fondo que Munir tiene puesto en su Adeorq (Munir, 2026-11-23: «añade a
+     la web de adeorq lo de comparte tus pnls el apartado de pnls y una foto de
+     gatos mia que tengo ahora y tokens etc»). Los datos son los de Sam, los
+     mismos de la demo. La foto la hizo una IA (gpt-image, con su firma C2PA):
+     se dice debajo y el original va enlazado sin tocar, con sus credenciales. -->
+<section class="pnl lam-azul" id="pnl" aria-labelledby="pnl-tit">
+  <div class="pnl__caja bloque--dos">
+    <div class="bloque__rotulo">
+      <div class="adeo-presenta">
+        <svg class="adeo" data-adeo="quieta" width="86" height="60" aria-hidden="true"></svg>
+        <p class="adeo-dice adeo-dice--izq" data-en="adeo.pnl">Yo llevo la cuenta de cada token. Tú solo eliges el color y lo enseñas.</p>
+      </div>
+      <h2 class="seccion__tit" id="pnl-tit" data-aparece data-en="pnl.tit">Comparte tu PnL</h2>
+      <p class="seccion__entrada" data-en="pnl.entrada">Tus tokens del mes, de un día o <b class="clave">desde el primero</b>, en una tarjeta con <b class="clave">tu fondo</b>. En imagen, o en vídeo con la cifra subiendo, lista para X o Discord.</p>
+    </div>
+    <div class="pnl__cuerpo">
+      <figure class="pnl__tarjeta">
+        <canvas data-pnl-lienzo data-fondo="/assets/gatos/gatos-1558.webp" data-fondo-chico="/assets/gatos/gatos-960.webp" width="1600" height="900"
+                role="img" aria-label="La tarjeta de uso de Munir: 27B tokens en noviembre de 2026, 591M nuevos y 23 días activos, sobre una imagen de gatos naranjas hecha con IA."
+                data-en-attr="aria-label:pnl.lienzo"></canvas>
+      </figure>
+      <div class="pnl__mandos">
+        <div class="pnl__formatos" role="group" aria-label="Qué cuenta la tarjeta" data-en-attr="aria-label:pnl.que">
+          <button type="button" data-pnl-que="mes" aria-pressed="true" data-en="pnl.mes">Mes</button>
+          <button type="button" data-pnl-que="record" aria-pressed="false" data-en="pnl.record">Récord</button>
+          <button type="button" data-pnl-que="total" aria-pressed="false" data-en="pnl.total">Total</button>
+        </div>
+        <div class="pnl__formatos" role="group" aria-label="Formato" data-en-attr="aria-label:pnl.formato">
+          <button type="button" data-pnl-formato="horizontal" aria-pressed="true">16:9</button>
+          <button type="button" data-pnl-formato="vertical" aria-pressed="false">9:16</button>
+        </div>
+        <div class="pnl__colores" role="group" aria-label="Color de la cifra" data-en-attr="aria-label:pnl.colores">
+          <button type="button" data-pnl-color="azul" aria-pressed="true" aria-label="Azul" data-en-attr="aria-label:pnl.azul"></button>
+          <button type="button" data-pnl-color="blanco" aria-pressed="false" aria-label="Blanco" data-en-attr="aria-label:pnl.blanco"></button>
+          <button type="button" data-pnl-color="naranja" aria-pressed="false" aria-label="Naranja" data-en-attr="aria-label:pnl.naranja"></button>
+          <button type="button" data-pnl-color="verde" aria-pressed="false" aria-label="Verde" data-en-attr="aria-label:pnl.verde"></button>
+          <button type="button" data-pnl-color="morado" aria-pressed="false" aria-label="Morado" data-en-attr="aria-label:pnl.morado"></button>
+        </div>
+        <div class="pnl__interruptores">
+          <button type="button" class="pnl__interruptor" data-pnl-resaltar aria-pressed="false"><i aria-hidden="true"></i><span data-en="pnl.resaltar">Resaltar la cifra</span></button>
+          <button type="button" class="pnl__interruptor" data-pnl-proyecto aria-pressed="false"><i aria-hidden="true"></i><span data-en="pnl.proyecto">Con un proyecto</span></button>
+        </div>
+      </div>
+      <div class="pnl__fondos" role="group" aria-label="Fondo de la tarjeta" data-en-attr="aria-label:pnl.fondos">
+        <button type="button" class="pnl__fondo" data-pnl-fondo="gatos" aria-pressed="true" aria-label="Los gatos" data-en-attr="aria-label:pnl.f.gatos"></button>
+        <button type="button" class="pnl__fondo" data-pnl-fondo="ascii" aria-pressed="false" aria-label="ASCII"></button>
+        <button type="button" class="pnl__fondo" data-pnl-fondo="contorno" aria-pressed="false" aria-label="Solo los bordes" data-en-attr="aria-label:pnl.f.contorno"></button>
+        <button type="button" class="pnl__fondo" data-pnl-fondo="pelicula" aria-pressed="false" aria-label="Grano de película" data-en-attr="aria-label:pnl.f.pelicula"></button>
+        <button type="button" class="pnl__fondo" data-pnl-fondo="cristal" aria-pressed="false" aria-label="Proa de cristal" data-en-attr="aria-label:pnl.f.cristal"></button>
+        <label class="pnl__fondo pnl__fondo--tuyo" data-pnl-tuyo><input type="file" accept="image/*,video/*" data-pnl-archivo><span data-en="pnl.f.tuyo">Tu foto o vídeo</span></label>
+      </div>
+      <button type="button" class="btn btn--fantasma btn--grande pnl__bajar" data-pnl-bajar><span data-en="pnl.bajar">Descargar la imagen</span></button>
+      <p class="pnl__nota" data-en="pnl.nota">Son mis cifras de verdad, las de mi Perfil a 23 de noviembre de 2026. De fondo, el que tengo ahora en mi Adeorq: una imagen hecha con IA (<a href="/assets/gatos/original-con-credenciales.png">el original, con sus credenciales</a>). Tu foto o tu vídeo no salen de tu navegador: no se suben a ningún sitio.</p>
     </div>
   </div>
 </section>
@@ -749,7 +942,7 @@
      El destino del botón «Ver cómo trabaja» del hero. Sin esta sección ese
      botón era un enlace a ninguna parte, que es de lo peor que puede tener
      una portada: promete y no cumple. -->
-<section class="pasos" id="trabajo">
+<section class="pasos lam-noche" id="trabajo">
   <div class="pasos__caja bloque--dos">
     <div class="bloque__rotulo">
     <div class="adeo-presenta">
@@ -803,7 +996,7 @@
      (src/components/AjustesMovil.tsx): si cambia algo allí, cambia aquí y en
      la guía. Los Ajustes del propio móvil se cuentan por lo que hacen, no por
      el nombre de sus botones. -->
-<section class="pasos" id="movil">
+<section class="pasos lam-negra" id="movil">
   <div class="pasos__caja bloque--dos">
     <div class="bloque__rotulo">
     <div class="adeo-presenta">
@@ -864,7 +1057,7 @@
      Va ANTES de la descarga a propósito: es la objeción que frena el clic. Y
      las tres van en positivo, que una garantía enunciada en negativo entre
      funciones parece una limitación. -->
-<section class="cuenta" id="privacidad">
+<section class="cuenta lam-azul" id="privacidad">
   <div class="cuenta__caja">
     <div class="adeo-presenta adeo-presenta--centro">
       <svg class="adeo" data-adeo="quieta" width="86" height="60" aria-hidden="true"></svg>
@@ -897,7 +1090,7 @@
      en vez de escondida en las preguntas. La versión, la fecha y el peso los
      rellena datos.js con el JSON de verdad: escritos a mano envejecen en la
      siguiente publicación. -->
-<section class="descarga" id="descargar" data-descarga>
+<section class="descarga lam-noche" id="descargar" data-descarga>
   <div class="descarga__caja bloque--dos">
     <div class="bloque__rotulo">
     <div class="adeo-presenta">
@@ -957,7 +1150,7 @@
 <!-- ==================== NOVEDADES ====================
      Prueba de vida, y va DESPUÉS de la descarga: convence a quien duda de si
      esto sigue en marcha. El número de versiones lo pone datos.js. -->
-<section class="novedades" id="novedades">
+<section class="novedades lam-negra" id="novedades">
   <div class="novedades__caja bloque--dos">
     <div class="bloque__rotulo">
     <div class="adeo-presenta">
@@ -993,7 +1186,7 @@
      Incluidas las incómodas, y en particular la de si esto es open source. Se
      contesta que SÍ desde el 2026-11-21 (AGPL-3.0), con su condición dicha
      entera: decirlo a medias es lo que sale caro. -->
-<section class="faq" id="faq">
+<section class="faq lam-noche" id="faq">
   <div class="faq__caja bloque--dos">
     <div class="bloque__rotulo" data-aparece>
       <div class="adeo-presenta">
@@ -1020,8 +1213,8 @@
 
       <details class="pregunta" name="faq">
         <summary><span data-en="faq.q2">¿Funciona con algo que no sea Claude Code?</span><svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <p data-en="faq.r2">Conoce 11 clientes, entre ellos Codex, Gemini CLI, Copilot, Cursor,
-           opencode, Antigravity, Kiro, Grok y Pi, y sabe instalar los que te
+        <p data-en="faq.r2">Conoce 10 clientes, entre ellos Codex, Gemini CLI, Copilot, Cursor,
+           opencode, Antigravity, Kiro y Grok, y sabe instalar los que te
            falten. Y como las terminales son reales, dentro puedes ejecutar lo que
            quieras, incluidos tus propios scripts.</p>
       </details>
@@ -1085,7 +1278,7 @@
      Todo lo que se lee para usarla, en un sitio (Munir, 2026-11-17: «hacer una
      sección de docs y ayuda»): la guía, el móvil, la privacidad, las novedades
      y preguntar en GitHub. Cinco enlaces con su frase, sin tarjetas. -->
-<section class="ayuda" id="ayuda" aria-labelledby="ayuda-tit">
+<section class="ayuda lam-negra" id="ayuda" aria-labelledby="ayuda-tit">
   <div class="ayuda__caja">
     <h2 class="seccion__tit" id="ayuda-tit" data-aparece data-en="ayuda.tit">Docs y ayuda</h2>
     <ul class="ayuda__lista">
@@ -1117,7 +1310,7 @@
      Su página de Buy Me a Coffee, la misma que enlaza como «Invítame a un café»
      en el README de TaskbarGroupsFluent. Sin urgencia ni culpa (regla BC): una
      frase y un botón secundario, que el principal es solo el de descargar. -->
-<section class="apoyar" id="apoyar" aria-labelledby="apoyar-tit">
+<section class="apoyar lam-azul" id="apoyar" aria-labelledby="apoyar-tit">
   <div class="apoyar__caja">
     <svg class="adeo" data-adeo="quieta" width="86" height="60" aria-hidden="true"></svg>
     <div class="apoyar__texto">
@@ -1135,7 +1328,7 @@
      lleva y qué condición pone. Adeorq es AGPL-3.0 desde el 2026-11-21 (antes
      PolyForm Shield, y antes aún un EULA propio), y decirlo a medias en la
      portada es el error que sale caro (AGENTS.md, regla Z). -->
-<footer class="pie" id="pie">
+<footer class="pie lam-negra" id="pie">
   <div class="pie__caja">
     <div class="pie__marca">
       <a class="nav__marca" href="#top">
@@ -1193,8 +1386,11 @@
 <script type="module" src="./portada/movimiento.js"></script>
 <script type="module" src="./portada/muestra.js"></script>
 <script type="module" src="./portada/adeo.js"></script>
+<script type="module" src="./portada/pnl.js"></script>
+<script type="module" src="./portada/video.js"></script>
 <script src="./portada/valvula.js" defer></script>
 <script src="./portada/pestanas.js" defer></script>
+<script src="./portada/completa.js" defer></script>
 <script src="./portada/datos.js" defer></script>
 <script src="./portada/idioma.js" defer></script>
 <script src="./portada/menu.js" defer></script>

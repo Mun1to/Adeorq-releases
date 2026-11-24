@@ -57,6 +57,11 @@ if (muestra) {
     ampliar.textContent = EN ? 'Enlarge' : 'Ampliar'
     foto.append(ampliar)
     foto.addEventListener('click', () => abrirLupa(img))
+    // La foto se pinta con la de 960 o 1440 de su `srcset`; la lupa abre el
+    // original, y con el puntero encima ya se sabe que lo van a querer.
+    const traerOriginal = () => { new Image().src = img.src }
+    foto.addEventListener('pointerenter', traerOriginal, { once: true })
+    ampliar.addEventListener('focus', traerOriginal, { once: true })
   }
 
   elegir(rasgos[0])
@@ -131,7 +136,9 @@ function abrirLupa(img) {
     document.body.append(lupa)
   }
   const grande = lupa.querySelector('img')
-  grande.src = img.currentSrc || img.src
+  // `src` y no `currentSrc`: este es el original de 3840, y `currentSrc` la
+  // copia pequeña del `srcset` que se está pintando.
+  grande.src = img.src
   grande.alt = img.alt
   lupa.showModal()
 }

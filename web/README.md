@@ -137,6 +137,38 @@ node scripts/dedo-demo.mjs http://127.0.0.1:4173/
   What the app lets you drag carries `touch-action: none`, which inside a frame
   left the finger without a page (5 of 60 points in the Cockpit, 39 of 60 in
   the Canvas).
+- `scripts/fotogramas.mjs` scrolls the whole page with a smooth wheel gesture
+  (`Input.synthesizeScrollGesture`: in headless Brave `mouse.wheel` jumps 100 px
+  at once) or a finger, and reports the gaps between `requestAnimationFrame`
+  (red at 1x when, over the rounds, the median p95 is above 16.7 ms or the
+  median of each round's worst frame is above 50 ms: one bad round out of three
+  stays green, so read the per-round line too), the frames the compositor
+  dropped, main-thread ms per second, style recalculations, long animation
+  frames and layout shift. Profiles `1920`, `1536` (125 %) and `390` (phone),
+  `1` or `4` for the CPU, and `bajar`, `enseguida`, `quieto`, `ancla` or
+  `menu`. A single run is noise on a busy machine (the same page gave a p95 of
+  8 and of 33 ms ten minutes apart): compare versions with `VARIANTES`
+  (alternated in one browser, `REPES` times each, medians), and `FRIO=1` for a
+  first visit, when the GPU still compiles what it draws. The headless p95 is
+  bimodal (it draws at 120-240 Hz, so 8.4 or 16.7 ms only says whether that
+  round lost frames).
+  The "pantalla" column is the compositor's frames: it sees a stalled scroll,
+  not a stalled main thread (a 200 ms wheel listener shows up in rAF and LoAF
+  and not there). A gap only counts as a stall if at least half of it falls
+  inside a gesture, timed from Node: the wheel pauses 120 ms every `TRAMO` px
+  (800), and where nothing moves on screen that pause used to read as a 140 ms
+  stall; the page's own `scroll` events can't tell, since the main thread fires
+  them and they go missing exactly when it stalls. The gaps left out are
+  counted per round. Each long frame is printed with the scroll position it fell
+  on and where its time went (tasks before rendering, `requestAnimationFrame`
+  and other events, style-layout-paint): one that is almost all "tasks" with no
+  script in it is usually the main thread waiting for the GPU, so look at the
+  trace (`TRAZA=1`; `GUARDAR=<folder>` keeps it).
+- `scripts/hacer-tamanos.mjs` writes the 960 and 1440 px copies of the five
+  feature screenshots for their `srcset`, and `scripts/capturas-check.mjs` (in
+  `pnpm comprobar`) turns red when a screenshot changes without them. Decoding
+  the 3840 px PNG every time a feature lit up while scrolling left 100-300 ms
+  frames.
 
 The page follows `?lang=en`, and `?vista=lienzo` opens it on a given view. When
 the app changes, dump again and run `pnpm demo`; the steps are in the README

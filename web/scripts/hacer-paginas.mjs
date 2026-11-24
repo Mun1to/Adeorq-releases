@@ -20,6 +20,7 @@ import { textosNovedades } from '../paginas/novedades.mjs'
 import { textosClaudeWindows } from '../paginas/claude-code-windows.mjs'
 import { CLIENTES, textosVariosClientes } from '../paginas/claude-code-codex-gemini.mjs'
 import { textosComparativa } from '../paginas/comparativa.mjs'
+import { FUERA_DE_LA_WEB } from './extraer-clientes.mjs'
 
 const WEB = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const changelog = JSON.parse(readFileSync(resolve(WEB, 'data/changelog.json'), 'utf8'))
@@ -27,10 +28,12 @@ const changelog = JSON.parse(readFileSync(resolve(WEB, 'data/changelog.json'), '
 /**
  * La tabla de clientes de /claude-code-codex-gemini dice lo que hace la app. Si el catálogo
  * cambia (src/lib/providers.ts), el build se para aquí antes que publicar una tabla falsa.
+ * Sin los que la web no enseña (`FUERA_DE_LA_WEB` en extraer-clientes.mjs).
  */
 function comprobarCatalogo() {
   const fuente = readFileSync(resolve(WEB, '../src/lib/providers.ts'), 'utf8')
   const fichas = fuente.slice(fuente.indexOf('export const PROVIDERS')).split(/\r?\n {2}\{\r?\n/).slice(1)
+    .filter((f) => !FUERA_DE_LA_WEB.includes(f.match(/id:\s*"([^"]+)"/)?.[1]))
   const reales = fichas.map((f) => [
     f.match(/label:\s*"([^"]+)"/)?.[1],
     /envVar:\s*"[^"]+"/.test(f) ? 1 : 0,

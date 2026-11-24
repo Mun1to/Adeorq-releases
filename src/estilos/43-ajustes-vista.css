@@ -1,0 +1,215 @@
+/* ── Ajustes › Aspecto y Terminales: la vista al lado y las muestras pequeñas ──
+   Munir, 2026-11-24: «quiero que sea mas pequeño lo de los ejemplos y poner a
+   la derecha un como se veria en tu termnal para no estar yendo y volviendo y
+   que los apartados numericos puedas hacer doble click y editarlo con el
+   teclado para mas rapidez y ser mas concreto». Tres piezas:
+   - la columna de la derecha, «Así se verá tu terminal» (`VistaTerminal.tsx`),
+     que sigue al hacer scroll;
+   - las muestras de temas y de esquemas de terminal, más pequeñas: sirven para
+     reconocer cada opción, y la vista grande ya es la de la derecha;
+   - el número de cada deslizador, que se escribe con doble clic
+     (`NumeroAjuste.tsx`).
+   Va en su propio tramo, al final, porque `07-ajustes.css` está en su techo. */
+
+/* ------------------------------ La columna ------------------------------ */
+
+.settings .set-marco[data-vista] {
+  grid-template-columns: 196px minmax(0, 1fr) clamp(280px, 22vw, 360px);
+}
+
+.set-vista {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.set-vista-tit {
+  margin: 2px 2px 0;
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--muted);
+}
+
+/* La terminal en pequeño: el marco del panel (`--pane-bg`) y, dentro, el
+   tinte que pinta una terminal de verdad (`--xterm-bg`, que App.tsx recalcula
+   al mover «cuánto se ve a través de las terminales»). */
+.vista-term {
+  border: 1px solid var(--border);
+  border-radius: var(--r-caja);
+  overflow: hidden;
+  background: var(--pane-bg);
+}
+
+.vista-term-cab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.vista-term-punto {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.vista-term-cli {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.vista-term-cuerpo {
+  min-height: 210px;
+  padding: 10px 12px 12px;
+  background: var(--xterm-bg);
+  /* La misma letra, interlineado y espaciado que `TerminalPane`. */
+  font-family: "Cascadia Mono", Consolas, monospace;
+  line-height: 1.2;
+  letter-spacing: 0.2px;
+  white-space: pre;
+  overflow: hidden;
+}
+
+/* En un tema claro, un esquema oscuro lleva la terminal oscura, como sus
+   muestras (`07-ajustes.css`, `.term-prev`). */
+:root[data-claro] .vista-term[data-claro="false"] .vista-term-cuerpo {
+  background: var(--term-oscura);
+}
+
+.vista-term-cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 1.05em;
+  margin-left: 0.4em;
+  vertical-align: text-bottom;
+  animation: term-cursor 1.1s steps(2, start) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vista-term-cursor {
+    animation: none;
+  }
+}
+
+/* Sin sitio para tres columnas, la vista sube encima de los ajustes. */
+@media (max-width: 1280px) {
+  .settings .set-marco[data-vista] {
+    grid-template-columns: 196px minmax(0, 1fr);
+  }
+
+  .settings .set-marco[data-vista] > .set-nav {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  .settings .set-marco[data-vista] > .set-vista {
+    grid-column: 2;
+    grid-row: 1;
+    position: static;
+  }
+
+  .settings .set-marco[data-vista] > .set-hoja {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .vista-term-cuerpo {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .settings .set-marco[data-vista] > * {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .settings .set-marco[data-vista] > .set-nav {
+    order: -2;
+  }
+
+  .settings .set-marco[data-vista] > .set-vista {
+    order: -1;
+  }
+}
+
+/* --------------------------- Las muestras -------------------------------- */
+
+.tema-rejilla {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px 12px;
+}
+
+.tema-rejilla .tema-nombre {
+  font-size: 13px;
+}
+
+.tema-prev {
+  height: 104px;
+}
+
+/* La letra de la muestra se queda en 13 px, el suelo de la casa: lo que
+   encoge es el aire de alrededor, el interlineado y el ancho, que ya no se
+   estira para llenar la fila (con «1fr» medían casi 200 px). 172 es lo que
+   ocupa su línea más larga, «~/adeorq ❯ pnpm build», con su margen. */
+.term-rejilla {
+  grid-template-columns: repeat(auto-fill, 172px);
+  gap: 10px;
+}
+
+.tema-rejilla {
+  grid-template-columns: repeat(auto-fill, minmax(142px, 164px));
+}
+
+.term-prev {
+  padding: 7px 9px;
+  line-height: 1.45;
+}
+
+.term-tarjeta .tema-nombre {
+  font-size: 13px;
+}
+
+/* ----------------------- El número que se escribe ----------------------- */
+
+.setting-value-editable {
+  margin: -2px -5px;
+  padding: 2px 5px;
+  border-radius: var(--r-btn);
+  cursor: text;
+  transition: background var(--t-rapida) ease;
+}
+
+.setting-value-editable:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.setting-value-editable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.setting-value-campo {
+  width: 68px;
+  padding: 3px 6px;
+  border: 1px solid var(--accent);
+  border-radius: var(--r-btn);
+  background: var(--panel-solid);
+  color: var(--text);
+  font: inherit;
+  font-weight: 650;
+  text-align: right;
+}
+
+.setting-value-campo:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+}

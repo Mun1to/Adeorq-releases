@@ -465,6 +465,18 @@
   order: 1;
 }
 
+/* Y con la cabecera abajo, la primera fila de la terminal queda pegada al
+   borde de arriba, donde pasa el aro de estado: el mismo hueco que a la
+   izquierda (`.pane-term .xterm`, `05-cabina.css`), o el aro se come la punta
+   de lo que llena la celda (una raya de caja, un bloque). El de abajo sobra,
+   porque ahí está la barra y no el aro. Como `FitAddon` cuenta las filas con
+   ese hueco descontado, cuesta una fila solo cuando sobraban menos de 4 px
+   (medido: 78x44 se queda en 78x43 con el panel 7 px más bajo). */
+:root[data-aspecto="consola"] .grid > .pane > .pane-term .xterm {
+  padding-top: var(--aro-hueco);
+  padding-bottom: 0;
+}
+
 :root[data-aspecto="consola"] .grid > .pane > .pane-head {
   height: 26px;
   min-height: 0;

@@ -326,8 +326,8 @@ window.ADEORQ_I18N_EXTRA = {
                          'Rotating other people’s accounts to stretch the limits breaks the providers’ ' +
                          'terms, and what you are risking is having the account closed.',
     'guia.cuentas.h3a': 'Which programs support several accounts',
-    'guia.cuentas.pa': 'Adeorq knows eleven programs, and <b>six support several accounts</b>: ' +
-                       'Claude Code, Codex, Gemini CLI, Grok, Pi and Kimi Code. For those, it has ' +
+    'guia.cuentas.pa': 'Adeorq knows ten programs, and <b>five support several accounts</b>: ' +
+                       'Claude Code, Codex, Gemini CLI, Grok and Kimi Code. For those, it has ' +
                        'been checked that an environment variable really moves the program’s folder. The rest ' +
                        'carry the note “one account only”: better to say so than to invent a name and have an ' +
                        'account end up writing where it should not. Antigravity keeps its state inside ' +

@@ -6,9 +6,11 @@
 // trabajo, y se compacta); «sin commits» manda `/fin sin commits`, que la skill entiende.
 // Nunca con el agente trabajando, y subir sigue pidiendo su palabra. Lo leen los paneles
 // al sonar su campana (`leerModoSolo`, en lib/contexto.ts), así que vale sin reiniciar nada.
+// Y compactar las quietas (Munir, 2026-11-23): a los 55 minutos sin hablarle, con la caché
+// de una hora todavía viva, solo `/compact` y nada después (`QUIETA_MS`, `alQuieto`).
 
 import { useState } from "react";
-import { guardarModoSolo, guardarSugerir, leerModoSolo, leerSugerir, type ModoSolo } from "../lib/contexto";
+import { guardarModoSolo, guardarQuietas, guardarSugerir, leerModoSolo, leerQuietas, leerSugerir, type ModoSolo } from "../lib/contexto";
 import { useT } from "../lib/i18n";
 import { guardarVueltaArriba, leerVueltaArriba } from "../lib/vueltaArribaVivo";
 
@@ -16,6 +18,7 @@ export default function AjusteCompactar() {
   const { t } = useT();
   const [modo, setModo] = useState<ModoSolo>(leerModoSolo);
   const [sugerir, setSugerir] = useState(leerSugerir);
+  const [quietas, setQuietas] = useState(leerQuietas);
   const [vuelta, setVuelta] = useState(leerVueltaArriba);
   return (
     <>
@@ -43,6 +46,18 @@ export default function AjusteCompactar() {
             const si = e.currentTarget.checked;
             setSugerir(si);
             guardarSugerir(si);
+          }}
+        />
+      </label>
+      <label className="setting-row setting-switch">
+        <span>{t("Compactar sola una terminal que lleve 55 minutos quieta, desde los 100.000 tokens, antes de que caduque su caché")}</span>
+        <input
+          type="checkbox"
+          checked={quietas}
+          onChange={(e) => {
+            const si = e.currentTarget.checked;
+            setQuietas(si);
+            guardarQuietas(si);
           }}
         />
       </label>

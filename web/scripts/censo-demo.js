@@ -33,7 +33,8 @@ async (page) => {
     const mudos = [];
     let pulsados = 0;
     for (const vista of VISTAS) {
-      await page.goto(`${BASE}?vista=${vista}${idioma === 'en' ? '&lang=en' : ''}`, { waitUntil: 'load' });
+      // Sin el recorrido de la primera visita: taparía la ventana y sus botones contarían.
+      await page.goto(`${BASE}?vista=${vista}&tour=0${idioma === 'en' ? '&lang=en' : ''}`, { waitUntil: 'load' });
       await page.waitForFunction(() => !!window.adeDemo, null, { timeout: 15000 });
       await page.waitForTimeout(300);
       const r = await page.evaluate(async (v) => {
@@ -56,7 +57,9 @@ async (page) => {
           // Las pestañas de arriba cambian de vista y el idioma recarga la página.
           if (b.matches('nav.tabs .tab') || /^(inglés|english|español|spanish)$/i.test(b.textContent.trim())) continue;
           const rotulo = (b.dataset.tip || b.getAttribute('aria-label') || b.textContent || b.className).replace(/\s+/g, ' ').trim().slice(0, 50);
-          document.querySelector('.demo-aviso')?.remove();
+          // Lo que dijo Adeo con el botón anterior se calla, o el siguiente
+          // botón mudo heredaría su bocadillo como si hubiera contestado.
+          window.adeDemo.callar();
           const antes = foto();
           b.click();
           await new Promise((ok) => setTimeout(ok, 30));

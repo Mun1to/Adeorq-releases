@@ -462,6 +462,54 @@ export const SUBIDA_PCT = 10;
 export const SUGERIR_TOKENS = 200_000;
 export const SUGERIR_PCT = 40;
 
+/**
+ * Compactar una terminal quieta antes de que caduque su caché (Munir,
+ * 2026-11-23: «lo de las sesiones que estén inactivas por una hora o así,
+ * compactarlas»). La caché del hilo de Claude Code dura una hora desde la
+ * última llamada al modelo; pasada, el mensaje siguiente reescribe el contexto
+ * entero: los «arranques en frío» fueron 489 $ y el 11,7 % de la semana del 16
+ * al 22 de noviembre (`scripts/cuota-por-terminal.mjs`, con precios de API).
+ * A los 55 minutos el resumen relee la caché todavía viva (la cuenta lleva
+ * `tengu_compact_cache_prefix`: el `/compact` comparte el prefijo del hilo) y
+ * al volver se escriben unos 40k en vez de 300k. Pasados los 58 ya no: con la
+ * caché caducada, compactar cuesta lo mismo que el arranque en frío que se
+ * quería evitar, y la hora que se lee (la primera línea de la llamada) llega
+ * tarde, 11 s de mediana y hasta 86 s en 312 quietas de verdad (revisión del
+ * 2026-11-23). Solo si el hilo escribe su caché para una hora (`cacheHora`):
+ * con la de cinco minutos ya no queda nada que leer. Desde 100.000 tokens, en tokens y no en % porque el resumen
+ * ya ocupa unos 30-40k: medido en sus transcripts de 14 días
+ * (`scripts/quietas-que-vuelven.mjs`), de las quietas
+ * 55 minutos con 100-200k volvió a hablarles el 84 % (36 de 43), y con más,
+ * del 94 al 100 %, y a 100k compensa desde un 45 % que vuelvan.
+ */
+export const QUIETA_MS = 55 * 60_000;
+export const QUIETA_HASTA_MS = 58 * 60_000;
+export const QUIETA_TOKENS = 100_000;
+/** Cada cuánto mira un panel si su terminal lleva casi una hora quieta: entre
+    los 55 y los 58 minutos caben tres miradas, aunque la ventana esté
+    minimizada (el navegador deja un temporizador por minuto). */
+export const MIRAR_QUIETA_MS = 60_000;
+/** Tras teclear el `/compact` de una quieta, el fin de turno que vea el panel
+    en este rato es el suyo, y no es noticia para nadie (`finDeQuieta`). Uno de
+    300k tardó 66 s (`compactMetadata.durationMs` de la sesión 572c3eb8). */
+export const CALLAR_QUIETA_MS = 10 * 60_000;
+const CLAVE_QUIETAS = "adeorq-compactar-quietas";
+/** Encendido de fábrica (lo aprobó Munir el 2026-11-23). */
+export function leerQuietas(): boolean {
+  try {
+    return localStorage.getItem(CLAVE_QUIETAS) !== "0";
+  } catch {
+    return true;
+  }
+}
+export function guardarQuietas(si: boolean): void {
+  try {
+    localStorage.setItem(CLAVE_QUIETAS, si ? "1" : "0");
+  } catch {
+    /* sin almacenamiento sigue encendido */
+  }
+}
+
 /** nada · esperando (pedido, a que acabe el turno) · cerrando (el traspaso
     ya va, el `/compact` o la terminal nueva cuando acabe). */
 export type FaseTraspaso = "nada" | "esperando" | "cerrando";
@@ -472,13 +520,17 @@ export interface DepsTraspaso {
   /** El transcript releído AHORA, no el de hace veinte segundos. `null` si
       este CLI no deja uno: entonces el botón va a ciegas, como siempre, y
       solo no se hace nada. */
-  leer: () => Promise<(Pick<ContextInfo, "state" | "agentsLive" | "used" | "window"> & Pick<Partial<ContextInfo>, "sinCuota">) | null>;
+  leer: () => Promise<(Pick<ContextInfo, "state" | "agentsLive" | "used" | "window"> & Pick<Partial<ContextInfo>, "sinCuota" | "ultimaLlamadaMs" | "goal" | "cacheHora">) | null>;
   /** Un menú suyo en pantalla (permiso, pregunta). */
   hayPregunta: () => boolean;
   /** Algo tecleado y sin mandar: lo nuestro se pegaría detrás. */
   hayBorrador: () => boolean;
   /** El CLI dice en pantalla que sigue con el turno (`trabajaEnPantalla`). */
   trabajando: () => boolean;
+  /** Trabajo de fondo en su pie (`trabajoDeFondoEnPantalla`): un agente, un
+      monitor o una consola en marcha. El transcript ya no lo cuenta pasados
+      cinco minutos sin escribir (`count_agents`). */
+  deFondo?: () => boolean;
   /** Claude Code parado en su caja vacía (`esperaEnSuCaja`). Solo se mira en
       un panel de Claude Code; sin ella, como si estuviera. */
   enSuCaja?: () => boolean;
@@ -492,6 +544,8 @@ export interface DepsTraspaso {
   /** Un Escape: corta el turno de una delegada que no acaba (`alPasarse`). */
   cortar?: () => Promise<void>;
   sugerir: () => boolean;
+  /** El ajuste de compactar las quietas (`leerQuietas`). Sin él, apagado. */
+  quietas?: () => boolean;
   esClaude: () => boolean;
   tieneFin: () => Promise<boolean>;
   /** Cuántas veces se compactó ya esta conversación (`COMPACTADA_DE_MAS`). */
@@ -556,6 +610,15 @@ export function crearTraspaso(d: DepsTraspaso) {
   let hecho = false;
   /** El porcentaje al acabar el último turno, para medir lo que subió este. */
   let base: number | null = null;
+  /** La llamada (`ultimaLlamadaMs`) tras la que ya se compactó por quieta: el
+      `/compact` no apunta llamada nueva, y sin `postTokens` el número viejo
+      seguiría diciendo 300k. */
+  let quietaHecha: number | null = null;
+  /** Cuándo se tecleó ese `/compact`, hasta que el panel vea acabar su turno. */
+  let quietaTecleada: number | null = null;
+  /** Ya sigue en una terminal nueva (la rama `nueva`): esta no se compacta por
+      quieta, que sería un resumen que nadie va a leer. «Ocultar aviso» lo quita. */
+  let relevada = false;
   /**
    * Un solo candado para la campana, el botón y `compactar_terminal`
    * (revisión de `1954cf0`). El pedido del agente no pasaba por él: mandaba el
@@ -670,6 +733,7 @@ export function crearTraspaso(d: DepsTraspaso) {
     // Hecho en los dos casos: la vieja no se compacta sola después.
     hecho = true;
     if (p.que === "nueva") {
+      relevada = true;
       const respuesta = await d.ultimaRespuesta().catch(() => null);
       d.abrirNueva?.(respuesta ? bloqueRetomar(respuesta) : null);
       await d.archivar().catch(() => {});
@@ -835,7 +899,89 @@ export function crearTraspaso(d: DepsTraspaso) {
       await d.cortar();
     }, "soltar");
 
-  return { pedir, pedirDeAgente, pedirPropia, alSonar, alPasarse, cancelar: () => poner(null), fase };
+  /**
+   * Una terminal de Claude Code quieta casi una hora se compacta antes de que
+   * caduque su caché (`QUIETA_MS`, el porqué y lo medido). Solo `/compact`: un
+   * `/fin` sería un turno entero de trabajo (y commits) con quien la usa lejos,
+   * y después no se le escribe nada, porque cualquier mensaje es una llamada
+   * más, que es justo lo que se quería ahorrar. Con las llaves de siempre
+   * (turno acabado, sin subagentes, sin menú, sin borrador, en su caja, con
+   * cuota) y además, de la revisión aparte del mismo día:
+   *   · solo «lista»: una que acabó preguntando en prosa («ofrece», TE ESPERA)
+   *     pasaría a «lista» tras la marca de compactar y dejaría de decirlo;
+   *   · nunca una delegada: su `/compact` le llega a quien la abrió como
+   *     «trabajo de fondo» y luego «paró sin entregar» (`vueltaArribaVivo`),
+   *     y cada aviso es una llamada de esa otra;
+   *   · sin trabajo de fondo en su pie: `agentsLive` ya no lo cuenta tras
+   *     cinco minutos sin escribir;
+   *   · con la caché de una hora (`cacheHora`), sin `/goal` sin cumplir ni
+   *     otro traspaso en marcha.
+   * Y de la segunda revisión: nunca una relevada (ya sigue en una terminal
+   * nueva), ni una compactada ya `COMPACTADA_DE_MAS` veces, que sería un
+   * resumen de un resumen: la raya roja tampoco compacta sola una tercera.
+   * Una vez por llamada. No toca `hecho`: si el `/compact` no llega a hacerse
+   * (un Esc, sin cuota), la raya roja y el corte de las delegadas siguen; y si
+   * se hace, la marca trae `postTokens` (205 de 205 compactaciones de verdad) y
+   * el número baja solo. La llama el panel cada minuto (`useTraspaso`).
+   */
+  const alQuieto = () =>
+    conCandado(async () => {
+      if (pendiente || relevada || !d.esClaude() || d.delegada?.() || !(d.quietas?.() ?? false)) return;
+      const { c } = await leerAhora();
+      const desde = c?.ultimaLlamadaMs ?? 0;
+      if (!c || !desde || !c.cacheHora || c.sinCuota || c.goal || c.state !== "lista" || c.used < QUIETA_TOKENS || quietaHecha === desde) return;
+      const quieta = ahora() - desde;
+      if (quieta < QUIETA_MS || quieta >= QUIETA_HASTA_MS) return;
+      if ((await d.compactaciones().catch(() => 0)) >= COMPACTADA_DE_MAS) return;
+      if (!turnoAcabado(c, d.hayPregunta()) || d.hayBorrador() || d.trabajando() || (d.deFondo?.() ?? false) || !(d.enSuCaja?.() ?? true)) return;
+      quietaHecha = desde;
+      quietaTecleada = ahora();
+      await d.mandar(`/compact ${ordenDeCompactar(d.t)}`);
+    }, "soltar");
+
+  /** Si el fin de turno que acaba de ver el panel es el del `/compact` de una
+      quieta: entonces ni brillo de «terminó», ni aviso al móvil, ni salto a
+      pantalla completa, porque nadie le pidió nada. Se gasta al preguntarlo,
+      y con un Intro de quien la usa (`olvidarQuieta`): si el fin del `/compact`
+      no se vio (el panel congelado leyendo hacia atrás, o un mensaje en cola
+      que sigue sin parar), el siguiente es de esa persona y no se calla. El
+      transcript no hace falta callarlo: Claude Code apunta el `/compact` y su
+      resumen al acabar, detrás de la marca, y su estado sigue en «lista».
+      `null`: no hay nada que callar. Si lo hay, decide el transcript, no el
+      camino por el que entró el mensaje (segunda revisión, 2026-11-23): un
+      mensaje que esperaba en cola (del móvil, de `send_command`, de Adeo, de
+      una flecha del lienzo) arranca nada más acabar el `/compact`, sin
+      asentarse en la caja, y el panel ve UN solo fin, el suyo. Una llamada al
+      modelo que empezó después de teclear el `/compact` dice que ese fin es de
+      verdad (el `/compact` no apunta llamada: su marca no trae gasto). Sin
+      poder leerlo tampoco se calla: un brillo de más es mejor que un aviso
+      perdido. */
+  const finDeQuieta = (): Promise<boolean> | null => {
+    const t = quietaTecleada;
+    quietaTecleada = null;
+    if (t == null || ahora() - t >= CALLAR_QUIETA_MS) return null;
+    return d.leer().then(
+      (c) => !!c && (c.ultimaLlamadaMs ?? 0) <= t,
+      () => false,
+    );
+  };
+  const olvidarQuieta = () => void (quietaTecleada = null);
+
+  return {
+    pedir,
+    pedirDeAgente,
+    pedirPropia,
+    alSonar,
+    alPasarse,
+    alQuieto,
+    finDeQuieta,
+    olvidarQuieta,
+    olvidarRelevo: () => void (relevada = false),
+    /** «Seguir en otra cuenta» del menú del panel: también la releva (tercera revisión). */
+    marcarRelevada: () => void (relevada = true),
+    cancelar: () => poner(null),
+    fase,
+  };
 }
 
 /**
@@ -863,6 +1009,8 @@ export function useTraspaso(m: {
   hayPregunta: () => boolean;
   hayBorrador: () => boolean;
   trabajando: () => boolean;
+  /** Trabajo de fondo en su pie (`trabajoDeFondoEnPantalla`). */
+  deFondo?: () => boolean;
   enSuCaja: () => boolean;
   finDesconocido: () => boolean;
 }) {
@@ -893,12 +1041,14 @@ export function useTraspaso(m: {
     hayPregunta: () => ultimo.current.hayPregunta(),
     hayBorrador: () => ultimo.current.hayBorrador(),
     trabajando: () => ultimo.current.trabajando(),
+    deFondo: () => ultimo.current.deFondo?.() ?? false,
     enSuCaja: () => ultimo.current.enSuCaja(),
     finDesconocido: () => ultimo.current.finDesconocido(),
     visto: () => ultimo.current.visto,
     modo: leerModoSolo,
     delegada: () => esDelegada(ultimo.current.id),
     sugerir: leerSugerir,
+    quietas: leerQuietas,
     esClaude: () => !!ultimo.current.esClaude,
     tieneFin: tieneSkillFin,
     compactaciones: contar,
@@ -925,6 +1075,14 @@ export function useTraspaso(m: {
     const vigia = window.setInterval(() => void traspaso.alPasarse().catch(() => {}), MIRAR_PASADA_MS);
     return () => window.clearInterval(vigia);
   }, [pasada]);
+  // Y cada minuto, si lleva casi una hora quieta (`alQuieto`): solo en Claude
+  // Code con su conversación sabida, que es lo único que dice esa hora.
+  const quieta = !!m.esClaude && !!m.sesion;
+  useEffect(() => {
+    if (!quieta) return;
+    const vigia = window.setInterval(() => void traspaso.alQuieto().catch(() => {}), MIRAR_QUIETA_MS);
+    return () => window.clearInterval(vigia);
+  }, [quieta]);
 
   const pedir = (que: "compactar" | "nueva") => {
     setSugerencia(null);
@@ -952,6 +1110,10 @@ export function useTraspaso(m: {
       return traspaso.pedirPropia(mensaje, seguir == null ? undefined : seguir || null);
     },
     alSonarCampana: () => void traspaso.alSonar().catch(() => {}),
+    /** El fin de turno que acaba de ver el panel es el `/compact` de una quieta. */
+    finDeQuieta: traspaso.finDeQuieta,
+    /** Quien la usa pulsó Intro: el próximo fin de turno ya es suyo. */
+    olvidarQuieta: traspaso.olvidarQuieta,
     /** Nada solo en este nivel, y fuera lo que estuviera esperando. */
     ahoraNo: () => {
       m.setCtxVisto(Math.max(m.nivel, m.visto));
@@ -962,7 +1124,15 @@ export function useTraspaso(m: {
     descartarSugerencia: () => setSugerencia(null),
     veces,
     relevada,
-    descartarRelevo: () => setRelevada(false),
+    descartarRelevo: () => {
+      setRelevada(false);
+      traspaso.olvidarRelevo();
+    },
+    /** Sigue en otra cuenta (el menú del panel): el aviso de relevada, y sin compactarse por quieta. */
+    relevar: () => {
+      setRelevada(true);
+      traspaso.marcarRelevada();
+    },
   };
 }
 

@@ -96,6 +96,7 @@ import { propsDeVelo } from "../lib/velo";
 import { proveedorDe, sabe } from "../lib/providers";
 import { olvidarTerminal, registrarTerminal } from "../lib/terminales";
 import { contextoAlaVista, enPantalla, esperaEnSuCaja, finDesconocidoEnPantalla, nivelDeContexto, trabajaEnPantalla, useContextoDeSesion, useTraspaso, useTraspasoDelMovil } from "../lib/contexto";
+import { trabajoDeFondoEnPantalla } from "../lib/vueltaArriba";
 import { apuntarFin, engancharFinDeTurno, type LeerTrabajo } from "../lib/finDeTurno";
 import { estadoDelAro } from "../lib/aroDeEstado";
 import { lectorDeCaja } from "../lib/cajaDeEntrada";
@@ -544,6 +545,15 @@ export default function TerminalPane({
   /** Lo que toca al sonar la campana si se pidió compactar o recuperar
    *  (`useTraspaso`, más abajo); por ref, que la campana se suscribe una vez. */
   const traspasoRef = useRef<() => void>(() => {});
+  /** Si el fin de turno que se acaba de ver es el `/compact` que tecleó el
+   *  panel en una terminal quieta casi una hora (`finDeQuieta`). */
+  const finDeQuietaRef = useRef<() => Promise<boolean> | null>(() => null);
+  /** Un Intro de quien la usa: el fin de turno siguiente ya es suyo (`olvidarQuieta`). */
+  const olvidarQuietaRef = useRef<() => void>(() => {});
+  /** Si estaba «terminada» al empezar el turno que se ve: el `/compact` de una
+   *  quieta enciende el «trabajando» y apaga ese brillo, y al acabar se le
+   *  devuelve tal cual estaba, que nadie la ha mirado. */
+  const doneAlEmpezarRef = useRef(false);
   /** Hay algo tecleado aquí sin mandar: el `/fin` que va solo se pegaría
    *  detrás de tu frase. Se apaga con el Intro (o Ctrl+C, que la borra). */
   const borradorRef = useRef(false);
@@ -889,7 +899,10 @@ export default function TerminalPane({
   };
 
   useEffect(() => {
-    if (focused) setDone(false);
+    if (!focused) return;
+    setDone(false);
+    // Mirada durante el `/compact` de una quieta: al acabar no vuelve a brillar.
+    doneAlEmpezarRef.current = false;
   }, [focused]);
 
   /** El foco de ahora mismo, para el montaje de xterm, que corre una sola vez
@@ -1530,6 +1543,8 @@ export default function TerminalPane({
       if (mandoUnaFrase(id, data, askRef.current !== null)) hablarCon(id);
       // Contestar un menú suyo no deja borrador; una tecla de control suelta
       // (flechas, Esc) tampoco lo cambia.
+      // Un Intro suyo: lo que acabe después es de quien escribe, no del `/compact` de una quieta.
+      if (/[\r\n]/.test(data)) olvidarQuietaRef.current();
       if (askRef.current === null) {
         if (/[\r\n]$/.test(data) || data === "\x03") borradorRef.current = false;
         else if (data.startsWith("\x1b[200~") || !/^[\x00-\x1f\x7f]/.test(data)) borradorRef.current = true;
@@ -1741,17 +1756,10 @@ export default function TerminalPane({
     // El fin de un turno («terminó» y su brillo azul): la campana, o Claude Code
     // pasando de trabajar a parado en su caja, porque la 2.1.322 no la toca al
     // acabar (`lib/finDeTurno.ts`). Una sola vez por turno.
-    unsubs.push(engancharFinDeTurno(term, {
-      esClaude: () => esClaudeRef.current,
-      trabajaCon: () => trabajaConRef.current,
-      // Un turno que vuelve a trabajar ya no está «terminado», aunque no lo
-      // hayas mirado: así el aviso de un fin intermedio (`sigueIgual`) tampoco sale.
-      alTrabajar: (si) => {
-        setTrabaja(si);
-        if (si) setDone(false);
-      },
-      alAcabar: () => {
-      apuntarFin(id);
+    /** Cuántos turnos se han visto empezar: lo que se decide tarde (el fin de
+        una quieta) no se aplica si entretanto empezó otro. */
+    let turnos = 0;
+    const acabado = () => {
       setDone(true);
       // Turn over: whatever was running has finished, keep only the total.
       setAgents((a) => ({ live: 0, total: a.total }));
@@ -1780,7 +1788,36 @@ export default function TerminalPane({
           sigueIgual: () => doneRef.current,
         });
       }
-    } }));
+    };
+    unsubs.push(engancharFinDeTurno(term, {
+      esClaude: () => esClaudeRef.current,
+      trabajaCon: () => trabajaConRef.current,
+      // Un turno que vuelve a trabajar ya no está «terminado», aunque no lo
+      // hayas mirado: así el aviso de un fin intermedio (`sigueIgual`) tampoco sale.
+      alTrabajar: (si) => {
+        setTrabaja(si);
+        if (si) {
+          turnos++;
+          doneAlEmpezarRef.current = doneRef.current;
+          setDone(false);
+        }
+      },
+      alAcabar: () => {
+        apuntarFin(id);
+        // El `/compact` de una quieta lo tecleó el panel solo: acabarlo no es
+        // noticia, así que ni «terminó», ni aviso, ni salto a pantalla completa,
+        // y el brillo vuelve a como estaba antes de compactar. Salvo que el
+        // transcript diga que detrás corrió un mensaje que esperaba en cola
+        // (`finDeQuieta`): ese fin sí es noticia, y se da en cuanto se sabe.
+        const quieta = finDeQuietaRef.current();
+        if (!quieta) return acabado();
+        setDone(doneAlEmpezarRef.current);
+        const este = turnos;
+        void quieta.then((callar) => {
+          if (!callar && turnos === este) acabado();
+        });
+      },
+    }));
 
     /* ── La cola de «leer en paz» ─────────────────────────────────────────
      *
@@ -2101,6 +2138,7 @@ export default function TerminalPane({
     hayPregunta: () => askRef.current !== null,
     hayBorrador: () => borradorRef.current,
     trabajando: () => enPantalla(termRef.current, trabajaEnPantalla),
+    deFondo: () => enPantalla(termRef.current, trabajoDeFondoEnPantalla),
     enSuCaja: () => enPantalla(termRef.current, esperaEnSuCaja),
     finDesconocido: () => enPantalla(termRef.current, finDesconocidoEnPantalla),
   });
@@ -2108,6 +2146,8 @@ export default function TerminalPane({
    *  marcha (que dice por dónde va) o con la sugerencia de una tarea grande. */
   const verCtx = (avisoCtx > 0 && !!ctx) || traspaso.fase !== "nada" || traspaso.sugerencia != null || traspaso.relevada;
   traspasoRef.current = traspaso.alSonarCampana;
+  finDeQuietaRef.current = traspaso.finDeQuieta;
+  olvidarQuietaRef.current = traspaso.olvidarQuieta;
   useTraspasoDelMovil(id, traspaso);
 
   // Reanimar una sesión PASADA DE TAMAÑO es volver a cargarle los mismos
@@ -2254,7 +2294,10 @@ export default function TerminalPane({
                 ...otrasCuentas.map((c) => ({
                   label: c.label,
                   hint: t("con acta"),
-                  onClick: () => onRelevar(c),
+                  onClick: () => {
+                    onRelevar(c);
+                    traspaso.relevar();
+                  },
                 })),
               ]
             : []),

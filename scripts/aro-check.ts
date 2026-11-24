@@ -14,11 +14,16 @@
 //   · que el amarillo tape al rojo o al azul;
 //   · que vuelva el aro azul del foco, el naranja que respira o el color de
 //     cuadrilla y de proyecto en el marco;
-//   · que algo de esto se mueva por fotograma.
+//   · que algo de esto se mueva por fotograma;
+//   · que el aro, que va encima de la terminal, vuelva a pintarse sobre la
+//     primera letra de cada línea o sobre la última fila (la terminal deja su
+//     hueco), ni que una regla de otra hoja de `src/` le cambie el padding a
+//     `.xterm` o engorde el aro. Esto lee texto; lo que mueve el lienzo de otra
+//     forma lo mide en el navegador `scripts/laboratorio/aro-tinta.js`.
 //
 //   pnpm bancos aro
 
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { estadoDelAro } from "../src/lib/aroDeEstado";
 import { lectorDeCaja } from "../src/lib/cajaDeEntrada";
 import { esperaEnSuCaja, trabajaEnPantalla } from "../src/lib/contexto";
@@ -235,6 +240,107 @@ const cabina = hoja("05-cabina.css");
 ok("el tramo va a pasos, no por fotograma", /animation:\s*aro-vuelta\s+4s\s+steps\(100\)/.test(cabina));
 ok("el parpadeo, a dos cambios por vuelta y solo con el ajuste", /html\[data-parpadeo\][^{]*\{\s*animation:\s*aro-parpadeo\s+1\.2s\s+steps\(1, end\)/.test(cabina));
 ok("y el hilo de la barra, a pasos también", /animation:\s*hilo-vuelta\s+3\.2s\s+steps\(80\)/.test(hoja("03-barra-lateral.css")));
+{
+  // El aro va por dentro del panel y encima de la terminal: sin hueco, sus 2-3
+  // px tapaban la primera letra de cada línea (2026-11-22, medido con píxeles
+  // en los cuatro estilos y los tres estados, a 100 % y 125 %), y la última
+  // fila cuando sobraban menos de 3 px abajo al 100 % (624-1.872 píxeles de
+  // tinta; al 125 % el grueso es de 3,75 px de pantalla).
+  const grueso = Number(/--aro-grueso:\s*(\d+(?:\.\d+)?)px/.exec(cabina)?.[1] ?? 0);
+  const sombras = [...cabina.matchAll(/\.pane-aro\s*\{[^}]*box-shadow:\s*inset 0 0 0 (\d+(?:\.\d+)?)px/g)].map((m) => Number(m[1]));
+  ok("el grueso del aro cubre su sombra más ancha", grueso > 0 && sombras.length > 0 && sombras.every((s) => s <= grueso), `--aro-grueso ${grueso}px, sombras ${sombras.join(", ")} px`);
+  ok("el tramo de «trabajando» tiene ese grueso", /data-estado="trabaja"\]\s*>\s*\.pane-aro\s*\{[^}]*padding:\s*var\(--aro-grueso\)/.test(cabina));
+  // Y un píxel de aire: a 125 % el borde suavizado del tramo (3,75 px de
+  // pantalla) teñía la primera columna con un hueco de solo 3.
+  ok("el hueco es el grueso y un píxel de aire", /--aro-hueco:\s*calc\(var\(--aro-grueso\)\s*\+\s*1px\)/.test(cabina));
+
+  // Esto es la primera red, la barata, y solo mira el texto. Con mirar un
+  // bloque de dos hojas, se lo saltaba una regla de estilo en otra hoja
+  // (`…[data-aspecto="liso"] .pane-term .xterm{padding:0}`), un `padding:`
+  // abreviado detrás o las variables redefinidas en `.grid > .pane` (lo
+  // encontró la revisión del 2026-11-22). Así que se leen TODAS las hojas de
+  // `src/`, con las reglas que van dentro de un `@media`, un `@layer` o un
+  // `@container`, y cada `padding` sobre `.xterm` (o `.terminal`, que xterm
+  // pone en el mismo elemento) tiene que ser uno de estos, ni más ni menos.
+  // Lo que NO ve, y dos revisiones lo midieron pintando encima de la tinta:
+  //   · los selectores que no acaban en `.xterm` o `.terminal`: un anidado con `&`,
+  //     un `:not()` o un `:where()` con espacios detrás, `> *`, `> div`, un nombre
+  //     de clase escapado (`.x\74 erm`);
+  //   · lo que mueve el lienzo sin padding: `margin`, `inset`, `top`/`left`,
+  //     `transform` o `translate` en `.xterm`, `.xterm-screen` o su `canvas`,
+  //     `all: revert`, y el padding de `.pane-term`;
+  //   · lo que engorda el aro sin sombra ni borde: quitarle la `mask` al tramo,
+  //     un `filter`, su `inset`, o una esquina interior mayor.
+  // Eso lo caza `scripts/laboratorio/aro-tinta.js`, que fotografía la terminal
+  // con el aro y sin él y cuenta los píxeles de tinta que pisa. Lo que no ve
+  // NINGUNA de las dos redes: un `@keyframes` que engorde el aro (aquí no se
+  // mira dentro, y el banco fotografía con las animaciones canceladas) y una
+  // regla que solo valga en «terminó», con menos movimiento, el tema claro o el
+  // modo rendimiento (el banco no los pone). Y escribir el
+  // hueco abreviado (`padding: 0 0 var(--aro-hueco) var(--aro-hueco)`) da rojo
+  // aunque esté bien: aquí se quieren las dos líneas largas.
+  const hojasDeSrc = ["App.css", ...readdirSync("src/estilos").filter((f) => f.endsWith(".css")).map((f) => `estilos/${f}`)];
+  const reglas = hojasDeSrc.flatMap((f) =>
+    [...readFileSync(`src/${f}`, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+      f,
+      sel: m[1].trim().replace(/\s+/g, " "),
+      decl: m[2]
+        .split(";")
+        .map((d) => d.trim().replace(/\s+/g, " ").replace(/^([\w-]+)\s*:\s*/, "$1: "))
+        .filter(Boolean),
+    })),
+  );
+  const tocaXterm = (sel: string) =>
+    sel.split(",").some((s) => /\.(xterm|terminal)(?![\w-])[^\s>+~]*$/.test(s.trim()) || /\[class[~*^|$]?=["']?(xterm|terminal)["'\s\]]/.test(s));
+  const esperado: Record<string, string[]> = {
+    "estilos/05-cabina.css|.pane-term .xterm": ["padding-left: var(--aro-hueco)", "padding-bottom: var(--aro-hueco)"],
+    'estilos/42-aspectos.css|:root[data-aspecto="consola"] .grid > .pane > .pane-term .xterm': ["padding-top: var(--aro-hueco)", "padding-bottom: 0"],
+  };
+  const visto: Record<string, string[]> = {};
+  for (const r of reglas.filter((r) => tocaXterm(r.sel))) {
+    const pads = r.decl.filter((d) => /^padding(-[a-z-]+)?\s*:/.test(d));
+    if (pads.length) (visto[`${r.f}|${r.sel}`] ??= []).push(...pads);
+  }
+  const igual = (a: string[] = [], b: string[] = []) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
+  ok("la terminal deja el hueco del aro a la izquierda y abajo", igual(visto[Object.keys(esperado)[0]], Object.values(esperado)[0]), JSON.stringify(visto[Object.keys(esperado)[0]] ?? []));
+  ok("y en Consola, con la cabecera abajo, arriba en vez de abajo", igual(visto[Object.keys(esperado)[1]], Object.values(esperado)[1]), JSON.stringify(visto[Object.keys(esperado)[1]] ?? []));
+  const intrusas = Object.keys(visto).filter((k) => !(k in esperado));
+  ok("ninguna otra regla de src/ le cambia el padding a la terminal", intrusas.length === 0, intrusas.map((k) => `${k} → ${visto[k].join("; ")}`).join(" · "));
+  // Y el aro no puede engordar desde otra hoja: su sombra y el padding del
+  // tramo, en cualquier regla de `src/` que le dé estilo al propio `.pane-aro`.
+  // Los colores (`var()`, `color-mix()`) llevan comas y números dentro: fuera.
+  const sinParentesis = (t: string) => {
+    let s = t;
+    while (/\([^()]*\)/.test(s)) s = s.replace(/\([^()]*\)/g, "");
+    return s;
+  };
+  const delAro = reglas.filter((r) => r.sel.split(",").some((s) => /\.pane-aro(?![\w-])[^\s>+~]*$/.test(s.trim())));
+  const gordas = delAro.flatMap((r) =>
+    r.decl
+      .filter((d) => {
+        const sombra = /^box-shadow: (.*)$/.exec(d);
+        if (sombra) {
+          // Una sombra entera dentro de una variable no se puede leer: rojo.
+          if (/^var\(/.test(sombra[1].trim())) return true;
+          // Cada sombra `inset`, sin desplazar ni difuminar, y de --aro-grueso como mucho.
+          return sinParentesis(sombra[1])
+            .split(",")
+            .filter((s) => /\binset\b/.test(s))
+            .some((s) => {
+              const n = [...s.matchAll(/(-?\d+(?:\.\d+)?)(px)?\b/g)].map((m) => Number(m[1]));
+              return n.length !== 4 || n.slice(0, 3).some((v) => v !== 0) || n[3] > grueso;
+            });
+        }
+        // Un borde o un contorno en el aro también pintan por dentro (`border-radius` no).
+        if (/^(border(?!-radius|-[a-z]+-radius)|outline)(-[a-z-]+)?:/.test(d)) return !/:\s*(0|none)(px)?$/.test(d);
+        return /^padding(-[a-z-]+)?:/.test(d) && d !== "padding: var(--aro-grueso)";
+      })
+      .map((d) => `${r.f}|${r.sel} → ${d}`),
+  );
+  ok("ninguna regla de src/ le da al aro más sombra, padding, borde o contorno que --aro-grueso", gordas.length === 0, gordas.join(" · "));
+  const dondeVariables = reglas.filter((r) => r.decl.some((d) => /^--aro-(grueso|hueco)\s*:/.test(d))).map((r) => `${r.f}|${r.sel}`);
+  ok("las dos variables del aro se definen solo en `.pane {` de 05-cabina.css", dondeVariables.length === 1 && dondeVariables[0] === "estilos/05-cabina.css|.pane", dondeVariables.join(" · "));
+}
 const paso = (ms: number, pasos: number) => ms / pasos;
 ok("el tramo y el hilo dan el paso a la vez (40 ms)", paso(4000, 100) === paso(3200, 80));
 const temas = hoja("19-temas.css");

@@ -1137,6 +1137,10 @@ fn codex_context_de(path: &Path, session_id: String) -> Option<ContextInfo> {
         viva: false,
         // El relevo y su lectura son de Claude Code.
         sin_cuota: false,
+        // Y compactar una quieta también.
+        ultima_llamada_ms: 0,
+        goal: false,
+        cache_hora: false,
     })
 }
 
@@ -2153,6 +2157,122 @@ pub struct ContextInfo {
     /// `/fin`: sin cuota fallan, y el `/compact` de la terminal 19 tapó su 429
     /// (2026-11-14, BUZON «CASO REAL, 02:41»).
     pub sin_cuota: bool,
+    /// Cuándo EMPEZÓ la última llamada al modelo del hilo, en milisegundos
+    /// desde 1970: la primera línea de su `requestId` en el transcript (una
+    /// respuesta larga se apunta bloque a bloque y la última línea llega
+    /// minutos después). La caché del hilo dura una hora desde ahí, y es el
+    /// reloj de compactar una terminal quieta (`alQuieto`, lib/contexto.ts).
+    /// 0 si no se sabe.
+    pub ultima_llamada_ms: u64,
+    /// Un `/goal` sin cumplir al acabar el último turno (`goal_pendiente`).
+    pub goal: bool,
+    /// Si el hilo escribe su caché para una hora (`cache_de_una_hora`): con la
+    /// de cinco minutos, compactar una quieta ya no lee nada de caché.
+    pub cache_hora: bool,
+}
+
+/// Si el hilo escribe su caché para una hora: la última respuesta que escribió
+/// caché, desde la línea `i` hacia atrás, dice cuánto en
+/// `usage.cache_creation.ephemeral_1h_input_tokens` y cuánto en el de cinco
+/// minutos. Medido en sus transcripts de 14 días: todo de una hora (72.843
+/// líneas, ninguna de cinco minutos), pero otra cuenta u otro plan puede ser
+/// de cinco. Sin dato, no.
+fn cache_de_una_hora(lines: &[String], i: usize) -> bool {
+    // Solo respuestas: un `tool_result` que cita la clave (leer este código)
+    // ocuparía sitio en los 50.
+    for line in lines[..=i]
+        .iter()
+        .rev()
+        .filter(|l| l.contains("\"ephemeral_") && l.contains("\"type\":\"assistant\""))
+        .take(50)
+    {
+        let Ok(v) = serde_json::from_str::<Value>(line) else {
+            continue;
+        };
+        let cc = &v["message"]["usage"]["cache_creation"];
+        let hora = cc["ephemeral_1h_input_tokens"].as_u64().unwrap_or(0);
+        let cinco = cc["ephemeral_5m_input_tokens"].as_u64().unwrap_or(0);
+        if hora > 0 {
+            return true;
+        }
+        if cinco > 0 {
+            return false;
+        }
+    }
+    false
+}
+
+/// Cuándo empezó la llamada al modelo de la línea `i` del transcript (`v`, ya
+/// leída): la hora más temprana de las líneas con su `requestId`, hacia atrás
+/// hasta la llamada anterior. Sin `requestId`, la hora de la propia línea; sin
+/// hora, 0.
+///
+/// Y si justo antes hay una línea que no es de la respuesta (tu mensaje, el
+/// resultado de una herramienta, un gancho), su hora: esa se apunta ANTES de
+/// mandar la llamada, y la primera de la respuesta, cuando llega (de 10 s de
+/// mediana a 2 min: 5 de 779 llamadas pasaron de 86 s, segunda revisión del
+/// 2026-11-23). Así la hora sale como mucho algo temprana, que es el lado
+/// seguro: se compacta con la caché todavía viva. Solo si está a menos de
+/// `ANTES_DE_LA_LLAMADA_MS`, que una línea vieja no adelante la cuenta.
+fn inicio_de_llamada(lines: &[String], i: usize, v: &Value) -> u64 {
+    const ANTES_DE_LA_LLAMADA_MS: u64 = 5 * 60_000;
+    let hora = |v: &Value| v["timestamp"].as_str().and_then(iso_a_segundos).map(|s| s * 1000);
+    let mut inicio = hora(v);
+    let mut primera = i;
+    if let Some(rid) = v["requestId"].as_str().filter(|r| !r.is_empty()) {
+        let marca = format!("\"requestId\":\"{rid}\"");
+        for (j, line) in lines[..i].iter().enumerate().rev().take(400) {
+            if line.contains(&marca) {
+                primera = j;
+                if let Some(t) = serde_json::from_str::<Value>(line).ok().as_ref().and_then(hora) {
+                    inicio = Some(inicio.map_or(t, |a| a.min(t)));
+                }
+            } else if line.contains("\"requestId\"") && line.contains("\"type\":\"assistant\"") {
+                break;
+            }
+        }
+    }
+    let Some(a) = inicio else {
+        return 0;
+    };
+    for line in lines[..primera].iter().rev().take(20) {
+        if line.contains("\"type\":\"assistant\"") {
+            break;
+        }
+        let Some(t) = serde_json::from_str::<Value>(line).ok().as_ref().and_then(hora) else {
+            continue;
+        };
+        // Las de servicio (`file-history-delta`, `api-request`, `queue-operation`…)
+        // se apuntan a veces DESPUÉS de la primera línea de la respuesta: no dicen
+        // cuándo se mandó, y se sigue buscando (el 6 % de 25.413 llamadas,
+        // tercera revisión del 2026-11-23).
+        if t > a {
+            continue;
+        }
+        if a - t <= ANTES_DE_LA_LLAMADA_MS {
+            return t;
+        }
+        break;
+    }
+    a
+}
+
+/// Si el último turno acabó con un `/goal` sin cumplir. Claude Code apunta un
+/// `goal_status` al acabar cada turno mientras hay meta (`met: false` mientras
+/// no se cumple, y entonces sigue solo); se mira solo detrás de la última
+/// respuesta con gasto, así que una meta quitada o cumplida antes no cuenta.
+fn goal_pendiente(lines: &[String]) -> bool {
+    for line in lines.iter().rev() {
+        if line.contains("\"goal_status\"") {
+            return serde_json::from_str::<Value>(line).is_ok_and(|v| v["attachment"]["met"].as_bool() == Some(false));
+        }
+        // Una línea sintética (el 429, un error de la API) lleva `usage` pero
+        // no es una respuesta: `context_de` también se la salta.
+        if line.contains("\"usage\"") && line.contains("\"type\":\"assistant\"") && !line.contains("<synthetic>") {
+            return false;
+        }
+    }
+    false
 }
 
 /// Si la cola de un transcript dice que está parada por cuota. Sin la marca del
@@ -2613,6 +2733,7 @@ fn context_de(path: &Path) -> Option<ContextInfo> {
         .unwrap_or_default();
     let title = titulo_de(&lines);
     let sin_cuota = parada_por_cuota(&lines);
+    let goal = goal_pendiente(&lines);
     // Compacting throws the whole conversation away and leaves a summary, so
     // the `usage` further back describes tokens that are no longer loaded. The
     // panel kept showing that old figure until the next turn wrote a new one:
@@ -2623,7 +2744,7 @@ fn context_de(path: &Path) -> Option<ContextInfo> {
     // when it appears BEFORE any usage line walking backwards, i.e. when
     // nothing has been said since.
     let mut tras_compactar: Option<u64> = None;
-    for line in lines.iter().rev() {
+    for (i, line) in lines.iter().enumerate().rev() {
         if tras_compactar.is_none() && line.contains("\"compactMetadata\"") {
             if let Ok(v) = serde_json::from_str::<Value>(line) {
                 tras_compactar = v["compactMetadata"]["postTokens"]
@@ -2678,6 +2799,9 @@ fn context_de(path: &Path) -> Option<ContextInfo> {
             title,
             viva: false,
             sin_cuota,
+            ultima_llamada_ms: inicio_de_llamada(&lines, i, &v),
+            goal,
+            cache_hora: cache_de_una_hora(&lines, i),
         });
     }
     // Compacted so recently that the tail we read holds no usage line at all:
@@ -2700,6 +2824,10 @@ fn context_de(path: &Path) -> Option<ContextInfo> {
             title,
             viva: false,
             sin_cuota,
+            // Sin línea de gasto no se sabe cuándo fue la llamada.
+            ultima_llamada_ms: 0,
+            goal,
+            cache_hora: false,
         });
     }
     // A session with no usage line yet (just started) can still have workers.
@@ -2716,6 +2844,9 @@ fn context_de(path: &Path) -> Option<ContextInfo> {
         title,
         viva: false,
         sin_cuota,
+        ultima_llamada_ms: 0,
+        goal,
+        cache_hora: false,
     })
 }
 
@@ -4215,6 +4346,81 @@ otra
 
         std::fs::write(claude.join("s.jsonl"), format!("{uso}\n")).unwrap();
         assert!(!leer().sin_cuota, "una conversación normal no está parada");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// El reloj de compactar una quieta: la hora en que EMPEZÓ la última llamada
+    /// (su primera línea; la última de una respuesta larga llega minutos
+    /// después), y si el último turno acabó con un `/goal` sin cumplir.
+    #[test]
+    fn el_contexto_dice_cuando_empezo_la_ultima_llamada_y_si_hay_goal() {
+        let dir = std::env::temp_dir().join(format!("adeorq-ctx-quieta-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let cwd = dir.join("proj");
+        let claude = dir.join(".claude").join("projects").join(encode_claude(&cwd.to_string_lossy()));
+        std::fs::create_dir_all(&claude).unwrap();
+        let linea = |rid: &str, hora: &str, que: &str| {
+            format!(r#"{{"type":"assistant","requestId":"{rid}","timestamp":"{hora}","message":{{"model":"claude-opus-5-5","role":"assistant","usage":{{"input_tokens":10,"cache_read_input_tokens":300000,"cache_creation_input_tokens":0}},"content":[{{"type":"{que}"}}]}}}}"#)
+        };
+        let resultado = r#"{"type":"user","timestamp":"2026-11-23T10:00:30Z","message":{"content":[{"type":"tool_result"}]}}"#;
+        let goal = |met: bool| format!(r#"{{"type":"attachment","attachment":{{"type":"goal_status","met":{met},"condition":"todo"}}}}"#);
+        let leer = || context_at(&dir.join(".claude").join("projects"), &cwd.to_string_lossy(), None).unwrap();
+        let escribir = |l: &[String]| std::fs::write(claude.join("s.jsonl"), l.join("\n") + "\n").unwrap();
+        let a = linea("r1", "2026-11-23T09:00:00Z", "text");
+        let b0 = linea("r2", "2026-11-23T10:00:00Z", "thinking");
+        let b1 = linea("r2", "2026-11-23T10:03:00Z", "text");
+        let en_ms = |s: &str| iso_a_segundos(s).unwrap() * 1000;
+
+        escribir(&[a.clone(), b0.clone(), resultado.into(), b1.clone()]);
+        let info = leer();
+        assert_eq!(info.ultima_llamada_ms, en_ms("2026-11-23T10:00:00Z"), "la primera línea de r2, no la de las 10:03 ni la de r1");
+        assert!(!info.goal, "sin meta");
+
+        escribir(&[a.clone()]);
+        assert_eq!(leer().ultima_llamada_ms, en_ms("2026-11-23T09:00:00Z"), "una llamada de una línea");
+
+        escribir(&[a.clone(), b0.clone(), b1.clone(), goal(false)]);
+        assert!(leer().goal, "el último turno acabó con la meta sin cumplir");
+        escribir(&[a.clone(), b0.clone(), b1.clone(), goal(true)]);
+        assert!(!leer().goal, "cumplida, ya no hay meta");
+        escribir(&[a.clone(), goal(false), b0.clone(), b1.clone()]);
+        assert!(!leer().goal, "una meta sin cumplir de un turno de antes, quitada después, no cuenta");
+
+        let el_429 = r#"{"type":"assistant","timestamp":"2026-11-23T10:05:00Z","message":{"model":"<synthetic>","role":"assistant","usage":{"input_tokens":0,"output_tokens":0},"content":[{"type":"text","text":"API Error"}]},"isApiErrorMessage":true}"#;
+        escribir(&[a.clone(), b1.clone(), goal(false), el_429.into()]);
+        assert!(leer().goal, "una línea sintética detrás (un error de la API) no tapa la meta sin cumplir");
+
+        let sin_id = r#"{"type":"assistant","timestamp":"2026-11-23T11:00:00Z","message":{"model":"claude-opus-5-5","usage":{"input_tokens":5,"cache_read_input_tokens":200000}}}"#;
+        escribir(&[b0.clone(), b1.clone(), sin_id.into()]);
+        assert_eq!(leer().ultima_llamada_ms, en_ms("2026-11-23T11:00:00Z"), "sin requestId, la hora de su línea");
+        assert!(!leer().cache_hora, "sin cache_creation no se sabe de cuánto es la caché: no");
+
+        // La primera línea de la respuesta llega tarde (hasta 2 min): la de tu
+        // mensaje, justo antes, se apuntó al mandarla.
+        let mensaje = |hora: &str, texto: &str| format!(r#"{{"type":"user","uuid":"u1","timestamp":"{hora}","message":{{"content":"{texto}"}}}}"#);
+        let sin_hora = r#"{"type":"file-history-snapshot","snapshot":{"timestamp":"2026-11-23T08:00:00Z"}}"#;
+        escribir(&[a.clone(), mensaje("2026-11-23T09:59:00Z", "sigue"), b0.clone(), b1.clone()]);
+        assert_eq!(leer().ultima_llamada_ms, en_ms("2026-11-23T09:59:00Z"), "la hora de tu mensaje, no la de la primera línea de la respuesta");
+        escribir(&[a.clone(), mensaje("2026-11-23T09:59:30Z", "y ahora"), sin_hora.into(), b0.clone(), b1.clone()]);
+        assert_eq!(leer().ultima_llamada_ms, en_ms("2026-11-23T09:59:30Z"), "una línea sin hora en medio no corta la búsqueda");
+        escribir(&[a.clone(), mensaje("2026-11-23T09:50:00Z", "uno viejo"), b0.clone(), b1.clone()]);
+        assert_eq!(leer().ultima_llamada_ms, en_ms("2026-11-23T10:00:00Z"), "una línea de más de 5 min antes no adelanta la cuenta");
+        // Una de servicio, sin `uuid`, apuntada después de la primera línea de la respuesta.
+        let delta = r#"{"type":"file-history-delta","timestamp":"2026-11-23T10:00:20Z"}"#;
+        escribir(&[a.clone(), mensaje("2026-11-23T09:58:40Z", "otra vez"), delta.into(), b0.clone(), b1.clone()]);
+        assert_eq!(leer().ultima_llamada_ms, en_ms("2026-11-23T09:58:40Z"), "una línea de servicio en medio no tapa tu mensaje");
+
+        let con_cache = |rid: &str, hora: &str, de_una_hora: u64, de_cinco: u64| {
+            format!(r#"{{"type":"assistant","requestId":"{rid}","timestamp":"{hora}","message":{{"model":"claude-opus-5-5","usage":{{"input_tokens":1,"cache_read_input_tokens":300000,"cache_creation_input_tokens":{},"cache_creation":{{"ephemeral_5m_input_tokens":{de_cinco},"ephemeral_1h_input_tokens":{de_una_hora}}}}},"content":[{{"type":"text"}}]}}}}"#, de_una_hora + de_cinco)
+        };
+        escribir(&[con_cache("r5", "2026-11-23T12:00:00Z", 900, 0)]);
+        assert!(leer().cache_hora, "su última escritura de caché fue de una hora");
+        // Otra cifra y no 900: con los mismos bytes en el mismo instante, `read_tail`
+        // da la cola de antes.
+        escribir(&[con_cache("r5", "2026-11-23T12:00:00Z", 0, 90_000)]);
+        assert!(!leer().cache_hora, "de cinco minutos: a los 55 ya no queda nada que leer");
+        escribir(&[con_cache("r5", "2026-11-23T12:00:00Z", 900, 0), con_cache("r6", "2026-11-23T12:01:00Z", 0, 0)]);
+        assert!(leer().cache_hora, "una llamada que solo leyó caché mira la de antes");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

@@ -18,6 +18,7 @@ import {
   type Ocasion,
 } from "../lib/sonidos";
 import { FolderIcon, PlayIcon, UndoIcon } from "./Icons";
+import NumeroAjuste from "./NumeroAjuste";
 
 /** Qué es cada momento, con sus palabras de la página donde los eligió. */
 const QUE: Record<Ocasion, { nombre: string; cuando: string }> = {
@@ -105,7 +106,16 @@ export default function AjustesSonidos() {
           onPointerUp={() => probar("termina")}
           onKeyUp={(e) => MUEVEN.has(e.key) && probar("termina")}
         />
-        <span className="setting-value">{Math.round(a.volumen * 100)} %</span>
+        <NumeroAjuste
+          valor={Math.round(a.volumen * 100)}
+          min={0}
+          max={100}
+          sufijo=" %"
+          onCambiar={(n) => {
+            cambiar({ ...a, volumen: n / 100 });
+            probar("termina");
+          }}
+        />
       </label>
       <ul className="cab-lista">
         {OCASIONES.map((o) => {

@@ -30,6 +30,8 @@ import {
 } from "../lib/rendimiento";
 import { guardarForma, prefForma, type FormaPanel } from "../lib/formaPaneles";
 import AjustesEstilo, { NotaFondoEstilo, useAspecto } from "./AjustesEstilo";
+import NumeroAjuste from "./NumeroAjuste";
+import VistaTerminal from "./VistaTerminal";
 import { ponerSuavizado, suavizado, SUAVIZADOS, type Suavizado } from "../lib/suavizado";
 import {
   A_MANO,
@@ -497,6 +499,8 @@ export default function SettingsView({
     const guardada = localStorage.getItem(RECUERDO);
     return SECCIONES.some((s) => s.id === guardada) ? (guardada as SeccionId) : "aspecto";
   });
+  /** Las dos pestañas que cambian cómo se ve una terminal llevan su vista al lado. */
+  const conVista = seccion === "aspecto" || seccion === "terminales";
 
   /** Si este equipo tiene el escudo instalado: sin él, su grupo no sale. */
   const [conEscudo, setConEscudo] = useState(false);
@@ -674,7 +678,7 @@ export default function SettingsView({
           quedaba en una tira estrecha con media pantalla vacía al lado (Munir,
           2026-08-29, con la captura). En esa sección no hay tope y el ancho lo
           pone la propia guía. */}
-      <div className="set-marco" data-ancha={seccion === "ayuda" || undefined}>
+      <div className="set-marco" data-ancha={seccion === "ayuda" || undefined} data-vista={conVista || undefined}>
         {/* La izquierda: los grupos. Antes eran diez tarjetas en una
             rejilla, y como una tenia dos botones y otra veinticuatro
             temas, la rejilla quedaba llena de huecos (Munir, 2026-07-30). */}
@@ -1189,7 +1193,7 @@ export default function SettingsView({
                         value={fondoOpacidad}
                         onChange={(e) => onFondoOpacidad(Number(e.currentTarget.value))}
                       />
-                      <span className="setting-value">{fondoOpacidad}%</span>
+                      <NumeroAjuste valor={fondoOpacidad} min={5} max={100} sufijo="%" onCambiar={onFondoOpacidad} />
                     </label>
                     <label className="setting-row">
                       <span>{t("Desenfoque")}</span>
@@ -1200,7 +1204,7 @@ export default function SettingsView({
                         value={fondoDesenfoque}
                         onChange={(e) => onFondoDesenfoque(Number(e.currentTarget.value))}
                       />
-                      <span className="setting-value">{fondoDesenfoque}px</span>
+                      <NumeroAjuste valor={fondoDesenfoque} min={0} max={24} sufijo="px" onCambiar={onFondoDesenfoque} />
                     </label>
                     <p className="card-hint">
                       {t(
@@ -1237,9 +1241,8 @@ export default function SettingsView({
                         value={terminalVer < 0 ? (fondo ? 80 : 55) : terminalVer}
                         onChange={(e) => onTerminalVer(Number(e.currentTarget.value))}
                       />
-                      <span className="setting-value">
-                        {terminalVer < 0 ? t("auto") : `${terminalVer}%`}
-                      </span>
+                      <NumeroAjuste valor={terminalVer < 0 ? (fondo ? 80 : 55) : terminalVer} min={5} max={100} sufijo="%"
+                        texto={terminalVer < 0 ? t("auto") : undefined} onCambiar={onTerminalVer} />
                     </label>
                     <p className="card-hint">
                       {t(
@@ -1296,7 +1299,7 @@ export default function SettingsView({
                     value={fontSize}
                     onChange={(e) => onFontSize(Number(e.currentTarget.value))}
                   />
-                  <span className="setting-value">{fontSize}px</span>
+                  <NumeroAjuste valor={fontSize} min={11} max={32} sufijo="px" onCambiar={onFontSize} />
                 </label>
                 {/* La muestra. Sin esto, elegir el número es adivinar: el
                     deslizador dice «24px» y nadie sabe si eso es mucho hasta que
@@ -1323,7 +1326,7 @@ export default function SettingsView({
                     value={openAll}
                     onChange={(e) => onOpenAll(Number(e.currentTarget.value))}
                   />
-                  <span className="setting-value">{openAll}</span>
+                  <NumeroAjuste valor={openAll} min={2} max={20} onCambiar={onOpenAll} />
                 </label>
                 <AjusteCabeceraTerminal />
                 <AjusteParpadeo />
@@ -1987,6 +1990,7 @@ export default function SettingsView({
             </>
           )}
         </div>
+        {conVista && <VistaTerminal temaTerm={termTheme} tema={theme} letra={fontSize} /> /* a la derecha */}
       </div>
     </div>
   );

@@ -106,6 +106,9 @@ ffmpeg -f lavfi -i color=c=black:s=1920x1080 -filter_script:v fondo.filtro -fram
    carpetas `P--projects-*` y de `~/.codex/sessions` los rollouts de `P:\projects\…` que dejó grabar.
 
 A la web van con `ffmpeg -i salida/en/x.png -compression_level 9 -pred mixed web/assets/screens/en/x.png`.
+Después, desde `web/`, `node scripts/hacer-tamanos.mjs`: saca las copias de 960 y 1440 px de las cinco
+de «Qué hace» (`cockpit`, `canvas`, `files`, `decisions`, `accounts`), que son las que pinta la
+portada; sin eso `scripts/capturas-check.mjs` se pone rojo en `pnpm comprobar`.
 El vídeo de `promo/` las coge de ahí con `pnpm capturas`.
 
 **Las tres del móvil** (`phone-home.png` y `phone-concierge.png`, la sección «En tu móvil» de la

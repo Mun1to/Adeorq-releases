@@ -46,8 +46,8 @@ export default {
   'hero.linea1': 'All your agents,',
   'hero.linea2': 'on one single screen',
   'hero.entrada':
-    'Claude Code, Codex, Gemini and <span data-cifra-otros>eight</span> other clients <b class="clave">working at once</b>, each in its own ' +
-    '<b class="clave">real terminal</b>, with your projects one click away. You hand over the job and they get to work.',
+    'Claude Code, Codex, Gemini and <span data-cifra-otros>eight</span> more, each in its own real terminal and ' +
+    '<b class="clave">sharing out the work</b>. With <b class="clave">all your accounts at once</b> and each agent <b class="clave">isolated in its own box</b>.',
   'descarga.windows': 'Download for Windows',
   'descarga.gratis': 'free, no account',
   'hero.verComo': 'See how it works',
@@ -60,14 +60,15 @@ export default {
   'hero.p.chat': 'Chat',
   'hero.p.decisiones': 'Decisions',
   'hero.p.panel': 'Dashboard',
-  'hero.grande': 'Open it full size',
-  'hero.grande.href': '/demo/?lang=en',
+  'hero.completa': 'Full screen',
+  'hero.completa.pie': 'See it full screen',
 
   /* ── Adeo, lo que dice en cada sección ─────────────────────────────────── */
   'adeo.hola': 'Hi, I’m <b>Adeo</b>. I live in your Adeorq and tell you when an agent needs you.',
   'adeo.celebra': 'Off it goes! Install it and I’ll see you in your top bar.',
   'adeo.queEs': 'This is what’s inside. Pick a screen and I’ll open it up there, in the demo.',
   'adeo.trabajo': 'While your agents work, I type along with them. When one finishes, I let you know.',
+  'adeo.pnl': 'I keep count of every token. You just pick the colour and show it off.',
   'adeo.movil': 'Heading out? I’ll come along on your phone.',
   'adeo.cuenta': 'I don’t send anything to any server of ours. Your work stays between you and your CLI.',
   'adeo.descarga': 'Two minutes and I’m in your top bar, waiting for your agents.',
@@ -80,27 +81,29 @@ export default {
     'All are trademarks of their owners. Adeorq is not affiliated with any of them and does not ' +
     'resell their access: it works with the session you already have on your machine.',
 
-  /* ── Sin Adeorq y con Adeorq ───────────────────────────────────────────── */
-  'comparar.tit': 'From loose windows to one work app',
-  'comparar.entrada': 'One agent per window works until you have four. With all of them in one, you see who finished, <b class="clave">who is waiting on you</b> and <b class="clave">how much you have spent</b>, without going to look.',
-  'comparar.sin': 'Without Adeorq',
-  'comparar.sin1': 'One loose window per agent',
-  'comparar.sin2': "You don't know who finished",
-  'comparar.sin3': 'An agent waiting for your yes',
-  'comparar.sin4': 'Quota runs out with no warning',
-  'comparar.sin5': 'Close it and lose the session',
-  'comparar.sin6': 'A big job, one step at a time',
-  'comparar.sin7': 'Away from the PC, blind',
-  'comparar.sin8': 'Accounts switched by hand',
-  'comparar.con': 'With Adeorq',
-  'comparar.con1': 'All in one window',
-  'comparar.con2': 'Its pane lights up when done',
-  'comparar.con3': 'Adeo tells you when it asks',
-  'comparar.con4': 'You see what each account used',
-  'comparar.con5': 'Resume Claude, Codex and Gemini ones',
-  'comparar.con6': 'Adeo splits it across up to six',
-  'comparar.con7': 'You answer from your phone',
-  'comparar.con8': 'Pick the account as it opens',
+  /* ── Las ventajas, justo después de la demo ───────────────────────────── */
+  'vt.entrada': 'Each agent works in its <b class="clave">real terminal</b>, and Adeorq gets them <b class="clave">working together</b>.',
+  'vt1.tit': 'What you get with Adeorq',
+  'vt1.marcas': 'Every brand, in one window',
+  'vt1.marcasP': 'Claude Code, Codex, Gemini, Copilot and the rest, <b>each in its own terminal</b> and all working at once.',
+  'vt1.juntos': 'They split the work',
+  'vt1.juntosP': 'One terminal <b>opens others</b>, of whatever brand it needs, and when they finish <b>they hand it the result</b>. Adeo splits a job across up to six.',
+  'vt1.cajas': 'A box of its own for each agent',
+  'vt1.cajasP': 'A terminal can start inside a <b>Docker box</b> with a clean Linux that, on disk, <b>only sees its folder</b>. Close it and the box is thrown away.',
+  'vt1.cli': 'The real CLI, all of it',
+  'vt1.cliP': 'It runs the <code>claude</code> or <code>codex</code> you installed, <b>with every command and shortcut</b>, with no app translating it.',
+  'vt1.cuentas': 'Several accounts at once',
+  'vt1.cuentasP': 'Each terminal on its own account, and a new one goes by itself <b>to the account that would waste the most quota</b> if left unused.',
+  'vt1.avisa': 'You know without looking',
+  'vt1.avisaP': 'The terminal <b>lights up when it finishes</b>, Adeo tells you when one asks you something, and you answer from your phone.',
+  'vt1.movil': 'Your PC, in your pocket',
+  'vt1.movilP': 'From your phone and <b>wherever you are</b>, over Tailscale: you talk to Adeo, <b>type into your terminals</b>, send them photos and get the alerts.',
+  'vt1.nav': 'Your website, next to the terminal',
+  'vt1.navP': 'A <b>real browser</b> in a panel, beside your agents, to see the change <b>while they make it</b> without switching windows.',
+  'vt1.lienzo': 'A canvas to keep it all in order',
+  'vt1.lienzoP': 'Your terminals on an <b>endless canvas</b>, with notes and drawings beside them and <b>each project in its own colour</b>.',
+  'vt1.emision': 'Record without showing your keys',
+  'vt1.emisionP': 'With <b>streaming mode</b>, Adeorq covers keys <b>before it draws them</b>: you stream or record your screen and nobody sees a secret.',
 
   /* ── Adeo lo reparte ───────────────────────────────────────────────────── */
   'reparte.tit': 'You say it once. Adeo splits it up.',
@@ -150,6 +153,8 @@ export default {
     'As many terminals as fit, each with its own project, client and model. Split them to the ' +
     'right or below.',
   'rasgo.cabina.src': '/assets/screens/en/cockpit.png',
+  'rasgo.cabina.srcset':
+    '/assets/screens/en/cockpit-960.png 960w, /assets/screens/en/cockpit-1440.png 1440w, /assets/screens/en/cockpit.png 3840w',
   'rasgo.cabina.alt':
     'The Cockpit with four terminals in a grid: three Claude Code sessions and one Codex session, ' +
     'one of them asking for permission before running a command.',
@@ -158,6 +163,8 @@ export default {
     'An infinite table with terminals, notes and boards. Drag one session onto another and they ' +
     'form a swarm: a single chat, and Adeo hands out the work.',
   'rasgo.lienzo.src': '/assets/screens/en/canvas.png',
+  'rasgo.lienzo.srcset':
+    '/assets/screens/en/canvas-960.png 960w, /assets/screens/en/canvas-1440.png 1440w, /assets/screens/en/canvas.png 3840w',
   'rasgo.lienzo.alt':
     'The Canvas with three terminals, the board with the work of the agents, a swarm of two ' +
     'sessions with its chat, and two notes.',
@@ -166,6 +173,8 @@ export default {
     'The project tree and an editor next to the terminal. Each file shows its git status and a ' +
     'mark for what the agent touched.',
   'rasgo.archivos.src': '/assets/screens/en/files.png',
+  'rasgo.archivos.srcset':
+    '/assets/screens/en/files-960.png 960w, /assets/screens/en/files-1440.png 1440w, /assets/screens/en/files.png 3840w',
   'rasgo.archivos.alt':
     'Two terminals on the left and, on the right, the file cart.js open next to the project tree ' +
     'with its git changes.',
@@ -174,6 +183,8 @@ export default {
     'When an agent needs you to choose, it asks with numbered options and its recommended one. ' +
     'You answer and it keeps working.',
   'rasgo.decisiones.src': '/assets/screens/en/decisions.png',
+  'rasgo.decisiones.srcset':
+    '/assets/screens/en/decisions-960.png 960w, /assets/screens/en/decisions-1440.png 1440w, /assets/screens/en/decisions.png 3840w',
   'rasgo.decisiones.alt':
     'A pending decision with two questions, their numbered options and the recommended one marked.',
   'rasgo.cuentas.tit': 'Accounts',
@@ -181,8 +192,54 @@ export default {
     'Several accounts of the same CLI, each with what it has used this session and this week. ' +
     'You pick which one each terminal starts with.',
   'rasgo.cuentas.src': '/assets/screens/en/accounts.png',
+  'rasgo.cuentas.srcset':
+    '/assets/screens/en/accounts-960.png 960w, /assets/screens/en/accounts-1440.png 1440w, /assets/screens/en/accounts.png 3840w',
   'rasgo.cuentas.alt':
     'The Claude Code and Codex accounts, each with its usage bars for the session and the week.',
+
+  /* ── Adeo te la enseña ─────────────────────────────────────────────────── */
+  'adeo.video': 'Let me show you around in half a minute. If you’d rather try it, it’s right up there.',
+  'video.tit': 'Adeo shows you around',
+  'video.entrada':
+    'Your projects, <b class="clave">one terminal per agent</b>, the ones working tucked away, permissions and layout. ' +
+    'Thirty-five seconds, no sound.',
+  'video.poster': '/assets/video/recorrido-en.webp',
+  'video.src': '/assets/video/recorrido-en.mp4',
+  'video.aria':
+    'Adeo shows the app: the projects, one terminal per agent, the terminals tucked away, permissions, the window layout and Adeo itself.',
+  'video.parar': 'Pause the video',
+
+  /* ── Comparte tu PnL ───────────────────────────────────────────────────── */
+  'pnl.tit': 'Share your PnL',
+  'pnl.entrada':
+    'Your tokens for the month, for one day or <b class="clave">since day one</b>, on a card with <b class="clave">your wallpaper</b>. ' +
+    'As an image, or as a video with the number climbing, ready for X or Discord.',
+  'pnl.lienzo':
+    'Munir’s usage card: 27B tokens in November 2026, 591M new and 23 active days, over an AI-made image of ginger cats.',
+  'pnl.que': 'What the card counts',
+  'pnl.mes': 'Month',
+  'pnl.record': 'Record',
+  'pnl.total': 'Total',
+  'pnl.resaltar': 'Highlight the number',
+  'pnl.proyecto': 'With a project',
+  'pnl.fondos': 'Card background',
+  'pnl.f.gatos': 'The cats',
+  'pnl.f.contorno': 'Edges only',
+  'pnl.f.pelicula': 'Film grain',
+  'pnl.f.cristal': 'Glass prow',
+  'pnl.f.tuyo': 'Your photo or video',
+  'pnl.bajar': 'Download the image',
+  'pnl.formato': 'Format',
+  'pnl.colores': 'Number colour',
+  'pnl.azul': 'Blue',
+  'pnl.blanco': 'White',
+  'pnl.naranja': 'Orange',
+  'pnl.verde': 'Green',
+  'pnl.morado': 'Purple',
+  'pnl.nota':
+    'These are my real numbers, from my Profile on 23 November 2026. Behind it, the wallpaper I have in my Adeorq right now: an AI-made image ' +
+    '(<a href="/assets/gatos/original-con-credenciales.png">the original, with its credentials</a>). ' +
+    'Your photo or video never leaves your browser: nothing is uploaded anywhere.',
 
   /* ── Cómo trabaja ──────────────────────────────────────────────────────── */
   'trabajo.tit': 'Three steps and they are already working',
@@ -290,7 +347,7 @@ export default {
   'faq.q2': 'Does it work with anything other than Claude Code?',
   'faq.r2':
     'It knows {n} clients, among them Codex, Gemini CLI, Copilot, Cursor, opencode, Antigravity, ' +
-    'Kiro, Grok and Pi, and it can install the ones you are missing. And since the terminals are ' +
+    'Kiro and Grok, and it can install the ones you are missing. And since the terminals are ' +
     'real, you can run whatever you want inside them, your own scripts included.',
   'faq.q3': 'Is it open source?',
   'faq.r3':

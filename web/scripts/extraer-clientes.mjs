@@ -32,7 +32,7 @@
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const RAIZ = resolve(AQUI, '../..');
@@ -47,6 +47,20 @@ const INICIO = '<!-- CLIENTES:INICIO';
 const FIN = '<!-- CLIENTES:FIN -->';
 
 /* --------------------------------------------------------------------------
+   0. LOS QUE LA APP CONOCE Y LA WEB NO ENSEÑA
+   Por su `id` de providers.ts. Pi (el agente de terminal `pi`, de pi-mono) es
+   un cliente y no un proveedor de modelos, y Munir lo quiere fuera de la web:
+   «Pi quitalo si no es ningun probeedor» (2026-11-23, desde el móvil). En la
+   app se queda, y por eso las páginas de privacidad lo siguen nombrando: la app
+   sigue leyendo su historial. La demo tampoco se toca, porque es la app.
+   Todo lo que cuenta clientes para la web lee esta lista: la cinta (aquí),
+   `poner-metadatos.mjs`, `hacer-tarjeta-social.mjs`, `hacer-paginas.mjs` y
+   `scripts/cifras-web-check.mjs`.
+   -------------------------------------------------------------------------- */
+
+export const FUERA_DE_LA_WEB = ['pi'];
+
+/* --------------------------------------------------------------------------
    1. LOS CLIENTES
    `PROVIDERS` es un array de objetos literales. Se corta por el `id:` de cada
    uno y se lee dentro de su trozo, en vez de con un solo regex que cruce todo
@@ -55,7 +69,7 @@ const FIN = '<!-- CLIENTES:FIN -->';
    sin avisar. Fue exactamente el fallo del extractor de marcas.
    -------------------------------------------------------------------------- */
 
-function leerClientes() {
+export function leerClientes() {
   const src = readFileSync(PROVIDERS, 'utf8');
   const i = src.indexOf('export const PROVIDERS');
   if (i < 0) throw new Error('no encuentro `export const PROVIDERS` en providers.ts');
@@ -75,6 +89,17 @@ function leerClientes() {
     if (!label) throw new Error(`el cliente "${m[1]}" no tiene label`);
     return { id: m[1], label: label[1], hue: hue ? hue[1] : null };
   });
+}
+
+/** Los clientes que enseña la web: el catálogo sin `FUERA_DE_LA_WEB`. Si un
+ *  excluido ya no está en el catálogo, la lista se ha quedado vieja y se para. */
+export function clientesDeLaWeb() {
+  const todos = leerClientes();
+  const perdidos = FUERA_DE_LA_WEB.filter(id => !todos.some(c => c.id === id));
+  if (perdidos.length) {
+    throw new Error(`FUERA_DE_LA_WEB nombra ${perdidos.join(', ')}, que ya no está en providers.ts: quítalo de la lista`);
+  }
+  return todos.filter(c => !FUERA_DE_LA_WEB.includes(c.id));
 }
 
 /* --------------------------------------------------------------------------
@@ -136,7 +161,7 @@ function pieza(c) {
 }
 
 function construir() {
-  const todos = leerClientes();
+  const todos = clientesDeLaWeb();
   const conMarca = leerConMarca();
   const enSprite = simbolosDelSprite();
 
@@ -174,12 +199,15 @@ function construir() {
 
   return [
     `${INICIO} · generado por scripts/extraer-clientes.mjs, no editar a mano.`,
-    `     ${todos.length} clientes en src/lib/providers.ts, ${conDibujo.length} con dibujo propio.`,
+    `     ${todos.length} clientes de src/lib/providers.ts, ${conDibujo.length} con dibujo propio` +
+      (FUERA_DE_LA_WEB.length ? ` (fuera de la web: ${FUERA_DE_LA_WEB.join(', ')}).` : '.'),
     `     El sprite va aquí dentro y no en un fichero aparte porque Codex y`,
     `     Copilot se recortan con una <mask>, y una máscara solo se resuelve contra`,
     `     el documento que la pinta. -->`,
     leerSprite(),
-    `<section class="cinta" id="cinta" aria-labelledby="cinta-tit">`,
+    // `lam-azul`: la lámina azul de portada/laminas.css. Se puso a mano en el HTML
+    // y la siguiente pasada de este script la borraba.
+    `<section class="cinta lam-azul" id="cinta" aria-labelledby="cinta-tit">`,
     `  <div class="cinta__caja">`,
     `    <p class="cinta__rotulo" id="cinta-tit" data-en="cinta.rotulo">`,
     `      Funciona con lo que ya usas`,
@@ -210,19 +238,25 @@ function construir() {
 
 /* --------------------------------------------------------------------------
    5. AL HTML
+   Solo lanzado a mano: los demás scripts importan de aquí `FUERA_DE_LA_WEB`
+   y `clientesDeLaWeb`, y un import no puede reescribir la portada.
    -------------------------------------------------------------------------- */
 
-const html = readFileSync(PORTADA, 'utf8');
-const i = html.indexOf(INICIO);
-const j = html.indexOf(FIN);
-if (i < 0 || j < 0) {
-  throw new Error(`portada/index.html no tiene los marcadores ${INICIO} ... ${FIN}`);
+function escribir() {
+  const html = readFileSync(PORTADA, 'utf8');
+  const i = html.indexOf(INICIO);
+  const j = html.indexOf(FIN);
+  if (i < 0 || j < 0) {
+    throw new Error(`portada/index.html no tiene los marcadores ${INICIO} ... ${FIN}`);
+  }
+
+  const bloque = construir();
+  // El HTML de la portada está en LF; el bloque se escribe igual para no dejar
+  // el fichero con las dos clases de salto de línea mezcladas.
+  const salida = html.slice(0, i) + bloque + html.slice(j + FIN.length);
+  writeFileSync(PORTADA, salida);
+
+  console.log(`cinta -> ${(bloque.match(/<li class="cli"/g) || []).length / 2} logos, ${bloque.length} bytes en el HTML`);
 }
 
-const bloque = construir();
-// El HTML de la portada está en LF; el bloque se escribe igual para no dejar
-// el fichero con las dos clases de salto de línea mezcladas.
-const salida = html.slice(0, i) + bloque + html.slice(j + FIN.length);
-writeFileSync(PORTADA, salida);
-
-console.log(`cinta -> ${(bloque.match(/<li class="cli"/g) || []).length / 2} logos, ${bloque.length} bytes en el HTML`);
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) escribir();

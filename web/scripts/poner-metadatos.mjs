@@ -19,6 +19,7 @@ import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 import { IDIOMAS, RUTAS } from '../paginas/rutas.mjs'
+import { clientesDeLaWeb } from './extraer-clientes.mjs'
 
 const AQUI = dirname(fileURLToPath(import.meta.url))
 const WEB = resolve(AQUI, '..')
@@ -29,11 +30,11 @@ const SITIO = 'https://adeorq.com'
  * Cuántos clientes más, aparte de los tres que se nombran en la descripción. Se
  * cuenta de `src/lib/providers.ts`, la lista de verdad, como ya hacen la cinta
  * de logos y la tarjeta social: escrito a mano decía «19 más» con 11 en el
- * catálogo (2026-11-16, al quitar once).
+ * catálogo (2026-11-16, al quitar once). Sin los que la web no enseña
+ * (`FUERA_DE_LA_WEB` en extraer-clientes.mjs).
  */
 function otrosClientes() {
-  const src = readFileSync(resolve(WEB, '../src/lib/providers.ts'), 'utf8')
-  const total = [...src.matchAll(/label:\s*"[^"]+"/g)].length
+  const total = clientesDeLaWeb().length
   if (total < 5) throw new Error(`providers.ts solo da ${total} clientes: el patrón no encaja`)
   return total - 3
 }

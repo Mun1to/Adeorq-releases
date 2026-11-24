@@ -145,3 +145,7 @@
 /* Los estilos lisos (Terminal, Consola, Liso): la forma entera de la app, con
    los colores del tema. Detrás de Contraste, que es la forma a la que pisan. */
 @import "./estilos/42-aspectos.css";
+
+/* Ajustes › Aspecto y Terminales: la vista de la terminal al lado, las
+   muestras pequeñas y el número que se escribe con doble clic (2026-11-24). */
+@import "./estilos/43-ajustes-vista.css";

@@ -4,9 +4,9 @@
 // «Orquio General», 2026-10-22 (BUZON): sus seis delegadas de ese día acabaron
 // entre 588k y 832k tokens. Lo que se pidió y se mira aquí, por el MCP:
 //   1. `get_active_panes` dice los tokens de cada terminal y qué hacer;
-//   2. `send_command` no manda trabajo nuevo a una que pasa de 300k sin
+//   2. `send_command` no manda trabajo nuevo a una que pasa de 350k sin
 //      `confirm: true`, y avisa cuando lo manda;
-//   3. a quien la abrió se le avisa una vez al cruzar los 400k, y la delegada
+//   3. a quien la abrió se le avisa una vez al cruzar los 450k, y la delegada
 //      se compacta sola a su campana (el `/fin` entero y `/compact`) aunque
 //      el ajuste de Munir diga «no»; la de Munir, con «no», no;
 //   4. `close_pane` y `open_pane` dicen el contexto;
@@ -16,7 +16,7 @@
 // Y lo que vio la revisión de `1954cf0` (2026-10-30), que son caminos por los
 // que tecleaba donde no debía:
 //   R1. un Codex con «claude» en su encargo no se toma por Claude Code, aunque
-//       la conversación más reciente de la carpeta pase de 400k;
+//       la conversación más reciente de la carpeta pase de 450k;
 //   R3. tras un `/clear` (o con Claude Code cerrado) la conversación de antes
 //       ya no cuenta: ni en la lista, ni para retener, ni para compactar;
 //   R4. contestar a una pregunta suya no es trabajo nuevo;
@@ -216,7 +216,7 @@ try {
   }, 20_000, 500)) ?? "";
   const deMunir = lineaDe(lista, new RegExp(SID_M));
   const idM = Number(/^ID: (\d+)/.exec(deMunir)?.[1]);
-  dice(/Contexto: 450\.000 tokens de 1\.000\.000 \(pasa de 400\.000: compáctala con compactar_terminal\(\d+\)/.test(deMunir), "get_active_panes dice los tokens de la terminal de Munir y qué hacer", deMunir);
+  dice(/Contexto: 450\.000 tokens de 1\.000\.000 \(pasa de 450\.000: compáctala con compactar_terminal\(\d+\)/.test(deMunir), "get_active_panes dice los tokens de la terminal de Munir y qué hacer", deMunir);
 
   // ── 5a. Las de Munir no se compactan por el MCP ─────────────────────────
   const noDeMunir = await llamar("compactar_terminal", { paneId: idM });
@@ -264,17 +264,18 @@ try {
   dice(!r.isError && recibido(SID_D).includes("no, déjalo así"), "R4: a 360k, contestar a su pregunta en prosa pasa sin confirm", JSON.stringify(r));
 
   // ── 3. El aviso a quien la abrió, una vez ───────────────────────────────
-  escribir(SID_D, 420);
+  // Desde la raya de compactar (450k desde el 14-nov; antes 400k).
+  escribir(SID_D, 470);
   r = await llamar("get_projects");
-  dice(new RegExp(`Aviso de Adeorq: la terminal ${idD} que abriste .*420\\.000 tokens.*/fin \(`).test(r.texto), "a 420k, la siguiente llamada de quien la abrió lleva el aviso", r.texto);
+  dice(new RegExp(`Aviso de Adeorq: la terminal ${idD} que abriste .*470\\.000 tokens.*/fin \\(`).test(r.texto), "a 470k, la siguiente llamada de quien la abrió lleva el aviso", r.texto);
   r = await llamar("get_projects");
   dice(!/Aviso de Adeorq/.test(r.texto), "y la siguiente ya no lo repite");
-  // R5. Rondando la raya: baja a 390k y vuelve a 425k sin haber compactado.
-  escribir(SID_D, 390);
+  // R5. Rondando la raya: baja a 440k (sin bajar del aviso, 350k) y vuelve a 475k sin haber compactado.
+  escribir(SID_D, 440);
   await llamar("get_projects");
-  escribir(SID_D, 425);
+  escribir(SID_D, 475);
   r = await llamar("get_projects");
-  dice(!/Aviso de Adeorq/.test(r.texto), "R5: bajó a 390k y volvió a 425k: no se le repite el aviso", r.texto);
+  dice(!/Aviso de Adeorq/.test(r.texto), "R5: bajó a 440k y volvió a 475k: no se le repite el aviso", r.texto);
   const otro = a.puente(51);
   await otro.pedir("initialize", { clientInfo: { name: "claude-code" } });
   const r51 = await otro.pedir("tools/call", { name: "get_projects", arguments: {} });
@@ -284,8 +285,8 @@ try {
   await campana(SID_M);
   dice(ordenes(SID_M).length === 0, "la terminal de Munir con su ajuste en «no» no se compacta sola", JSON.stringify(ordenes(SID_M)));
   await campana(SID_D);
-  dice(JSON.stringify(ordenes(SID_D)) === JSON.stringify(["/fin"]), "la delegada a 420k manda el /fin entero a su campana, aunque el ajuste diga «no»", JSON.stringify(ordenes(SID_D)));
-  escribir(SID_D, 430);
+  dice(JSON.stringify(ordenes(SID_D)) === JSON.stringify(["/fin"]), "la delegada a 475k manda el /fin entero a su campana, aunque el ajuste diga «no»", JSON.stringify(ordenes(SID_D)));
+  escribir(SID_D, 480);
   await campana(SID_D);
   let o = ordenes(SID_D);
   dice(o.length === 2 && /^\/compact Conserva el estado real del repo/.test(o[1]), "y al acabar el /fin, el /compact", JSON.stringify(o));
@@ -339,7 +340,7 @@ try {
   writeFileSync(join(falso, "campana-codex"), "");
   await hasta(() => !existsSync(join(falso, "campana-codex")), 8000, 100);
   await dormir(4500);
-  dice(!recibidoCodex().some((l) => /^\/(fin|compact)\b/.test(l)), "R1: a su campana no se le teclea /fin, aunque la más reciente de la carpeta pase de 400k", JSON.stringify(recibidoCodex()));
+  dice(!recibidoCodex().some((l) => /^\/(fin|compact)\b/.test(l)), "R1: a su campana no se le teclea /fin, aunque la más reciente de la carpeta pase de 450k", JSON.stringify(recibidoCodex()));
   await llamar("close_pane", { paneId: idC, rastro });
 
   // ── R3. Tras un /clear, o con Claude Code cerrado, la de antes no cuenta ─
@@ -369,6 +370,60 @@ try {
   r = await llamar("send_command", { paneId: idE, command: "# era el PowerShell que queda" });
   dice(!r.isError && !/no lo he mandado/.test(r.texto), "R3: con Claude Code cerrado y su PowerShell debajo, send_command no retiene", JSON.stringify(r));
   await llamar("close_pane", { paneId: idE, rastro });
+
+  // ── Q. Quieta casi una hora: solo /compact, y nada detrás (2026-11-23) ───
+  // La hora la pone el transcript (`ultimaLlamadaMs`, de la primera línea de su
+  // `requestId`): su última llamada empezó hace 50 minutos, y luego hace 56. En
+  // la terminal de Munir, con su ajuste de la raya en «no»: esto es otro ajuste.
+  // Con su caché escrita para una hora, como las de una cuenta de Claude (`cacheHora`).
+  let nLlamada = 0;
+  const llamada = (sid, k, minutos) => {
+    const l = JSON.parse(linea(sid, k, "lista"));
+    l.message.usage.cache_creation = { ephemeral_5m_input_tokens: 0, ephemeral_1h_input_tokens: 2000 };
+    const hora = new Date(Date.now() - minutos * 60_000).toISOString();
+    appendFileSync(join(dirT, `${sid}.jsonl`), JSON.stringify({ ...l, requestId: `req_quieta_${++nLlamada}`, timestamp: hora }) + "\n");
+  };
+  // Una consola detrás, que se queda el foco: el brillo de «terminó» no se pinta
+  // en la terminal que tienes delante ni en la que está sola.
+  const consolaQ = await llamar("open_pane", { cli: "shell", cwd: a.demo, name: "Consola Q", brief: "" });
+  const idQ = Number(/(?:Terminal|terminal|panel)\s+(\d+)/.exec(consolaQ.texto)?.[1]);
+  dice(Number.isFinite(idQ) && idQ > 0, "Q: una consola detrás, con el foco", consolaQ.error ?? consolaQ.texto);
+  const antesQ = ordenes(SID_M).length;
+  llamada(SID_M, 300, 50);
+  await dormir(65_000);
+  dice(ordenes(SID_M).length === antesQ, "Q: a los 50 minutos quieta, nada", JSON.stringify(ordenes(SID_M)));
+  llamada(SID_M, 300, 56);
+  const q = await hasta(() => (ordenes(SID_M).length > antesQ ? ordenes(SID_M).slice(antesQ) : null), 70_000, 500);
+  dice(
+    q?.length === 1 && /^\/compact Conserva el estado real del repo/.test(q[0]),
+    "Q: a los 56, con 300k, se le teclea /compact con qué conservar",
+    JSON.stringify(q),
+  );
+  // Lo que pinta el CLI mientras compacta y al acabar: ese fin no es de nadie.
+  const brilla = () => a.v.js(`document.querySelector('[data-pane-id="${idM}"]')?.getAttribute("data-done") === "true"`);
+  const unTurno = async () => {
+    await pintar("trabajando", SID_M);
+    await dormir(1500);
+    await pintar("quieto", SID_M);
+    await dormir(4000);
+  };
+  // Como estaba antes de compactar: ni enciende un «terminó» nuevo ni borra el de antes.
+  const brillabaAntes = await brilla();
+  await unTurno();
+  dice((await brilla()) === brillabaAntes, `Q: al acabar ese /compact, el brillo sigue como estaba (${brillabaAntes ? "encendido" : "apagado"}), sin aviso ni salto`);
+  const tras = recibido(SID_M).length;
+  await dormir(65_000);
+  dice(recibido(SID_M).length === tras, "Q: y nada después: ni «sigue» ni otro /compact para la misma llamada", JSON.stringify(recibido(SID_M).slice(Math.max(0, tras - 1))));
+  await unTurno();
+  dice(await brilla(), "Q: y el turno siguiente, que sí es de alguien, brilla como siempre");
+  // Con ese «terminó» sin mirar, otra hora casi quieta: compactar no se lo borra.
+  const antesQ2 = ordenes(SID_M).length;
+  llamada(SID_M, 300, 56);
+  const q2 = await hasta(() => (ordenes(SID_M).length > antesQ2 ? true : null), 70_000, 500);
+  dice(!!q2, "Q: tras otra llamada casi una hora quieta, otro /compact", JSON.stringify(ordenes(SID_M).slice(antesQ2)));
+  await unTurno();
+  dice(await brilla(), "Q: y el «terminó» que no habías mirado sigue ahí al acabar de compactar");
+  await llamar("close_pane", { paneId: idQ, rastro: "Consola del paso Q del laboratorio" });
   if (fallos) console.log(`      a la delegada le llegó: ${JSON.stringify(recibido(SID_D ?? "x"))}\n      a la de Munir: ${JSON.stringify(recibido(SID_M))}\n      a la segunda: ${JSON.stringify(recibido(SID_E ?? "x"))}`);
 } finally {
   await a.cerrar();

@@ -30,6 +30,7 @@ import { sabe } from "../src/lib/providers";
 import {
   bloqueRetomar,
   CADUCA_MS,
+  COMPACTADA_DE_MAS,
   contextoAlaVista,
   CORTAR_TRAS_MS,
   crearTraspaso,
@@ -39,8 +40,10 @@ import {
   leerDelPanel,
   sinSugerencia,
   leerModoSolo,
+  leerQuietas,
   marcarDelegada,
   nivelDeContexto,
+  ordenDeCompactar,
   trabajaEnPantalla,
   turnoAcabado,
   SEGUIR_HASTA_MS,
@@ -84,6 +87,11 @@ function panel(o: Partial<{
   delegada: boolean;
   /** Claude Code esperando en su caja vacía (`esperaEnSuCaja`). */
   caja: boolean;
+  sinCuota: boolean;
+  goal: boolean;
+  quietas: boolean;
+  cacheHora: boolean;
+  deFondo: boolean;
 }> = {}) {
   const s = {
     modo: "sin-commits" as ModoSolo,
@@ -107,6 +115,16 @@ function panel(o: Partial<{
     sinCuota: false,
     /** La pantalla dice «Unknown command: /fin» (una terminal de otra cuenta). */
     finNo: false,
+    /** Cuándo empezó su última llamada (`ultimaLlamadaMs`); 0, no se sabe. */
+    llamada: 0,
+    /** Un `/goal` sin cumplir al acabar el turno. */
+    goal: false,
+    /** El ajuste de compactar las quietas. */
+    quietas: true,
+    /** El hilo escribe su caché para una hora. */
+    cacheHora: true,
+    /** Trabajo de fondo en su pie. */
+    deFondo: false,
     reloj: 1_000_000,
     /** Si está, la PRÓXIMA lectura del transcript se queda esperando a que se
         resuelva, con lo que decía el transcript al pedirla: una campana que
@@ -130,7 +148,9 @@ function panel(o: Partial<{
       mandado.push(x);
     },
     leer: async () => {
-      const foto = s.sinDato ? null : { state: s.estado, agentsLive: s.vivos, used: s.k * 1000, window: s.ventana, sinCuota: s.sinCuota };
+      const foto = s.sinDato
+        ? null
+        : { state: s.estado, agentsLive: s.vivos, used: s.k * 1000, window: s.ventana, sinCuota: s.sinCuota, ultimaLlamadaMs: s.llamada, goal: s.goal, cacheHora: s.cacheHora };
       const espera = s.retener;
       s.retener = null;
       if (espera) await espera;
@@ -145,6 +165,8 @@ function panel(o: Partial<{
     modo: () => s.modo,
     delegada: () => s.delegada,
     sugerir: () => s.sugerir,
+    quietas: () => s.quietas,
+    deFondo: () => s.deFondo,
     esClaude: () => s.claude,
     tieneFin: async () => s.fin,
     compactaciones: async () => s.veces,
@@ -1214,6 +1236,147 @@ async function main() {
     if (f.campana()) await p.tr.alSonar();
     await p.vuelta();
     es("la campana del minuto y la vuelta siguiente no compactan otra vez", p.mandado.length, 2);
+  }
+
+  // ── Compactar una quieta antes de que caduque su caché (2026-11-23) ──────
+  // Munir: «lo de las sesiones que estén inactivas por una hora o así,
+  // compactarlas». Entre los 55 y los 59 minutos desde que EMPEZÓ su última
+  // llamada, con 100k o más, solo `/compact` y nada detrás.
+  {
+    es("de fábrica, compactar las quietas está encendido", leerQuietas(), true);
+    const min = 60_000;
+    /** Una terminal de 300k con su última llamada hace `m` minutos. */
+    const quieta = (m: number, o: Parameters<typeof panel>[0] = {}) => {
+      const p = panel({ k: 300, ...o });
+      p.s.llamada = p.s.reloj - m * min;
+      return p;
+    };
+    const orden = `/compact ${ordenDeCompactar((x) => x)}`;
+    {
+      const p = quieta(56);
+      es("sin /compact de quieta, un fin de turno es de verdad", p.tr.finDeQuieta(), null);
+      await p.tr.alQuieto();
+      es("a los 56 minutos con 300k: /compact con qué conservar", p.mandado, [orden]);
+      es("el fin de turno siguiente es el de ese /compact: ni brillo, ni aviso, ni salto", await p.tr.finDeQuieta(), true);
+      es("y solo ese: el de después ya es de verdad", p.tr.finDeQuieta(), null);
+      es("sin traspaso en marcha", p.tr.fase(), "nada");
+      await p.vuelta();
+      await p.vuelta();
+      p.s.reloj += min;
+      await p.tr.alQuieto();
+      es("nada después: ni «sigue» ni otro /compact para la misma llamada", p.mandado, [orden]);
+      p.s.llamada = p.s.reloj;
+      p.s.reloj += 56 * min;
+      await p.tr.alQuieto();
+      es("tras hablarle otra vez y otra hora casi quieta, vuelve a compactar", p.mandado.length, 2);
+    }
+    const nada = async (nombre: string, p: ReturnType<typeof panel>) => {
+      await p.tr.alQuieto();
+      es(nombre, p.mandado, []);
+    };
+    await nada("a los 54 minutos todavía no", quieta(54));
+    await nada("a los 58, ya no: la hora leída llega hasta 86 s tarde y la caché está a punto de caducar", quieta(58));
+    await nada("a los 61, caducada: compactar costaría lo mismo que el arranque en frío", quieta(61));
+    await nada("con 99k no compensa", quieta(56, { k: 99 }));
+    {
+      const p = quieta(56, { k: 100 });
+      await p.tr.alQuieto();
+      es("con 100k, sí", p.mandado, [orden]);
+      p.s.reloj += 11 * min;
+      es("un fin de turno 11 minutos después ya no se calla: el /compact no llegó a verse", p.tr.finDeQuieta(), null);
+    }
+    {
+      const p = quieta(56);
+      await p.tr.alQuieto();
+      p.tr.olvidarQuieta();
+      es("un Intro de quien la usa tras el /compact: el fin siguiente ya es suyo y no se calla", p.tr.finDeQuieta(), null);
+    }
+    // Lo que vio la segunda revisión (2026-11-23).
+    {
+      // Un mensaje del móvil, de send_command, de Adeo o de una flecha que
+      // esperaba en cola arranca al acabar el /compact sin asentarse en la caja:
+      // el panel ve un solo fin, y es el de ese mensaje.
+      const p = quieta(56);
+      await p.tr.alQuieto();
+      p.s.reloj += 70_000;
+      p.s.llamada = p.s.reloj;
+      es("un mensaje en cola que corrió tras el /compact: su fin sí avisa", await p.tr.finDeQuieta(), false);
+    }
+    {
+      const p = quieta(56);
+      await p.tr.alQuieto();
+      p.s.sinDato = true;
+      es("sin poder leer el transcript tampoco se calla: mejor un brillo de más que un aviso perdido", await p.tr.finDeQuieta(), false);
+    }
+    {
+      const p = quieta(56, { k: 650 });
+      await p.tr.pedir("nueva");
+      await p.tr.alSonar();
+      es("(sigue en una terminal nueva)", p.nuevas.length, 1);
+      p.s.llamada = p.s.reloj - 56 * min;
+      await p.tr.alQuieto();
+      es("una relevada no se compacta: sería un resumen que nadie va a leer", p.mandado, ["/fin"]);
+      p.tr.olvidarRelevo();
+      await p.tr.alQuieto();
+      es("con «Ocultar aviso» vuelve a ser una terminal más", p.mandado, ["/fin", orden]);
+    }
+    await nada("compactada ya dos veces, no: un resumen de un resumen, como la raya roja", quieta(56, { veces: COMPACTADA_DE_MAS }));
+    {
+      const p = quieta(56, { veces: COMPACTADA_DE_MAS - 1 });
+      await p.tr.alQuieto();
+      es("compactada una vez, sí", p.mandado, [orden]);
+    }
+    {
+      // Lo que vio la tercera revisión: el relevo del menú del panel no pasa por la rama `nueva`.
+      const p = quieta(56);
+      p.tr.marcarRelevada();
+      await nada("«Seguir en otra cuenta» también la releva: no se compacta por quieta", p);
+    }
+    // Lo que vio la revisión aparte (2026-11-23).
+    await nada("acabó preguntándote en prosa (TE ESPERA): no, compactar la pasaría a «lista»", quieta(56, { estado: "ofrece" }));
+    await nada("una delegada, no: su /compact le llegaría a quien la abrió como aviso", quieta(56, { delegada: true }));
+    await nada("con trabajo de fondo en su pie (un agente, un monitor), no", quieta(56, { deFondo: true }));
+    await nada("con la caché de cinco minutos, no: a los 55 ya no queda nada que leer", quieta(56, { cacheHora: false }));
+    await nada("con un menú suyo en pantalla, no", quieta(56, { pregunta: true }));
+    await nada("con un borrador tuyo en la caja, no", quieta(56, { borrador: true }));
+    await nada("trabajando según la pantalla, no", quieta(56, { trabajando: true }));
+    await nada("fuera de su caja (el CLI cerrado o un menú), no", quieta(56, { caja: false }));
+    await nada("con un subagente fuera, no", quieta(56, { vivos: 1 }));
+    await nada("a medias según el transcript, no", quieta(56, { estado: "a_medias" }));
+    await nada("parada por cuota, no: el /compact fallaría", quieta(56, { sinCuota: true }));
+    await nada("con un /goal sin cumplir, no", quieta(56, { goal: true }));
+    await nada("en Codex o Gemini, no", quieta(56, { claude: false }));
+    await nada("con el ajuste apagado, no", quieta(56, { quietas: false }));
+    await nada("sin transcript, no", quieta(56, { sinDato: true }));
+    {
+      const p = quieta(56);
+      p.s.llamada = 0;
+      await nada("sin la hora de la llamada, no", p);
+    }
+    {
+      const p = quieta(56, { estado: "a_medias" });
+      await p.tr.pedir("compactar");
+      es("con un traspaso esperando a que acabe el turno…", p.tr.fase(), "esperando");
+      p.s.estado = "lista";
+      await p.tr.alQuieto();
+      ok("…no se cuela otro /compact: lo lleva el traspaso", !p.mandado.includes(orden), JSON.stringify(p.mandado));
+    }
+    {
+      // El /compact no llegó a hacerse (un Esc, sin cuota): el número sigue en 470k.
+      const p = quieta(56, { k: 470, modo: "fin" });
+      await p.tr.alQuieto();
+      await p.tr.alSonar();
+      es("un /compact de quieta que no se hizo no apaga la raya roja: a 470k, su campana manda el /fin", p.mandado, [orden, "/fin"]);
+    }
+    {
+      const p = quieta(56, { k: 650, delegada: true, estado: "a_medias" });
+      await p.tr.alQuieto();
+      p.s.trabajando = true;
+      await p.tr.alPasarse();
+      p.s.reloj += CORTAR_TRAS_MS;
+      await p.tr.alPasarse();
+      ok("ni el corte de una delegada pasada de 600k", p.mandado.includes("<Esc>"), JSON.stringify(p.mandado));
+    }
   }
 
   console.log(fallos ?`\n${fallos} FALLAN:\n  ${rojos.join("\n  ")}` : "\nTodo en verde.");

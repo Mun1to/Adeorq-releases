@@ -2,11 +2,13 @@
    Adeorq · web/portada/portada.js
    LO QUE MUEVE LA PORTADA.
 
-   Cuatro cosas y ni una mas:
+   Cinco cosas y ni una mas:
      1. La escala de la ventana viva, que se distribuye a 1920x1080 fijos.
      2. La entrada del titular y de la ventana, con su cinturon de seguridad.
      3. El parallax de las nubes, atado al scroll.
      4. La barra, que se pone fondo al despegarse de arriba.
+     5. Los bucles infinitos (la cinta, el latido del chat), quietos fuera de
+        la pantalla.
 
    Todo el recorrido pasa por `--motion-gain`: con la valvula en 0 esto sigue
    funcionando, solo que quieto. La opacidad NUNCA se multiplica por el dial,
@@ -38,9 +40,24 @@ const marco = $('#ventana-demo');
 
 function escalar() {
   if (!caja || !marco) return;
+  if (document.documentElement.hasAttribute('data-demo-completa')) {
+    // A pantalla completa (completa.js) la caja ya no es 16:9: la demo cabe
+    // entera y se centra. Se mide sin girar (`clientWidth`), porque en un
+    // móvil en vertical la capa va tumbada y su rectángulo de pantalla no vale.
+    const w = caja.clientWidth;
+    const h = caja.clientHeight;
+    if (!w || !h) return;
+    const k = Math.min(w / 1920, h / 1080);
+    caja.style.setProperty('--esc', k);
+    caja.style.setProperty('--dx', `${(w - 1920 * k) / 2}px`);
+    caja.style.setProperty('--dy', `${(h - 1080 * k) / 2}px`);
+    return;
+  }
   const ancho = caja.getBoundingClientRect().width;
   if (!ancho) return;
   caja.style.setProperty('--esc', ancho / 1920);
+  caja.style.removeProperty('--dx');
+  caja.style.removeProperty('--dy');
 }
 
 escalar();
@@ -98,3 +115,21 @@ addEventListener('scroll', () => {
 }, { passive: true });
 
 pintar();
+
+/* --------------------------------------------------------------------------
+   5. LO QUE LATE SIN PARAR, QUIETO FUERA DE LA PANTALLA
+   La cinta de logos y el punto verde de «trabajando» del chat son bucles
+   infinitos. Mientras corren, cada fotograma recalcula su estilo aunque estén
+   diez pantallas más arriba. Medido el 2026-11-22 en la revisión aparte, a
+   1920: con la página quieta arriba, de 252 a 12 recálculos de estilo por
+   segundo y el hilo principal de 272 a 102 ms/s; bajando, de 359 a 310 ms/s.
+   Fuera de la vista se paran (portada.css,
+   `[data-fuera]`) y siguen donde estaban al volver: nadie los ve pararse.
+   -------------------------------------------------------------------------- */
+
+if ('IntersectionObserver' in window) {
+  const vigia = new IntersectionObserver((entradas) => {
+    for (const e of entradas) e.target.toggleAttribute('data-fuera', !e.isIntersecting);
+  });
+  for (const el of document.querySelectorAll('.cinta__ventana, .rchat')) vigia.observe(el);
+}

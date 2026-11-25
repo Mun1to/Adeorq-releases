@@ -184,6 +184,11 @@ pub struct ConVigencia {
     #[serde(flatten)]
     pub decision: Decision,
     pub vigencia: Vigencia,
+    /// Si contestarla ahora se teclearía en su terminal (`se_teclearia`). Con
+    /// él, una hablada cuya terminal sigue abierta se sigue viendo arriba: le
+    /// escribiste, pero no tiene por qué haber sido la respuesta (Munir,
+    /// 2026-11-24, buscando las que había que decidir: «no lo veo»).
+    pub se_teclea: bool,
 }
 
 /// `abiertos` son los paneles que tienen terminal ahora mismo. Una decisión
@@ -219,7 +224,8 @@ fn ultimo_movimiento(d: &Decision) -> u64 {
 
 pub fn con_vigencia(d: Decision, arranque: u64, abiertos: &[u32]) -> ConVigencia {
     let vigencia = vigencia(&d, arranque, abiertos);
-    ConVigencia { decision: d, vigencia }
+    let se_teclea = se_teclearia(&d, arranque, abiertos);
+    ConVigencia { decision: d, vigencia, se_teclea }
 }
 
 /// Ya no hay nada que hacer con ella: contestada, descartada o resuelta.
@@ -1133,6 +1139,9 @@ mod tests {
         let hablada = leer(&d, &nueva.id).unwrap();
         assert_eq!(vigencia(&hablada, 77, &[3]), Vigencia::Hablada);
         assert!(se_teclearia(&hablada, 77, &[3]));
+        // Y lo que viaja a la app y al móvil lo dice, para seguir enseñándola arriba.
+        assert!(con_vigencia(hablada.clone(), 77, &[3]).se_teclea);
+        assert!(!con_vigencia(hablada.clone(), 77, &[4]).se_teclea, "con su terminal cerrada ya pasó");
         let mut el = BTreeMap::new();
         el.insert("A".to_string(), Eleccion { opcion: Some(1), texto: None });
         el.insert("B".to_string(), Eleccion { opcion: Some(2), texto: None });

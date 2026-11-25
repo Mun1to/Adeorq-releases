@@ -149,3 +149,6 @@
 /* Ajustes › Aspecto y Terminales: la vista de la terminal al lado, las
    muestras pequeñas y el número que se escribe con doble clic (2026-11-24). */
 @import "./estilos/43-ajustes-vista.css";
+
+/* Ajustes › Salud: la hora de cierre de cada noche (2026-11-24). */
+@import "./estilos/44-salud.css";

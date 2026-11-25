@@ -1,0 +1,63 @@
+/* Ajustes › Salud (`AjustesSalud.tsx`): la hora de cierre de cada noche, con
+   la hora y el desplegable a la derecha, como el interruptor de las filas de
+   al lado (2026-11-24). */
+.setting-salud > :is(input, select) {
+  margin-left: auto;
+}
+.salud-hora {
+  width: 112px;
+  font-variant-numeric: tabular-nums;
+}
+.setting-salud select {
+  min-width: 140px;
+}
+/* «sin tope» va pegado a la hora que apaga, no al nombre de la noche. */
+.salud-noche .salud-sin {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.salud-noche .salud-sin + .salud-hora {
+  margin-left: 0;
+}
+.salud-noche[data-sin] .salud-hora {
+  opacity: 0.45;
+}
+
+/* La tapa de la noche (`SaludTapa.tsx`): el velo de las modales, pero que tapa
+   de verdad. Con el de siempre (`--velo` y 3 px de desenfoque) se seguía
+   leyendo la terminal de detrás, y la idea es dejar de leerla. */
+.salud-tapa {
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  backdrop-filter: blur(22px);
+}
+.salud-modal {
+  width: min(420px, calc(100vw - 60px));
+  text-align: center;
+}
+.salud-modal .modal-actions {
+  justify-content: center;
+}
+
+/* El aviso de antes: una franja abajo, en el centro, que no tapa nada ni coge el foco. */
+.salud-franja {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  z-index: 95;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: calc(100vw - 40px);
+  padding: 8px 8px 8px 16px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-pastilla);
+  box-shadow: var(--glass-edge), var(--sombra-3);
+  font-size: 13.5px;
+}

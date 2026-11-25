@@ -11,6 +11,7 @@ import { useDecisiones, useReposo } from "../lib/decisiones";
 import { avisoDormido, juntar } from "../lib/decisionesLista";
 import { haceCuanto } from "../lib/estados";
 import { useT, type Translate } from "../lib/i18n";
+import { conectarSaludAgentes } from "../lib/saludAgentesVivo";
 import { ARRANQUE_MS, hayNuevas, sonar } from "../lib/sonidos";
 import { useSuena } from "../lib/suena";
 import { conectarVueltaArriba } from "../lib/vueltaArribaVivo";
@@ -70,6 +71,8 @@ export default function Campana({
   // Y lo de las terminales que abrió un agente, a ese agente (`vueltaArribaVivo.ts`):
   // aquí porque la campana está siempre montada.
   useEffect(() => conectarVueltaArriba(), []);
+  // Y a la hora de cierre de Ajustes › Salud, que cierren (`saludAgentesVivo.ts`).
+  useEffect(() => conectarSaludAgentes(), []);
   // Solo al CAMBIAR de terminal, que es algo que haces tú: si un agente termina
   // en la que ya tenías delante, puede que no estés mirando.
   useEffect(() => {

@@ -96,6 +96,9 @@ export interface Decision {
   hablada?: number;
   resuelta?: Resuelta;
   vigencia: Vigencia;
+  /** Si contestarla ahora se teclearía en su terminal: es de este arranque y
+      esa terminal sigue abierta (`se_teclearia`, en `decisiones.rs`). */
+  se_teclea?: boolean;
 }
 
 export type Elecciones = Record<string, Eleccion>;

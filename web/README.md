@@ -322,3 +322,17 @@ The worker exists so a release published after the last deploy still shows up
 on the site, without every visitor calling the GitHub API themselves. It uses
 no credentials, and the site works fine without it: the sections read the
 static `data/` files.
+
+It also sets the security headers, for the same reason as the cache headers:
+`Strict-Transport-Security` on every response and, on every page, a
+`Content-Security-Policy`, `X-Frame-Options: SAMEORIGIN` and a
+`Permissions-Policy` that turns off camera, microphone, location, payment and
+USB. The policy allows nothing from outside the site: a script, font, image,
+video or API on another origin is blocked until its origin is added to `CSP` in
+`api/_worker.js`. Inline scripts run by their hash, and those hashes are not
+written by hand: the build takes them from every built page and writes them
+into `dist/_worker.js` (`cspFromBuild` in `vite.config.js`), so a new or changed
+boot script needs nothing else. The build stops if the worker loses the two
+lists it fills in. To check a build in a browser with the real headers, serve
+`dist/` through `dist/_worker.js` and watch for `securitypolicyviolation`
+events in every frame.

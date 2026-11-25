@@ -469,7 +469,8 @@
 
 /* ── 9. Las terminales ───────────────────────────────────────────────────── */
 /* Separadas por un hueco que se come por dentro (el borde transparente): no se
-   mueve nada, y la foto asoma entre una y otra, muy oscurecida. El contorno va
+   mueve nada, y la foto asoma entre una y otra, muy oscurecida; con «Pegadas»,
+   el mosaico sin hueco (más abajo). El contorno va
    a dos líneas, que es lo que pidió Munir al elegir este tema: «las terminales
    un poco mas gordos los bordes». */
 /* La rejilla también se abre con el mando de las terminales, como el velo de la
@@ -491,6 +492,37 @@
 :where(:root) .grid > .pane[data-focused="true"] {
   border-color: transparent;
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--text) 55%, transparent);
+}
+
+/* «Pegadas» (Ajustes › Aspecto › Forma de las terminales) es la forma que NO
+   marca el `<html>` (`lib/formaPaneles.ts`), así que el hueco de arriba se le
+   aplicaba entero: 4 px por lado, 8 entre dos terminales, y la esquina de 12.
+   Munir lo vio con «Pegadas» puesta (2026-11-25): «hay un hueco y en ajustes no
+   puedes cambiar que no haya hueco y estén las terminales las unas pegadas con
+   las otras». Las suaves y las tarjetas pesan más que esto y siguen con lo suyo.
+   Aquí vuelve el mosaico: sin hueco, cuadrado, y una raya de dos líneas por
+   junta (la derecha y la de abajo de cada una, como el mosaico de siempre),
+   pintada por el propio panel y con su fondo llegando debajo, para que ni la
+   junta deje ver la foto. Lo mide `scripts/laboratorio/terminales-pegadas.js`. */
+:where(:root:not([data-panes])) .grid > .pane {
+  border: 0 solid var(--c3-raya);
+  border-right-width: 2px;
+  border-bottom-width: 2px;
+  border-radius: 0;
+  --pane-r-dentro: 0px;
+  background-clip: border-box;
+}
+
+/* El foco deja el borde transparente (la regla de arriba): aquí el borde es la
+   junta, y sin él se borraba la raya entre la elegida y su vecina. */
+:where(:root:not([data-panes])) .grid > .pane[data-focused="true"] {
+  border-color: var(--c3-raya);
+}
+
+/* La cabecera lleva la esquina de las piezas sueltas (más abajo): en el
+   mosaico, cuadrada como el panel. */
+:where(:root:not([data-panes])) .grid > .pane > .pane-head {
+  border-radius: 0;
 }
 
 /* La cuadrilla, el proyecto y el «terminó» ya no pintan el contorno (2026-11-21,

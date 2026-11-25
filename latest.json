@@ -1,11 +1,11 @@
 {
-  "version": "0.9.266",
-  "notes": "Las terminales quietas de Claude Code se compactan solas a los 55 minutos antes de que caduque su cache; Ajustes con tu terminal a la vista y numeros que se escriben; el aro ya no pisa letras; logos de Kimi y Grok",
-  "pub_date": "2026-11-24T21:51:00Z",
+  "version": "0.9.267",
+  "notes": "Salud en Ajustes: una hora de cierre cada noche que avisa antes, pide a tus agentes que guarden lo suyo y cierren, y tapa la ventana con un boton de 15 minutos mas. Pegadas vuelve a pegar las terminales. Una decision que hablaste en su terminal sigue a la vista en el movil y en el PC.",
+  "pub_date": "2026-11-25T16:09:12Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3c2MXhxU1hzcGU0YnVXNUkzcERtWDhNb1JPMjNJNDNmV0dUYjRvdmM1clVwWC91ajlGdVpDSndJVGwwTGRocUU3N0NscE93T2JGUzBYQ2hXc3RsNGdzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTU3MDUyCWZpbGU6QWRlb3JxXzAuOS4yNjZfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNjYKY1VuZkZqZkd2Sk9CY08rNzM2STZBSXNpbnVBNFFSNDkvSnZ1UVU0V2JxaXJDVEFUMkVGQjg2N1BQZEFzMkQ0L1ZRS1VqYXhHaUZWWFpXZFFvQmJhRFE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.266/Adeorq_0.9.266_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzJxTFJCeVdIem5sSUpOd1NrZWhET1dxMlJKSVFPQldvekVzcS9EYzFwSjU4bHRscnVCb0xnTy91ZHR1NGlrVVF5dEllbmpCL0J1ODBTME44dUY0NHdRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NjIyOTM4CWZpbGU6QWRlb3JxXzAuOS4yNjdfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNjcKdFQxeGVwRlpoVURQdWxOTTRyYlhwdWt4SmU2ZEMxZ1dNaGtMbStXUlM1US8rWGVHOTk1N0FNWkNJZTlQdlU3UEhpdExIUVZwUnJOK0dlMXRBdkxsQkE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.267/Adeorq_0.9.267_x64-setup.exe"
     }
   }
 }

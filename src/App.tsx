@@ -18,6 +18,7 @@ import AlCerrar from "./components/AlCerrar";
 import Campana from "./components/Campana";
 import PedirSecreto from "./components/PedirSecreto";
 import EscudoVentana from "./components/EscudoVentana";
+import SaludTapa from "./components/SaludTapa";
 import PedirAbrir from "./components/PedirAbrir";
 import PuenteMovil from "./components/PuenteMovil";
 import { conserjeCuenta, type ConserjeExec } from "./lib/conserje";
@@ -2701,6 +2702,8 @@ function App() {
           siempre y sin pintar nada hasta que llega la petición, como el aviso
           de cuota: se abre sola desde Rust, no cuelga de ninguna pantalla. */}
       <PedirSecreto />
+      {/* La tapa de la noche (Ajustes › Salud), antes que el escudo para quedar debajo de él. */}
+      <SaludTapa />
       {/* La del escudo, igual: sale sola cuando un agente pide tu verificación. */}
       <EscudoVentana panes={panes} stream={stream} />
       <PedirAbrir />

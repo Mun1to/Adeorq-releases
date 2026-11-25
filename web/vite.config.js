@@ -105,9 +105,45 @@ function copyStaticExtras() {
       const worker = resolve(ROOT, 'api', '_worker.js')
       if (await exists(worker)) {
         await copyFile(worker, resolve(outDir, '_worker.js'))
+        await cspFromBuild(outDir)
       }
     },
   }
+}
+
+/**
+ * The worker's Content-Security-Policy lets inline scripts run by their hash,
+ * so the hashes have to be those of the pages being published: they are taken
+ * here from every built HTML file and written into dist/_worker.js, with line
+ * ends as the browser reads them (it turns CRLF into LF before hashing, so a
+ * Windows checkout and the Linux runner give the same list). JSON-LD and other
+ * data blocks do not run and are left out. The account pages, when a build has
+ * them, add their Supabase origin to connect-src.
+ */
+async function cspFromBuild(outDir) {
+  const hashes = new Set()
+  for (const name of await readdir(outDir, { recursive: true })) {
+    if (!name.endsWith('.html')) continue
+    const html = await readFile(resolve(outDir, name), 'utf8')
+    for (const [, attrs, code] of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+      if (/\bsrc\s*=/i.test(attrs)) continue
+      const type = attrs.match(/\btype\s*=\s*["']?([^"'\s>]+)/i)?.[1]?.toLowerCase()
+      if (type && !['module', 'text/javascript', 'application/javascript', 'importmap'].includes(type)) continue
+      hashes.add('sha256-' + createHash('sha256').update(code.replace(/\r\n?/g, '\n')).digest('base64'))
+    }
+  }
+  const connect = process.env.ADEORQ_SUPABASE_URL ? [new URL(process.env.ADEORQ_SUPABASE_URL).origin] : []
+  const path = resolve(outDir, '_worker.js')
+  const source = await readFile(path, 'utf8')
+  const lists = ['const CSP_SCRIPT_HASHES = []', 'const CSP_CONNECT = []']
+  // Without its lists the policy would block every boot script of the site: stop the build instead.
+  if (!lists.every((line) => source.includes(line))) throw new Error('api/_worker.js lost the CSP lists the build fills in')
+  await writeFile(
+    path,
+    source
+      .replace(lists[0], `const CSP_SCRIPT_HASHES = ${JSON.stringify([...hashes].sort())}`)
+      .replace(lists[1], `const CSP_CONNECT = ${JSON.stringify(connect)}`),
+  )
 }
 
 /**

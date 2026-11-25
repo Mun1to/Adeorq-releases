@@ -109,6 +109,8 @@ const T = EN ? {
   // The app's footer is about dragging bars and seams, which the demo cannot do: this one says what it does.
   ordenaPie: 'Click a square and the terminals in view are shared out into those columns and rows. The ones set aside stay in their strip.',
   verRecorrido: 'Show me around',
+  // What a screen reader calls the demo's landmarks, apart from the home page's own.
+  zonas: [['header.topbar', 'Adeorq bar (demo)'], ['nav.tabs', 'Adeorq views (demo)'], ['main.grid', 'Terminals (demo)'], ['main.chat-hilo', 'Conversation (demo)']],
   // The tour: one short line per stop.
   recorrido: [
     ['Your projects', 'Each one with its logo. One click unfolds its sessions.'],
@@ -176,6 +178,8 @@ const T = EN ? {
   // El pie de la app habla de arrastrar barras y bordes, que aquí no se puede: este dice lo que sí hace.
   ordenaPie: 'Pulsa una casilla y las terminales que ves se reparten en esas columnas y filas. Las apartadas siguen en su tira.',
   verRecorrido: 'Enséñame la demo',
+  // Cómo llama un lector de pantalla a las zonas de la demo, distintas de las de la portada.
+  zonas: [['header.topbar', 'Barra de Adeorq (demo)'], ['nav.tabs', 'Vistas de Adeorq (demo)'], ['main.grid', 'Terminales (demo)'], ['main.chat-hilo', 'Conversación (demo)']],
   // El recorrido: una línea corta por parada.
   recorrido: [
     ['Tus proyectos', 'Cada uno con su logo. Un clic despliega sus sesiones.'],
@@ -245,6 +249,24 @@ try {
 
 // Antes de copiar nada (la barra de siempre, las plantillas): que nazca todo con su logo.
 ponerLogos(raiz);
+
+/* NOMBRES PARA UN LECTOR DE PANTALLA. Los botones de solo icono de la app
+   llevan su texto en `data-tip` (su globo), que un lector no lee: aquí pasa a
+   su `aria-label`, la primera frase. Y las zonas de la demo (la barra, las
+   vistas, el contenido) se llaman distinto que las de la portada que la
+   rodea, o un lector oiría dos «banner» y dos «main» iguales. axe-core, en la
+   portada: 32 botones sin nombre y 3 zonas repetidas. Va también dentro de
+   las plantillas, para que lo que se copie de ellas nazca con su nombre. */
+function ponerNombres(d) {
+  for (const b of d.querySelectorAll('button[data-tip], [role="button"][data-tip]')) {
+    if (b.hasAttribute('aria-label') || b.hasAttribute('aria-labelledby') || b.title || b.textContent.trim() || b.querySelector('img[alt]:not([alt=""])')) continue;
+    const nombre = b.dataset.tip.split('\n')[0].split(' · ')[0].trim();
+    if (nombre) b.setAttribute('aria-label', nombre);
+  }
+  for (const [sel, nombre] of T.zonas) for (const z of d.querySelectorAll(sel)) if (!z.hasAttribute('aria-label')) z.setAttribute('aria-label', nombre);
+  for (const t of d.querySelectorAll('template')) ponerNombres(t.content);
+}
+ponerNombres(raiz);
 
 const app = $('.app', raiz);
 const meta = $('meta[name="adeorq-raiz"]', raiz);

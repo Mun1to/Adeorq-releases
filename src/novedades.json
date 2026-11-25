@@ -1,4 +1,19 @@
 {
+  "0.9.267": [
+    {
+      "vista": "ajustes",
+      "ajustes": "salud",
+      "bloque": "Salud",
+      "es": {
+        "titulo": "Una hora para cerrar cada noche",
+        "texto": "Pon tu hora y Adeorq avisa antes, les pide a tus agentes que guarden lo suyo y cierren, y a la hora tapa la ventana. Se pospone con un clic. Viene apagado: se enciende aquí."
+      },
+      "en": {
+        "titulo": "A closing time every night",
+        "texto": "Set your time and Adeorq warns you first, asks your agents to save their work and close, and at that time covers its window. One click puts it off. It comes off: switch it on here."
+      }
+    }
+  ],
   "0.9.266": [
     {
       "vista": "ajustes",

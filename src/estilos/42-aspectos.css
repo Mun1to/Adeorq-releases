@@ -446,9 +446,11 @@
 }
 
 /* Las terminales: un píxel de pared entre una y otra, comido por dentro con un
-   borde transparente para que la rejilla no se mueva. */
+   borde para que la rejilla no se mueva. El borde lo pinta el panel del color de
+   la pared, que se ve igual que dejarla asomar y así entre dos vecinas no queda
+   ni un píxel sin pintar (`scripts/laboratorio/terminales-pegadas.js`). */
 :root[data-aspecto="consola"] .grid > .pane {
-  border: 1px solid transparent;
+  border: 1px solid var(--as-pared);
   border-top-width: 0;
   border-left-width: 0;
   background: var(--as-fondo) padding-box;
@@ -580,8 +582,9 @@
   border-right: 1px solid var(--as-raya);
 }
 
+/* Como en Consola: la raya de pared la pinta el panel. */
 :root[data-aspecto="liso"] .grid > .pane {
-  border: 1px solid transparent;
+  border: 1px solid var(--as-pared);
   border-top-width: 0;
   border-left-width: 0;
   background: var(--as-fondo) padding-box;

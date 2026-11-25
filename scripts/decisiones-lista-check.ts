@@ -115,6 +115,20 @@ es(
   ["dec:pedida-antes", "dec:pedida-despues"],
 );
 ok("una huérfana o una hablada ya no te toca", cuantasTeTocan(juntar({ ...vacio, decisiones: [dec("h", "huerfana", 1), dec("x", "hablada", 2)] })) === 0);
+// Le escribiste a su terminal, pero no tiene por qué haber sido la respuesta: mientras
+// esa terminal siga abierta se ve arriba, aparte y sin sumar (Munir, 2026-11-24: «no lo veo»).
+{
+  const l = juntar({
+    ...vacio,
+    decisiones: [{ ...dec("abierta", "hablada", 5, 1), se_teclea: true }, { ...dec("cerrada", "hablada", 4, 2), se_teclea: false }],
+  });
+  es(
+    "la hablada de una terminal abierta sale en «Le escribiste después», la de una cerrada ya pasó",
+    l.map((c) => `${c.id}@${c.parte}`),
+    ["dec:abierta@hablaste", "dec:cerrada@pasado"],
+  );
+  ok("y no suma en lo que te toca", cuantasTeTocan(l) === 0);
+}
 
 // --- una terminal, una fila ------------------------------------------------------
 es(

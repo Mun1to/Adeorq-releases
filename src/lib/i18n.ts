@@ -1011,6 +1011,35 @@ const EN: Record<string, string> = {
   "Clic para mandarla · arrástrala sobre una terminal":
     "Click to send it · drag it onto a terminal",
 
+  // Health (Ajustes › Salud)
+  Salud: "Health",
+  "A la hora, Adeorq tapa la ventana y les pide a tus agentes que guarden lo suyo y cierren. Avisa antes, y se pospone con un clic tantas veces como quieras.":
+    "At that time, Adeorq covers its window and asks your agents to save their work and close. It warns you first, and one click puts it off as many times as you like.",
+  "Cerrar Adeorq por la noche": "Close Adeorq at night",
+  "Hora de cierre": "Closing time",
+  "Cada noche a su hora": "A different time each night",
+  "La noche del lunes": "Monday night",
+  "La noche del martes": "Tuesday night",
+  "La noche del miércoles": "Wednesday night",
+  "La noche del jueves": "Thursday night",
+  "La noche del viernes": "Friday night",
+  "La noche del sábado": "Saturday night",
+  "La noche del domingo": "Sunday night",
+  "Avisar antes": "Warn before",
+  "{n} minutos": "{n} minutes",
+  "Deja de tapar a las": "Stops covering at",
+  "{n} minutos más": "{n} more minutes",
+  "Se acerca la hora de cierre ({hora}): ve guardando lo tuyo.": "Closing time is coming up ({hora}): start saving your work.",
+  "Hora de descansar": "Time to rest",
+  "Ya pasó la hora que pusiste para cerrar ({hora}). Adeorq se destapa sola a tu hora de despertar ({despierta}).":
+    "The closing time you set has passed ({hora}). Adeorq uncovers itself at your wake-up time ({despierta}).",
+  // What Adeorq types to each agent at closing time (`lib/saludAgentes.ts`)
+  "[adeorq] Aviso de Salud (Ajustes): se acerca la hora de cierre de esta noche que puso quien usa Adeorq ({cierre}).":
+    "[adeorq] Health notice (Settings): the closing time the person using Adeorq set for tonight is coming up ({cierre}).",
+  "[adeorq] Aviso de Salud (Ajustes): ya pasó la hora de cierre de esta noche que puso quien usa Adeorq ({cierre}).":
+    "[adeorq] Health notice (Settings): the closing time the person using Adeorq set for tonight has passed ({cierre}).",
+  "No empieces nada largo: acaba en unos minutos lo que tengas a medias o apúntalo en tus notas de traspaso con lo que falta, guarda lo tuyo (commits de tus cambios; subir, solo con su permiso) y cierra la sesión como la cierres siempre. Si te compactas, deja tu bloque para retomar como siempre. No apagues ni mandes apagar el ordenador.":
+    "Don't start anything long: finish what you have half done in a few minutes or write it down in your handoff notes with what is left, save your work (commits of your changes; pushing only with their permission) and close the session the way you always do. If you compact, leave your resume block as always. Don't shut down the computer or tell anyone to.",
   // Notifications
   Avisos: "Notifications",
   "Solo en segundo plano": "Only in the background",
@@ -3712,6 +3741,7 @@ const EN: Record<string, string> = {
   "Nada te toca": "Nothing for you",
   "Nada te toca ahora": "Nothing is your turn now",
   "Te toca": "Your turn",
+  "Le escribiste después": "You wrote to it afterwards",
   "Terminó": "Finished",
   "Ideas de tus agentes": "Ideas from your agents",
   "Ya pasó": "Past",

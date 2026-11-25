@@ -1598,7 +1598,8 @@ pub fn atender(
         // terminal que preguntó solo si es del mismo arranque de Adeorq: en
         // otro, ese número de panel puede ser ya otra terminal. Cada una lleva
         // su `vigencia`: si alguien la espera todavía o su terminal ya no está.
-        // La entera dice además si contestarla ahora se teclearía (`se_teclea`).
+        // Las dos dicen además si contestarla ahora se teclearía (`se_teclea`):
+        // con eso la lista sigue enseñando arriba la hablada de una terminal abierta.
         ("GET", "/api/decisiones") => match casa.decisiones() {
             Ok(dir) => {
                 let (arranque, abiertos) = (casa.arranque(), casa.paneles_abiertos());
@@ -1609,6 +1610,7 @@ pub fn atender(
                             "id": d.id, "titulo": d.titulo, "proyecto": d.proyecto, "panel": d.panel,
                             "creada": d.creada, "preguntas": d.preguntas.len(), "contestada": d.respuesta.is_some(),
                             "vigencia": crate::decisiones::vigencia(d, arranque, &abiertos),
+                            "se_teclea": crate::decisiones::se_teclearia(d, arranque, &abiertos),
                             "cerrada": crate::decisiones::cuando_se_cerro(d),
                         })
                     })
@@ -1622,12 +1624,11 @@ pub fn atender(
             match casa.decisiones().ok().and_then(|dir| crate::decisiones::leer(&dir, id)) {
                 Some(d) => {
                     let (arranque, abiertos) = (casa.arranque(), casa.paneles_abiertos());
-                    // Dónde caerá la respuesta lo dice quien la va a teclear: la
-                    // página lo deducía de la vigencia y a una hablada le decía
-                    // que no se teclearía cuando sí.
-                    let se_teclea = crate::decisiones::se_teclearia(&d, arranque, &abiertos);
+                    // Dónde caerá la respuesta lo dice quien la va a teclear
+                    // (`se_teclea`, dentro de `con_vigencia`): la página lo
+                    // deducía de la vigencia y a una hablada le decía que no
+                    // se teclearía cuando sí.
                     let mut v = json!(crate::decisiones::con_vigencia(d, arranque, &abiertos));
-                    v["se_teclea"] = json!(se_teclea);
                     // Con `si`, como `/api/sesion`: abierta en el móvil se vigila
                     // cada 6 s, y casi siempre está igual.
                     let firma = firma_de(&v);
@@ -3018,6 +3019,15 @@ mod tests {
             cuerpo_de(&atender(&pedir("GET", &format!("/api/decision?id={id}"), c, ""), &g, &casa, &nada, reloj))["se_teclea"].clone()
         };
         assert_eq!((se_teclea(&viva.id), se_teclea(&cerrada.id), se_teclea(&de_ayer.id)), (json!(true), json!(false), json!(false)));
+        // La lista lo dice igual, que es con lo que el móvil sigue enseñando arriba
+        // la hablada de una terminal abierta.
+        let en_lista = cuerpo_de(&atender(&pedir("GET", "/api/decisiones", c, ""), &g, &casa, &nada, reloj))["decisiones"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|d| d["se_teclea"].clone())
+            .collect::<Vec<_>>();
+        assert_eq!(en_lista, [json!(true), json!(false), json!(false)]);
         // Con `si`, solo «igual» mientras no cambie: abierta en el móvil se vigila cada 6 s.
         let firma = una["firma"].as_str().unwrap().to_owned();
         let con_firma = || cuerpo_de(&atender(&pedir("GET", &format!("/api/decision?id={}&si={firma}", cerrada.id), c, ""), &g, &casa, &nada, reloj));

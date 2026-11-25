@@ -993,7 +993,7 @@ y las de plugins).
 
 ## 16. Ajustes
 
-Diez grupos a la izquierda, en este orden. Pulsar el grupo abierto pliega su índice, y
+Trece grupos a la izquierda, en este orden. Pulsar el grupo abierto pliega su índice, y
 Adeorq recuerda el último que miraste. Si un grupo tiene varias tarjetas, debajo
 salen sus nombres para saltar a una.
 
@@ -1089,6 +1089,16 @@ salen sus nombres para saltar a una.
 - **El copiloto de las sesiones**: mira las terminales abiertas y sugiere, por la
   bandeja, otro programa con cuota, un cerebro más barato o lo que costaría por API.
   Nunca cambia nada solo.
+
+**Salud**: una hora para cerrar cada noche, **apagada de fábrica**. Con **Cerrar Adeorq por
+la noche** encendido eliges la **hora de cierre** (o **Cada noche a su hora**, del lunes al
+domingo, con *sin tope* en las que quieras libres), cuántos minutos antes **avisa** y a qué
+hora **deja de tapar**. En el aviso sale una franja abajo, y a cada terminal con un agente
+se le pide, una sola vez por noche, que guarde lo suyo y cierre: se le escribe solo cuando
+está parada en su caja vacía, así que nunca le contesta una pregunta ni se pega a lo que
+estés escribiendo, y si está trabajando espera a que acabe. Llegada la hora, la ventana se
+tapa con un solo botón, **15 minutos más**, que se pulsa las veces que quieras; se destapa
+sola a la hora de despertar.
 
 **Atajos**: **Atajos del lienzo**, la tabla editable de las 31 acciones del lienzo
 ([punto 24](#24-atajos-de-teclado)).

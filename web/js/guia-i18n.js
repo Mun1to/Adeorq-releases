@@ -383,6 +383,11 @@ window.ADEORQ_I18N_EXTRA = {
                        'which model it uses by default (or let Adeorq decide), and two helpers that only leave ' +
                        'suggestions in the Agenda tray and never change anything by themselves: the crew ' +
                        'lookout and the session copilot.',
+    'guia.ajustes.salud': '<b>Health</b>: a closing time every night, off by default (one for every night, or one ' +
+                       'per night). It warns you first with a strip, asks your agents once to save their work ' +
+                       'and close (only when they sit at their empty input box, never on top of a question), ' +
+                       'and at that time covers the window with one button, “15 more minutes”, which you can ' +
+                       'press as often as you like.',
     'guia.ajustes.l4': '<b>Shortcuts</b>: the editable table of the 31 canvas shortcuts. The other shortcuts ' +
                        'cannot be changed (see <a href="#atajos">Shortcuts</a>).',
     'guia.ajustes.l5': '<b>Local model</b>: if you have Ollama, Adeorq uses it for small tasks without ' +

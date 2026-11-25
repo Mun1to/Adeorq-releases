@@ -1676,6 +1676,9 @@ const EN = {
   "Nada te espera ahora mismo.": "Nothing is waiting for you right now.",
   "Anteriores": "Earlier",
   "Ya no te esperan. A la semana se borran solas.": "They are not waiting for you any more. They delete themselves after a week.",
+  "Le escribiste después": "You wrote to it afterwards",
+  "Le escribiste a su terminal después de que preguntara. Si no era la respuesta, contéstala; si lo era, descártala.":
+    "You wrote to its terminal after it asked. If that was not the answer, answer it; if it was, discard it.",
   "Volver a las decisiones": "Back to the decisions",
   "Decisión": "Decision",
   "Enviar respuesta": "Send answer",
@@ -5000,7 +5003,11 @@ async function pintarDecisiones() {
     // borra): antes las que nadie esperaba tenían montón y botón propios, y
     // había que vaciarlo a mano.
     const saliendo = lista.filter((d) => salidasDec.get(d.id)?.envio);
-    const anteriores = lista.filter((d) => d.vigencia !== "viva" && !salidasDec.get(d.id)?.envio)
+    // Le escribiste a su terminal y sigue abierta: puede que no fuera la
+    // respuesta, así que se ve arriba, aparte y sin sumar en el globito (Munir,
+    // 2026-11-24, buscando lo que le quedaba por decidir: «no lo veo»).
+    const hablaste = lista.filter((d) => d.vigencia === "hablada" && d.se_teclea && !salidasDec.get(d.id)?.envio);
+    const anteriores = lista.filter((d) => d.vigencia !== "viva" && !hablaste.includes(d) && !salidasDec.get(d.id)?.envio)
       .sort((a, b) => (b.cerrada ?? b.creada) - (a.cerrada ?? a.creada));
     const total = esperan.length + preguntas.length;
     const sub = document.getElementById("sub-dec");
@@ -5016,6 +5023,10 @@ async function pintarDecisiones() {
       html += total
         ? `<h2 class="seccion"><span>${tr("Te esperan")}</span></h2>${preguntas.map(tarjetaPregunta).join("")}${esperan.map(tarjetaDecision).join("")}`
         : `<p class="calma">${mascota("quieta", 26, "decisiones")}${tr("Nada te espera ahora mismo.")}</p>`;
+      if (hablaste.length) {
+        html += `<h2 class="seccion"><span>${tr("Le escribiste después")}</span></h2>
+          <p class="seccion-nota">${tr("Le escribiste a su terminal después de que preguntara. Si no era la respuesta, contéstala; si lo era, descártala.")}</p>${hablaste.map(tarjetaDecision).join("")}`;
+      }
       if (anteriores.length) {
         html += `<h2 class="seccion"><span>${tr("Anteriores")}</span></h2>
           <p class="seccion-nota">${tr("Ya no te esperan. A la semana se borran solas.")}</p>${anteriores.map(tarjetaDecision).join("")}`;

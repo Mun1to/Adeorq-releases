@@ -1026,7 +1026,7 @@ claude.ai account and those of plugins).
 
 ## 16. Settings
 
-Ten groups on the left, in this order. Clicking the open group folds its index, and
+Thirteen groups on the left, in this order. Clicking the open group folds its index, and
 Adeorq remembers the last one you looked at. If a group has several cards, their
 names appear below so you can jump to one.
 
@@ -1125,6 +1125,16 @@ names appear below so you can jump to one.
 - **The session copilot**: looks at the open terminals and suggests, through the tray,
   another program with quota, a cheaper brain or what it would cost by API. It never
   changes anything by itself.
+
+**Health**: a closing time every night, **off by default**. With **Close Adeorq at night**
+on you choose the **closing time** (or **A different time each night**, Monday to Sunday,
+with *no limit* on the ones you want free), how many minutes **before** it warns you and
+when it **stops covering**. During the warning a strip shows at the bottom, and every
+terminal with an agent is asked, once a night, to save its work and close: it is only typed
+to when it sits at its empty input box, so it never answers a question or lands on what you
+are typing, and if it is working it waits until it finishes. At closing time the window is
+covered with a single button, **15 more minutes**, which you can press as often as you like;
+it uncovers itself at wake-up time.
 
 **Shortcuts**: **Canvas shortcuts**, the editable table of the 31 actions of the canvas
 ([section 24](#24-keyboard-shortcuts)).

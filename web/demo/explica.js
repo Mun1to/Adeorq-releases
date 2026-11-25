@@ -624,10 +624,14 @@ export function prepararAdeo({ app, EN, dentro, escala, casa, pegado }) {
      mueve por otro lado, y una parada que llega mientras la está moviendo (hace
      menos de 800 ms) no la mueve. Va a mano, fotograma a fotograma, y no con
      `scrollBy({ behavior: 'smooth' })`: ese no se deja parar, y una rueda a
-     media animación podía perderse. */
+     media animación podía perderse. El scroll que llega justo después de que
+     la portada cambie de tamaño (girar el móvil) lo recoloca el navegador, no
+     el visitante: tomado por suyo, la parada que sube con la ventana se
+     quedaba sin colocar y acababa con el bocadillo un 35 % bajo la barra. */
   let deslizando = null;        // el desliz en marcha: { parar }
   let yPuesta = null;           // el último scrollY que puso el recorrido
   let movidaAjena = -Infinity;  // cuándo movió la página otro, en el reloj de la portada
+  let cambioDeTamano = -Infinity;   // cuándo cambió de tamaño la portada, en el mismo reloj
   try {
     const fuera = window.frameElement && window.parent;
     if (fuera && fuera !== window) {
@@ -637,11 +641,13 @@ export function prepararAdeo({ app, EN, dentro, escala, casa, pegado }) {
         for (const e of ['wheel', 'touchstart', 'keydown']) w.addEventListener(e, suelta, opc);
         w.addEventListener('wheel', () => { movidaAjena = fuera.performance.now(); }, opc);
       }
+      fuera.addEventListener('resize', () => { cambioDeTamano = fuera.performance.now(); }, { passive: true });
       fuera.addEventListener('scroll', () => {
         if (yPuesta !== null && Math.abs(fuera.scrollY - yPuesta) <= 1.5) return;   // la puso el recorrido
         yPuesta = null;
-        movidaAjena = fuera.performance.now();
         deslizando?.parar();
+        if (fuera.performance.now() - cambioDeTamano < 150) return;   // la recolocó el navegador
+        movidaAjena = fuera.performance.now();
       }, { passive: true });
     }
   } catch { /* la portada es de otro origen */ }

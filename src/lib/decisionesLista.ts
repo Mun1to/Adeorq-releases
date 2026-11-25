@@ -36,14 +36,15 @@ import type { PlanPendiente } from "./planPendiente";
 import type { Programado } from "./programados";
 import type { Note } from "./pty";
 
-export type Parte = "toca" | "termino" | "ideas" | "pospuesto" | "pasado";
+export type Parte = "toca" | "hablaste" | "termino" | "ideas" | "pospuesto" | "pasado";
 
 /** Las partes, en el orden en que se enseñan. */
-export const PARTES: Parte[] = ["toca", "termino", "ideas", "pospuesto", "pasado"];
+export const PARTES: Parte[] = ["toca", "hablaste", "termino", "ideas", "pospuesto", "pasado"];
 
 /** El título de cada parte. */
 export const TITULO_DE: Record<Parte, string> = {
   toca: "Te toca",
+  hablaste: "Le escribiste después",
   termino: "Terminó",
   ideas: "Ideas de tus agentes",
   pospuesto: "Pospuesto",
@@ -91,6 +92,12 @@ export const ACABO: Record<string, string> = {
   descartada: "Descartada",
   resuelta: "Resuelta",
 };
+
+/** Le escribiste a su terminal después de que preguntara, pero esa terminal
+    sigue abierta: no tiene por qué haber sido la respuesta, así que se sigue
+    viendo arriba, aparte y sin sumar (Munir, 2026-11-24, buscando lo que le
+    quedaba por decidir: «no lo veo»). */
+export const habladaAbierta = (d: Decision) => d.vigencia === "hablada" && d.se_teclea === true;
 
 /** Lo último que le pasó a una decisión: contestarla, descartarla, hablarla o, si nada, pedirla. */
 const ultimoMovimiento = (d: Decision) =>
@@ -153,13 +160,19 @@ export function juntar(f: Fuentes): Cosa[] {
     vistas.set(c.id, k);
     if (k > 1) c.id = `${c.id}#${k}`;
   }
+  // Le escribiste a su terminal y sigue abierta: puede que no fuera la respuesta.
+  // Se ve aparte y no suma en lo que te toca (`habladaAbierta`).
+  const hablaste: Cosa[] = f.decisiones
+    .filter(habladaAbierta)
+    .map((d) => ({ id: `dec:${d.id}`, parte: "hablaste", clase: "pasada", cuando: d.creada, d }));
   const pasadas: Cosa[] = f.decisiones
-    .filter((d) => d.vigencia !== "viva")
+    .filter((d) => d.vigencia !== "viva" && !habladaAbierta(d))
     .map((d) => ({ id: `dec:${d.id}`, parte: "pasado", clase: "pasada", cuando: ultimoMovimiento(d), d }));
   const todas: Cosa[] = [
     ...contesta.sort(masNuevaPrimero),
     ...decide.sort(masNuevaPrimero),
     ...parado.sort(masNuevaPrimero),
+    ...hablaste.sort(masNuevaPrimero),
     ...mira.sort(masNuevaPrimero),
     ...ideas,
     ...pasadas.sort(masNuevaPrimero),

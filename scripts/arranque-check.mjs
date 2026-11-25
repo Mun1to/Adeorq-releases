@@ -45,8 +45,13 @@ const PROHIBIDAS = [
 
 /** Cuánto puede pesar el arranque antes de que haya que mirarlo. No es un
     ideal, es el techo de hoy con holgura: si se cruza, algo nuevo se ha
-    colado. Medido el 2026-08-31 en 1.366 kB. */
-const TECHO_KB = 1500;
+    colado. Medido el 2026-08-31 en 1.366 kB. El 2026-11-25 cruzó los 1.500
+    (1.504 kB) sin ninguna de las PROHIBIDAS: tres meses de piezas que tienen
+    que estar desde el arranque, la última la salud (la tapa de la noche y el
+    aviso a los agentes, que no esperan a que abras una pestaña). Subido a
+    1.550; la próxima vez que se cruce, antes de subirlo, mira qué pieza que
+    solo se usa al abrir algo se puede pedir con `perezoso`. */
+const TECHO_KB = 1550;
 
 let entrada;
 try {

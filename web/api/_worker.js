@@ -30,35 +30,91 @@ const MOVED = new Map([
   ['/docs.html', '/guia'],
 ])
 
+// Security headers. They live here and not in a `_headers` file because in
+// advanced mode Cloudflare Pages does not apply `_headers` to anything this
+// worker answers (developers.cloudflare.com/pages/configuration/headers,
+// checked 2026-11-25).
+//
+// The two lists below are filled in by the build (cspFromBuild in
+// vite.config.js) from the pages it is about to publish: the sha256 of every
+// inline script, so the small boot scripts (theme, motion, language) run and
+// nothing else inline does, and the origin the account pages talk to.
+const CSP_SCRIPT_HASHES = []
+const CSP_CONNECT = []
+
+const CSP = [
+  "default-src 'self'",
+  `script-src 'self'${CSP_SCRIPT_HASHES.map((hash) => ` '${hash}'`).join('')}`,
+  // The demo in the hero is the app's own DOM, full of style attributes.
+  "style-src 'self' 'unsafe-inline'",
+  // The project logos of the demo are data: SVGs; a visitor's own photo or
+  // video behind the PnL card is a blob:.
+  "img-src 'self' data: blob:",
+  "media-src 'self' blob:",
+  "font-src 'self'",
+  `connect-src 'self'${CSP_CONNECT.map((origin) => ` ${origin}`).join('')}`,
+  // portada/ligero.js measures the machine in a worker made from a blob.
+  "worker-src 'self' blob:",
+  // The demo is an <iframe> of this same site, and only this site frames it.
+  "frame-src 'self'",
+  "frame-ancestors 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join('; ')
+
+const PERMISSIONS = 'camera=(), microphone=(), geolocation=(), payment=(), usb=()'
+
+/**
+ * Every response leaves with HTTPS pinned for a year (no includeSubDomains:
+ * that would also pin any subdomain added later), and every page with its
+ * content policy, framed only by this site. A copy, because the responses of
+ * `Response.redirect` and of the static assets cannot be changed in place.
+ */
+function withSecurity(response) {
+  const patched = new Response(response.body, response)
+  patched.headers.set('Strict-Transport-Security', 'max-age=31536000')
+  if ((patched.headers.get('Content-Type') || '').includes('text/html')) {
+    patched.headers.set('Content-Security-Policy', CSP)
+    patched.headers.set('X-Frame-Options', 'SAMEORIGIN')
+    patched.headers.set('Permissions-Policy', PERMISSIONS)
+  }
+  return patched
+}
+
 export default {
   async fetch(request, env) {
-    const url = new URL(request.url)
-    const moved = MOVED.get(url.pathname)
-
-    // One canonical hostname. Both adeorq.com and www.adeorq.com point at this
-    // project, and both answering 200 splits every ranking signal in two, so
-    // www is redirected here with a permanent 301. Cloudflare already upgrades
-    // http to https, so this is the only case left.
-    if (url.hostname === 'www.adeorq.com') {
-      url.hostname = 'adeorq.com'
-      // Forced, not inherited: one hop, never http -> https -> apex.
-      url.protocol = 'https:'
-      // A moved page goes straight to its new address, still in one hop.
-      if (moved) url.pathname = moved
-      return Response.redirect(url.toString(), 301)
-    }
-
-    if (moved) {
-      url.pathname = moved
-      return Response.redirect(url.toString(), 301)
-    }
-
-    if (url.pathname === '/api/latest') {
-      return latest(request)
-    }
-
-    return withCache(await env.ASSETS.fetch(request), url.pathname)
+    return withSecurity(await route(request, env))
   },
+}
+
+async function route(request, env) {
+  const url = new URL(request.url)
+  const moved = MOVED.get(url.pathname)
+
+  // One canonical hostname. Both adeorq.com and www.adeorq.com point at this
+  // project, and both answering 200 splits every ranking signal in two, so
+  // www is redirected here with a permanent 301. Cloudflare already upgrades
+  // http to https, so this is the only case left.
+  if (url.hostname === 'www.adeorq.com') {
+    url.hostname = 'adeorq.com'
+    // Forced, not inherited: one hop, never http -> https -> apex.
+    url.protocol = 'https:'
+    // A moved page goes straight to its new address, still in one hop.
+    if (moved) url.pathname = moved
+    return Response.redirect(url.toString(), 301)
+  }
+
+  if (moved) {
+    url.pathname = moved
+    return Response.redirect(url.toString(), 301)
+  }
+
+  if (url.pathname === '/api/latest') {
+    return latest(request)
+  }
+
+  return withCache(await env.ASSETS.fetch(request), url.pathname)
 }
 
 /**

@@ -983,7 +983,8 @@ http
             .sort((a, b) => cerrada(a) - cerrada(b) || b.creada - a.creada)
             .map((d) => ({
               id: d.id, titulo: d.titulo, proyecto: d.proyecto, panel: d.panel, creada: d.creada, preguntas: d.preguntas.length,
-              contestada: Boolean(d.respuesta), vigencia: vigenciaDe(d), cerrada: d.respuesta?.cuando ?? d.descartada ?? d.resuelta?.cuando ?? d.hablada ?? null,
+              contestada: Boolean(d.respuesta), vigencia: vigenciaDe(d), se_teclea: seTeclea(d),
+              cerrada: d.respuesta?.cuando ?? d.descartada ?? d.resuelta?.cuando ?? d.hablada ?? null,
             })) });
         // Con `si`, como en movil.rs: «igual» si la firma es la de ahora, que la
         // página la vigila cada 6 s mientras la tiene abierta.

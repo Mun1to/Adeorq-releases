@@ -203,6 +203,9 @@ async (page) => {
     for (const v of ["huerfana", "contestada"]) {
       await page.click("#atras");
       await page.waitForSelector("#decisiones .tarjeta");
+      // Lo que ya no te espera va plegado en «Earlier (N)» (2026-11-25).
+      await page.click("#ver-anteriores");
+      await page.waitForTimeout(450);
       await page.click(`#decisiones .tarjeta[data-vigencia="${v}"] >> nth=0`);
       await page.waitForSelector(".pregunta-d");
       await page.waitForTimeout(300);

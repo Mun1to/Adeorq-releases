@@ -10,7 +10,7 @@
 //     una terminal en ella, y por tanto no se lleva la contraseña de esa terminal;
 //   · una carpeta que no existe es un error: el panel nacía en la del usuario sin
 //     decirlo, y la ventana de «Abrir» habría aprobado otra de la que enseña;
-//   · muchas a la vez no se cuelan por encima del tope de 6 vivas;
+//   · muchas a la vez no se cuelan por encima de un tope de 6 vivas (sembrado fijo);
 //   · de fábrica lee lo que abrió, con y sin encargo, y no lo de otro programa (A1).
 //
 //   cargo build --manifest-path src-tauri/Cargo.toml   (deja C:\ct\debug\adeorq.exe)
@@ -96,7 +96,10 @@ async function cliente(quien, panel) {
 const numero = (r) => Number(/(?:Terminal|terminal|panel)\s+(\d+)/.exec(r.texto || "")?.[1]);
 const corto = (r) => (r.error ?? r.texto ?? "").replace(/\s+/g, " ").slice(0, 150);
 
-const aislada = await abrirAislada({ nombre, fueraConTodo: false, puertoMcp: PUERTO, depurar: DEPURAR, exe, entorno: { PATH: `${doble};${process.env.PATH}` } });
+// El tope fijo en 6 (de fábrica va por la memoria libre, `cabida.rs`): la ráfaga de
+// abajo mide que ninguna se cuela por encima de un número, no cuánta memoria tiene el equipo.
+const sembrar = (datos) => writeFileSync(join(datos, "tope-agentes.json"), JSON.stringify({ porMemoria: false, comoMucho: 6 }));
+const aislada = await abrirAislada({ nombre, fueraConTodo: false, puertoMcp: PUERTO, depurar: DEPURAR, exe, sembrar, entorno: { PATH: `${doble};${process.env.PATH}` } });
 try {
   const { demo } = aislada;
   const fuera = await cliente("un-programa");

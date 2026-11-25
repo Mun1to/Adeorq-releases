@@ -87,6 +87,8 @@ import GuideView from "./GuideView";
 import TerminalesAparte from "./TerminalesAparte";
 import AjusteBuscador from "./AjusteBuscador";
 import AjusteCabeceraTerminal from "./AjusteCabeceraTerminal";
+import AjusteAbrirDeGolpe from "./AjusteAbrirDeGolpe";
+import AjusteTopeAgentes from "./AjusteTopeAgentes";
 import AjusteParpadeo from "./AjusteParpadeo";
 import AjusteCompactar from "./AjusteCompactar";
 import AjustesSalud from "./AjustesSalud";
@@ -1208,19 +1210,8 @@ export default function SettingsView({
                 >
                   <span className="ml-verde">❯</span> pnpm tauri dev
                 </div>
-                <label className="setting-row">
-                  {/* Antes se llamaba «Cuántas sesiones abre el botón ⧉», que
-                      obliga a saberse un símbolo para entender un ajuste. */}
-                  <span>{t("Cuántas sesiones abre de golpe un proyecto")}</span>
-                  <input
-                    type="range"
-                    min={2}
-                    max={20}
-                    value={openAll}
-                    onChange={(e) => onOpenAll(Number(e.currentTarget.value))}
-                  />
-                  <NumeroAjuste valor={openAll} min={2} max={20} onCambiar={onOpenAll} />
-                </label>
+                <AjusteAbrirDeGolpe valor={openAll} onCambiar={onOpenAll} />
+                <AjusteTopeAgentes />
                 <AjusteCabeceraTerminal />
                 <AjusteParpadeo />
                 <label className="setting-row setting-switch">

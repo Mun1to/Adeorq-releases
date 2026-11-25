@@ -895,7 +895,8 @@ renews tomorrow.
   default.
 - The same criterion chooses the account in the plans of Adeo and of the
   Split, and is explained in their "why".
-- There is a limit: six terminals open by agents at once and twelve per hour.
+- There is a limit: the terminals opened by agents at once that fit in free memory (or
+  the number you choose in Settings › Terminals) and twelve per hour.
 
 ### API keys and Vibecoding with OpenRouter
 
@@ -1077,7 +1078,11 @@ names appear below so you can jump to one.
 - **Fit the type to each terminal's size** (on): with many narrow terminals, the type
   shrinks by itself until the line fits. The size you choose is then the maximum.
 - **Font size** (11 to 32 px) and **how many sessions a project opens at once** (2 to
-  20; each one is about 200 MB, which is why there is a limit).
+  20; each one is about 500 MB, which is why there is a limit). Out of the box it opens
+  only the ones that fit in the computer's free memory, and the number is the maximum.
+- **How many terminals your agents can keep open at once** (1 to 12). Out of the box,
+  the ones that fit in free memory, never more than that number; with memory off, just
+  the number. Twelve per hour stays the limit either way.
 - **Show the model, context and memory in each terminal's bar.**
 - **Bring the terminals back on start** (yes by default): the same terminals come back
   in their folders and each Claude resumes its conversation.
@@ -1276,8 +1281,8 @@ count as a client.
 An agent with a low tier that asks for something that is not its to ask gets a
 refusal that tells it which tier it has and where that is changed.
 
-Limits worth knowing: an agent opens six live terminals at most at once and twelve
-per hour; a new message to a Claude terminal with more than 350,000 tokens of context
+Limits worth knowing: agents keep at once the live terminals that fit in free memory
+(or as many as you say in Settings › Terminals) and open twelve per hour; a new message to a Claude terminal with more than 350,000 tokens of context
 comes back to it and only goes out if it insists; it cannot compact one that a person
 opened; and the terminals an agent opens it closes itself when it finishes, leaving a
 summary in the data folder.
@@ -1706,7 +1711,9 @@ wherever `XDG_DATA_HOME` says) and `~/Library/Application Support/Adeorq` on Mac
 | Scheduled orders | `programados.json` |
 | Decisions and conversations with Adeo | `decisiones`, `conserje` and `chats` |
 | Ideas and steps that the agents propose | `bandeja.md` |
-| Failure trail | `rastro.log` |
+| Failure trail | `rastro.log` (and the previous one, `rastro.1.log`) |
+| Shield and recycle bin notices | `avisos.log` |
+| Which screens you use, only if you create `uso-local.on` (read it with `node scripts/uso-local.mjs`) | `uso-local-YYYY-MM.jsonl` |
 | Summaries of the terminals that an agent closed | `rastros` |
 | Accounts of each program | `accounts`, one folder per account |
 | Mods | `mods` |

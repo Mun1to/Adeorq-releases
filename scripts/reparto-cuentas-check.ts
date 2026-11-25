@@ -275,5 +275,21 @@ comprueba("en Codex, nada (no comparte esa casa)", loQueNoVe("codex", lista[1], 
   comprueba("sin terminales abiertas no se inventa ninguna previsión", llena.includes("«Llena» no entra por llegar al 92 %: al 93 % gastado") && !/se calcula/.test(llena), llena);
 }
 
+// La cuenta de Claude que no da su gasto (25-nov: la terminal 30 nació en la «2da
+// MAIN», sin suscripción, y no arrancó). Contada al 50 % sin fecha pierde 7 puntos
+// al día; la principal al 80 % con 3 días, 6,7: antes ganaba la que no arranca.
+{
+  const muda = viva("2da MAIN", { plan: "pro" });
+  const llenandose = viva("Principal", { gastado: 80, renueva: AHORA + 3 * DIA, plan: "max" });
+  comprueba("sus números le harían ganar (7 frente a 6,7 al día)", sePierde(muda, AHORA) > sePierde(llenandose, AHORA), [sePierde(muda, AHORA), sePierde(llenandose, AHORA)]);
+  const e = elegirCuenta([llenandose, muda], AHORA);
+  comprueba("pero va la que da su gasto", e?.viva.cuenta.label === "Principal", e?.viva.cuenta.label);
+  comprueba("y el porqué dice por qué la otra no", !!e?.porque.includes("«2da MAIN» no dice su gasto"), e?.porque);
+  comprueba("si es la única con sitio, va ella", quien([viva("Llena", { gastado: 95, renueva: AHORA + 3 * DIA }), muda]) === "2da MAIN", quien([viva("Llena", { gastado: 95, renueva: AHORA + 3 * DIA }), muda]));
+  comprueba("y con una sola cuenta, también", quien([muda]) === "2da MAIN", quien([muda]));
+  const sinPublicar = [viva("Uno", {}, "gemini"), viva("Dos", {}, "gemini")];
+  comprueba("un CLI que no publica su gasto no cambia: se trata como disponible", quien(sinPublicar) !== undefined && !elegirCuenta(sinPublicar, AHORA)?.porque.includes("no dice su gasto"), elegirCuenta(sinPublicar, AHORA)?.porque);
+}
+
 console.log(fallos ? `\n${fallos} FALLAN` : "\nTodo bien.");
 if (fallos) process.exit(1);

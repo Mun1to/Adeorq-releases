@@ -1,11 +1,11 @@
 {
-  "version": "0.9.267",
-  "notes": "Salud en Ajustes: una hora de cierre cada noche que avisa antes, pide a tus agentes que guarden lo suyo y cierren, y tapa la ventana con un boton de 15 minutos mas. Pegadas vuelve a pegar las terminales. Una decision que hablaste en su terminal sigue a la vista en el movil y en el PC.",
-  "pub_date": "2026-11-25T16:09:12Z",
+  "version": "0.9.268",
+  "notes": "Tus agentes abren solo las terminales que caben en la memoria libre, como mucho doce a la vez, y lo mismo al abrir de golpe las sesiones de un proyecto. Las decisiones que ya pasaron se pliegan solas en el PC y en el movil. Una cuenta que no dice su gasto solo recibe terminales si no queda otra.",
+  "pub_date": "2026-11-25T21:22:38Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzJxTFJCeVdIem5sSUpOd1NrZWhET1dxMlJKSVFPQldvekVzcS9EYzFwSjU4bHRscnVCb0xnTy91ZHR1NGlrVVF5dEllbmpCL0J1ODBTME44dUY0NHdRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NjIyOTM4CWZpbGU6QWRlb3JxXzAuOS4yNjdfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNjcKdFQxeGVwRlpoVURQdWxOTTRyYlhwdWt4SmU2ZEMxZ1dNaGtMbStXUlM1US8rWGVHOTk1N0FNWkNJZTlQdlU3UEhpdExIUVZwUnJOK0dlMXRBdkxsQkE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.267/Adeorq_0.9.267_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzljekxMdjBkNTU3NC9kT1p2WFFmbDJ4cGd3UVd0b09HWWZUOUtGZ3MyaFNNZUE1cFZJSDAzMy9PUU12dVVpUVFIV1VOYWh6eG1tTFYyTUltTEZoUnd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NjQxNzQ3CWZpbGU6QWRlb3JxXzAuOS4yNjhfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNjgKTFFhbFRQbHIrN3pWYmlxckIxTEFxcHFTdTlreHRFYmJzWE93TFl5WHZLQkkwT1hCeWsrYU9QRjYxeThaQzE2eU9GSjZSZ3A1dUVXQ1ZQR1FOMStHQ2c9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.268/Adeorq_0.9.268_x64-setup.exe"
     }
   }
 }

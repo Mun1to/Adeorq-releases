@@ -863,7 +863,8 @@ al 60 % que se renueva en cinco, y al revés si la principal se renueva mañana.
   sin cuenta no elige: va a la predeterminada.
 - El mismo criterio elige cuenta en los planes de Adeo y del Reparto, y se
   explica en su «por qué».
-- Hay un tope: seis terminales abiertas por agentes a la vez y doce por hora.
+- Hay un tope: las terminales abiertas por agentes a la vez que quepan en la memoria
+  libre (o el número que elijas en Ajustes › Terminales) y doce por hora.
 
 ### Claves de API y Vibecoding con OpenRouter
 
@@ -1043,7 +1044,11 @@ salen sus nombres para saltar a una.
   estrechas, la letra encoge sola hasta que la línea cabe. El tamaño que eliges es
   entonces el máximo.
 - **Tamaño de la letra** (11 a 32 px) y **cuántas sesiones abre de golpe un proyecto**
-  (2 a 20; cada una son unos 200 MB, por eso hay tope).
+  (2 a 20; cada una son unos 500 MB, por eso hay tope). De fábrica abre solo las que
+  quepan en la memoria libre del equipo, y el número es el máximo.
+- **Cuántas terminales pueden tener abiertas tus agentes a la vez** (1 a 12). De fábrica,
+  las que quepan en la memoria libre, sin pasar de ese número; apagando la memoria, el
+  número a secas. Doce por hora siguen siendo el tope, vaya como vaya.
 - **Ver el modelo, el contexto y la memoria en la barra de cada terminal.**
 - **Recuperar las terminales al abrir** (de fábrica sí): vuelven las mismas terminales
   en sus carpetas y cada Claude retoma su conversación.
@@ -1233,8 +1238,8 @@ Adeo entra por una línea propia y no cuenta como cliente.
 Un agente con escalón bajo que pida algo que no le toca recibe un rechazo que le dice
 qué escalón tiene y dónde se cambia.
 
-Límites que conviene saber: un agente abre como mucho seis terminales vivas a la vez
-y doce por hora; un mensaje nuevo a una terminal de Claude con más de 350.000 tokens
+Límites que conviene saber: los agentes tienen a la vez las terminales vivas que quepan
+en la memoria libre (o las que digas en Ajustes › Terminales) y abren doce por hora; un mensaje nuevo a una terminal de Claude con más de 350.000 tokens
 de contexto se le devuelve y solo sale si insiste; no puede compactar una que abrió una
 persona; y las terminales que abre un agente las cierra él cuando acaba, dejando un
 resumen en la carpeta de datos.
@@ -1651,7 +1656,9 @@ donde diga `XDG_DATA_HOME`) y `~/Library/Application Support/Adeorq` en Mac.
 | Encargos programados | `programados.json` |
 | Decisiones y conversaciones con Adeo | `decisiones`, `conserje` y `chats` |
 | Ideas y pasos que proponen los agentes | `bandeja.md` |
-| Rastro de fallos | `rastro.log` |
+| Rastro de fallos | `rastro.log` (y el anterior, `rastro.1.log`) |
+| Avisos del escudo y de la papelera | `avisos.log` |
+| Qué pantallas usas, solo si creas `uso-local.on` (se lee con `node scripts/uso-local.mjs`) | `uso-local-AAAA-MM.jsonl` |
 | Resúmenes de las terminales que cerró un agente | `rastros` |
 | Cuentas de cada programa | `accounts`, una carpeta por cuenta |
 | Mods | `mods` |

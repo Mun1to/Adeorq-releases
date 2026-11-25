@@ -13,6 +13,7 @@ import {
   despertar as despertarFila,
   podar,
   posponer as posponerFila,
+  proximaHabladaQueSeVa,
   proximoDespertar,
   reposoDe,
   sinVerla as sinVerFila,
@@ -164,17 +165,38 @@ export function useDecisiones(): Decision[] {
       listarDecisiones()
         .then((l) => {
           esperanEn = new Set(l.filter((d) => d.vigencia === "viva" && d.panel != null).map((d) => d.panel!));
-          if (vivo) setLista(l);
+          if (!vivo) return;
+          setLista(l);
+          // Lo hablado sale de arriba a su hora (`habladaAbierta`), y esa hora
+          // no la avisa nadie: la lista se mira con la hora de ahora y se
+          // vuelve a mirar cuando se va la siguiente.
+          useReposo.setState({ ahora: Date.now() });
+          habladaQueSeVa(l);
         })
         .catch(() => {});
     leer();
     const quitar = listen(EVENTO_CAMBIAN, leer);
     return () => {
       vivo = false;
+      window.clearTimeout(relojHablada);
       void quitar.then((f) => f()).catch(() => {});
     };
   }, [paneles]);
   return lista;
+}
+
+let relojHablada: number | undefined;
+
+/** Un aviso a la hora en que la primera hablada deja de estar arriba. */
+function habladaQueSeVa(l: Decision[]): void {
+  window.clearTimeout(relojHablada);
+  const ahora = Date.now();
+  const cuando = proximaHabladaQueSeVa(l, ahora);
+  if (cuando === undefined) return;
+  relojHablada = window.setTimeout(() => {
+    useReposo.setState({ ahora: Date.now() });
+    habladaQueSeVa(l);
+  }, cuando - ahora + 50);
 }
 
 /** Los paneles que tienen una decisión esperando, de la última lectura: así

@@ -22,7 +22,7 @@
 import type { Account } from "./pty";
 import { makeT, type Translate } from "./i18n";
 import { modelForRole, type ModelAlias } from "./models";
-import { providerOf, sabe } from "./providers";
+import { proveedorDe, providerOf, sabe } from "./providers";
 import { reglaQueManda, type ReglaRouter } from "./reglasRouter";
 
 /** Sin traductor, las frases salen en español tal cual están escritas aquí.
@@ -433,7 +433,13 @@ function retrato(c: CuentaViva, ahora: number, t: Translate): string {
 export function elegirCuenta(lista: CuentaViva[], ahora: number, modelo?: ModelAlias, t: Translate = ES): Eleccion | undefined {
   if (lista.length === 0) return undefined;
   const conSitio = lista.filter((c) => !parada(c, ahora) && semanaDe(c, ahora).gastado < AGOTADA);
-  let pool = conSitio.length ? conSitio : lista;
+  // Una cuenta de un CLI que publica su gasto y no lo da algo tiene: sin
+  // suscripción o con la sesión caducada. Contada al 50 %, el final de la semana
+  // de la principal la hacía ganar, y la terminal nacía sin arrancar (la 30 del
+  // 25-nov, en la «2da MAIN», que Munir no va a renovar). Va solo si no queda otra.
+  const callada = (c: CuentaViva) => c.gastado === undefined && !!proveedorDe(c.cuenta.provider)?.usage;
+  const hablan = conSitio.filter((c) => !callada(c));
+  let pool = hablan.length ? hablan : conSitio.length ? conSitio : lista;
   if (modelo) {
     const caben = pool.filter((c) => {
       const techo = techoDelPlan(c.plan);
@@ -464,8 +470,10 @@ export function elegirCuenta(lista: CuentaViva[], ahora: number, modelo?: ModelA
   } else {
     const otras = orden.slice(1, 3).map((o) => t("{retrato} ({p} al día)", { retrato: retrato(o.c, ahora, t), p: Math.round(o.p) }));
     const fuera = lista
-      .filter((c) => !conSitio.includes(c))
-      .map((c) => parada(c, ahora) ? t("«{label}» está parada por su tope de 5 horas", { label: c.cuenta.label }) : t("«{label}» no entra por llegar al {agotada} %: {gasto}", { label: c.cuenta.label, agotada: AGOTADA, gasto: gastoYPrevision(c, ahora, t) }));
+      .filter((c) => !conSitio.includes(c) || (hablan.length > 0 && callada(c)))
+      .map((c) => !conSitio.includes(c)
+        ? parada(c, ahora) ? t("«{label}» está parada por su tope de 5 horas", { label: c.cuenta.label }) : t("«{label}» no entra por llegar al {agotada} %: {gasto}", { label: c.cuenta.label, agotada: AGOTADA, gasto: gastoYPrevision(c, ahora, t) })
+        : t("«{label}» no dice su gasto (sin suscripción o con la sesión caducada) y solo va si no queda otra", { label: c.cuenta.label }));
     const p = Math.round(orden[0].p);
     const cuanto = otras.length
       ? p === 1

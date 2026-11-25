@@ -9,9 +9,9 @@
  * Cuándo se cambió el TEXTO por última vez, en ISO. No es la fecha de la
  * construcción: si fuera la del día del build, una política que no ha cambiado
  * diría que se actualizó en cada despliegue. Se toca a mano, en el mismo
- * commit que cambia el texto (la consultó `Get-Date` el 2026-11-05).
+ * commit que cambia el texto (la consultó `Get-Date` el 2026-11-25).
  */
-export const ACTUALIZADA = '2026-11-05'
+export const ACTUALIZADA = '2026-11-25'
 
 /** El correo público de contacto. Lo dio Munir para esto (2026-11-05). */
 export const CORREO = 'munitodev@gmail.com'

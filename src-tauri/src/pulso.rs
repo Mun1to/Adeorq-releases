@@ -375,18 +375,7 @@ pub async fn pulso() -> Pulso {
         salida.unwrap_or(0)
     };
 
-    #[cfg(windows)]
-    let (total, libre) = unsafe {
-        let mut m: MEMORYSTATUSEX = std::mem::zeroed();
-        m.dwLength = std::mem::size_of::<MEMORYSTATUSEX>() as u32;
-        if GlobalMemoryStatusEx(&mut m) == 0 {
-            (0, 0)
-        } else {
-            (m.ullTotalPhys, m.ullAvailPhys)
-        }
-    };
-    #[cfg(not(windows))]
-    let (total, libre) = memoria_sistema();
+    let (total, libre) = memoria_equipo();
     let usado = total.saturating_sub(libre);
     let mb = |b: u64| b / 1_048_576;
     let pct = |parte: u64| {
@@ -408,6 +397,27 @@ pub async fn pulso() -> Pulso {
         cpu_pct,
         nucleos: nucleos as u32,
     }
+}
+
+/// La RAM del equipo en bytes: la total y la que queda disponible (la que el
+/// sistema puede dar sin echar a nadie, caché incluida). `(0, 0)` si no se pudo
+/// leer, y quien la usa para decidir algo tiene que tratarlo como «no se sabe».
+#[cfg(windows)]
+pub(crate) fn memoria_equipo() -> (u64, u64) {
+    unsafe {
+        let mut m: MEMORYSTATUSEX = std::mem::zeroed();
+        m.dwLength = std::mem::size_of::<MEMORYSTATUSEX>() as u32;
+        if GlobalMemoryStatusEx(&mut m) == 0 {
+            (0, 0)
+        } else {
+            (m.ullTotalPhys, m.ullAvailPhys)
+        }
+    }
+}
+
+#[cfg(not(windows))]
+pub(crate) fn memoria_equipo() -> (u64, u64) {
+    memoria_sistema()
 }
 
 /// Lo que gasta UNA terminal, no la suma de todas.
@@ -449,10 +459,15 @@ pub async fn pulso_panes(app: tauri::AppHandle) -> Result<Vec<PanePulso>, String
     // (ver la nota de `tx_entrada` en `pty.rs`). `fichas` lo coge solo para
     // copiar y lo suelta antes de mirar los procesos, que es lo lento: enseñar
     // cuánta memoria gasta un panel no puede dejar a la app sin teclado.
+    Ok(medir_paneles(&app))
+}
+
+/// Lo de `pulso_panes`, para quien lo necesita desde Rust (`cabida.rs`).
+pub(crate) fn medir_paneles(app: &tauri::AppHandle) -> Vec<PanePulso> {
     let raices: Vec<(u32, u32)> =
-        crate::pty::fichas(&app).into_iter().filter_map(|f| f.pid.map(|pid| (f.id, pid))).collect();
+        crate::pty::fichas(app).into_iter().filter_map(|f| f.pid.map(|pid| (f.id, pid))).collect();
     if raices.is_empty() {
-        return Ok(Vec::new());
+        return Vec::new();
     }
 
     let procesos = foto_procesos();
@@ -479,7 +494,7 @@ pub async fn pulso_panes(app: tauri::AppHandle) -> Result<Vec<PanePulso>, String
             agente_mb: bytes_agente / 1_048_576,
         });
     }
-    Ok(out)
+    out
 }
 
 #[cfg(test)]

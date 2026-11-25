@@ -49,7 +49,8 @@ async (page) => {
   await page.waitForSelector("#decisiones .tarjeta");
   r.secciones = await page.$$eval("#decisiones .seccion span", (ss) => ss.map((s) => s.textContent));
   r.lista = await page.$$eval("#decisiones .tarjeta", (ts) => ts.map((t) => `${t.dataset.vigencia}: ${t.innerText.replace(/\s+/g, " ")}`));
-  debe(r.secciones.join("|") === "Te esperan|Anteriores", `dos montones (${r.secciones})`);
+  // Las anteriores van plegadas y dicen cuántas son (2026-11-25): se abren tocándolas.
+  debe(r.secciones.join("|") === "Te esperan|Anteriores (3)", `dos montones (${r.secciones})`);
   // Las anteriores, la que se movió más tarde arriba: la contestada hace 2 h,
   // la del panel cerrado de hace un día y la de otro arranque de hace cinco.
   debe(r.lista.map((x) => x.split(":")[0]).join() === "viva,contestada,huerfana,huerfana", `cada una con su vigencia (${r.lista})`);
@@ -59,6 +60,8 @@ async (page) => {
   debe(r.sub === "3 te esperan", `el resumen de arriba («${r.sub}»)`);
 
   // 3. Una huérfana avisa de que nadie la espera.
+  await page.click("#ver-anteriores");
+  await page.waitForTimeout(450);
   await page.click('#decisiones .tarjeta[data-vigencia="huerfana"] >> nth=0');
   await page.waitForSelector(".pregunta-d");
   r.avisoHuerfana = await page.textContent(".dec-vig");

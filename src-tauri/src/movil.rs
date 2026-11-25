@@ -1615,7 +1615,9 @@ pub fn atender(
                         })
                     })
                     .collect();
-                Respuesta::json(200, json!({ "decisiones": lista }))
+                // La hora del PC, en milisegundos: con ella la página saca de arriba lo
+                // hablado a su hora (una hora después), aunque el reloj del móvil vaya mal.
+                Respuesta::json(200, json!({ "decisiones": lista, "ahora": reloj.1 * 1000 }))
             }
             Err(e) => Respuesta::error(500, &e),
         },

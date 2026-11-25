@@ -346,7 +346,8 @@ window.ADEORQ_I18N_EXTRA = {
                        'it goes to the default one.',
     'guia.cuentas.r3': 'On screen you see it in the terminal’s header: one that is not using the main account ' +
                        'carries the three letters of its account.',
-    'guia.cuentas.r4': 'There is a cap: six terminals open by agents at once, and twelve per hour.',
+    'guia.cuentas.r4': 'There is a cap: your agents keep open at once the terminals that fit in free memory, ' +
+                       'twelve at most (or the number you choose in Settings › Terminals), and open twelve per hour.',
     'guia.cuentas.h3v': 'Vibecoding with OpenRouter (opencode)',
     'guia.cuentas.pv1': 'The OpenRouter card, inside <b>API keys</b>, is a single key that unlocks models from ' +
                         'many providers, including ones with no CLI of their own (Kimi, DeepSeek, Grok…). Once ' +
@@ -459,8 +460,9 @@ window.ADEORQ_I18N_EXTRA = {
                      'does not count as a client.',
     'guia.fuera.p4': 'A program on a low tier that asks for something it is not allowed gets a refusal that says ' +
                      'which tier it has and where that is changed.',
-    'guia.fuera.lim': '<b>Limits:</b> an agent opens at most six live terminals at once and twelve per hour; a ' +
-                      'new message to a Claude terminal holding more than 300,000 tokens of context comes back ' +
+    'guia.fuera.lim': '<b>Limits:</b> agents keep alive at once the terminals that fit in free memory, twelve ' +
+                      'at most (or the number you choose in Settings › Terminals), and open twelve per hour; a ' +
+                      'new message to a Claude terminal holding more than 350,000 tokens of context comes back ' +
                       'to it and only goes out if it insists; it cannot compact one that a person opened; and ' +
                       'the terminals an agent opens, it closes itself when done, leaving a summary in the data ' +
                       'folder.',

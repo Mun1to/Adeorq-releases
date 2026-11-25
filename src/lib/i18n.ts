@@ -778,6 +778,13 @@ const EN: Record<string, string> = {
   "Tamaño de la letra": "Font size",
   "Cuántas sesiones abre de golpe un proyecto":
     "How many sessions a project opens at once",
+  "Abrir de golpe solo las sesiones que quepan en la memoria libre":
+    "Open at once only the sessions that fit in free memory",
+  "Como mucho, sesiones que abre de golpe un proyecto": "At most, sessions a project opens at once",
+  "Que tus agentes abran solo las terminales que quepan en la memoria libre":
+    "Let your agents open only the terminals that fit in free memory",
+  "Como mucho, terminales abiertas por tus agentes a la vez": "At most, terminals your agents keep open at once",
+  "Terminales abiertas por tus agentes a la vez": "Terminals your agents keep open at once",
   "Cada sesión es un programa aparte: unos 200 MB cada una.":
     "Each session is a separate program: about 200 MB each.",
   "Modo de permisos": "Permission mode",
@@ -3384,6 +3391,7 @@ const EN: Record<string, string> = {
   "Con «{label}», la única que hay.": "With “{label}”, the only one there is.",
   "{retrato} ({p} al día)": "{retrato} ({p} a day)",
   "«{label}» está parada por su tope de 5 horas": "“{label}” is held at its 5-hour limit",
+  "«{label}» no dice su gasto (sin suscripción o con la sesión caducada) y solo va si no queda otra": "“{label}” does not report its usage (no subscription or an expired session) and only gets one when no other is left",
   "«{label}» no entra por llegar al {agotada} %: {gasto}": "“{label}” is left out for reaching {agotada} %: {gasto}",
   " y ": " and ",
   "1 punto al día, frente a {otras}": "1 point a day, against {otras}",
@@ -3745,6 +3753,7 @@ const EN: Record<string, string> = {
   "Terminó": "Finished",
   "Ideas de tus agentes": "Ideas from your agents",
   "Ya pasó": "Past",
+  "Ya pasó ({n})": "Past ({n})",
   "Sin nadie detrás": "No one behind it",
   "Hablada": "Talked over",
   "Contestada": "Answered",

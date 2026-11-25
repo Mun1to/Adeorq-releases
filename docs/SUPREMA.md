@@ -94,8 +94,20 @@ Munir eligió el agente que decide, así que el control no puede ser «pregúnta
 cada vez» (sería inusable). Es presupuesto duro, en Rust, donde el agente no
 puede tocarlo:
 
-1. **Seis sesiones vivas por MCP**, que es el mismo tope que la cuadrilla.
-2. **Doce aperturas por hora**, para que un bucle no abra y cierre sin parar.
+1. **Cuántas vivas a la vez por MCP, según la memoria libre** (desde el 2026-11-25; antes
+   eran seis fijas, el mismo tope que la cuadrilla). Munir: que los agentes, «en base a la
+   memoria que tienes», puedan abrir terminales «sin saturar tu ordenador», y en los dos topes
+   (decisión d1a213cb2ce0, «Los dos»). Lo elige en Ajustes › Terminales y lo guarda Rust
+   (`src-tauri/src/cabida.rs`, `tope-agentes.json` en la carpeta de datos), con dos cosas:
+   - **Por la memoria** (de fábrica): cabe otra si, con lo que el equipo dice que le queda,
+     queda sitio para una terminal más sin bajar de la reserva (un 15 % de la RAM, nunca menos
+     de 2 GB). Una terminal cuenta lo que pesan de media las que ya tienen un agente, nunca
+     menos de 500 MB. Las que se están abriendo todavía no ocupan, y se descuentan.
+   - **Como mucho N** (de 1 a 12, de fábrica 12): el techo, vaya o no por la memoria. Sin la
+     memoria es el tope fijo. Doce porque es lo que deja el tope por hora: por encima no se
+     llegaría nunca. Un archivo tocado a mano no lo sube de ahí.
+   - Si el sistema no dice cuánta RAM tiene, seis, como antes.
+2. **Doce aperturas por hora**, para que un bucle no abra y cierre sin parar. Este no cambia.
 
 Al llegar al tope, `open_pane` no falla en silencio: devuelve el motivo, para que
 la suprema lo cuente en su respuesta en vez de quedarse esperando.

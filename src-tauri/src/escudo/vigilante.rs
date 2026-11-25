@@ -496,7 +496,7 @@ impl Vigilante {
             a.estado = EstadoAlerta::Deshecha;
         }
         self.guardar();
-        crate::anotar(&format!("escudo: deshecho el cambio de {}", ruta.display()));
+        crate::anotar_aviso(&format!("escudo: deshecho el cambio de {}", ruta.display()));
         Ok(())
     }
 

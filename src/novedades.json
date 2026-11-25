@@ -1,4 +1,31 @@
 {
+  "0.9.268": [
+    {
+      "vista": "ajustes",
+      "ajustes": "terminales",
+      "donde": ["[data-tope-agentes]"],
+      "es": {
+        "titulo": "Las terminales que caben en tu memoria",
+        "texto": "Tus agentes, y un proyecto al abrir todas sus sesiones, abren solo las terminales que caben en la memoria libre (los agentes, como mucho doce). Aquí lo apagas y pones un número fijo."
+      },
+      "en": {
+        "titulo": "The terminals that fit in your memory",
+        "texto": "Your agents, and a project opening all its sessions, open only the terminals that fit in free memory (agents, twelve at most). Switch it off here to set a fixed number."
+      }
+    },
+    {
+      "vista": "decisiones",
+      "donde": [".dec-pleg-cab", ".dec-lista"],
+      "es": {
+        "titulo": "Las decisiones que ya pasaron se recogen",
+        "texto": "Las que ya no te esperan se pliegan solas en «Ya pasó» y se abren con un toque. A la vista quedan las que esperan tu respuesta, también en el móvil."
+      },
+      "en": {
+        "titulo": "Decisions that have passed fold away",
+        "texto": "The ones no longer waiting for you fold into “Past” and open with a tap. What stays in view is what waits for your answer, on the phone too."
+      }
+    }
+  ],
   "0.9.267": [
     {
       "vista": "ajustes",

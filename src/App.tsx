@@ -173,6 +173,8 @@ import { planDeArranque } from "./lib/arranque";
 import { actaDeRelevo } from "./lib/relevo";
 import { type Hit } from "./lib/redact";
 import { perezoso } from "./lib/perezoso";
+import { cuantasAbrirAhora, guardarTopeAbrir, leerTopeAbrir } from "./lib/topeAbrir";
+import { useUsoLocal } from "./lib/usoLocal";
 import { Onboarding } from "./components/OnboardingPerezoso";
 import { entornoDeCaja, nombreDeCaja } from "./lib/cajas";
 import "@xterm/xterm/css/xterm.css";
@@ -203,10 +205,8 @@ const TEAM_COLORS = ["#5fd0ff", "#6fe0bb", "#ffd166", "#c4b5fd", "#ff9f6b"];
 
 type SplitDir = "right" | "down";
 
-// Opening a whole project spawns one claude per session (~200 MB each), so the
-// cap is about RAM, not correctness. Raised from 6 to 12 on Munir's 32 GB box;
-// they start staggered so twelve CLIs don't fight for the CPU at once.
-const MAX_OPEN_ALL = 12;
+// Opening a whole project starts its sessions staggered so a dozen CLIs don't
+// fight for the CPU at once. How many: lib/topeAbrir.ts (by free memory).
 const OPEN_ALL_STAGGER_MS = 350;
 const OBJETIVOS_KEY = "adeorq-objetivos-abierto";
 /** Qué panel de la derecha se está viendo, o vacío si solo está la franja de
@@ -217,7 +217,6 @@ const OBJETIVOS_KEY = "adeorq-objetivos-abierto";
 const LATERAL_KEY = "adeorq-lateral";
 const FONT_KEY = "adeorq-term-font";
 const AUTOFONT_KEY = "adeorq-term-autofont";
-const OPENALL_KEY = "adeorq-open-all";
 const RESTORE_KEY = "adeorq-restore";
 const JUMP_KEY = "adeorq-saltar-al-que-termina";
 /** Abrir la web sola cuando una terminal anuncia un servidor local. */
@@ -245,6 +244,7 @@ function App() {
    *  vez que cambias de pestaña. La lee `addPane` para saber dónde estás. */
   const viewRef = useRef<View>("panel");
   viewRef.current = view;
+  useUsoLocal(view);
   const [panes, setPanes] = useState<Pane[]>([]);
   /**
    * Los grupos apartados: sus terminales no se ven en la Cabina, pero siguen
@@ -493,9 +493,7 @@ function App() {
   const [autoFont, setAutoFont] = useState(
     () => localStorage.getItem(AUTOFONT_KEY) !== "0",
   );
-  const [openAllCap, setOpenAllCap] = useState(
-    () => Number(localStorage.getItem(OPENALL_KEY)) || MAX_OPEN_ALL,
-  );
+  const [openAllCap, setOpenAllCap] = useState(leerTopeAbrir);
   const [notifyMode, setNotifyMode] = useState<NotifyMode>(
     () => (localStorage.getItem(NOTIFY_KEY) as NotifyMode) || "fondo",
   );
@@ -1674,10 +1672,10 @@ function App() {
           return s;
         });
       }
-      sessions.slice(0, openAllCap).forEach((s, i) => {
+      void cuantasAbrirAhora(sessions.length, openAllCap).then((n) => sessions.slice(0, n).forEach((s, i) => {
         if (i === 0) onResume(s, grupo);
         else window.setTimeout(() => onResume(s, grupo), i * OPEN_ALL_STAGGER_MS);
-      });
+      }));
     },
     [openTerminal, onResume, openAllCap],
   );
@@ -3507,7 +3505,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           openAll={openAllCap}
           onOpenAll={(n) => {
             setOpenAllCap(n);
-            localStorage.setItem(OPENALL_KEY, String(n));
+            guardarTopeAbrir(n);
           }}
           notifyMode={notifyMode}
           onNotifyMode={(m) => {

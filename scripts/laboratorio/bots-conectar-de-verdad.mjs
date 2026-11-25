@@ -207,6 +207,9 @@ const a = await abrirAislada({
   depurar: DEPURAR,
   exe,
   fotos: FOTOS,
+  // El tope fijo en 6 (de fábrica va por la memoria libre): el final mide que un bot
+  // con todo choca con el tope en sus ocho intentos, no cuánta memoria tiene el equipo.
+  sembrar: (datos) => writeFileSync(join(datos, "tope-agentes.json"), JSON.stringify({ porMemoria: false, comoMucho: 6 })),
   entorno: { PATH: `${doble};${HERMES_REAL};${process.env.PATH}`, HERMES_HOME },
 });
 const claves = [];

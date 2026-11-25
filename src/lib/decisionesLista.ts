@@ -13,7 +13,7 @@
 //      (`animoDe`, en `lib/campana.ts`) y en ese mismo orden.
 //   2. Terminó: los turnos acabados que no has mirado («Mira»).
 //   3. Ideas de tus agentes: la bandeja de la regla R (`bandeja.md`, «Idea»).
-//   4. Ya pasó: las decisiones que ya no esperan a nadie, apagadas.
+//   4. Ya pasó: las decisiones que ya no esperan a nadie, plegadas (`filasQueSeVen`).
 //
 // Y desde el 2026-11-16 (P2 de la A1), dos cosas que tú haces con cada fila:
 // H la pospone (sale de «Te toca» a «Pospuesto» y vuelve a la hora que digas o
@@ -93,11 +93,25 @@ export const ACABO: Record<string, string> = {
   resuelta: "Resuelta",
 };
 
+/** Lo que sigue arriba una hablada de una terminal abierta, desde que le escribiste. */
+export const HABLADA_A_LA_VISTA = 3_600_000;
+
 /** Le escribiste a su terminal después de que preguntara, pero esa terminal
     sigue abierta: no tiene por qué haber sido la respuesta, así que se sigue
     viendo arriba, aparte y sin sumar (Munir, 2026-11-24, buscando lo que le
-    quedaba por decidir: «no lo veo»). */
-export const habladaAbierta = (d: Decision) => d.vigencia === "hablada" && d.se_teclea === true;
+    quedaba por decidir: «no lo veo»). Pero solo una hora: si no la contestas
+    ni la cierra el agente, era la respuesta y se va con las anteriores, sin
+    pedirte que la descartes (Munir, 2026-11-25: «que se elimine
+    automáticamente… y no haya que estar todo el rato eliminando a mano»). */
+export const habladaAbierta = (d: Decision, ahora: number) =>
+  d.vigencia === "hablada" && d.se_teclea === true && ahora < (d.hablada ?? 0) + HABLADA_A_LA_VISTA;
+
+/** Cuándo deja de estar arriba la primera hablada que aún lo está: a esa hora
+    hay que volver a mirar la lista. */
+export function proximaHabladaQueSeVa(decisiones: Decision[], ahora: number): number | undefined {
+  const horas = decisiones.filter((d) => habladaAbierta(d, ahora)).map((d) => (d.hablada ?? 0) + HABLADA_A_LA_VISTA);
+  return horas.length ? Math.min(...horas) : undefined;
+}
 
 /** Lo último que le pasó a una decisión: contestarla, descartarla, hablarla o, si nada, pedirla. */
 const ultimoMovimiento = (d: Decision) =>
@@ -161,12 +175,13 @@ export function juntar(f: Fuentes): Cosa[] {
     if (k > 1) c.id = `${c.id}#${k}`;
   }
   // Le escribiste a su terminal y sigue abierta: puede que no fuera la respuesta.
-  // Se ve aparte y no suma en lo que te toca (`habladaAbierta`).
+  // Se ve aparte una hora y no suma en lo que te toca (`habladaAbierta`).
+  const ahora = f.ahora ?? Date.now();
   const hablaste: Cosa[] = f.decisiones
-    .filter(habladaAbierta)
+    .filter((d) => habladaAbierta(d, ahora))
     .map((d) => ({ id: `dec:${d.id}`, parte: "hablaste", clase: "pasada", cuando: d.creada, d }));
   const pasadas: Cosa[] = f.decisiones
-    .filter((d) => d.vigencia !== "viva" && !habladaAbierta(d))
+    .filter((d) => d.vigencia !== "viva" && !habladaAbierta(d, ahora))
     .map((d) => ({ id: `dec:${d.id}`, parte: "pasado", clase: "pasada", cuando: ultimoMovimiento(d), d }));
   const todas: Cosa[] = [
     ...contesta.sort(masNuevaPrimero),
@@ -177,7 +192,22 @@ export function juntar(f: Fuentes): Cosa[] {
     ...ideas,
     ...pasadas.sort(masNuevaPrimero),
   ];
-  return f.reposo ? conReposo(todas, f.reposo, f.ahora ?? Date.now()) : todas;
+  return f.reposo ? conReposo(todas, f.reposo, ahora) : todas;
+}
+
+/**
+ * Las filas que se ven en la lista. Lo que ya pasó va plegado al final en
+ * cuanto queda decidido, y solo sale si abres «Ya pasó»: en la lista queda lo
+ * que te espera (Munir, 2026-11-25, harto de borrarlas a mano: «que se elimine
+ * automáticamente cuando ya esté decidido o dado por terminado»). Siguen
+ * guardadas una semana, para que el agente lea tu respuesta y tú la repases.
+ *
+ * La que tienes abierta se queda aunque acabe de pasar (le contestaste y tienes
+ * delante el «Enviada…»), hasta que vayas a otra.
+ */
+export function filasQueSeVen(lista: Cosa[], abiertaId: string | null, anteriores: boolean): Cosa[] {
+  if (anteriores) return lista;
+  return lista.filter((c) => c.parte !== "pasado" || c.id === abiertaId);
 }
 
 // --- lo que haces con cada fila: posponerla (H) y marcarla como vista (U) -----------------

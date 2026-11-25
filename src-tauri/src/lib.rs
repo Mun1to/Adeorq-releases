@@ -19,6 +19,10 @@ mod hilo;
 mod icons;
 mod mac;
 mod pulso;
+// Cuántas terminales con agente caben todavía en la RAM del equipo.
+mod cabida;
+// Qué pantallas usas, apuntado solo en tu disco y solo con `uso-local.on`.
+mod uso_local;
 mod vigia_ventana;
 mod inbox;
 mod manage;
@@ -283,10 +287,9 @@ impl SinVentana for std::process::Command {
     }
 }
 
-/// Dónde queda escrito lo que va mal: `rastro.log` en la carpeta de datos.
-fn ruta_rastro() -> Option<std::path::PathBuf> {
-    Some(dir_datos_creado().ok()?.join("rastro.log"))
-}
+/// Lo que pesa un registro de la carpeta de datos (`rastro.log`, `avisos.log`)
+/// antes de guardarse como `<nombre>.1.log` y empezar otro.
+const TOPE_REGISTRO: u64 = 256 * 1024;
 
 /// Deja constancia de algo que ha ido mal, con su hora.
 ///
@@ -300,7 +303,21 @@ fn ruta_rastro() -> Option<std::path::PathBuf> {
 /// Nunca falla hacia fuera: si no se puede escribir, no pasa nada. Un rastro
 /// que tumbe a la app por no poder escribirse sería peor que no tenerlo.
 pub fn anotar(mensaje: &str) {
-    use std::io::Write;
+    anotar_en("rastro.log", mensaje);
+}
+
+/// Deja constancia de algo que pasó y NO es un fallo: los cambios que ve el
+/// escudo y lo que tira la papelera. Van a `avisos.log`, aparte del rastro: el
+/// 25-nov el rastro de Munir tenía 1.531 líneas que cubrían solo nueve días, y
+/// el 80 % eran estos avisos, que empujaban a los fallos fuera del archivo
+/// (`_docs/METRICAS-DE-USO.md`). Los avisos del escudo, además, ya viven en su
+/// lista de Ajustes › Escudo. Las entregas de claves se quedan en el rastro:
+/// son el registro de quién se llevó qué.
+pub fn anotar_aviso(mensaje: &str) {
+    anotar_en("avisos.log", mensaje);
+}
+
+fn anotar_en(nombre: &str, mensaje: &str) {
     // Los tests NO escriben en el rastro de verdad. El simulacro del lector
     // («un descuido cualquiera dentro del lector», id 7) llevaba DÍAS
     // apareciendo en el rastro de Munir cada vez que una sesión pasaba la
@@ -310,18 +327,24 @@ pub fn anotar(mensaje: &str) {
     if cfg!(test) {
         return;
     }
-    let Some(ruta) = ruta_rastro() else { return };
-    // Sin dejarlo crecer sin fin: lo de hace meses no ayuda a nadie.
-    if std::fs::metadata(&ruta)
-        .map(|m| m.len() > 256 * 1024)
-        .unwrap_or(false)
-    {
-        let _ = std::fs::remove_file(&ruta);
+    let Some(dir) = dir_datos_creado().ok() else { return };
+    escribir_registro(&dir.join(nombre), &format!("[{}] {mensaje}\n", ahora()), TOPE_REGISTRO);
+}
+
+/// Añade `linea` a `ruta`. Al pasar de `tope`, lo que había se guarda como
+/// `<nombre>.1.log` (pisando el anterior) y se empieza uno nuevo: antes se
+/// BORRABA entero, y un fallo de hacía diez días ya no estaba al buscarlo.
+fn escribir_registro(ruta: &std::path::Path, linea: &str, tope: u64) {
+    use std::io::Write;
+    if std::fs::metadata(ruta).map(|m| m.len() > tope).unwrap_or(false) {
+        // Si otro proceso lo tiene cogido justo ahora, se vuelve a intentar
+        // con la línea siguiente; mientras, el archivo crece un poco más.
+        let _ = std::fs::rename(ruta, ruta.with_extension("1.log"));
     }
     if let Ok(mut f) = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
-        .open(&ruta)
+        .open(ruta)
     {
         // La línea ENTERA en una sola escritura. `writeln!` escribe por trozos,
         // y aquí escriben a la vez varios hilos Y varios procesos (la app y la
@@ -329,7 +352,36 @@ pub fn anotar(mensaje: &str) {
         // tenía líneas partidas por la mitad y pegadas unas dentro de otras,
         // que es justo lo que hace ilegible un rastro el día que hace falta.
         // En modo añadir, una escritura única no se mezcla.
-        let _ = f.write_all(format!("[{}] {mensaje}\n", ahora()).as_bytes());
+        let _ = f.write_all(linea.as_bytes());
+    }
+}
+
+#[cfg(test)]
+mod pruebas_registro {
+    use super::escribir_registro;
+
+    #[test]
+    fn al_pasar_del_tope_lo_viejo_se_guarda_y_no_se_borra() {
+        let d = std::env::temp_dir().join(format!("adeorq-registro-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        let ruta = d.join("rastro.log");
+        let leer = |p: &std::path::Path| std::fs::read_to_string(p).unwrap_or_default();
+
+        escribir_registro(&ruta, "uno\n", 8);
+        escribir_registro(&ruta, "dos\n", 8);
+        escribir_registro(&ruta, "tres\n", 8);
+        assert_eq!(leer(&ruta), "uno\ndos\ntres\n", "por debajo del tope, todo en el mismo");
+
+        escribir_registro(&ruta, "cuatro\n", 8);
+        assert_eq!(leer(&d.join("rastro.1.log")), "uno\ndos\ntres\n", "lo de antes se guarda entero");
+        assert_eq!(leer(&ruta), "cuatro\n", "y se empieza otro");
+
+        escribir_registro(&ruta, "cinco\n", 8);
+        escribir_registro(&ruta, "seis\n", 8);
+        assert_eq!(leer(&d.join("rastro.1.log")), "cuatro\ncinco\n", "la segunda vez pisa al guardado, no crece sin fin");
+        assert_eq!(leer(&ruta), "seis\n");
+        let _ = std::fs::remove_dir_all(&d);
     }
 }
 
@@ -822,6 +874,11 @@ pub fn run() {
             notes::note_delete,
             pulso::pulso,
             pulso::pulso_panes,
+            cabida::cabida,
+            cabida::tope_agentes,
+            cabida::fijar_tope_agentes,
+            uso_local::uso_local_encendido,
+            uso_local::uso_local_anotar,
             vigia_ventana::latido_ventana,
             memoria::memoria_scan,
             memoria::memoria_vaults,

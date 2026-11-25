@@ -49,6 +49,16 @@
 async (page) => {
   const fallos = [];
   const debe = (ok, que) => { if (!ok) fallos.push(que); };
+  // Lo que ya pasó va plegado (2026-11-25): para tocar una de sus filas, se abre antes.
+  const abrirYaPaso = async () => {
+    const cab = page.locator(".dec-pleg-cab");
+    if ((await cab.count()) && (await cab.getAttribute("aria-expanded")) === "false") {
+      await cab.click();
+      await page.waitForTimeout(450);
+    }
+  };
+  // El rótulo de lo que ya pasó lleva su cuenta: «Ya pasó (2)».
+  const sinCuenta = (etis) => etis.map((e) => e.replace(/ \(\d+\)$/, ""));
   // Donde el MCP de Playwright deja escribir, y git no mira.
   const CAPTURAS = ".playwright-mcp";
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -222,7 +232,16 @@ async (page) => {
   await page.waitForSelector(".dec-abierta");
   debe(await page.locator(".dec-fila").count() === 4, "cuatro en la lista");
   const etis = await page.locator(".dec-lista-eti").allTextContents();
-  debe(etis.join() === "Te toca,Ya pasó", `las partes con algo dentro, y solo esas (${etis})`);
+  debe(etis.join() === "Te toca,Ya pasó (2)", `las partes con algo dentro, y solo esas, y lo que ya pasó con su cuenta (${etis})`);
+  // Lo que ya pasó, plegado al entrar: sus filas no ocupan sitio (Munir, 2026-11-25:
+  // «que se elimine automáticamente cuando ya esté decidido»).
+  const plegado = await page.evaluate(() => ({
+    abierto: document.querySelector(".dec-pleg-cab")?.getAttribute("aria-expanded"),
+    alto: Math.round(document.querySelector(".dec-pleg")?.getBoundingClientRect().height ?? -1),
+    inerte: document.querySelector(".dec-pleg")?.inert,
+  }));
+  debe(plegado.abierto === "false" && plegado.alto === 0 && plegado.inerte === true, `lo que ya pasó, plegado al entrar (${JSON.stringify(plegado)})`);
+  await abrirYaPaso();
   debe(await page.locator(".dec-limpiar").count() === 0, "ya no hay botón de vaciar: se limpia sola");
   debe((await page.locator(".dec-head").textContent()) === "Decisiones2 te tocan", `el título va dentro del cristal (${await page.locator(".dec-head").textContent()})`);
   debe((await page.locator(".dec-abierta h2").textContent()) === "Dónde va la barra de la guía", "abre la primera que te espera");
@@ -297,8 +316,29 @@ async (page) => {
   debe((await tab.locator(".tab-count").textContent()) === "1", "la cuenta baja a 1");
   debe(/Contestada desde el PC/.test(await page.locator(".dec-hecha").textContent()), "se ve contestada desde el PC");
   debe(/Se tecleó en el panel 3/.test(await page.locator(".dec-hecha").textContent()), "y que se tecleó");
+  // 6b. Ya pasó, pero la tienes delante: se queda a la vista, fuera de lo plegado,
+  //     hasta que vas a otra (lo eligió Munir el 2026-11-25).
+  const filaContestada = () => page.evaluate(() => {
+    const f = [...document.querySelectorAll(".dec-fila")].find((x) => /Dónde va la barra/.test(x.textContent));
+    return { parte: f?.closest(".dec-parte")?.dataset.parte, plegada: !!f?.closest(".dec-pleg"), abierto: document.querySelector(".dec-pleg-cab")?.getAttribute("aria-expanded") };
+  });
+  const recien = await filaContestada();
+  debe(recien.parte === "pasado" && !recien.plegada && recien.abierto === "false", `la que acabas de contestar se queda delante, con lo demás plegado (${JSON.stringify(recien)})`);
+  await page.locator(".dec-fila", { hasText: "sección nueva" }).click();
+  await page.waitForTimeout(200);
+  const ida = await filaContestada();
+  debe(ida.plegada, `en cuanto vas a otra, se pliega con las anteriores (${JSON.stringify(ida)})`);
+  // Abrir «Ya pasó» crece poco a poco, empujando lo de debajo: nunca aparece de golpe.
+  await page.locator(".dec-pleg-cab").click();
+  await page.waitForTimeout(120);
+  const aMedias = await page.evaluate(() => Math.round(document.querySelector(".dec-pleg").getBoundingClientRect().height));
+  await page.waitForTimeout(450);
+  const entero = await page.evaluate(() => Math.round(document.querySelector(".dec-pleg").getBoundingClientRect().height));
+  debe(aMedias > 0 && aMedias < entero, `«Ya pasó» se abre poco a poco (a los 120 ms, ${aMedias} de ${entero} px)`);
+  await page.screenshot({ path: `${CAPTURAS}/dec-ya-paso.png` });
 
   // 7. Una contestada se lee, no se edita.
+  await abrirYaPaso();
   await page.locator(".dec-fila", { hasText: "primera prueba de verdad" }).click();
   await page.waitForTimeout(200);
   const leida = await page.evaluate(() => ({
@@ -400,7 +440,7 @@ async (page) => {
   await page.waitForSelector(".dec-parte[data-parte=ideas]");
   await page.waitForTimeout(300);
   debe((await tab.locator(".tab-count").textContent()) === "3", `la pestaña cuenta lo que te toca: 3 (${await tab.locator(".tab-count").textContent()})`);
-  const partes = await page.locator(".dec-lista-eti").allTextContents();
+  const partes = sinCuenta(await page.locator(".dec-lista-eti").allTextContents());
   debe(partes.join() === "Te toca,Terminó,Ideas de tus agentes,Ya pasó", `las cuatro partes en su orden (${partes})`);
   const palabras = await page.locator(".dec-parte[data-parte=toca] .dec-palabra").allTextContents();
   debe(palabras.join() === "Contesta,Decide,Parado", `en Te toca, la terminal, la decisión y el encargo (${palabras})`);
@@ -554,7 +594,7 @@ async (page) => {
   await page.waitForSelector(".dec-abierta");
   const en = await page.evaluate(() => ({ eti: [...document.querySelectorAll(".dec-lista-eti")].map((x) => x.textContent), botones: [...document.querySelectorAll(".dec-pie-botones button")].map((b) => b.textContent), palabra: document.querySelector(".dec-palabra")?.textContent }));
   // Recargar deja la casa como al principio: vuelven las vivas y la que nadie espera.
-  debe(en.eti.join() === "Your turn,Past" && en.botones.join() === "Discard,Snooze,Send answer" && en.palabra === "Decide", `la vista en inglés (${JSON.stringify(en)})`);
+  debe(en.eti.join() === "Your turn,Past (2)" && en.botones.join() === "Discard,Snooze,Send answer" && en.palabra === "Decide", `la vista en inglés (${JSON.stringify(en)})`);
   await page.evaluate(() => sessionStorage.removeItem("__lang"));
 
   // 16. Posponer (H) y marcar como vista (U), P2 de la A1 (2026-11-16). Casa
@@ -638,7 +678,7 @@ async (page) => {
     debe(await page.locator(".dec-posponer").count() === 0, "el menú se cierra");
     const donde = await sitio();
     debe(donde.join() === "toca:dec:d19a2b3c4d01,toca:dec:d19a2b3c4d00,termino:aviso:5,ideas:nota:idea|Adeorq|Que la Agenda enseñe la semana entera,pospuesto:aviso:3,pasado:dec:d19a2b3c4c00,pasado:dec:d19a2b3c4b00", `la pospuesta, en su parte (${donde.join(" ")})`);
-    debe((await page.locator(".dec-lista-eti").allTextContents()).join() === "Te toca,Terminó,Ideas de tus agentes,Pospuesto,Ya pasó", "con su título entre las ideas y lo que ya pasó");
+    debe(sinCuenta(await page.locator(".dec-lista-eti").allTextContents()).join() === "Te toca,Terminó,Ideas de tus agentes,Pospuesto,Ya pasó", "con su título entre las ideas y lo que ya pasó");
     debe(await cuentaTab() === "2", `la pestaña baja a 2 (${await cuentaTab()})`);
     debe((await abierta()) === "dec:d19a2b3c4d01", `se abre la siguiente que te toca (${await abierta()})`);
     const de = await page.locator(".dec-fila[data-id='aviso:3'] .dec-fila-de").textContent();
@@ -690,6 +730,7 @@ async (page) => {
   });
 
   await paso("16i: lo que ya pasó no se pospone", async () => {
+    await abrirYaPaso();
     await page.locator(".dec-fila[data-clase=pasada]").first().click();
     await page.keyboard.press("h");
     debe(await page.locator(".dec-posponer").count() === 0, "H no hace nada con lo que ya pasó");
@@ -836,6 +877,7 @@ async (page) => {
     await page.locator(".dec-fila[data-clase=parado]").click();
     const parado = await page.locator(".dec-doc .dec-acciones button").allTextContents();
     debe(parado.join() === "Abrirlo en la Agenda,Posponer", `un encargo parado (${parado.join(" | ")})`);
+    await abrirYaPaso();
     await page.locator(".dec-fila[data-clase=pasada]").first().click();
     debe(await botonPosponer().count() === 0, "lo que ya pasó no lleva botón");
   });

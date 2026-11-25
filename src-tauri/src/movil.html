@@ -1029,6 +1029,16 @@
   .tarjeta[data-vigencia]:not([data-vigencia="viva"]) b { font-weight: 500; }
   .tarjeta[data-vigencia="huerfana"] { border-style: dashed; }
   .tarjeta[data-vigencia="contestada"] .estado { color: var(--vivo); }
+  /* «Anteriores (23)»: lo que ya no te espera, plegado al final (Munir, 2026-11-25:
+     «que se elimine automáticamente cuando ya esté decidido»). Se abre tocándolo y
+     crece poco a poco, empujando lo de debajo; nunca aparece de golpe. */
+  .seccion .pleg-cab { flex: 1; display: flex; align-items: center; gap: 8px; min-height: 44px; margin: -10px 0; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; font-weight: inherit; }
+  .pleg-cab span { flex: 1; }
+  .pleg-cab svg { flex: none; color: var(--suave); transition: transform var(--t); }
+  .pleg-cab[aria-expanded="true"] svg { transform: rotate(90deg); }
+  .pleg { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--t-lenta) ease-in-out; }
+  .pleg[data-abierto] { grid-template-rows: 1fr; }
+  .pleg > div { min-height: 0; overflow: hidden; }
   .calma { display: flex; align-items: center; gap: 12px; margin: 6px 4px 4px; color: var(--suave); font-size: calc(14.5px * var(--z)); }
   .pregunta-d { border: 0; padding: 0; margin: 0 0 8px; min-width: 0; }
   .pregunta-d:not([disabled]), .dec-repaso { --desde: 14px; animation: entra 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
@@ -1674,11 +1684,11 @@ const EN = {
   "No hay ninguna decisión. Cuando un agente te pregunte algo, sale aquí.":
     "There are no decisions. When an agent asks you something, it shows up here.",
   "Nada te espera ahora mismo.": "Nothing is waiting for you right now.",
-  "Anteriores": "Earlier",
+  "Anteriores ({n})": "Earlier ({n})",
   "Ya no te esperan. A la semana se borran solas.": "They are not waiting for you any more. They delete themselves after a week.",
   "Le escribiste después": "You wrote to it afterwards",
-  "Le escribiste a su terminal después de que preguntara. Si no era la respuesta, contéstala; si lo era, descártala.":
-    "You wrote to its terminal after it asked. If that was not the answer, answer it; if it was, discard it.",
+  "Le escribiste a su terminal después de que preguntara. Si no era la respuesta, contéstala; si lo era, no hagas nada: a la hora se va sola con las anteriores.":
+    "You wrote to its terminal after it asked. If that was not the answer, answer it; if it was, do nothing: after an hour it moves to Earlier on its own.",
   "Volver a las decisiones": "Back to the decisions",
   "Decisión": "Decision",
   "Enviar respuesta": "Send answer",
@@ -4927,8 +4937,12 @@ const VIGENCIA = {
   contestada: [tr("contestada"), "cerrada"],
   descartada: [tr("descartada"), "cerrada"],
 };
+/* Lo que sigue arriba, en «Le escribiste después», una hablada de una terminal
+   abierta: una hora desde que le escribiste (`HABLADA_A_LA_VISTA`, en
+   lib/decisionesLista.ts). */
+const HABLADA_A_LA_VISTA = 3600000;
 // La que ya se está mandando no te espera: la pulsaste, y lo dice `pintarEnvios`.
-const vivas = (lista) => (lista || []).filter((d) => d.vigencia === "viva" && !salidasDec.get(d.id)?.envio);
+const vivas =(lista) => (lista || []).filter((d) => d.vigencia === "viva" && !salidasDec.get(d.id)?.envio);
 /** `una` y `varias` llegan ya traducidas; `varias` lleva su `{n}`. */
 const plural = (n, una, varias) => (n === 1 ? una : varias.replace("{n}", n));
 
@@ -4985,8 +4999,12 @@ async function pintarDecisiones() {
   // el latido de las vivas y te quitaba el toque a medio pulsar.
   let pintado = null;
   let arranque = null;
+  // «Anteriores» va plegado cada vez que entras: en la lista, solo lo que te espera.
+  let anterioresAbiertas = false;
   const cargar = async () => {
     const [v, vt] = await Promise.all([api("GET", "/api/decisiones"), api("GET", "/api/terminales").catch(() => ({}))]);
+    // La hora del PC: con ella se va de arriba lo hablado, aunque el reloj del móvil vaya mal.
+    const ahora = Number(v.ahora) || Date.now();
     arranque = vt.arranque ?? null;
     // Lo que te pregunta cada terminal, leído de su pantalla como en su chat.
     const preguntas = await Promise.all(preguntanDe(vt).map((t) => api("GET", `/api/terminal?panel=${t.panel}&arranque=${vt.arranque}`).then((x) => {
@@ -5005,8 +5023,10 @@ async function pintarDecisiones() {
     const saliendo = lista.filter((d) => salidasDec.get(d.id)?.envio);
     // Le escribiste a su terminal y sigue abierta: puede que no fuera la
     // respuesta, así que se ve arriba, aparte y sin sumar en el globito (Munir,
-    // 2026-11-24, buscando lo que le quedaba por decidir: «no lo veo»).
-    const hablaste = lista.filter((d) => d.vigencia === "hablada" && d.se_teclea && !salidasDec.get(d.id)?.envio);
+    // 2026-11-24, buscando lo que le quedaba por decidir: «no lo veo»). Pero
+    // solo una hora: luego se va sola con las anteriores, sin pedirte que la
+    // descartes (2026-11-25). Como `habladaAbierta`, en lib/decisionesLista.ts.
+    const hablaste = lista.filter((d) => d.vigencia === "hablada" && d.se_teclea && ahora < (d.cerrada ?? 0) + HABLADA_A_LA_VISTA && !salidasDec.get(d.id)?.envio);
     const anteriores = lista.filter((d) => d.vigencia !== "viva" && !hablaste.includes(d) && !salidasDec.get(d.id)?.envio)
       .sort((a, b) => (b.cerrada ?? b.creada) - (a.cerrada ?? a.creada));
     const total = esperan.length + preguntas.length;
@@ -5025,19 +5045,31 @@ async function pintarDecisiones() {
         : `<p class="calma">${mascota("quieta", 26, "decisiones")}${tr("Nada te espera ahora mismo.")}</p>`;
       if (hablaste.length) {
         html += `<h2 class="seccion"><span>${tr("Le escribiste después")}</span></h2>
-          <p class="seccion-nota">${tr("Le escribiste a su terminal después de que preguntara. Si no era la respuesta, contéstala; si lo era, descártala.")}</p>${hablaste.map(tarjetaDecision).join("")}`;
+          <p class="seccion-nota">${tr("Le escribiste a su terminal después de que preguntara. Si no era la respuesta, contéstala; si lo era, no hagas nada: a la hora se va sola con las anteriores.")}</p>${hablaste.map(tarjetaDecision).join("")}`;
       }
+      // Lo que ya no te espera, plegado al final: se abre si lo tocas. Siguen
+      // guardadas una semana, para que el agente lea tu respuesta y tú la repases.
       if (anteriores.length) {
-        html += `<h2 class="seccion"><span>${tr("Anteriores")}</span></h2>
-          <p class="seccion-nota">${tr("Ya no te esperan. A la semana se borran solas.")}</p>${anteriores.map(tarjetaDecision).join("")}`;
+        html += `<h2 class="seccion"><button type="button" class="pleg-cab" id="ver-anteriores" aria-expanded="${anterioresAbiertas}" aria-controls="anteriores-dec"><span>${tr("Anteriores ({n})", { n: anteriores.length })}</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></h2>
+          <div class="pleg" id="anteriores-dec"${anterioresAbiertas ? " data-abierto" : " inert"}><div>
+          <p class="seccion-nota">${tr("Ya no te esperan. A la semana se borran solas.")}</p>${anteriores.map(tarjetaDecision).join("")}</div></div>`;
       }
     }
     // Por lo que dice la lista y no por el HTML, que lleva dentro a la mascota
-    // y esa cambia de postura sola.
-    const firma = JSON.stringify([lista, preguntas.map((p) => [p.t.panel, p.t.nombre, p.t.carpeta, p.a]), saliendo.map((d) => d.id)]);
+    // y esa cambia de postura sola. Lo hablado que se va a su hora no cambia la
+    // lista, así que va aparte.
+    const firma = JSON.stringify([lista, preguntas.map((p) => [p.t.panel, p.t.nombre, p.t.carpeta, p.a]), saliendo.map((d) => d.id), hablaste.map((d) => d.id)]);
     if (firma === pintado) return;
     pintado = firma;
     conservarEscrito(aqui, () => { aqui.innerHTML = html; });
+    // Abrir o plegar no repinta: así crece poco a poco en vez de aparecer.
+    document.getElementById("ver-anteriores")?.addEventListener("click", (ev) => {
+      anterioresAbiertas = !anterioresAbiertas;
+      ev.currentTarget.setAttribute("aria-expanded", String(anterioresAbiertas));
+      const pleg = document.getElementById("anteriores-dec");
+      pleg?.toggleAttribute("data-abierto", anterioresAbiertas);
+      pleg?.toggleAttribute("inert", !anterioresAbiertas);
+    });
     aqui.querySelectorAll(".tarjeta[data-id]").forEach((b) => b.addEventListener("click", () => ir({ vista: "decision", id: b.dataset.id, volverPanel: e.volverPanel, volverArranque: e.volverArranque })));
   };
   // Contestar a una terminal desde aquí, como en su chat (`contestarMenu`). O

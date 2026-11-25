@@ -111,9 +111,12 @@ jobs:
           desde=$(date -u -d '5 minutes ago' +%Y-%m-%dT%H:%M:%SZ)
           empezo=$SECONDS
           while [ $((SECONDS - empezo)) -lt 4200 ]; do
+            # Un error de la API de GitHub (un 500 tumbó así el Mac de la 0.9.267
+            # con el Linux en marcha) no es una respuesta: se pregunta otra vez.
             estado=$(gh run list --repo "$REPO" --workflow linux.yml --event release --limit 20 \
               --json headBranch,status,createdAt \
-              --jq "[.[] | select(.headBranch == \"$ETIQUETA\" or .createdAt > \"$desde\")] | (.[0].status // \"ninguno\")")
+              --jq "[.[] | select(.headBranch == \"$ETIQUETA\" or .createdAt > \"$desde\")] | (.[0].status // \"ninguno\")") \
+              || estado="sin respuesta de GitHub"
             echo "Linux de $ETIQUETA: $estado ($((SECONDS - empezo)) s)"
             case "$estado" in
               completed)

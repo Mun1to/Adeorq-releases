@@ -15,7 +15,9 @@
 //   pnpm bancos decisiones-lista
 
 import {
+  HABLADA_A_LA_VISTA,
   SIN_REPOSO,
+  filasQueSeVen,
   avisoDormido,
   cuandoVuelve,
   cuantasTeTocan,
@@ -29,6 +31,7 @@ import {
   plazos,
   podar,
   posponer,
+  proximaHabladaQueSeVa,
   proximoDespertar,
   reposoDe,
   siguienteTrasApartar,
@@ -118,9 +121,11 @@ ok("una huérfana o una hablada ya no te toca", cuantasTeTocan(juntar({ ...vacio
 // Le escribiste a su terminal, pero no tiene por qué haber sido la respuesta: mientras
 // esa terminal siga abierta se ve arriba, aparte y sin sumar (Munir, 2026-11-24: «no lo veo»).
 {
+  const T = 1_000_000_000;
   const l = juntar({
     ...vacio,
-    decisiones: [{ ...dec("abierta", "hablada", 5, 1), se_teclea: true }, { ...dec("cerrada", "hablada", 4, 2), se_teclea: false }],
+    decisiones: [{ ...dec("abierta", "hablada", 5, 1), se_teclea: true, hablada: T }, { ...dec("cerrada", "hablada", 4, 2), se_teclea: false, hablada: T }],
+    ahora: T + 10 * 60_000,
   });
   es(
     "la hablada de una terminal abierta sale en «Le escribiste después», la de una cerrada ya pasó",
@@ -128,6 +133,42 @@ ok("una huérfana o una hablada ya no te toca", cuantasTeTocan(juntar({ ...vacio
     ["dec:abierta@hablaste", "dec:cerrada@pasado"],
   );
   ok("y no suma en lo que te toca", cuantasTeTocan(l) === 0);
+  // Pero solo una hora: luego era la respuesta y se va sola con las anteriores, sin
+  // pedirte que la descartes (Munir, 2026-11-25: «que se elimine automáticamente»).
+  const a = (ahora: number) =>
+    juntar({ ...vacio, decisiones: [{ ...dec("abierta", "hablada", 5, 1), se_teclea: true, hablada: T }], ahora }).map((c) => c.parte);
+  es("a los 59 minutos sigue arriba", a(T + 59 * 60_000), ["hablaste"]);
+  es("a la hora justa ya pasó", a(T + HABLADA_A_LA_VISTA), ["pasado"]);
+  const dos = [
+    { ...dec("x", "hablada", 5, 1), se_teclea: true, hablada: T },
+    { ...dec("y", "hablada", 6, 1), se_teclea: true, hablada: T + 20 * 60_000 },
+    { ...dec("z", "hablada", 7, 2), se_teclea: false, hablada: T + 30 * 60_000 },
+  ];
+  es("la lista se vuelve a mirar cuando se va la primera que sigue arriba", proximaHabladaQueSeVa(dos, T + 5 * 60_000), T + HABLADA_A_LA_VISTA);
+  es("ida esa, cuando se va la siguiente", proximaHabladaQueSeVa(dos, T + HABLADA_A_LA_VISTA), T + 20 * 60_000 + HABLADA_A_LA_VISTA);
+  es("sin ninguna arriba, nada que esperar", proximaHabladaQueSeVa(dos, T + 2 * HABLADA_A_LA_VISTA), undefined);
+}
+
+// --- lo que ya pasó, plegado al final ------------------------------------------------
+// Munir, 2026-11-25, harto de borrarlas a mano: «que se elimine automáticamente cuando ya
+// esté decidido o dado por terminado». Eligió quitarlas de la lista al momento, guardadas
+// en un «Anteriores» plegado, y que la que tienes abierta se quede hasta que pases a otra.
+{
+  const lista = juntar({
+    ...vacio,
+    decisiones: [dec("viva", "viva", 40, 7), dec("contestada", "contestada", 30), dec("resuelta", "resuelta", 20), dec("sola", "huerfana", 10)],
+    avisos: [aviso(2, "hecho", 50)],
+  });
+  const vistas = (abierta: string | null, anteriores: boolean) => filasQueSeVen(lista, abierta, anteriores).map((c) => c.id);
+  es("plegado, solo se ve lo que aún te espera", vistas(null, false), ["dec:viva", "aviso:2"]);
+  es("la que acabas de contestar se queda mientras la tengas abierta", vistas("dec:contestada", false), ["dec:viva", "aviso:2", "dec:contestada"]);
+  es("abierto «Ya pasó», todo", vistas(null, true), lista.map((c) => c.id));
+  const plegada = filasQueSeVen(lista, "dec:contestada", false);
+  ok("J desde la contestada no entra en lo plegado", vecina(plegada, "dec:contestada", 1)?.id === "dec:contestada");
+  const sinEsa = filasQueSeVen(lista, "aviso:2", false);
+  ok("y en cuanto pasas a otra, se pliega", !sinEsa.some((c) => c.parte === "pasado"));
+  ok("J al final de lo que te espera se queda ahí", vecina(sinEsa, "aviso:2", 1)?.id === "aviso:2");
+  ok("si se va la abierta, se abre una que se ve", laAbierta(sinEsa, "dec:que-ya-no-esta", sinEsa.length)?.parte !== "pasado");
 }
 
 // --- una terminal, una fila ------------------------------------------------------

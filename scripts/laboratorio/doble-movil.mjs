@@ -985,7 +985,7 @@ http
               id: d.id, titulo: d.titulo, proyecto: d.proyecto, panel: d.panel, creada: d.creada, preguntas: d.preguntas.length,
               contestada: Boolean(d.respuesta), vigencia: vigenciaDe(d), se_teclea: seTeclea(d),
               cerrada: d.respuesta?.cuando ?? d.descartada ?? d.resuelta?.cuando ?? d.hablada ?? null,
-            })) });
+            })), ahora: Date.now() });
         // Con `si`, como en movil.rs: «igual» si la firma es la de ahora, que la
         // página la vigila cada 6 s mientras la tiene abierta.
         case "/api/decision": {
@@ -1039,6 +1039,8 @@ http
             id: v.id, titulo: v.titulo, proyecto: v.proyecto, panel: v.panel, arranque: ARRANQUE, creada: Date.now(),
             contexto: v.contexto,
             preguntas: v.preguntas ?? [{ id: "A", titulo: "¿Sí o no?", opciones: [{ texto: "Sí" }, { texto: "No" }] }],
+            // Le escribiste a su terminal a esa hora (ms): para ver cuándo se pliega.
+            ...(v.hablada ? { hablada: v.hablada } : {}),
           });
           return json(res, 200, { ok: true });
         // Solo del banco: lo que hace `close_decision` (o `replaces`) del MCP.

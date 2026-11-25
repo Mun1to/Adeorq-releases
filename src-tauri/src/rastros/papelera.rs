@@ -144,7 +144,7 @@ fn una_vuelta(app: &tauri::AppHandle) {
     let raices: Vec<PathBuf> = crate::sessions::raices_claude().into_iter().map(|(_, p)| p).collect();
     let v = barrer(&dir, &raices, &guardar, ahora_ms(), crate::manage::to_recycle_bin);
     if !v.tiradas.is_empty() {
-        crate::anotar(&format!(
+        crate::anotar_aviso(&format!(
             "papelera: {} conversaciones de terminales que abrió un agente: {}",
             v.tiradas.len(),
             v.tiradas.join(", ")

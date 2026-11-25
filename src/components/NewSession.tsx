@@ -36,6 +36,7 @@ import ProviderMark, { tieneMarca } from "./ProviderMark";
 import { propsDeVelo } from "../lib/velo";
 import { ChevronIcon, FolderIcon, PlusIcon, RefreshIcon, UnlinkIcon } from "./Icons";
 import { CAJAS, cabeEnCaja, cajasDisponibles, nombreDeCaja, type Caja } from "../lib/cajas";
+import { useTopeAbrir } from "../lib/topeAbrir";
 
 /** Everything needed to open one terminal, once both steps are answered. */
 export interface Launch {
@@ -93,7 +94,7 @@ const NAME_OK = /^[a-zA-Z0-9 ._-]+$/;
 
 export default function NewSession({
   accounts,
-  maxPanes,
+  maxPanes: topePanes,
   suggested,
   yaAbiertas,
   onLaunch,
@@ -120,6 +121,8 @@ export default function NewSession({
   const [planMode, setPlanMode] = useState(false);
   const [accountId, setAccountId] = useState("");
   const [count, setCount] = useState(1);
+  // El número de Ajustes, o por la memoria las que caben ahora (`lib/topeAbrir.ts`).
+  const maxPanes = useTopeAbrir(topePanes);
   const [agy, setAgy] = useState<string | null>(null);
   const [clis, setClis] = useState<string[]>([]);
   /** Los modelos que tienes descargados en este equipo. Lista vacía = Ollama no
@@ -359,7 +362,8 @@ export default function NewSession({
       localModel: provider === "ollama" ? local || locales[0] : undefined,
       plan: sabe(provider, "modoPlan") && planMode ? true : undefined,
       account: chosenAccount,
-      count,
+      // Elegido antes de que llegara la cuenta de la memoria, puede pasarse.
+      count: Math.min(count, maxPanes),
       caja: enCaja || undefined,
     });
   };

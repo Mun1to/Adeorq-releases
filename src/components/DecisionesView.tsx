@@ -18,6 +18,7 @@ import {
   PALABRA,
   PARTES,
   TITULO_DE,
+  filasQueSeVen,
   carpeta,
   cuandoVuelve,
   cuantasTeTocan,
@@ -180,15 +181,19 @@ export default function DecisionesView({ decisiones, irATerminal, irA, onVolver,
 
   const [abiertaId, setAbiertaId] = useState<string | null>(null);
   const dondeEstaba = useRef(-1);
-  const abierta = laAbierta(lista, abiertaId, dondeEstaba.current);
+  // Lo que ya pasó va plegado al final y se abre si lo tocas (`filasQueSeVen`). Cada
+  // vez que entras, plegado: en la lista, solo lo que te espera.
+  const [anteriores, setAnteriores] = useState(false);
+  const visibles = useMemo(() => filasQueSeVen(lista, abiertaId, anteriores), [lista, abiertaId, anteriores]);
+  const abierta = laAbierta(visibles, abiertaId, dondeEstaba.current);
   // La que se abre sola (la primera que te toca) se queda fijada: al
   // contestarla pasa a «Ya pasó», y sin esto la vista saltaba a la siguiente y
   // se perdía el «Enviada. Se ha tecleado en el panel…».
   useEffect(() => {
     if (!abierta) return;
-    dondeEstaba.current = lista.indexOf(abierta);
+    dondeEstaba.current = visibles.indexOf(abierta);
     if (abierta.id !== abiertaId) setAbiertaId(abierta.id);
-  }, [abierta, abiertaId, lista]);
+  }, [abierta, abiertaId, visibles]);
   // Lo que se te pone delante, aunque sea solo, lo has visto; pero solo con la
   // ventana a la vista: minimizada o en otra app, lo que llega y se abre solo sigue
   // nuevo hasta que vuelvas. Una vez por cada vez que se abre: U la deja sin ver y
@@ -401,8 +406,8 @@ export default function DecisionesView({ decisiones, irATerminal, irA, onVolver,
         return;
       }
       const k = e.key.toLowerCase();
-      if (!enRadio && (k === "j" || e.key === "ArrowDown")) return (hecho(), abrir(vecina(lista, abierta?.id ?? null, 1)));
-      if (!enRadio && (k === "k" || e.key === "ArrowUp")) return (hecho(), abrir(vecina(lista, abierta?.id ?? null, -1)));
+      if (!enRadio && (k === "j" || e.key === "ArrowDown")) return (hecho(), abrir(vecina(visibles, abierta?.id ?? null, 1)));
+      if (!enRadio && (k === "k" || e.key === "ArrowUp")) return (hecho(), abrir(vecina(visibles, abierta?.id ?? null, -1)));
       if (e.key === "?") return (hecho(), setChuleta((v) => !v));
       if (k === "h" || k === "u") {
         // H pospone lo marcado (en una pospuesta, la trae de vuelta); U la marca
@@ -457,6 +462,27 @@ export default function DecisionesView({ decisiones, irATerminal, irA, onVolver,
     }
   };
 
+  const filaDeLista = (c: Cosa) => {
+    const f = filas(c);
+    return (
+      <button
+        key={c.id}
+        className="dec-fila"
+        data-id={c.id}
+        data-on={c.id === abierta?.id}
+        data-nueva={c.vista === false}
+        data-clase={c.clase}
+        onClick={() => abrir(c, false)}
+        onDoubleClick={() => entrar(c)}
+      >
+        <span className="dec-fila-titulo">
+          <b className="dec-palabra">{f.palabra}</b> <span className="stream-hide">{f.titulo}</span>
+        </span>
+        <span className="dec-fila-de">{[...f.de, c.hasta ? vuelveA(c.hasta) : ""].filter(Boolean).join(" · ")}</span>
+      </button>
+    );
+  };
+
   return (
     <div className="dec" ref={raiz}>
       <div className="dec-cuerpo">
@@ -468,33 +494,35 @@ export default function DecisionesView({ decisiones, irATerminal, irA, onVolver,
           {PARTES.map((parte) => {
             const suyas = lista.filter((c) => c.parte === parte);
             if (!suyas.length) return null;
+            if (parte === "pasado") {
+              // Plegado, solo asoma la que tienes abierta (acabas de contestarla).
+              const fuera = anteriores ? [] : suyas.filter((c) => visibles.includes(c));
+              const dentro = anteriores ? suyas : suyas.filter((c) => !fuera.includes(c));
+              return (
+                <section key={parte} className="dec-parte" data-parte={parte}>
+                  <button className="dec-lista-eti dec-pleg-cab" aria-expanded={anteriores} onClick={() => setAnteriores((v) => !v)}>
+                    {t("Ya pasó ({n})", { n: String(suyas.length) })}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M9 6l6 6-6 6" />
+                    </svg>
+                  </button>
+                  {fuera.map(filaDeLista)}
+                  <div className="dec-pleg" data-abierto={anteriores} inert={!anteriores}>
+                    <div>
+                      {dentro.map(filaDeLista)}
+                      <p className="dec-lista-nota">{t("Lo que ya pasó se borra solo a la semana.")}</p>
+                    </div>
+                  </div>
+                </section>
+              );
+            }
             return (
               <section key={parte} className="dec-parte" data-parte={parte}>
                 <h3 className="dec-lista-eti">{t(TITULO_DE[parte])}</h3>
-                {suyas.map((c) => {
-                  const f = filas(c);
-                  return (
-                    <button
-                      key={c.id}
-                      className="dec-fila"
-                      data-id={c.id}
-                      data-on={c.id === abierta?.id}
-                      data-nueva={c.vista === false}
-                      data-clase={c.clase}
-                      onClick={() => abrir(c, false)}
-                      onDoubleClick={() => entrar(c)}
-                    >
-                      <span className="dec-fila-titulo">
-                        <b className="dec-palabra">{f.palabra}</b> <span className="stream-hide">{f.titulo}</span>
-                      </span>
-                      <span className="dec-fila-de">{[...f.de, c.hasta ? vuelveA(c.hasta) : ""].filter(Boolean).join(" · ")}</span>
-                    </button>
-                  );
-                })}
+                {suyas.map(filaDeLista)}
               </section>
             );
           })}
-          {lista.some((c) => c.parte === "pasado") && <p className="dec-lista-nota">{t("Lo que ya pasó se borra solo a la semana.")}</p>}
           <p className="dec-lista-nota">{t("Pulsa ? para ver las teclas.")}</p>
         </nav>
         <section className="dec-doc">

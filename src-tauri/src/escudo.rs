@@ -814,12 +814,12 @@ fn aviso_de_la_vuelta(nuevas: &[vigilante::Alerta]) -> Option<String> {
     }
 }
 
-/// Cada cambio al rastro y a la lista de Ajustes, y un solo aviso del escritorio.
+/// Cada cambio a `avisos.log` y a la lista de Ajustes, y un solo aviso del escritorio.
 fn avisar(app: &tauri::AppHandle, nuevas: &[vigilante::Alerta]) {
     use tauri::Emitter;
     use tauri_plugin_notification::NotificationExt;
     for a in nuevas {
-        crate::anotar(&format!("escudo: {}", texto_de(a)));
+        crate::anotar_aviso(&format!("escudo: {}", texto_de(a)));
         let _ = app.emit("escudo-cambio", json!({ "ruta": a.ruta }));
     }
     let Some(texto) = aviso_de_la_vuelta(nuevas) else { return };

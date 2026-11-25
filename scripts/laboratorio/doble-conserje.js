@@ -555,6 +555,17 @@ async (page) => {
         case "mods_quitar":
           window.__modsDeMentira = (window.__modsDeMentira ?? []).filter((m) => m.id !== args.id);
           return null;
+        // El tope de las que abren los agentes y la cuenta de la memoria (`cabida.rs`):
+        // lo guardado vive en `window.__topeAgentes` y la memoria en `window.__cabida`
+        // (sin sembrar, `null`: el sistema no dijo cuánta tiene).
+        case "tope_agentes": return window.__topeAgentes ?? { porMemoria: true, comoMucho: 12 };
+        case "fijar_tope_agentes":
+          window.__topeAgentes = {
+            porMemoria: !!args.tope.porMemoria,
+            comoMucho: Math.min(12, Math.max(1, args.tope.comoMucho)),
+          };
+          return window.__topeAgentes;
+        case "cabida": return window.__cabida ?? null;
         default:
           throw new Error(`sin doble: ${cmd}`);
       }

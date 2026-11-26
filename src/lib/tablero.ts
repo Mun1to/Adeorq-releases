@@ -20,6 +20,7 @@ import { primerNumeroLibre, ptyHistorial, readBoard, terminalesVivas, type Termi
 import { dejarVolcado } from "./mudanza";
 import { parsear } from "./canvasFile";
 import { copiaYaCerrada } from "./copiaAparte";
+import { conTonos, tonoGuardado } from "./colorDeTerminal";
 import {
   entregarAlLienzo,
   espejoDeLaDuena,
@@ -52,6 +53,9 @@ export interface Pane {
       su cabecera. No se guarda con el tablero: al recrear el panel sale de su
       conversación (`delegacionDe` en `lib/delegadas.ts`). */
   abiertaPor?: string;
+  /** El tono de su cabecera (`lib/colorDeTerminal.ts`): se le da al nacer y no
+      cambia mientras viva, para reconocerla de un vistazo. */
+  tono?: number;
   shadow?: boolean;
   /** El espejo que YA tiene, cuando recoge tras una caída una terminal que
       corría en uno (`espejoDe` en `lib/reenganche.ts`). Sin esto montaría
@@ -122,6 +126,8 @@ export interface SavedPane {
       aparte, porque los ids se reparten de nuevo en cada arranque y una lista
       de números viejos apartaría terminales al azar. */
   minimizado?: boolean;
+  /** El tono de su cabecera: vuelve con el mismo color con que se fue. */
+  tono?: number;
   /** No era una terminal, eran estos archivos. Vuelven abiertos donde estaban,
       que cuesta lo mismo que olvidarlos y evita tener que buscarlos otra vez. */
   archivos?: string[];
@@ -208,6 +214,12 @@ export function useTableroGuardado({
   // `reparto-cuentas-de-verdad.mjs` (t75, 2026-11-03). El lienzo ya lo hacía
   // así (`puedeGuardar` en `CanvasView`).
   const [devuelto, setDevuelto] = useState(false);
+  // Cada terminal con su color desde que nace, nazca por donde nazca (un botón,
+  // el MCP, la barra, el tablero de antes de que existiera el tono): se le da
+  // aquí, en un solo sitio, y se guarda con lo demás.
+  useEffect(() => {
+    if (panes.some((p) => p.tono == null)) setPanes((prev) => conTonos(prev));
+  }, [panes, setPanes]);
   // Remember the board on every change, so a crash or an update loses nothing:
   // the same panes, in the same folders, with the same sizes.
   useEffect(() => {
@@ -230,6 +242,7 @@ export function useTableroGuardado({
         team: pane.team,
         grupo: pane.grupo,
         minimizado: minimizados.has(pane.id) || undefined,
+        tono: terminal ? pane.tono : undefined,
         archivos: pane.archivos,
         activo: pane.activo,
         web: pane.web,
@@ -335,6 +348,7 @@ export function useTableroGuardado({
               team: pane.team,
               grupo: pane.grupo,
               abiertaPor: delegacionDe(id, command),
+              tono: tonoGuardado(pane.tono),
               shadow: espejo ? true : undefined,
               espejo,
             },
@@ -409,6 +423,7 @@ export function useTableroGuardado({
             team: pane.team,
             grupo: pane.grupo,
             abiertaPor: delegacionDe(id, command),
+            tono: tonoGuardado(pane.tono),
             shadow: suya ? true : undefined,
             espejo: suya,
           },

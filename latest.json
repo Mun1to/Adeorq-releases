@@ -1,11 +1,11 @@
 {
-  "version": "0.9.268",
-  "notes": "Tus agentes abren solo las terminales que caben en la memoria libre, como mucho doce a la vez, y lo mismo al abrir de golpe las sesiones de un proyecto. Las decisiones que ya pasaron se pliegan solas en el PC y en el movil. Una cuenta que no dice su gasto solo recibe terminales si no queda otra.",
-  "pub_date": "2026-11-25T21:22:38Z",
+  "version": "0.9.269",
+  "notes": "La cabecera de cada terminal de la Cabina lleva un velo de su propio color, nueve tonos lejos del rojo, el amarillo y el azul del borde, para no confundirte de terminal. El borde sigue diciendo solo como esta cada una.",
+  "pub_date": "2026-11-26T15:54:25Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzljekxMdjBkNTU3NC9kT1p2WFFmbDJ4cGd3UVd0b09HWWZUOUtGZ3MyaFNNZUE1cFZJSDAzMy9PUU12dVVpUVFIV1VOYWh6eG1tTFYyTUltTEZoUnd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NjQxNzQ3CWZpbGU6QWRlb3JxXzAuOS4yNjhfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNjgKTFFhbFRQbHIrN3pWYmlxckIxTEFxcHFTdTlreHRFYmJzWE93TFl5WHZLQkkwT1hCeWsrYU9QRjYxeThaQzE2eU9GSjZSZ3A1dUVXQ1ZQR1FOMStHQ2c9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.268/Adeorq_0.9.268_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzA2N3JOU1E5MFlZcktZNEFDZWV2Yno3eFRCbnhXRjR4Qkw1cWlXYlAveU1BM1l6dldRVzZmYTlPVWlhbnlCaWc2WFMrekpkelJzaFBCb1BoZG1KNlFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NzA4NDU5CWZpbGU6QWRlb3JxXzAuOS4yNjlfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNjkKRzR3dlZWQWxzWVhQb2VzN052QnNSTURjUGgxcUpLSSs5Zy9aUHhXd2h4YXZOamlHRlExZmZSemgwbWZoeVg5dEhjZ2VtbmwwV28wcE5aMkQvY3dYREE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.269/Adeorq_0.9.269_x64-setup.exe"
     }
   }
 }

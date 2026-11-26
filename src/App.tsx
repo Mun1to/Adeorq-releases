@@ -113,6 +113,7 @@ import {
 } from "./lib/pty";
 import { leerPerfil, raiz } from "./lib/perfil";
 import { coloresDeProyectos, proyectoDeCarpeta } from "./lib/colorLienzo";
+import { conColorDeTerminal } from "./lib/colorDeTerminal";
 import { acabaDeReclamar, PINTA } from "./lib/estados";
 import { finReciente } from "./lib/finDeTurno";
 import { nombreDeRuta, trasCerrarPestana } from "./lib/arbol";
@@ -3058,7 +3059,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                     stream={stream}
                     onSecret={onSecret}
                     notifyMode={notifyMode}
-                    style={style}
+                    style={conColorDeTerminal(style, p.tono)}
                     onSwap={onSwap}
                     onHeaderDown={onHeaderDown}
                     onSacar={sacarFuera}

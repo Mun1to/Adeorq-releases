@@ -607,3 +607,38 @@
 :root[data-aspecto="liso"] :is(.lateral, .franja) {
   background: var(--as-pared);
 }
+
+/* ── 5. La cabecera de su color, en los cuatro ───────────────────────────────
+   Cada terminal de la Cabina lleva su color (`lib/colorDeTerminal.ts`, que lo
+   pone en `--color-term` en el estilo del panel), y su cabecera un velo de él
+   sobre el fondo de la cabecera de cada estilo (`--panel-head`, que los cuatro
+   declaran): Munir se confundía de terminal porque todas se veían iguales, y
+   eligió esta, la «Teñida», en el probador (2026-11-26). La letra se queda
+   como estaba, la elegida lleva un punto más de color y el borde no se toca:
+   alrededor de una terminal solo van los tres estados (`.pane-aro`). Va aquí,
+   al final y con la misma fuerza que la elegida de cada estilo, para ganarles
+   en los cuatro. El lienzo no entra: allí cada terminal ya lleva el color y el
+   logo de su proyecto. */
+:root .grid > .pane[style*="--color-term"] > .pane-head {
+  background: color-mix(in srgb, var(--color-term) 32%, var(--panel-head));
+  border-bottom-color: color-mix(in srgb, var(--color-term) 50%, transparent);
+}
+
+:root .grid > .pane[style*="--color-term"][data-focused="true"] > .pane-head {
+  background: color-mix(in srgb, var(--color-term) 46%, var(--panel-head));
+}
+
+/* En un tema claro, la elegida un punto menos: sobre blanco, el 46 % ya marca. */
+:root[data-claro] .grid > .pane[style*="--color-term"] > .pane-head {
+  background: color-mix(in srgb, var(--color-term) 30%, var(--panel-head));
+}
+
+:root[data-claro] .grid > .pane[style*="--color-term"][data-focused="true"] > .pane-head {
+  background: color-mix(in srgb, var(--color-term) 46%, var(--panel-head));
+}
+
+/* El proyecto deja el azul de la casa: un segundo color encima del velo se leía
+   revuelto. */
+:root .grid > .pane[style*="--color-term"] > .pane-head .pane-proj {
+  color: color-mix(in srgb, var(--text) 80%, transparent);
+}

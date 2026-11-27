@@ -2657,12 +2657,7 @@ pub(crate) fn transcript_de(cwd: &str, session_id: Option<&str>) -> Option<PathB
         .into_iter()
         .map(|(_, r)| r.join("projects").join(encode_claude(cwd)));
     match session_id.filter(|id| !id.is_empty()) {
-        // El id llega del front y va a una ruta: con barras, «..» o una ruta
-        // entera (que `join` toma tal cual) se leía cualquier `.jsonl` del disco.
-        Some(id) if !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') => None,
-        Some(id) => carpetas
-            .map(|d| d.join(format!("{id}.jsonl")))
-            .find(|p| p.exists()),
+        Some(id) => transcript_en(&carpetas.collect::<Vec<_>>(), id),
         None => carpetas
             .filter_map(|d| newest_transcript(&d))
             .max_by_key(|p| {
@@ -2671,6 +2666,88 @@ pub(crate) fn transcript_de(cwd: &str, session_id: Option<&str>) -> Option<PathB
                     .unwrap_or(SystemTime::UNIX_EPOCH)
             }),
     }
+}
+
+/// El id llega del front y va a una ruta: con barras, «..» o una ruta entera
+/// (que `join` toma tal cual) se leía cualquier `.jsonl` del disco.
+fn id_valido(id: &str) -> bool {
+    !id.is_empty() && id.len() <= 64 && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+}
+
+/// Cuántas conversaciones seguidas se siguen como mucho: una cadena que vuelve
+/// sobre sí misma (o una muy larga) no deja colgado a quien pregunta.
+const CONTINUA_SALTOS: usize = 8;
+/// Lo que se lee del final de un transcript para ver si sigue en otro.
+const CONTINUA_COLA: u64 = 64 * 1024;
+
+/// El transcript de la conversación `id` entre `carpetas`, y si Claude Code la
+/// siguió en otra, el de esa. Al reanudar una conversación muy larga, Claude
+/// Code cierra el transcript viejo con
+/// `{"type":"continued-in","continuedInSessionId":"<nueva>"}` y sigue
+/// escribiendo en `<nueva>.jsonl`, pero el panel nació con `--resume <vieja>`.
+/// Leída por el id del comando, la conversación se quedaba en el archivo viejo:
+/// `compactarme` contaba 116 compactaciones de la vieja en vez de 3, esperaba
+/// una más que nunca llegaba y no tecleaba el «seguir» (Orquio General,
+/// 26-nov, dos veces seguidas). Por aquí pasa todo lo que lee la conversación
+/// sabida de un panel: contexto, estado, última respuesta, compactaciones.
+fn transcript_en(carpetas: &[PathBuf], id: &str) -> Option<PathBuf> {
+    let buscar = |id: &str| {
+        id_valido(id)
+            .then(|| carpetas.iter().map(|d| d.join(format!("{id}.jsonl"))).find(|p| p.exists()))
+            .flatten()
+    };
+    let mut path = buscar(id)?;
+    let mut vistos = vec![path.clone()];
+    for _ in 0..CONTINUA_SALTOS {
+        let Some(siguiente) = continua_en(&path).and_then(|nuevo| buscar(&nuevo)) else {
+            break;
+        };
+        if vistos.contains(&siguiente) {
+            break;
+        }
+        vistos.push(siguiente.clone());
+        path = siguiente;
+    }
+    Some(path)
+}
+
+/// Lo sabido de cada transcript: (tamaño, fecha) y en qué conversación sigue.
+/// Esto se pregunta cada pocos segundos por cada panel, y un transcript que no
+/// ha cambiado sigue (o no) donde seguía.
+static CONTINUA: Mutex<Vec<(PathBuf, u64, Option<SystemTime>, Option<String>)>> = Mutex::new(Vec::new());
+const CONTINUA_MAX: usize = 32;
+
+/// La conversación en la que siguió la de `path`, mirando solo su último trozo
+/// (un transcript viejo pasa de 2 GB). Dentro del texto de un mensaje las
+/// comillas van escapadas, así que una línea citada no cuenta.
+fn continua_en(path: &Path) -> Option<String> {
+    let meta = std::fs::metadata(path).ok()?;
+    let (size, mtime) = (meta.len(), meta.modified().ok());
+    if let Ok(c) = CONTINUA.lock() {
+        if let Some((.., sigue)) = c.iter().find(|(p, s, m, _)| p == path && *s == size && *m == mtime) {
+            return sigue.clone();
+        }
+    }
+    let sigue = continua_en_cola(path, size);
+    if let Ok(mut c) = CONTINUA.lock() {
+        c.retain(|(p, ..)| p != path);
+        c.insert(0, (path.to_owned(), size, mtime, sigue.clone()));
+        c.truncate(CONTINUA_MAX);
+    }
+    sigue
+}
+
+fn continua_en_cola(path: &Path, size: u64) -> Option<String> {
+    const MARCA: &[u8] = br#"{"type":"continued-in""#;
+    let mut f = std::fs::File::open(path).ok()?;
+    let desde = size.saturating_sub(CONTINUA_COLA);
+    f.seek(SeekFrom::Start(desde)).ok()?;
+    let mut data = Vec::new();
+    f.take(size - desde).read_to_end(&mut data).ok()?;
+    let inicio = data.windows(MARCA.len()).rposition(|w| w == MARCA)?;
+    let linea = data[inicio..].split(|&b| b == b'\n').next()?;
+    let v: Value = serde_json::from_slice(linea).ok()?;
+    v["continuedInSessionId"].as_str().filter(|s| id_valido(s)).map(str::to_owned)
 }
 
 /// Most recent transcript of a folder: the stand-in for a pane running a fresh
@@ -2925,8 +3002,12 @@ pub async fn last_reply(
     session_id: Option<String>,
     max_chars: Option<usize>,
 ) -> Option<String> {
-    let path = transcript_de(&cwd, session_id.as_deref())?;
-    let lines = read_tail(&path).ok()?;
+    ultima_respuesta_de(&transcript_de(&cwd, session_id.as_deref())?, max_chars)
+}
+
+/// El cuerpo de `last_reply`, con el transcript ya localizado.
+fn ultima_respuesta_de(path: &Path, max_chars: Option<usize>) -> Option<String> {
+    let lines = read_tail(path).ok()?;
     for line in lines.iter().rev() {
         let Ok(v) = serde_json::from_str::<Value>(line) else {
             continue;
@@ -3548,6 +3629,84 @@ mod tests {
         let _ = std::fs::remove_dir_all(&base);
         assert_eq!(hallado.as_deref(), Some(exe.to_string_lossy().as_ref()));
         assert_eq!(solo_vacia, None);
+    }
+
+    /// Una respuesta del agente y una marca de compactación, como las escribe el CLI.
+    fn respuesta(texto: &str) -> String {
+        format!("{{\"type\":\"assistant\",\"message\":{{\"content\":[{{\"type\":\"text\",\"text\":\"{texto}\"}}]}}}}\n")
+    }
+    const COMPACTADA: &str = "{\"type\":\"system\",\"subtype\":\"compact_boundary\",\"compactMetadata\":{\"postTokens\":30000}}\n";
+    fn sigue_en(id: &str) -> String {
+        format!("{{\"type\":\"continued-in\",\"timestamp\":\"2026-11-26T17:57:29.314Z\",\"sessionId\":\"x\",\"continuedInSessionId\":\"{id}\"}}\n")
+    }
+
+    /// El panel 3 nació con `--resume <vieja>` y Claude Code siguió la
+    /// conversación en otra (`continued-in`): compactaciones, última respuesta
+    /// y contexto se leían del archivo viejo, y `compactarme` esperaba para
+    /// siempre una compactación que caía en el nuevo (Orquio General, 26-nov).
+    #[test]
+    fn una_conversacion_seguida_en_otra_se_lee_de_la_nueva() {
+        let dir = std::env::temp_dir().join(format!("adeorq-continua-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let viejo = format!("{}{COMPACTADA}{COMPACTADA}{}{{\"type\":\"bridge-session\"}}\n{}", respuesta("vieja"), respuesta("vieja otra vez"), sigue_en("nuevo"));
+        std::fs::write(dir.join("viejo.jsonl"), viejo).unwrap();
+        std::fs::write(dir.join("nuevo.jsonl"), format!("{}{COMPACTADA}{}", respuesta("antes"), respuesta("nueva"))).unwrap();
+        let carpetas = [dir.clone()];
+        let p = transcript_en(&carpetas, "viejo");
+        let veces = p.as_deref().map(|p| crate::compactaciones::contar(p).unwrap());
+        let ultima = p.as_deref().and_then(|p| ultima_respuesta_de(p, None));
+        let sesion = p.as_deref().and_then(context_de).map(|c| c.session_id);
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(p, Some(dir.join("nuevo.jsonl")), "se quedó en el transcript viejo");
+        assert_eq!(veces, Some(1), "contó las compactaciones del viejo");
+        assert_eq!(ultima.as_deref(), Some("nueva"));
+        assert_eq!(sesion.as_deref(), Some("nuevo"));
+    }
+
+    /// Varias seguidas se siguen hasta la última; una que vuelve sobre sí
+    /// misma, la que falta en el disco o una citada en un mensaje no se siguen.
+    #[test]
+    fn la_cadena_de_continuaciones_tiene_fin() {
+        let dir = std::env::temp_dir().join(format!("adeorq-continua-cadena-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("a.jsonl"), sigue_en("b")).unwrap();
+        std::fs::write(dir.join("b.jsonl"), sigue_en("c")).unwrap();
+        std::fs::write(dir.join("c.jsonl"), respuesta("c")).unwrap();
+        std::fs::write(dir.join("x.jsonl"), sigue_en("y")).unwrap();
+        std::fs::write(dir.join("y.jsonl"), sigue_en("x")).unwrap();
+        std::fs::write(dir.join("solo.jsonl"), sigue_en("no-existe")).unwrap();
+        let citada = "{\"type\":\"user\",\"message\":{\"content\":\"{\\\"type\\\":\\\"continued-in\\\",\\\"continuedInSessionId\\\":\\\"c\\\"}\"}}\n";
+        std::fs::write(dir.join("citada.jsonl"), citada).unwrap();
+        std::fs::write(dir.join("fuera.jsonl"), sigue_en("../c")).unwrap();
+        let carpetas = [dir.clone()];
+        let de = |id: &str| transcript_en(&carpetas, id).and_then(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned()));
+        let (a, x, solo, citada, fuera) = (de("a"), de("x"), de("solo"), de("citada"), de("fuera"));
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(a.as_deref(), Some("c"));
+        assert!(matches!(x.as_deref(), Some("x" | "y")), "el bucle dio {x:?}");
+        assert_eq!(solo.as_deref(), Some("solo"));
+        assert_eq!(citada.as_deref(), Some("citada"));
+        assert_eq!(fuera.as_deref(), Some("fuera"));
+    }
+
+    /// Con una conversación de verdad, a dónde lleva y cuánto tarda:
+    /// `CWD="C:\proyectos" SESION=<id> cargo test --lib mide_una_continuacion -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn mide_una_continuacion() {
+        let cwd = std::env::var("CWD").expect("CWD=<carpeta del panel>");
+        let id = std::env::var("SESION").expect("SESION=<id de su comando>");
+        let t = std::time::Instant::now();
+        let p = transcript_de(&cwd, Some(&id)).expect("sin transcript");
+        let primera = t.elapsed();
+        let t = std::time::Instant::now();
+        assert_eq!(transcript_de(&cwd, Some(&id)).as_ref(), Some(&p));
+        let segunda = t.elapsed();
+        let veces = crate::compactaciones::contar(&p).unwrap();
+        let ultima = ultima_respuesta_de(&p, Some(80)).unwrap_or_default();
+        println!("{id} -> {}: {veces} compactaciones; {primera:?} la primera vez, {segunda:?} la segunda; «{ultima}»", p.display());
     }
 
     /// El id de sesión llega del front y acaba en una ruta: con barras o «..»

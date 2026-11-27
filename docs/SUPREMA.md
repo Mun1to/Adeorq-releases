@@ -352,6 +352,14 @@ se autocompacte con el skill de fin mensaje de compactación + que se retome aut
   cada 3 s además de oírla. Desde el mismo día lo hacen también el botón, la raya roja y
   `compactar_terminal` (`mirarSinCampana`), y el fin de turno de la pantalla hace de campana
   (`lib/finDeTurno.ts`): lo medido y lo que no ve, en `docs/contexto/fin-de-turno.md`.
+- **Una conversación seguida en otra** (2026-11-27): al reanudar una muy larga, Claude Code cierra
+  el transcript viejo con `{"type":"continued-in","continuedInSessionId":…}` y escribe en el
+  nuevo, pero el panel sigue con el id de su `--resume`. `compactarme` contaba las 116
+  compactaciones del viejo, esperaba una más que caía en el nuevo y a los 30 min se rendía sin
+  teclear el «seguir» (Orquio General, dos veces el 26-nov). `transcript_en` en `sessions.rs`
+  sigue la cadena (64 KB del final, 8 saltos, sin bucles) y todo lo que lee la conversación
+  sabida pasa por ahí. Medido: `cargo test --lib -- continua seguida` (en rojo sin seguirla) y
+  `mide_una_continuacion` con el transcript de verdad (3 compactaciones, 3,7 ms).
 - **La skill `/fin`** (`~/.claude/skills/fin/SKILL.md`, §5): dentro de Adeorq llama a
   `compactarme` con su bloque y lo dice en una línea; `/fin sin compactar` se lo salta.
 - **Medido:** `pnpm bancos contexto` (los casos de `compactarme`; sin la lectura asentada o sin el

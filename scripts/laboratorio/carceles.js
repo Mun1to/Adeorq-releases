@@ -58,8 +58,12 @@ async (page) => {
       const cs = getComputedStyle(el);
       if (cs.visibility === "hidden" || parseFloat(cs.opacity) === 0) continue;
       if (!(parseFloat(cs.borderTopLeftRadius) > 0 || parseFloat(cs.borderBottomRightRadius) > 0)) continue;
-      const borde = ["Top", "Right", "Bottom", "Left"].some((l) => parseFloat(cs[`border${l}Width`]) > 0 && cs[`border${l}Style`] !== "none" && !transparente(cs[`border${l}Color`]));
       const tinte = !transparente(cs.backgroundColor) && alfa(cs.backgroundColor) < 0.9;
+      // Un borde del mismo color que un relleno opaco no se ve: es el botón
+      // principal de la forma Contraste (lleno, con su filo del mismo blanco
+      // para medir lo mismo que el fantasma de al lado), no un marco.
+      const opaco = !transparente(cs.backgroundColor) && !tinte;
+      const borde = ["Top", "Right", "Bottom", "Left"].some((l) => parseFloat(cs[`border${l}Width`]) > 0 && cs[`border${l}Style`] !== "none" && !transparente(cs[`border${l}Color`]) && !(opaco && cs[`border${l}Color`] === cs.backgroundColor));
       // Relleno opaco y sin borde es un botón principal, no una cárcel.
       if (!borde && !tinte) continue;
       // ¿Encierra poco? Un texto corto o un icono, sin nada más dentro.

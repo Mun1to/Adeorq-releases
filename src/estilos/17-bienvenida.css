@@ -431,6 +431,11 @@
   box-shadow: var(--glass-edge), var(--sombra-3);
 }
 
+/* Buscando todavía su sitio: se mide, pero no se ve. */
+.tour-globo[data-buscando] {
+  visibility: hidden;
+}
+
 .tour-cuenta {
   display: flex;
   align-items: center;

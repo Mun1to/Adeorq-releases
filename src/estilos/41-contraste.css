@@ -1093,8 +1093,10 @@
   font-weight: 650;
 }
 
+/* El contador de la pestaña elegida también: con el color del acento (`07-ajustes.css`) era
+   invisible en los temas donde lo lleno ES el acento (Claro: azul sobre azul, 2026-11-27). */
 :where(:root)
-  :is(.set-tab[data-on] svg, .set-tab[data-on] .set-tab-chev, .choice[data-on="true"] svg, .cj-pestana[data-on="true"] svg) {
+  :is(.set-tab[data-on] svg, .set-tab[data-on] .set-tab-chev, .set-tab[data-on] .set-tab-badge, .choice[data-on="true"] svg, .cj-pestana[data-on="true"] svg) {
   color: var(--c3-sobre-blanco);
 }
 

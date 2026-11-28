@@ -1,0 +1,125 @@
+/* Perfil › Cuentas › «En la web» (`CuentasWeb.tsx`, 2026-11-27): en qué webs tiene sesión el
+   navegador de los agentes. La misma cara que «Tus cuentas»: el renglón de resumen
+   (`.accounts-linea`) y la lista sobre su cristal (`.accounts-groups`), con cada web en una fila
+   suelta. Sin rayas entre filas ni cajas alrededor del estado: lo separa el aire, y el estado es
+   la palabra con su color. */
+
+.cweb-lista {
+  padding: 12px 14px 14px;
+}
+
+.cweb-grupo + .cweb-grupo {
+  margin-top: 18px;
+}
+
+.cweb-titulo {
+  margin: 4px 10px 8px;
+  font-size: 15.5px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+/* El aviso de las que mandan sobre una web en vivo, una vez para todo el bloque y en la tinta
+   entera: es de los que hay que leer. */
+.cweb-aviso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -2px 10px 10px;
+  font-size: 13.5px;
+  color: var(--text);
+}
+
+.cweb-aviso .icono-aviso,
+.cweb-nota .icono-aviso {
+  flex: none;
+  color: var(--warn);
+}
+
+/* Dos columnas en cuanto caben, para no dejar media hoja vacía en un monitor ancho. */
+.cweb-filas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+  gap: 2px 28px;
+}
+
+/* El estado y los botones en columnas de ancho fijo: así «Dentro» y «Quitar» caen en la misma
+   vertical en todas las filas, lleve cada una uno o dos botones. */
+.cweb-fila {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 92px 164px;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 7px 10px;
+  border-radius: var(--r-btn);
+  transition: background var(--t-rapida) ease;
+}
+
+.cweb-fila:hover {
+  background: var(--row);
+}
+
+.cweb-logo {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+}
+
+.cweb-nombre {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cweb-nombre b {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+/* En dos renglones si hace falta, nunca cortada con «…»: el porqué de una bloqueada se tiene
+   que leer entero. */
+.cweb-sub {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+.cweb-lado {
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+  color: var(--muted);
+}
+
+.cweb-lado[data-lado="dentro"] {
+  color: var(--ok);
+}
+
+/* Una bloqueada con sesión no debería tenerla: en rojo, que es lo que pide hacer algo. */
+.cweb-fila[data-grupo="bloqueado"] .cweb-lado[data-lado="dentro"] {
+  color: var(--mal);
+}
+
+.cweb-botones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.cweb-nota {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.cweb-nota b {
+  color: var(--text);
+}

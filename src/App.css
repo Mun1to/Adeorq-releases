@@ -152,3 +152,6 @@
 
 /* Ajustes › Salud: la hora de cierre de cada noche (2026-11-24). */
 @import "./estilos/44-salud.css";
+
+/* Perfil › Cuentas › En la web: las sesiones del navegador de los agentes (2026-11-27). */
+@import "./estilos/45-cuentas-web.css";

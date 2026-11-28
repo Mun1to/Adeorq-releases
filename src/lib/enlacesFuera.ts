@@ -11,7 +11,15 @@ export function abrirEnlacesFuera(e: React.MouseEvent): void {
   const a = (e.target as HTMLElement | null)?.closest?.("a[href]");
   if (!a) return;
   const href = a.getAttribute("href") ?? "";
-  if (!/^https?:\/\//i.test(href)) return;
+  if (!esWeb(href)) return;
   e.preventDefault();
-  void openUrl(href).catch(() => {});
+  abrirDireccionFuera(href);
 }
+
+/** Una dirección suelta, como la de un enlace de una terminal: solo `http(s)`,
+ *  y en tu navegador. */
+export function abrirDireccionFuera(href: string): void {
+  if (esWeb(href)) void openUrl(href).catch(() => {});
+}
+
+const esWeb = (href: string) => /^https?:\/\//i.test(href);

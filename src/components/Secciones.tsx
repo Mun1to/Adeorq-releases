@@ -59,6 +59,7 @@ export default function Secciones({ memoria, secciones, children }: Props) {
           <button
             key={s.id}
             className="set-tab"
+            data-seccion={s.id}
             data-on={activa === s.id || undefined}
             onClick={() => irA(s.id)}
           >

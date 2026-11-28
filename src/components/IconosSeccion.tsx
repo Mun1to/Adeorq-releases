@@ -44,6 +44,14 @@ export const IconoCuentas = () => (
   </Svg>
 );
 
+/** El globo de la web: las sesiones del navegador de los agentes. */
+export const IconoWeb = () => (
+  <Svg>
+    <circle cx="12" cy="12" r="8.8" {...P} />
+    <path d="M3.4 12h17.2M12 3.2c2.4 2.4 3.6 5.3 3.6 8.8s-1.2 6.4-3.6 8.8c-2.4-2.4-3.6-5.3-3.6-8.8S9.6 5.6 12 3.2Z" {...P} />
+  </Svg>
+);
+
 /** La llave de una clave de API. */
 export const IconoLlave = () => (
   <Svg>

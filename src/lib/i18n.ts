@@ -1648,6 +1648,46 @@ const EN: Record<string, string> = {
   "Cómo la llamas (p. ej. Trabajo). Nunca tu correo.":
     "What you call it (e.g. Work). Never your email.",
   "Quitar cuenta": "Remove account",
+  // Cuentas › En la web: las sesiones del navegador de los agentes (`CuentasWeb.tsx`).
+  "En la web": "On the web",
+  "Webs en vivo": "Live websites",
+  Bloqueadas: "Blocked",
+  "Bancos y pagos": "Banks and payments",
+  "Nunca con un navegador automático: lo prohíbe LinkedIn y es tu regla.":
+    "Never with an automated browser: LinkedIn forbids it, and it is your rule.",
+  "Cobros y pagos: ningún agente entra ahí.": "Charges and payments: no agent goes in there.",
+  "Tu dinero: nunca en el navegador de los agentes.": "Your money: never in the agents' browser.",
+  "Con tu sesión de {w}": "Uses your {w} session",
+  "con {c}": "as {c}",
+  "hasta el {f}": "until {f}",
+  Dentro: "Signed in",
+  Fuera: "Signed out",
+  "No se sabe": "Unknown",
+  "Esta web no deja ver desde fuera si has entrado.": "This site does not show from outside whether you are signed in.",
+  "{w} está abierta en una pestaña del navegador de los agentes. Entra allí.":
+    "{w} is open in a tab of the agents' browser. Sign in there.",
+  "con sesión abierta": "signed in",
+  "de {n} webs": "of {n} websites",
+  "bloqueada con sesión": "blocked site signed in",
+  "bloqueadas con sesión": "blocked sites signed in",
+  "quítala abajo": "remove it below",
+  "quítalas abajo": "remove them below",
+  Cerrado: "Closed",
+  "el navegador de los agentes": "the agents' browser",
+  "Añadir abre una pestaña en él": "Add opens a tab in it",
+  "Añadir abre una ventana suya": "Add opens one of its windows",
+  "Estás entrando en {w}.": "You are signing in to {w}.",
+  "Cuando acabes, cierra esa ventana": "When you are done, close that window",
+  ": mientras siga abierta, los agentes no pueden usar el navegador.":
+    ": while it stays open, the agents cannot use the browser.",
+  "Lo de las {h}: ahora no se puede leer.": "As of {h}: it cannot be read right now.",
+  "Cualquier agente con este navegador puede tocar tu web en vivo.":
+    "Any agent with this browser can change your live website.",
+  "Quitar {w}": "Remove {w}",
+  "El navegador de los agentes cierra tu sesión de {w}: ningún agente podrá entrar con ella. Para volver a usarla, la añades otra vez.":
+    "The agents' browser signs you out of {w}: no agent will be able to use it. To use it again, add it back.",
+  "Para borrarla, el navegador de los agentes se abre un momento.":
+    "To remove it, the agents' browser opens for a moment.",
   "Varias cuentas TUYAS, sin problema. Turnarte cuentas de otras personas para estirar los límites incumple los términos de Anthropic y lo que te juegas es el cierre de la cuenta.":
     "Several accounts of YOUR OWN, no problem. Rotating other people's accounts to stretch limits breaks Anthropic's terms, and what you risk is losing the account.",
 

@@ -1,4 +1,30 @@
 {
+  "0.9.271": [
+    {
+      "vista": "cuentas",
+      "donde": ["[data-seccion=\"web\"]"],
+      "es": {
+        "titulo": "Dónde tienen sesión tus agentes",
+        "texto": "«En la web» te dice en qué webs tiene la sesión abierta el navegador que usan tus agentes. Desde aquí entras en una nueva o cierras la que sobre."
+      },
+      "en": {
+        "titulo": "Where your agents are signed in",
+        "texto": "«On the web» tells you which sites the browser your agents use is signed in to. From here you sign in to a new one or sign out of one you do not want."
+      }
+    },
+    {
+      "vista": "cabina",
+      "donde": ["[data-tab=\"cabina\"]"],
+      "es": {
+        "titulo": "Los enlaces de las terminales se abren",
+        "texto": "Un enlace que pinta un agente en su terminal se abre en tu navegador con un clic, sin pasos de más."
+      },
+      "en": {
+        "titulo": "Links in your terminals open",
+        "texto": "A link an agent prints in its terminal opens in your browser with one click, no extra steps."
+      }
+    }
+  ],
   "0.9.270": [],
   "0.9.269": [],
   "0.9.268": [

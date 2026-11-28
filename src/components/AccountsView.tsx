@@ -22,7 +22,10 @@ import {
   IconoCuentas,
   IconoDescargar,
   IconoLlave,
+  IconoWeb,
 } from "./IconosSeccion";
+import CuentasWeb from "./CuentasWeb";
+import { contarDentro, hayCuentasWeb, useCuentasWeb } from "../lib/cuentasWeb";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import {
   accountReady,
@@ -216,6 +219,9 @@ export default function AccountsView({
   const [atajosProv, setAtajosProv] = useState<string[]>(() => leerAtajosProv());
   /** Ver lib/velo.ts: distingue pinchar el velo de soltar ahi un arrastre. */
   const bajoEnVelo = useRef(false);
+  /** Las sesiones del navegador de los agentes («En la web»). Sin ese navegador en este
+      equipo, la sección no sale. */
+  const [web, releerWeb] = useCuentasWeb();
 
   const allOf = useCallback(
     (p: Provider): Account[] => [
@@ -668,6 +674,16 @@ export default function AccountsView({
             icon: <IconoCuentas />,
             badge: resumen.conectadas || "",
           },
+          ...((web ? web.disponible : hayCuentasWeb())
+            ? [
+                {
+                  id: "web",
+                  label: "En la web",
+                  icon: <IconoWeb />,
+                  badge: (web && contarDentro(web.sitios)) || "",
+                },
+              ]
+            : []),
           { id: "claves", label: "Claves de API", icon: <IconoLlave /> },
           { id: "atajos", label: "Atajos", icon: <IconoAtajo />, badge: atajosProv.length || "" },
           {
@@ -681,6 +697,7 @@ export default function AccountsView({
         {(activa) => (
           <>
             {activa === "cuentas" && SeccionCuentas()}
+            {activa === "web" && web && <CuentasWeb estado={web} releer={releerWeb} />}
             {activa === "claves" && (
               <>
                 <OpenRouterCard

@@ -12,7 +12,7 @@
 //
 // Lo que fija:
 //   · La imagen de la pregunta y la de cada opción salen a todo el ancho, con su
-//     sitio guardado: las imágenes llegan 1,5 s tarde y nada se mueve al llegar.
+//     sitio guardado: las imágenes llegan 3 s tarde y nada se mueve al llegar.
 //   · Se piden por el id de la decisión y su número, con la clave.
 //   · Tocar la imagen la abre en grande y NO elige la opción (ni pasa de
 //     pregunta por debajo); un toque la pone a su tamaño; el Atrás del teléfono
@@ -47,7 +47,7 @@ async (page) => {
   const sembrar = (v) => page.request.post(`${B}/api/sembrar-decision`, { headers: AUT, data: v });
   const ID = "d19a2b3c5f1";
   await sembrar({
-    id: ID, titulo: "Portada: los datos de la derecha", proyecto: "Adeorq", panel: 1, tardaImagenes: 1500,
+    id: ID, titulo: "Portada: los datos de la derecha", proyecto: "Adeorq", panel: 1, tardaImagenes: 3000,
     imagenes: [{ n: 1, ancho: 1200, alto: 600 }, { n: 2, ancho: 390, alto: 844 }, { n: 3, ancho: 1920, alto: 1080 }],
     preguntas: [
       { id: "A", titulo: "¿Cómo quieres los tres datos de la derecha del título?", imagen: { n: 1, tipo: "image/png", ancho: 1200, alto: 600 }, opciones: [
@@ -79,9 +79,13 @@ async (page) => {
     // 1. Al entrar, los huecos ya están; las imágenes llegan tarde y nada se mueve.
     await page.goto(`${B}/?r=${tema}#decision=${ID}`);
     await page.waitForSelector('.pregunta-d:not([hidden]) .dec-foto');
-    // La pantalla y la pregunta entran desde 14 px a la derecha (`entra`, 0,24 s):
-    // medido a media entrada, todo sale corrido y la página parece desbordar.
-    await espera(450);
+    // La pantalla y la pregunta entran desde 14 px a la derecha cada una (`entra`,
+    // 0,24 s): medido a media entrada, todo sale corrido y la página parece
+    // desbordar. Se espera a que acabe y no un tiempo fijo, porque en la primera
+    // carga la animación se queda en su fotograma 0 unos 700 ms antes de echar a
+    // andar (medido el 2026-11-28: a los 450 ms las opciones salían en x 44, las
+    // dos entradas sin empezar, y después en 16, y parecía que las movía la imagen).
+    await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.animationName === "entra").map((a) => a.finished.catch(() => {}))));
     const antes = await medir();
     debe(antes.fotos.every((f) => f.img === 0), `${tema}: las imágenes todavía no han llegado al medir el antes`);
     await page.waitForFunction(() => [...document.querySelectorAll('.pregunta-d:not([hidden]) .dec-foto img')].every((i) => i.complete && i.naturalWidth > 0), null, { timeout: 8000 });

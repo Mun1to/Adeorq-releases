@@ -1,11 +1,11 @@
 {
-  "version": "0.9.270",
-  "notes": "Un encargo grande se reparte por fases entre terminales, y una terminal que se compacta sola vuelve a seguir sola aunque Claude Code haya pasado su conversacion a otro archivo",
-  "pub_date": "2026-11-27T00:32:48Z",
+  "version": "0.9.271",
+  "notes": "Perfil Cuentas trae En la web: en que webs tiene sesion el navegador de tus agentes, con Anadir y Quitar. Los enlaces de las terminales se abren en tu navegador. El contador de la pestana elegida se ve en los temas claros.",
+  "pub_date": "2026-11-28T02:12:45Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3krYTYxamZVVGVoTzRCczhQc2w4YUNtc2dKNERsSHYxeFNDTHpXU1NweGVEOXhaRCtURVJRc05FaE82UUJlMktXZ3NyVFFVaGQ2TVFacmpCdmxvVWdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NzM5NTYxCWZpbGU6QWRlb3JxXzAuOS4yNzBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNzAKZzlkYU03R2J3OFdxSnhmUkxPN0ZBWW5XZ0JHbUE1ZEh2VU5rQ0xDdkJJcU1sdldBaGJxUm1iMFpjNjVRZ0RNYit2eitqZ3dKck5BbTBUL2htT1ZNQUE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.270/Adeorq_0.9.270_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzNCMms3Rjl5NFF6cTBmdVl0OUczSmdpYms2WjVQZ21odm0vMmxNNlg4dzJhclJsNFY4YlVka0sxUlNlUU9qL1RScmhLa3kyK0s3SjdZZTZZYUQya0FrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1ODMxOTU3CWZpbGU6QWRlb3JxXzAuOS4yNzFfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNzEKeC9jQjlnWEhlblN0ZHpVY0dTVU1yeER4K3p2bWV3dG50Wk1lYjMvckhGZVNHZXUzOW9ZMnVKWmxPRS90V01VQWgyc1ZjQkFtSVZzRi8xY2k2eGpIRHc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.271/Adeorq_0.9.271_x64-setup.exe"
     }
   }
 }

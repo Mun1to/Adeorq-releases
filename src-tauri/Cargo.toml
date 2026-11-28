@@ -1,6 +1,6 @@
 [package]
 name = "adeorq"
-version = "0.9.270"
+version = "0.9.271"
 description = "El ADE de la casa: panel de vibe coding con terminales reales"
 authors = ["Munir Torres Athayde"]
 license = "AGPL-3.0-only"
@@ -135,6 +135,10 @@ windows-sys = { version = "0.61.2", features = [
     "Win32_Graphics_Gdi",
     "Win32_Graphics_Dwm",
     "Win32_UI_Input_KeyboardAndMouse",
+    # LoadLibraryExW y GetProcAddress: el SQLite que trae Windows (`winsqlite3.dll`),
+    # para leer las cookies del navegador de los agentes sin meter una librería de
+    # SQLite entera en el árbol (`cuentas_web.rs`).
+    "Win32_System_LibraryLoader",
 ] }
 # WinRT media transport controls (what is playing, next/previous) plus Core
 # Audio for per-app volume: no Spotify account, no OAuth, no Premium needed.

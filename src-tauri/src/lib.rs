@@ -4,6 +4,7 @@ mod bots;
 mod bots_conexion;
 mod bots_yaml;
 mod claude_conexion;
+mod cuentas_web;
 mod autostart;
 mod cierre;
 mod compactaciones;
@@ -678,6 +679,9 @@ pub fn run() {
             claude_conexion::claude_conexiones,
             claude_conexion::claude_conectar,
             claude_conexion::claude_desconectar,
+            cuentas_web::cuentas_web_estado,
+            cuentas_web::cuentas_web_anadir,
+            cuentas_web::cuentas_web_quitar,
             bots::bots_guardar,
             bots::bots_clave_poner,
             bots::bots_clave_quitar,

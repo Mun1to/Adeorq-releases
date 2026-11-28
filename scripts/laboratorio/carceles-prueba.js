@@ -6,8 +6,9 @@
 // Monta una página de mentira con una pieza de cada clase y pasa el detector
 // por ella: una píldora falsa, un tinte hecho con `color-mix` (el punto ciego
 // que tuvo), iconos metidos en su cuadro (también un `.mini` de solo icono, que
-// la lista de aprobadas no debe tapar), tres aprobadas, y tres que no son
-// cárceles (el botón principal relleno, una casilla de datos y una tarjeta).
+// la lista de aprobadas no debe tapar), un lleno con un filo de otro color,
+// tres aprobadas, y cuatro que no son cárceles (el botón principal relleno, el
+// mismo con su filo del color del relleno, una casilla de datos y una tarjeta).
 // Devuelve `fallos` con lo que no salió como debe; vacío, todo bien.
 async (page) => {
   const { readFileSync } = await import("node:fs");
@@ -23,6 +24,8 @@ async (page) => {
       .ag-cal-celda { padding: 6px; border-radius: 8px; border: none; background: rgba(255, 255, 255, 0.05); color: inherit; }
       kbd { padding: 1px 6px; border-radius: 4px; border: 1px solid #5a6478; }
       .t-principal { padding: 8px 16px; border-radius: 6px; border: none; background: #1f6fe0; color: #fff; }
+      .t-principal-filo { padding: 8px 16px; border-radius: 6px; border: 1px solid #ffffff; background: #ffffff; color: #000; }
+      .t-principal-otro-filo { padding: 8px 16px; border-radius: 6px; border: 1px solid #5a6478; background: #ffffff; color: #000; }
       .t-celda { padding: 4px; border-radius: 3px; background: rgba(77, 159, 255, 0.4); }
       .t-tarjeta { padding: 12px; border-radius: 8px; border: 1px solid #5a6478; max-width: 240px; }
     </style>
@@ -35,6 +38,8 @@ async (page) => {
     <button class="ag-cal-celda">28</button>
     <kbd>Ctrl+K</kbd>
     <button class="t-principal">Guardar</button>
+    <button class="t-principal-filo">Conectar</button>
+    <button class="t-principal-otro-filo">Escribirlo</button>
     <span class="t-celda" data-celda="">5</span>
     <div class="t-tarjeta"><h3>Una tarjeta</h3><p>Con contenido de verdad, varias piezas y más de una línea de texto dentro.</p><p>Otra línea.</p></div>
   `);
@@ -54,9 +59,11 @@ async (page) => {
   debe(aprobada("en button.ag-cal-celda") && !cazada("ag-cal-celda"), "no se salta el día de la Agenda (C)");
   debe(aprobada("en kbd") && !cazada("en kbd"), "no se salta la tecla dibujada (B)");
   debe(r.aprobadas.every((a) => / · aprobada el 2026-10-17: /.test(a)), "una aprobada no dice su fecha y para qué es");
-  debe(!cazada("t-principal"), "caza el botón principal relleno, que no es cárcel");
+  debe(!cazada("en button.t-principal ("), "caza el botón principal relleno, que no es cárcel");
+  debe(!cazada("t-principal-filo"), "caza el principal lleno con su filo del mismo color (la forma Contraste), que no se ve");
+  debe(cazada("«Escribirlo» en button.t-principal-otro-filo (borde)"), "no caza un lleno con un filo de otro color, que sí se ve");
   debe(!cazada("t-celda"), "caza una casilla de datos (data-celda)");
   debe(!cazada("t-tarjeta"), "caza una tarjeta con contenido de verdad");
-  debe(r.fallos.length === 5, `esperaba 5 cárceles y salen ${r.fallos.length}: ${r.fallos.join(" | ")}`);
+  debe(r.fallos.length === 6, `esperaba 6 cárceles y salen ${r.fallos.length}: ${r.fallos.join(" | ")}`);
   return { fallos, detector: r };
 }

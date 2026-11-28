@@ -8,6 +8,7 @@ import { apuntarDiagnostico, describirPanel } from "../lib/diagnosticoPanel";
 import { repararBufer } from "../lib/xtermReparar";
 import { lineaQueCuenta, useClaudeTecleado } from "../lib/claudeTecleado";
 import { SearchAddon } from "@xterm/addon-search";
+import { abrirDireccionFuera } from "../lib/enlacesFuera";
 import {
   anotarRastro,
   iniciales,
@@ -1104,6 +1105,10 @@ export default function TerminalPane({
        * con un panel táctil puede sentirse arrastrado, y eso no hay forma de
        * medirlo desde aquí. Ver `lib/suavizado.ts`. */
       smoothScrollDuration: suavizado(),
+      /* Un enlace (OSC 8) se abre en tu navegador, como los del chat: sin esto
+       * xterm pregunta con un `confirm()` que esta ventana no puede enseñar.
+       * Ver `docs/contexto/terminales.md`, «Un enlace de una terminal». */
+      linkHandler: { activate: (_e, uri) => abrirDireccionFuera(uri) },
       // Solo cuando de verdad hay algo que dejar ver detrás. Ver `esFondoSolido`.
       allowTransparency: !esFondoSolido(),
       theme: temaDeXterm(),

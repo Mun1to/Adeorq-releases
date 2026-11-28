@@ -338,6 +338,9 @@ export default function Tour({
       )}
       <div
         className="tour-globo"
+        // Buscando su sitio, no se ve: si no aparece, la parada se salta y no
+        // debe asomar su texto (la de «En la web» en un equipo sin el navegador).
+        data-buscando={!principal || undefined}
         style={estilo}
         ref={(n) => {
           if (n && Math.abs(n.offsetHeight - altoGlobo) > 2) setAltoGlobo(n.offsetHeight);
